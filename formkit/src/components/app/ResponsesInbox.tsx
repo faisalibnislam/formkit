@@ -38,7 +38,6 @@ export function ResponsesInbox({
   const [term, setTerm] = useState("");
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState<string | null>(openId ?? null);
-  const [note, setNote] = useState("");
   const [emailTo, setEmailTo] = useState("");
 
   const data = useQuery(api.responses.list, {
@@ -47,7 +46,6 @@ export function ResponsesInbox({
     search: term || undefined,
   });
   const setStatus = useMutation(api.responses.setStatus);
-  const addNote = useMutation(api.responses.addNote);
   const remove = useMutation(api.responses.remove);
   const exportByEmail = useAction(api.notifications.exportByEmail);
 
@@ -59,7 +57,6 @@ export function ResponsesInbox({
     if (current && current.status === "new") {
       void setStatus({ ids: [current._id], status: "read" });
     }
-    setNote(current?.note ?? "");
   }, [current, setStatus]);
 
   function toggle(id: string) {
@@ -254,106 +251,9 @@ export function ResponsesInbox({
               Pick a response and it opens here.
             </p>
           ) : (
-            <>
-              <h3 style={{ marginBottom: 2 }}>
-                {current.respondentName ?? current.respondentEmail ?? "Someone"}
-              </h3>
-              <p className="fk-panel-lede" style={{ marginBottom: 14 }}>
-                {fullTime(current.submittedAt)}
-                {current.device ? ` · ${current.device}` : ""}
-                {current.source ? ` · ${current.source}` : ""}
-              </p>
-
-              {current.partial && current.resumeToken && (
-                <div className="fk-note" style={{ marginBottom: 14, display: "block" }}>
-                  <p style={{ margin: "0 0 10px" }}>
-                    They stopped after {current.answeredCount} of {current.totalCount} questions.
-                    This link puts them back where they left off.
-                  </p>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={async () => {
-                      const link = `${window.location.origin}/r/${current.resumeToken}`;
-                      await navigator.clipboard.writeText(link);
-                      toast("Resume link copied");
-                    }}
-                  >
-                    Copy the resume link
-                  </Button>
-                </div>
-              )}
-
-              <div>
-                {current.answers.map((a, i) => (
-                  <div key={i} className="fk-answer">
-                    <div className="fk-answer-q">{a.question}</div>
-                    <div className="fk-answer-a">
-                      {a.fileName ? (
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
-                          <Paperclip size={15} strokeWidth={1.8} aria-hidden />
-                          {a.fileName}
-                        </span>
-                      ) : (
-                        a.value || <span style={{ color: "var(--color-text-tertiary)" }}>Not answered</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {current.files.length > 0 && (
-                <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
-                  {current.files.map(
-                    (f, i) =>
-                      f.url && (
-                        <a key={i} href={f.url} download={f.name} className="fk-chip" style={{ width: "fit-content" }}>
-                          Download {f.name}
-                        </a>
-                      ),
-                  )}
-                </div>
-              )}
-
-              <div style={{ marginTop: 18 }}>
-                <Textarea
-                  rows={2}
-                  value={note}
-                  aria-label="A note for yourself"
-                  placeholder="A note for yourself — nobody else sees this."
-                  onChange={(e) => setNote(e.target.value)}
-                  onBlur={() => addNote({ responseId: current._id, note })}
-                />
-              </div>
-
-              <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setStatus({ ids: [current._id], status: "reviewed" })}
-                >
-                  Mark as reviewed
-                </Button>
-                {current.respondentEmail && (
-                  <a href={`mailto:${current.respondentEmail}`}>
-                    <Button variant="ghost" size="sm" iconLeft={<Mail size={15} strokeWidth={1.8} aria-hidden />}>
-                      Reply
-                    </Button>
-                  </a>
-                )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={async () => {
-                    await remove({ ids: [current._id] });
-                    setOpen(null);
-                    toast("Response deleted");
-                  }}
-                >
-                  Delete
-                </Button>
-              </div>
-            </>
+            // Keyed by the response, so its note field starts from that
+            // response's note rather than being reset by an effect.
+            <ResponseDetail key={current._id} response={current} onDeleted={() => setOpen(null)} />
           )}
         </aside>
       </div>
@@ -390,6 +290,145 @@ export function ResponsesInbox({
           </div>
         </section>
       )}
+    </>
+  );
+}
+
+/** One response, open. Its own component so the note starts from that response. */
+function ResponseDetail({
+  response,
+  onDeleted,
+}: {
+  response: {
+    _id: Id<"responses">;
+    respondentName: string | null;
+    respondentEmail: string | null;
+    submittedAt: number;
+    device: string | null;
+    source: string | null;
+    partial: boolean;
+    answeredCount: number;
+    totalCount: number;
+    resumeToken: string | null;
+    note: string | null;
+    answers: { question: string; value: string | null; fileName: string | null }[];
+    files: { name: string; url: string | null }[];
+  };
+  onDeleted: () => void;
+}) {
+  const toast = useToast();
+  const setStatus = useMutation(api.responses.setStatus);
+  const addNote = useMutation(api.responses.addNote);
+  const remove = useMutation(api.responses.remove);
+  const [note, setNote] = useState(response.note ?? "");
+
+  return (
+    <>
+      <h3 style={{ marginBottom: 2 }}>
+        {response.respondentName ?? response.respondentEmail ?? "Someone"}
+      </h3>
+      <p className="fk-panel-lede" style={{ marginBottom: 14 }}>
+        {fullTime(response.submittedAt)}
+        {response.device ? ` · ${response.device}` : ""}
+        {response.source ? ` · ${response.source}` : ""}
+      </p>
+
+      {response.partial && response.resumeToken && (
+        <div className="fk-note" style={{ marginBottom: 14, display: "block" }}>
+          <p style={{ margin: "0 0 10px" }}>
+            They stopped after {response.answeredCount} of {response.totalCount} questions. This
+            link puts them back where they left off.
+          </p>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={async () => {
+              await navigator.clipboard.writeText(
+                `${window.location.origin}/r/${response.resumeToken}`,
+              );
+              toast("Resume link copied");
+            }}
+          >
+            Copy the resume link
+          </Button>
+        </div>
+      )}
+
+      <div>
+        {response.answers.map((a, i) => (
+          <div key={i} className="fk-answer">
+            <div className="fk-answer-q">{a.question}</div>
+            <div className="fk-answer-a">
+              {a.fileName ? (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
+                  <Paperclip size={15} strokeWidth={1.8} aria-hidden />
+                  {a.fileName}
+                </span>
+              ) : (
+                a.value || <span style={{ color: "var(--color-text-tertiary)" }}>Not answered</span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {response.files.length > 0 && (
+        <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+          {response.files.map(
+            (f, i) =>
+              f.url && (
+                <a
+                  key={i}
+                  href={f.url}
+                  download={f.name}
+                  className="fk-chip"
+                  style={{ width: "fit-content" }}
+                >
+                  Download {f.name}
+                </a>
+              ),
+          )}
+        </div>
+      )}
+
+      <div style={{ marginTop: 18 }}>
+        <Textarea
+          rows={2}
+          value={note}
+          aria-label="A note for yourself"
+          placeholder="A note for yourself — nobody else sees this."
+          onChange={(e) => setNote(e.target.value)}
+          onBlur={() => addNote({ responseId: response._id, note })}
+        />
+      </div>
+
+      <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => setStatus({ ids: [response._id], status: "reviewed" })}
+        >
+          Mark as reviewed
+        </Button>
+        {response.respondentEmail && (
+          <a href={`mailto:${response.respondentEmail}`}>
+            <Button variant="ghost" size="sm" iconLeft={<Mail size={15} strokeWidth={1.8} aria-hidden />}>
+              Reply
+            </Button>
+          </a>
+        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={async () => {
+            await remove({ ids: [response._id] });
+            onDeleted();
+            toast("Response deleted");
+          }}
+        >
+          Delete
+        </Button>
+      </div>
     </>
   );
 }

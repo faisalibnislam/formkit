@@ -149,10 +149,26 @@ export const resume = query({
       .withIndex("by_resume", (q) => q.eq("resumeToken", token))
       .first();
     if (!row || !row.partial) return null;
+
+    // The resume page has only a token, so it needs the link back as well.
+    const form = await ctx.db.get(row.formId);
+    if (!form || form.deletedAt) return null;
+    const identity =
+      form.brand === "me"
+        ? await ctx.db.get(form.ownerId)
+        : await ctx.db.get(form.brand as Id<"companies">);
+
     return {
       formId: row.formId,
       responseId: row._id,
-      answers: row.answers.map((a) => ({ blockId: a.blockId, value: a.value ?? null })),
+      slug: form.slug,
+      handle: identity?.handle ?? null,
+      answers: row.answers.map((a) => ({
+        blockId: a.blockId,
+        value: a.value ?? null,
+        values: a.values ?? null,
+        fileName: a.fileName ?? null,
+      })),
     };
   },
 });

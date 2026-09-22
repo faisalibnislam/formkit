@@ -22,6 +22,7 @@
 @import "../styles/landing.css";
 @import "../styles/ui.css";
 @import "../styles/app.css";
+@import "../styles/admin.css";
 
 /* Outfit is loaded through next/font, which exposes it as --font-outfit. The
    design system's own fonts.css is deliberately not imported: it pulls Google

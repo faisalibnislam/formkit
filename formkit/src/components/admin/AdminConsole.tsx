@@ -1,0 +1,246 @@
+"use client";
+
+import { useState, type ReactNode } from "react";
+import Link from "next/link";
+import { useQuery } from "convex/react";
+import {
+  ChartPie,
+  LifeBuoy,
+  MailCheck,
+  Megaphone,
+  ScrollText,
+  ShieldAlert,
+  Sparkles,
+  ToggleRight,
+  UserCog,
+  Users,
+} from "lucide-react";
+import { api } from "../../../convex/_generated/api";
+import { Logo } from "@/components/brand/Logo";
+import { Button } from "@/components/ui";
+import { AdminOverview } from "./sections/AdminOverview";
+import { AdminUsers } from "./sections/AdminUsers";
+import { AdminAi } from "./sections/AdminAi";
+import { AdminModeration } from "./sections/AdminModeration";
+import { AdminSupport } from "./sections/AdminSupport";
+import { AdminAnnouncements } from "./sections/AdminAnnouncements";
+import { AdminMail } from "./sections/AdminMail";
+import { AdminTeam } from "./sections/AdminTeam";
+import { AdminFlags } from "./sections/AdminFlags";
+import { AdminAudit } from "./sections/AdminAudit";
+
+/**
+ * formkit.app/admin.
+ *
+ * Unlinked from the product and gated by who you are: staff get the console, a
+ * signed-in customer is offered their dashboard, and a stranger is sent to the
+ * marketing site. A section a person's permissions do not cover is not in the
+ * rail at all.
+ */
+type Key =
+  | "overview"
+  | "users"
+  | "ai"
+  | "moderation"
+  | "support"
+  | "announcements"
+  | "mail"
+  | "team"
+  | "flags"
+  | "audit";
+
+const SECTIONS: {
+  key: Key;
+  label: string;
+  group: string;
+  icon: ReactNode;
+  permission?: string;
+  title: string;
+  lede: string;
+}[] = [
+  {
+    key: "overview",
+    label: "Overview",
+    group: "",
+    icon: <ChartPie size={17} strokeWidth={1.8} aria-hidden />,
+    title: "Overview",
+    lede: "Signups, how people are standing, and how much of the AI allowance is actually being used.",
+  },
+  {
+    key: "users",
+    label: "Users",
+    group: "Customers",
+    icon: <Users size={17} strokeWidth={1.8} aria-hidden />,
+    permission: "users.view",
+    title: "Users",
+    lede: "Everyone on Formkit. Open someone to turn Ask Formkit on, change their limit, or change their standing.",
+  },
+  {
+    key: "ai",
+    label: "AI access",
+    group: "Customers",
+    icon: <Sparkles size={17} strokeWidth={1.8} aria-hidden />,
+    permission: "ai.access",
+    title: "AI access",
+    lede: "Ask Formkit is off everywhere until you turn it on for a named person. An account without it sees no AI surface at all.",
+  },
+  {
+    key: "moderation",
+    label: "Moderation",
+    group: "Operations",
+    icon: <ShieldAlert size={17} strokeWidth={1.8} aria-hidden />,
+    permission: "moderation",
+    title: "Moderation",
+    lede: "Forms people have reported. Locking one stops it collecting; nothing already sent is deleted.",
+  },
+  {
+    key: "support",
+    label: "Support",
+    group: "Operations",
+    icon: <LifeBuoy size={17} strokeWidth={1.8} aria-hidden />,
+    permission: "support",
+    title: "Support",
+    lede: "Questions customers have asked. Replies go out as Formkit.",
+  },
+  {
+    key: "announcements",
+    label: "Announcements",
+    group: "Operations",
+    icon: <Megaphone size={17} strokeWidth={1.8} aria-hidden />,
+    permission: "announcements",
+    title: "Announcements",
+    lede: "A message on every customer's dashboard. Short, factual, and never a sales pitch.",
+  },
+  {
+    key: "mail",
+    label: "Email log",
+    group: "Operations",
+    icon: <MailCheck size={17} strokeWidth={1.8} aria-hidden />,
+    title: "Email log",
+    lede: "Everything Formkit has sent on a customer's behalf, and what happened to it.",
+  },
+  {
+    key: "team",
+    label: "Team access",
+    group: "Administrative",
+    icon: <UserCog size={17} strokeWidth={1.8} aria-hidden />,
+    permission: "team",
+    title: "Team access",
+    lede: "Who can reach this console, and exactly what each of them can do here.",
+  },
+  {
+    key: "flags",
+    label: "Feature flags",
+    group: "Administrative",
+    icon: <ToggleRight size={17} strokeWidth={1.8} aria-hidden />,
+    permission: "flags",
+    title: "Feature flags",
+    lede: "Platform features, on or off, with a rollout share.",
+  },
+  {
+    key: "audit",
+    label: "Audit log",
+    group: "Administrative",
+    icon: <ScrollText size={17} strokeWidth={1.8} aria-hidden />,
+    title: "Audit log",
+    lede: "Every change made from this console, and who made it.",
+  },
+];
+
+export function AdminConsole() {
+  const me = useQuery(api.admin.who, {});
+  const stats = useQuery(api.admin.overview, {});
+  const [key, setKey] = useState<Key>("overview");
+
+  if (me === undefined) return null;
+
+  if (!me.staff) {
+    // The console is unlinked: a customer is offered their dashboard, a
+    // stranger the marketing site. Neither is told what is here.
+    return (
+      <div className="fk-admin-main" style={{ maxWidth: 560, margin: "0 auto", minHeight: "100dvh", justifyContent: "center" }}>
+        <h1 style={{ margin: 0, fontSize: 32, fontWeight: 700, letterSpacing: "-.024em" }}>
+          Not found
+        </h1>
+        <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: "var(--color-text-secondary)" }}>
+          There is nothing at this address.
+        </p>
+        <div>
+          <Link href={me.signedIn ? "/app" : "/"}>
+            <Button>{me.signedIn ? "Back to your dashboard" : "Back to Formkit"}</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const allowed = SECTIONS.filter(
+    (s) => !s.permission || me.staff!.permissions.includes(s.permission),
+  );
+  const current = allowed.find((s) => s.key === key) ?? allowed[0]!;
+
+  // A group heading is drawn above the first section that belongs to it.
+  const headings = allowed.map((s, i) =>
+    s.group && s.group !== allowed[i - 1]?.group ? s.group : null,
+  );
+
+  return (
+    <div className="fk-admin">
+      <nav className="fk-admin-rail" aria-label="Admin sections">
+        <div className="fk-admin-mark">
+          <Logo />
+          <span className="fk-admin-tag">ADMIN</span>
+        </div>
+        {allowed.map((s, i) => {
+          const heading = headings[i];
+          const count =
+            s.key === "moderation"
+              ? stats?.openReports
+              : s.key === "support"
+                ? stats?.openTickets
+                : undefined;
+          return (
+            <div key={s.key}>
+              {heading && <div className="fk-admin-section">{heading}</div>}
+              <button
+                type="button"
+                className="fk-admin-link"
+                data-active={s.key === current.key ? "true" : undefined}
+                aria-current={s.key === current.key ? "page" : undefined}
+                onClick={() => setKey(s.key)}
+              >
+                {s.icon}
+                <span style={{ flex: 1, minWidth: 0 }}>{s.label}</span>
+                {!!count && <span className="fk-admin-count">{count}</span>}
+              </button>
+            </div>
+          );
+        })}
+        <div style={{ marginTop: "auto", paddingTop: 18 }}>
+          <Link href="/app" className="fk-admin-link">
+            Back to Formkit
+          </Link>
+        </div>
+      </nav>
+
+      <main className="fk-admin-main">
+        <header className="fk-admin-head">
+          {current.group && <div className="fk-admin-eyebrow">{current.group}</div>}
+          <h1>{current.title}</h1>
+          <p>{current.lede}</p>
+        </header>
+
+        {current.key === "overview" && <AdminOverview />}
+        {current.key === "users" && <AdminUsers permissions={me.staff.permissions} />}
+        {current.key === "ai" && <AdminAi />}
+        {current.key === "moderation" && <AdminModeration />}
+        {current.key === "support" && <AdminSupport />}
+        {current.key === "announcements" && <AdminAnnouncements />}
+        {current.key === "mail" && <AdminMail />}
+        {current.key === "team" && <AdminTeam meId={me.staff._id} />}
+        {current.key === "flags" && <AdminFlags />}
+        {current.key === "audit" && <AdminAudit />}
+      </main>
+    </div>
+  );
+}
