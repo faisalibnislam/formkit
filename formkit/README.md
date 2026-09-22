@@ -39,7 +39,14 @@ npx convex env set AUTH_RESEND_KEY   re_...                      # Resend, send-
 npx convex env set AUTH_EMAIL_FROM   "Formkit <hello@formkit.app>"
 npx convex env set SITE_URL          https://formkit.app          # links inside notification emails
 npx convex env set ANTHROPIC_API_KEY sk-ant-...                   # only if Ask Formkit is to work
+npx convex env set STAFF_EMAILS      you@formkit.app                # who gets the admin console
 ```
+
+`STAFF_EMAILS` is how the first staff account comes to exist. The console at
+`/admin` is gated on a staff role, and nothing in the product can grant one, so
+a fresh deployment would otherwise have a console nobody can reach. Addresses
+listed here get the owner role the first time they sign in; after that every
+role is changed from inside the console, where the change is audited.
 
 Without `AUTH_RESEND_KEY` nothing is sent and every attempt is written to the
 customer's email log as failed, with the reason. Without `ANTHROPIC_API_KEY`

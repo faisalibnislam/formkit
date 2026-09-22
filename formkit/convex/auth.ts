@@ -26,6 +26,33 @@ const FormkitPassword = Password<DataModel>({
   },
 });
 
+/**
+ * How the first staff account comes to exist.
+ *
+ * The admin console is gated on `staffRole`, and nothing in the product can
+ * grant it — so without this, a fresh deployment has a console nobody can
+ * reach. `STAFF_EMAILS` on the Convex deployment is a comma-separated list of
+ * addresses that get the owner role the first time they sign in. Everyone
+ * else's role is only ever changed from inside the console.
+ */
+function bootstrapStaff(email: string | undefined) {
+  if (!email) return undefined;
+  const listed = (process.env.STAFF_EMAILS ?? "")
+    .split(",")
+    .map((a) => a.trim().toLowerCase())
+    .filter(Boolean);
+  return listed.includes(email.toLowerCase()) ? ("owner" as const) : undefined;
+}
+
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [FormkitPassword],
+  callbacks: {
+    async afterUserCreatedOrUpdated(ctx, { userId, existingUserId }) {
+      // Only on the way in — an existing person's role is the console's to set.
+      if (existingUserId) return;
+      const user = await ctx.db.get(userId);
+      const role = bootstrapStaff(user?.email);
+      if (role) await ctx.db.patch(userId, { staffRole: role });
+    },
+  },
 });
