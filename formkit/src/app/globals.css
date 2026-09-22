@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+/* The Formkit Design System tokens, copied verbatim from the handoff bundle at
+   _ds/formkit-design-system-e346e922-…/tokens/. Link these rather than
+   re-deriving values — see the handoff README under "Design tokens". */
+@import "../styles/tokens/colors.css";
+@import "../styles/tokens/typography.css";
+@import "../styles/tokens/spacing.css";
+@import "../styles/tokens/radius.css";
+@import "../styles/tokens/shadows.css";
+@import "../styles/tokens/motion.css";
+@import "../styles/tokens/layout.css";
+@import "../styles/tokens/base.css";
+
+@import "../styles/frame.css";
+@import "../styles/nav.css";
+@import "../styles/footer.css";
+@import "../styles/sky.css";
+
+/* Outfit is loaded through next/font, which exposes it as --font-outfit. The
+   design system's own fonts.css is deliberately not imported: it pulls Google
+   Fonts at runtime, and it still declares the retired JetBrains Mono. */
+:root {
+  --font-sans: var(--font-outfit), "Helvetica Neue", Arial, sans-serif;
+  /* No monospace anywhere in Formkit — a standing instruction. Every existing
+     var(--font-mono) reference resolves to the sans stack. */
+  --font-mono: var(--font-sans);
+}
+
+html {
+  scroll-behavior: auto; /* the landing page drives its own scroll easing */
+}
+
+body {
+  background: var(--paper);
+  color: var(--neutral-900);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* A link signals itself with colour, weight or a pill — never a line. */
+a {
+  color: var(--blue-700);
+  text-decoration: none;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+a:hover {
+  color: var(--neutral-900);
+}
+
+/* Formkit's own scrollbar: an 11px track with no background and a pill thumb. */
+@supports selector(::-webkit-scrollbar) {
+  *::-webkit-scrollbar {
+    width: 11px;
+    height: 11px;
+    background: transparent;
+  }
+  *::-webkit-scrollbar-track,
+  *::-webkit-scrollbar-track-piece,
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--neutral-200);
+    border: 3px solid transparent;
+    background-clip: padding-box;
+    border-radius: 999px;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--neutral-400);
+    background-clip: padding-box;
+  }
+  *::-webkit-scrollbar-thumb:active {
+    background: var(--neutral-600);
+    background-clip: padding-box;
+  }
+}
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--neutral-200) transparent;
+  }
+}
+
+.fk-no-scrollbar {
+  scrollbar-width: none;
+}
+.fk-no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Skip link — visually hidden until focused. */
+.fk-skip {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  padding: 10px 16px;
+  border-radius: var(--radius-pill);
+  background: var(--neutral-900);
+  color: var(--neutral-0);
+  font-size: 14px;
+}
+.fk-skip:focus {
+  left: 16px;
+  top: 16px;
+  color: var(--neutral-0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

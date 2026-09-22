@@ -1,0 +1,186 @@
+/* The shared public footer: a dark inset card, matching the page's other
+   containers. Ported from Formkit Footer.dc.html. */
+
+.fk-foot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin: 0 var(--fk-gutter);
+  padding: clamp(56px, 8vw, 110px) clamp(24px, 7vw, 110px) 34px;
+  border-radius: var(--fk-round);
+  box-shadow: var(--fk-ring);
+  overflow: hidden;
+  background: var(--neutral-950);
+  color: var(--neutral-0);
+  font-family: var(--font-sans);
+}
+
+.fk-foot a {
+  text-decoration: none;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.fk-foot-head {
+  margin: 0;
+  max-width: 16ch;
+  font-size: clamp(28px, 4.4vw, 58px);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.fk-foot-ask {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(620px, 100%);
+  margin-top: clamp(22px, 3vw, 34px);
+  padding: 8px 8px 8px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.05);
+  text-align: left;
+}
+
+.fk-foot-ask input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  outline: none;
+  font: inherit;
+  font-size: clamp(15px, 1.6vw, 18px);
+  color: var(--neutral-0);
+}
+.fk-foot-ask input::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.fk-foot-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  height: 46px;
+  padding: 0 22px;
+  border-radius: var(--radius-pill);
+  background: var(--neutral-0);
+  color: var(--neutral-900);
+  font-size: 15px;
+  white-space: nowrap;
+}
+.fk-foot-cta:hover {
+  color: var(--neutral-900);
+}
+.fk-foot-cta span {
+  display: inline-flex;
+  transition: transform 0.25s cubic-bezier(0.22, 0.8, 0.24, 1);
+}
+.fk-foot-cta[data-typed="true"] span {
+  transform: translateX(4px);
+}
+
+.fk-foot-rows {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(14px, 2.4vw, 24px);
+  width: 100%;
+  margin-top: clamp(40px, 6vw, 72px);
+}
+
+.fk-foot-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(12px, 2vw, 26px);
+  flex-wrap: wrap;
+  width: 100%;
+  padding-bottom: clamp(14px, 2.4vw, 24px);
+}
+.fk-foot-row:not(:last-child) {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.fk-foot-row > .fk-foot-heading {
+  min-width: 7ch;
+  text-align: right;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.fk-foot-row a {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.82);
+}
+.fk-foot-row a:hover {
+  color: var(--neutral-0);
+}
+
+/* The wordmark: a ghost layer and a white copy revealed left to right.
+   Both layers need display:flex to centre — the Logo renders a display:block
+   SVG, so text-align cannot reach it and the two layers desynchronise. */
+.fk-foot-mark {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: clamp(30px, 5vw, 60px);
+  overflow: hidden;
+}
+
+.fk-foot-mark-ghost {
+  display: flex;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.18);
+}
+
+.fk-foot-mark-fill {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  color: #ffffff;
+}
+
+.fk-foot-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  width: 100%;
+  margin-top: 22px;
+  padding-top: 20px;
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.45);
+}
+.fk-foot-bottom a {
+  color: rgba(255, 255, 255, 0.45);
+}
+.fk-foot-bottom a:hover {
+  color: var(--neutral-0);
+}
+
+@media (max-width: 560px) {
+  .fk-foot-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .fk-foot-row > .fk-foot-heading {
+    min-width: 0;
+    text-align: center;
+  }
+  .fk-foot-ask {
+    flex-direction: column;
+    border-radius: 20px;
+    padding: 12px;
+  }
+  .fk-foot-ask .fk-foot-cta {
+    width: 100%;
+    justify-content: center;
+  }
+}

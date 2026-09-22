@@ -1,0 +1,46 @@
+import type { Metadata } from "next";
+import { Outfit } from "next/font/google";
+import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
+import { ConvexClientProvider } from "./ConvexClientProvider";
+import { SITE_URL } from "@/lib/site";
+import "./globals.css";
+
+/**
+ * Outfit is the single typeface: UI, display and the large-light numerals.
+ * There is no monospace anywhere in Formkit.
+ */
+const outfit = Outfit({
+  variable: "--font-outfit",
+  subsets: ["latin"],
+  weight: ["200", "300", "400", "500", "600", "700"],
+  display: "swap",
+});
+
+export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Formkit — forms people actually finish",
+    template: "%s — Formkit",
+  },
+  description:
+    "Build a form, brand it, publish it at your own link, and read the answers in one place. Formkit is free — no plans, no card.",
+  openGraph: {
+    type: "website",
+    siteName: "Formkit",
+  },
+  twitter: { card: "summary_large_image" },
+};
+
+export default function RootLayout({ children }: LayoutProps<"/">) {
+  return (
+    <ConvexAuthNextjsServerProvider>
+      {/* English (US) only, deliberately — the language picker was removed
+          rather than left in place offering translations that do not exist. */}
+      <html lang="en-US" className={outfit.variable}>
+        <body>
+          <ConvexClientProvider>{children}</ConvexClientProvider>
+        </body>
+      </html>
+    </ConvexAuthNextjsServerProvider>
+  );
+}

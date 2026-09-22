@@ -1,0 +1,190 @@
+:root{
+/* ---------- neutral scale (cool paper grey, soft charcoal ink) ---------- */
+--neutral-0:#ffffff;
+--neutral-25:#fcfcfc;   /* card white — a hair off pure */
+--neutral-50:#fafafa;
+--neutral-100:#f4f4f4;  /* chip fills, sunken recesses, chart tracks */
+--neutral-150:#ededee;
+--neutral-200:#e0e2e4;  /* hairline, inactive chart ticks */
+--neutral-300:#c9ced2;
+--neutral-400:#a9b0b6;  /* placeholder */
+--neutral-500:#8d949b;  /* muted label grey */
+--neutral-600:#6d747a;
+--neutral-700:#4d5358;
+--neutral-800:#3a3f44;
+--neutral-900:#21282E;  /* primary ink + dark pill — Formkit’s one dark */
+--neutral-950:#21282E;
+
+/* The page itself: a tinted white, cooled by the sky accent rather than a
+   step on the neutral ramp. Only ever the page background. */
+--paper:#f7fbff;
+
+/* ---------- signature accent: sky ---------- */
+--blue-50:#eaf3fb;--blue-100:#d8e9f7;--blue-200:#bcd9f0;--blue-300:#a3c8e7;
+--blue-400:#86b2dc;--blue-500:#5f9bd4;--blue-600:#2e78bb;--blue-700:#1a5b95;
+
+/* ---------- data accents: soft, never neon ---------- */
+--green-100:#edf8e9;--green-200:#d2ecca;--green-300:#a0d098;--green-400:#7ec973;--green-500:#56b04c;--green-600:#337c38;
+--yellow-100:#fdf7e0;--yellow-200:#f8e9b4;--yellow-300:#edd36e;--yellow-400:#e5c34a;--yellow-500:#bd9a24;--yellow-600:#846a11;
+--red-100:#fdeeed;--red-200:#fad5d3;--red-300:#f6abaa;--red-400:#f09090;--red-500:#e0615c;--red-600:#b33e3a;
+--mint-100:#eef6f3;--mint-200:#dceee6;
+--amber-100:var(--yellow-100);--amber-500:var(--yellow-500);--amber-600:var(--yellow-600);
+
+/* ---------- gradients ---------- */
+/* Night Sky is the only Formkit hero background. The earlier photographic band
+   (a base64 JPEG inlined into this token) is retired and has been removed. */
+--gradient-hero:linear-gradient(180deg,#062a52 0%,#0a3d6f 20%,#115791 42%,#1c74b0 64%,#3693ca 84%,#59acd9 100%); /* @kind color */
+--gradient-hero-soft:linear-gradient(180deg,#d8e9f7 0%,#a9caea 100%); /* @kind color */
+--gradient-glass:linear-gradient(135deg,#e5efef 0%,#e1f0e9 100%); /* @kind color */
+--gradient-paper:linear-gradient(180deg,#fafafa 0%,#f1f2f3 100%); /* @kind color */
+
+/* ---------- semantic: surfaces ---------- */
+--color-background-primary:var(--paper);
+--color-background-secondary:var(--neutral-0);
+--color-background-tertiary:var(--neutral-150);
+--color-background-inverse:var(--neutral-900);
+--color-background-accent:var(--blue-300);
+--color-background-hero:var(--gradient-hero);
+--color-surface-card:var(--neutral-0);
+--color-surface-card-inverse:var(--neutral-900);
+--color-surface-raised:var(--neutral-0);
+--color-surface-sunken:var(--neutral-100);
+--color-surface-glass:rgba(255,255,255,.62);
+--color-surface-glass-strong:rgba(255,255,255,.86);
+--color-surface-overlay:rgba(28,32,35,.34);
+--color-surface-hover:var(--neutral-100);
+--color-surface-selected:var(--blue-100);
+--color-surface-disabled:var(--neutral-150);
+
+/* ---------- semantic: text ---------- */
+--color-text-primary:var(--neutral-900);
+--color-text-secondary:var(--neutral-600);
+--color-text-tertiary:var(--neutral-600);
+--color-text-placeholder:var(--neutral-400);
+--color-text-disabled:var(--neutral-400);
+--color-text-inverse:var(--neutral-0);
+--color-text-inverse-secondary:rgba(255,255,255,.66);
+--color-text-on-hero:var(--neutral-0);
+--color-text-on-hero-muted:rgba(255,255,255,.72);
+--color-text-accent:var(--blue-700);
+--color-text-link:var(--blue-700);
+--color-text-link-hover:var(--neutral-900);
+--color-text-error:var(--red-600);
+--color-text-success:var(--green-600);
+
+/* ---------- semantic: borders ---------- */
+--color-border-default:var(--neutral-200);
+--color-border-strong:var(--neutral-300);
+--color-border-ink:var(--neutral-900);
+--color-border-subtle:var(--neutral-150);
+--color-border-focus:var(--blue-600);
+--color-border-error:var(--red-400);
+--color-border-selected:var(--blue-500);
+--color-border-inverse:rgba(255,255,255,.22);
+--color-border-glass:rgba(255,255,255,.55);
+
+/* ---------- semantic: actions ---------- */
+--color-action-primary:var(--neutral-900);
+--color-action-primary-hover:var(--neutral-950);
+--color-action-primary-active:var(--neutral-800);
+--color-action-primary-text:var(--neutral-0);
+--color-action-secondary:var(--neutral-0);
+--color-action-secondary-hover:var(--neutral-50);
+--color-action-secondary-text:var(--neutral-900);
+--color-action-accent:var(--blue-400);
+--color-action-accent-hover:var(--blue-500);
+--color-action-accent-active:var(--blue-600);
+--color-action-accent-text:var(--neutral-900);
+--color-action-destructive:var(--red-500);
+--color-action-destructive-hover:var(--red-600);
+--color-action-destructive-text:var(--neutral-0);
+--color-action-ghost-hover:var(--neutral-100);
+--color-action-disabled:var(--neutral-150);
+--color-action-disabled-text:var(--neutral-400);
+
+/* ---------- semantic: status ---------- */
+--color-status-success:var(--green-500);
+--color-status-success-bg:var(--green-100);
+--color-status-success-dot:var(--green-300);
+--color-status-warning:var(--yellow-500);
+--color-status-warning-bg:var(--yellow-100);
+--color-status-warning-dot:var(--yellow-300);
+--color-status-error:var(--red-500);
+--color-status-error-bg:var(--red-100);
+--color-status-error-dot:var(--red-400);
+--color-status-info:var(--blue-600);
+--color-status-info-bg:var(--blue-100);
+--color-status-info-dot:var(--blue-500);
+--color-status-draft:var(--neutral-500);
+--color-status-draft-bg:var(--neutral-150);
+--color-status-published:var(--green-500);
+--color-status-published-bg:var(--green-100);
+--color-status-paused:var(--yellow-500);
+--color-status-paused-bg:var(--yellow-100);
+--color-status-archived:var(--neutral-400);
+--color-status-archived-bg:var(--neutral-150);
+
+/* ---------- chart ---------- */
+--color-chart-positive:var(--green-400);
+--color-chart-negative:var(--red-300);
+--color-chart-neutral:var(--yellow-300);
+--color-chart-info:var(--blue-500);
+--color-chart-track:var(--neutral-200);
+--color-chart-marker:var(--yellow-400);
+
+/* ---------- focus ---------- */
+--color-focus-ring:var(--blue-600);
+--focus-ring:0 0 0 3px var(--neutral-0),0 0 0 5px var(--blue-500);
+--focus-ring-inverse:0 0 0 3px rgba(44,48,52,.6),0 0 0 5px var(--neutral-0);
+
+/* ---------- form theming: defaults a published form inherits ---------- */
+--form-background:var(--neutral-100);
+--form-surface:var(--neutral-0);
+--form-text:var(--neutral-900);
+--form-text-muted:var(--neutral-500);
+--form-primary:var(--neutral-900);
+--form-button-bg:var(--neutral-900);
+--form-button-text:var(--neutral-0);
+--form-border:var(--neutral-200);
+--form-error:var(--red-600);
+--form-error-border:var(--red-400);
+--form-error-bg:var(--red-100);
+--form-radius:20px;
+--form-font:var(--font-sans);
+}
+
+/* Inverse surface scope: drop this class on any charcoal section and the
+   semantic text/border tokens flip with it. */
+.fk-inverse{
+--color-text-primary:var(--neutral-0);
+--color-text-secondary:rgba(255,255,255,.7);
+--color-text-tertiary:rgba(255,255,255,.5);
+--color-border-default:rgba(255,255,255,.16);
+--color-border-strong:rgba(255,255,255,.28);
+--color-surface-card:var(--neutral-800);
+--color-surface-hover:rgba(255,255,255,.08);
+--color-background-primary:var(--neutral-900);
+--color-action-primary:var(--neutral-0);
+--color-action-primary-hover:var(--neutral-100);
+--color-action-primary-text:var(--neutral-900);
+--color-text-link:var(--blue-300);
+--color-text-link-hover:var(--neutral-0);
+}
+
+/* Hero scope: drop on the sky band. The band is a LIGHT ground, so ink here is
+   charcoal, not white — white on it measures 1.6-3.4:1. Reserve white for
+   display-scale type, which opts in explicitly. */
+.fk-on-hero{
+--color-text-primary:var(--neutral-950);
+--color-text-secondary:var(--neutral-950);
+--color-text-tertiary:var(--neutral-950);
+--color-border-default:rgba(28,32,35,.3);
+--color-surface-card:rgba(255,255,255,.72);
+--color-text-link:var(--neutral-950);
+--color-text-link-hover:var(--neutral-800);
+}
+
+/* Night Sky is the only Formkit background. The photographic sky band above is
+   retired — this override wins for every existing and future var(--gradient-hero)
+   reference. Do not reintroduce the old band. */
+:root{--gradient-hero:linear-gradient(180deg,#062a52 0%,#0a3d6f 20%,#115791 42%,#1c74b0 64%,#3693ca 84%,#59acd9 100%);}

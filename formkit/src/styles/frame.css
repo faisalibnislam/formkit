@@ -1,0 +1,125 @@
+/* The page frame every public page shares: a stack of inset rounded cards on
+   the paper background, each ringed in 25% sky blue.
+   Handoff README → "Page frame". */
+
+:root {
+  --fk-gutter: clamp(10px, 1.5vw, 20px);
+  --fk-gap: clamp(10px, 1.5vw, 20px);
+  --fk-round: clamp(20px, 2.4vw, 34px);
+  --fk-ring: 0 0 0 1px rgba(134, 178, 220, 0.25);
+}
+
+.fk-page {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  background: var(--paper);
+  padding: var(--fk-gap) 0;
+  font-family: var(--font-sans);
+  color: var(--neutral-900);
+}
+
+.fk-page > section,
+.fk-page > main,
+.fk-page > .fk-card {
+  margin: 0 var(--fk-gutter) var(--fk-gap);
+  border-radius: var(--fk-round);
+  box-shadow: var(--fk-ring);
+  overflow: hidden;
+}
+
+/* Pinned (scroll-driven) sections are the exception: the section stays
+   full-bleed and transparent and the rounding, tint and ring live on the
+   sticky shell inside it. Never give that shell height:auto — its children are
+   absolutely positioned, so it collapses to 0 and overflow:hidden erases it. */
+.fk-page > section.fk-pinned {
+  margin: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.fk-shell {
+  position: sticky;
+  top: var(--fk-gap);
+  height: calc(100vh - var(--fk-gap) * 2);
+  margin: 0 var(--fk-gutter);
+  border-radius: var(--fk-round);
+  box-shadow: var(--fk-ring);
+  overflow: hidden;
+}
+
+.fk-main {
+  flex: 1;
+  background: var(--neutral-0);
+}
+
+/* A hero band: the Night Sky behind content that sits on its own layer. */
+.fk-hero {
+  position: relative;
+  background: #0a3d6f;
+  color: #ffffff;
+}
+
+.fk-hero-inner {
+  position: relative;
+  z-index: 1;
+}
+
+.fk-measure {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+/* Controls. Every control in this system is a pill; icon buttons are circles. */
+.fk-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  border: none;
+  border-radius: var(--radius-pill);
+  font-family: inherit;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: var(--transition-control);
+}
+.fk-pill:active {
+  transform: scale(0.97);
+}
+
+.fk-pill-dark {
+  background: var(--neutral-900);
+  color: var(--neutral-0);
+}
+.fk-pill-dark:hover {
+  background: var(--neutral-800);
+  color: var(--neutral-0);
+}
+
+.fk-pill-light {
+  background: #ffffff;
+  color: var(--neutral-900);
+}
+.fk-pill-light:hover {
+  box-shadow: var(--shadow-md);
+  color: var(--neutral-900);
+}
+
+.fk-pill-lg {
+  height: 52px;
+  padding: 0 26px;
+  font-size: 16px;
+}
+.fk-pill-md {
+  height: 46px;
+  padding: 0 22px;
+  font-size: 14.5px;
+}
+
+@media (max-width: 560px) {
+  .fk-page > main {
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+  }
+}

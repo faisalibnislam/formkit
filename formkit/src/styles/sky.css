@@ -1,0 +1,203 @@
+/* Night Sky — the only Formkit background for a public hero.
+   Ported from Formkit Sky.dc.html. Drawn entirely in CSS; no raster image. */
+
+@keyframes fk-shimmer {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes fk-drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(240vw, 0, 0);
+  }
+}
+@keyframes fk-twinkle {
+  0%,
+  100% {
+    opacity: 0.15;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.35);
+  }
+}
+@keyframes fk-glow {
+  0%,
+  64%,
+  100% {
+    opacity: 0.05;
+  }
+  78% {
+    opacity: 0.5;
+  }
+  88% {
+    opacity: 0.22;
+  }
+}
+@keyframes fk-flash {
+  0%,
+  72%,
+  100% {
+    opacity: 0;
+  }
+  84% {
+    opacity: 0.55;
+  }
+  92% {
+    opacity: 0.12;
+  }
+}
+@keyframes fk-shoot {
+  0%,
+  92% {
+    opacity: 0;
+    transform: translate3d(-10vw, -4vh, 0) rotate(18deg);
+  }
+  94% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(26vw, 12vh, 0) rotate(18deg);
+  }
+}
+
+.fk-sky {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #0a3d6f;
+}
+
+.fk-sky-grad {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    #062a52 0%,
+    #0a3d6f 20%,
+    #115791 42%,
+    #1c74b0 64%,
+    #3693ca 84%,
+    #59acd9 100%
+  );
+}
+
+.fk-sky-wash-top {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    120% 96% at 50% -16%,
+    rgba(96, 170, 222, 0.34),
+    rgba(10, 40, 80, 0) 66%
+  );
+}
+
+.fk-sky-wash-bottom {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    126% 74% at 60% 120%,
+    rgba(168, 218, 243, 0.6),
+    rgba(122, 192, 231, 0) 66%
+  );
+}
+
+.fk-sky-horizon {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 34%;
+  background: linear-gradient(0deg, rgba(180, 222, 244, 0.34), rgba(180, 222, 244, 0));
+  animation: fk-shimmer 15s ease-in-out infinite;
+}
+
+.fk-sky-foot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 52%;
+  background: linear-gradient(
+    0deg,
+    rgba(112, 178, 222, 0.5),
+    rgba(112, 178, 222, 0.18) 48%,
+    rgba(112, 178, 222, 0)
+  );
+}
+
+.fk-sky-flash {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: radial-gradient(
+    140% 120% at 50% 50%,
+    rgba(150, 205, 255, 0.28),
+    rgba(150, 205, 255, 0) 60%
+  );
+  animation: fk-flash 19s ease-in-out infinite;
+}
+
+.fk-sky-star {
+  position: absolute;
+  border-radius: 50%;
+  animation-name: fk-twinkle;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+.fk-sky-wisp {
+  position: absolute;
+  left: -46%;
+  animation-name: fk-drift;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.fk-sky-wisp > span {
+  position: absolute;
+  border-radius: 10px;
+}
+
+.fk-sky-orb {
+  position: absolute;
+  opacity: 0.06;
+  animation-name: fk-glow;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+.fk-sky-shoot {
+  position: absolute;
+  height: 1.5px;
+  border-radius: 2px;
+  opacity: 0;
+  animation-name: fk-shoot;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fk-sky-star,
+  .fk-sky-wisp,
+  .fk-sky-orb,
+  .fk-sky-horizon,
+  .fk-sky-flash {
+    animation: none !important;
+  }
+  .fk-sky-flash,
+  .fk-sky-shoot {
+    opacity: 0;
+    animation: none !important;
+  }
+}
