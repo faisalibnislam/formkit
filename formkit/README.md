@@ -1,36 +1,95 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Formkit
 
-## Getting Started
+Forms people actually finish. Next.js 16 on the front, Convex for data and auth,
+Resend for email, Vercel for hosting.
 
-First, run the development server:
+Formkit is free. There are no plans, no prices and no billing anywhere in the
+product — see `PRODUCT_DECISIONS.md` in the handoff for the rest of the standing
+decisions before changing anything.
+
+## Running it
 
 ```bash
+npm install
+npx convex dev      # keeps the backend in sync and writes .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`npx convex dev` needs to reach `api.convex.dev`. Where it cannot, run
+`node scripts/convex-codegen.mjs` instead — it writes `convex/_generated/` from
+the modules on disk so the app typechecks and builds offline. Run it after
+adding a Convex module.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## What goes where
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Two different places hold secrets, and it matters which.
 
-## Learn More
+**Vercel** (already set on the `formkit` project, all three targets):
 
-To learn more about Next.js, take a look at the following resources:
+| Key | Value |
+| --- | --- |
+| `NEXT_PUBLIC_CONVEX_URL` | The Convex deployment the browser connects to |
+| `NEXT_PUBLIC_SITE_URL` | `https://formkit.app` — canonicals, Open Graph, sitemap |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**The Convex deployment** — these are server-side and never reach the browser,
+so they are set with `npx convex env set`, not in `.env.local`:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npx convex env set AUTH_RESEND_KEY   re_...                      # Resend, send-only, scoped to formkit.app
+npx convex env set AUTH_EMAIL_FROM   "Formkit <hello@formkit.app>"
+npx convex env set SITE_URL          https://formkit.app          # links inside notification emails
+npx convex env set ANTHROPIC_API_KEY sk-ant-...                   # only if Ask Formkit is to work
+```
 
-## Deploy on Vercel
+Without `AUTH_RESEND_KEY` nothing is sent and every attempt is written to the
+customer's email log as failed, with the reason. Without `ANTHROPIC_API_KEY`
+Ask Formkit refuses and says which variable is missing. Neither fails silently.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Deploying
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`main` is the production branch, and Vercel builds every push to it. The
+repository root is not the app root: the Next.js project lives in `formkit/`,
+which is the project's configured root directory.
+
+Convex is deployed separately:
+
+```bash
+npx convex deploy          # pushes schema and functions
+```
+
+Point `NEXT_PUBLIC_CONVEX_URL` at whichever deployment the site should talk to.
+A production Convex deployment is a different URL from the dev one.
+
+## The shape of the code
+
+```
+convex/            schema, queries, mutations, actions
+  model/           shared helpers — identity, handles, forms, built-in templates
+  emails/          the one HTML shell every email is rendered into
+src/app/           routes: marketing, /app (signed in), /admin, the published form
+src/components/
+  site/            public chrome — nav, footer, legal, help
+  landing/         the scroll story; one rAF loop, no React state
+  app/             the signed-in application
+  admin/           the staff console
+  live/            the form as a respondent sees it
+  ui/              the control primitives
+src/styles/        tokens copied from the design system, then one file per area
+```
+
+## Things worth knowing before changing them
+
+- **The nav hide guard reads resting geometry, not the live rect.** Computing it
+  from `getBoundingClientRect()` makes the bar flicker as it hides itself.
+- **The landing page does not use React state.** One rAF loop writes to refs
+  through a write guard; adding state to the scroll path drops frames.
+- **Blocks are one ordered list.** Questions and page breaks share `order`,
+  because that is what the builder canvas shows. Reordering sends the whole new
+  order in one mutation.
+- **A hidden question is never required.** Otherwise a logic rule can make a
+  form impossible to submit.
+- **Sharing is three separate things.** The Share panel owns the public link and
+  has no on/off switch, Collaborators owns people, and a claimed handle owns the
+  shape of the URL. Do not fold them together.
+- **Ask Formkit is an allow-list, off by default.** An account without it has no
+  AI surface at all — no launcher, no locked state, no mention in settings.
