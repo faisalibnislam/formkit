@@ -105,7 +105,15 @@ export function AuthCard({ initialView }: { initialView: View }) {
 
   const onSignIn = () =>
     run(async () => {
-      await signIn("password", { email: address, password, flow: "signIn" });
+      const result = await signIn("password", { email: address, password, flow: "signIn" });
+      // Signing in to an account that never finished verifying sends a fresh
+      // code instead of a session. Show the code screen rather than pushing to
+      // /app, where the proxy would only bounce them back here.
+      if (!result.signingIn) {
+        setCode("");
+        setView("verify");
+        return;
+      }
       router.push(landing());
     }, "Formkit could not sign you in. Try again in a moment.");
 
