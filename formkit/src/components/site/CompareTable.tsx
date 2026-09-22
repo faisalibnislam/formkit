@@ -45,7 +45,7 @@ export function CompareTable({ columns }: { columns?: (0 | 1 | 2)[] }) {
   const shown = columns ?? [0, 1, 2];
 
   return (
-    <div style={{ overflowX: "auto" }}>
+    <div className="fk-scroll-x">
       <table
         style={{
           width: "100%",

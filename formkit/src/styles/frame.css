@@ -173,3 +173,15 @@
   background: rgba(255, 255, 255, 0.24);
   color: #ffffff;
 }
+
+/* A box that scrolls sideways — a wide comparison table, the permission matrix.
+
+   `overflow-x: auto` alone is not enough: a table wider than the box still
+   inflates the document's scroll width in Chromium, and the whole page ends up
+   draggable sideways on a phone. `contain: paint` holds the overflow inside the
+   box, which is what the scroll container was for. */
+.fk-scroll-x {
+  overflow-x: auto;
+  max-width: 100%;
+  contain: paint;
+}

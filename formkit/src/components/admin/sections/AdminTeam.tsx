@@ -131,7 +131,7 @@ export function AdminTeam({ meId }: { meId: Id<"users"> }) {
           This applies to everyone on the role. Anyone given their own permissions above keeps
           those instead.
         </p>
-        <div style={{ overflowX: "auto" }}>
+        <div className="fk-scroll-x">
           <table className="fk-matrix">
             <thead>
               <tr>
