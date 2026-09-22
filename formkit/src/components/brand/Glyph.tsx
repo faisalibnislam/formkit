@@ -1,0 +1,118 @@
+import {
+  ArrowRight,
+  AtSign,
+  BadgeCheck,
+  Bell,
+  Briefcase,
+  Building2,
+  Calendar,
+  CalendarClock,
+  Check,
+  CircleAlert,
+  CircleCheck,
+  CircleDot,
+  CircleHelp,
+  Code,
+  Compass,
+  FileText,
+  GitBranch,
+  Globe,
+  History,
+  Image as ImageIcon,
+  Inbox,
+  LayoutTemplate,
+  LifeBuoy,
+  Link2,
+  ListChecks,
+  Magnet,
+  MessageSquare,
+  Monitor,
+  Palette,
+  Paperclip,
+  PenLine,
+  Receipt,
+  Rocket,
+  ScanSearch,
+  Settings,
+  Settings2,
+  Share2,
+  Shield,
+  SlidersHorizontal,
+  Sparkles,
+  Star,
+  Timer,
+  TriangleAlert,
+  Type,
+  User,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
+
+/**
+ * The Lucide glyphs the marketing site and help centre reference by name.
+ *
+ * Kept as an explicit map rather than a dynamic import of the whole set, so the
+ * bundler can still drop what no page uses. Stroke 1.8 throughout, per the
+ * design system, and icons sit in circles, never squares.
+ */
+const GLYPHS: Record<string, LucideIcon> = {
+  "arrow-right": ArrowRight,
+  "at-sign": AtSign,
+  "badge-check": BadgeCheck,
+  bell: Bell,
+  briefcase: Briefcase,
+  "building-2": Building2,
+  calendar: Calendar,
+  "calendar-clock": CalendarClock,
+  check: Check,
+  "circle-alert": CircleAlert,
+  "circle-check": CircleCheck,
+  "circle-dot": CircleDot,
+  "circle-help": CircleHelp,
+  code: Code,
+  compass: Compass,
+  "git-branch": GitBranch,
+  globe: Globe,
+  history: History,
+  image: ImageIcon,
+  inbox: Inbox,
+  "layout-template": LayoutTemplate,
+  "life-buoy": LifeBuoy,
+  link: Link2,
+  "list-checks": ListChecks,
+  magnet: Magnet,
+  "message-square": MessageSquare,
+  monitor: Monitor,
+  palette: Palette,
+  paperclip: Paperclip,
+  "pen-line": PenLine,
+  receipt: Receipt,
+  rocket: Rocket,
+  "scan-search": ScanSearch,
+  settings: Settings,
+  "settings-2": Settings2,
+  "share-2": Share2,
+  shield: Shield,
+  "sliders-horizontal": SlidersHorizontal,
+  sparkles: Sparkles,
+  star: Star,
+  timer: Timer,
+  "triangle-alert": TriangleAlert,
+  type: Type,
+  user: User,
+  users: Users,
+};
+
+export function Glyph({
+  name,
+  size = 18,
+  className,
+}: {
+  name: string;
+  size?: number;
+  className?: string;
+}) {
+  // An unknown name falls back to a neutral document glyph rather than a hole.
+  const Icon = GLYPHS[name] ?? FileText;
+  return <Icon size={size} strokeWidth={1.8} className={className} aria-hidden />;
+}

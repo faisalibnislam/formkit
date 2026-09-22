@@ -123,3 +123,53 @@
     padding-right: 18px !important;
   }
 }
+
+/* Sticky table of contents on the legal and help pages. */
+.fk-toc-link {
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 14px;
+  color: var(--neutral-800);
+}
+.fk-toc-link:hover {
+  background: var(--neutral-100);
+  color: var(--neutral-900);
+}
+@media (max-width: 640px) {
+  .fk-toc {
+    position: static !important;
+  }
+}
+
+/* Controls that sit on the Night Sky. */
+.fk-ghost-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 50px;
+  padding: 0 22px;
+  border-radius: var(--radius-pill);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+  color: #ffffff;
+  font-size: 15.5px;
+  transition: var(--transition-control);
+}
+.fk-ghost-pill:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+.fk-chip-on-sky {
+  display: inline-flex;
+  align-items: center;
+  height: 38px;
+  padding: 0 17px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  font-size: 14px;
+  transition: var(--transition-control);
+}
+.fk-chip-on-sky:hover {
+  background: rgba(255, 255, 255, 0.24);
+  color: #ffffff;
+}

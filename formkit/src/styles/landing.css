@@ -1,0 +1,498 @@
+/* The landing page: one continuous scroll story, ASK → SHAPE → ANSWER →
+   UNDERSTAND → ACT, roughly 900vh tall.
+
+   Two rules worth knowing before editing:
+
+   1. Never put `overflow-x: hidden` on the page wrapper. It makes the wrapper a
+      scroll container and every `position: sticky` scene silently stops
+      pinning. It is `overflow-x: clip`.
+   2. A sticky shell whose children are all absolutely positioned must keep an
+      explicit height. `height: auto` collapses it to 0 and `overflow: hidden`
+      then erases the section. */
+
+.fk-landing {
+  position: relative;
+  padding: var(--fk-gap) 0;
+  background: var(--paper);
+  color: var(--neutral-900);
+  font-family: var(--font-sans);
+  overflow-x: clip;
+}
+
+.fk-landing > section,
+.fk-landing > footer {
+  margin: 0 var(--fk-gutter) var(--fk-gap);
+  border-radius: var(--fk-round);
+  overflow: hidden;
+  box-shadow: var(--fk-ring);
+}
+
+/* A pinned scene stays full-bleed and transparent; the rounding, tint and ring
+   live on the sticky shell inside it. */
+.fk-landing > section[data-scene] {
+  margin: 0 0 var(--fk-gap);
+  border-radius: 0;
+  overflow: visible;
+  background: transparent;
+  box-shadow: none;
+}
+
+.fk-landing > section[data-scene] > .fk-shell {
+  position: sticky;
+  top: var(--fk-gap);
+  height: calc(100vh - var(--fk-gap) * 2);
+  margin: 0 var(--fk-gutter);
+  border-radius: var(--fk-round);
+  overflow: hidden;
+  box-shadow: var(--fk-ring);
+}
+
+.fk-landing > footer {
+  margin-bottom: 0;
+}
+
+.fk-landing section[id] {
+  scroll-margin-top: 104px;
+}
+
+@keyframes fk-nudge {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translateY(4px);
+    opacity: 1;
+  }
+}
+
+/* ---------- hero ---------- */
+
+.fk-hero-stage {
+  background: #083357;
+  contain: layout style;
+}
+
+.fk-hero-paper {
+  position: absolute;
+  inset: 0;
+  background: #e9f3fb;
+  opacity: 0;
+}
+
+.fk-hero-marketing {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: clamp(60px, 8vh, 96px) clamp(24px, 7vw, 110px) clamp(80px, 13vh, 150px);
+}
+
+.fk-hero-eyebrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 clamp(14px, 2vw, 22px);
+  font-size: clamp(13px, 1.2vw, 15px);
+  letter-spacing: 0.02em;
+  color: #ffffff;
+}
+
+.fk-hero-eyebrow > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 13px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+
+.fk-hero-head {
+  margin: 0 auto;
+  max-width: 15ch;
+  font-size: clamp(42px, 8.6vw, 132px);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 0.92;
+  color: #ecf3f9;
+  transform-origin: left top;
+}
+
+/* "form" reads as a filled-in field inside the headline. */
+.fk-hero-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28em;
+  padding: 0.06em 0.42em 0.1em 0.22em;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.55);
+  vertical-align: middle;
+  will-change: transform;
+}
+
+.fk-hero-pill > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.62em;
+  height: 0.62em;
+  border-radius: 50%;
+  background: var(--green-400);
+  color: var(--neutral-900);
+}
+
+.fk-hero-sub {
+  margin: clamp(14px, 2.2vw, 26px) auto 0;
+  font-size: clamp(14px, 1.45vw, 19px);
+  line-height: 1.55;
+  letter-spacing: 0.01em;
+  color: #ecf3f9;
+  opacity: 0.88;
+  white-space: nowrap;
+}
+@media (max-width: 860px) {
+  .fk-hero-sub {
+    white-space: normal;
+  }
+}
+
+.fk-hero-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: clamp(22px, 3.4vh, 38px);
+}
+
+.fk-hero-cue {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: clamp(18px, 3.5vh, 40px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.72);
+  pointer-events: none;
+}
+.fk-hero-cue > span:last-child {
+  display: inline-flex;
+  animation: fk-nudge 1.6s cubic-bezier(0.22, 0.8, 0.24, 1) infinite;
+}
+
+.fk-floaties {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  perspective: 900px;
+}
+
+.fk-floaty {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(2px);
+  will-change: transform;
+}
+
+.fk-hero-progressline {
+  position: absolute;
+  left: 0;
+  bottom: 10vh;
+  height: 2px;
+  width: 0;
+  background: var(--blue-500);
+}
+
+/* The builder is a real app frame at a fixed design size, scaled to the shell. */
+.fk-builder {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: top left;
+  pointer-events: none;
+}
+
+.fk-bpanel {
+  border-radius: var(--radius-panel);
+  background: var(--neutral-0);
+  box-shadow: var(--shadow-card);
+}
+
+.fk-btab {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  height: 56px;
+  padding: 0 14px;
+  border-radius: 16px;
+  background: var(--neutral-0);
+}
+.fk-btab[data-on="true"] {
+  background: #e7f1f9;
+  box-shadow: inset 0 0 0 1.5px var(--blue-400);
+}
+.fk-btab > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  background: var(--neutral-100);
+  color: var(--neutral-800);
+}
+.fk-btab[data-on="true"] > span:first-child {
+  background: var(--neutral-0);
+}
+
+.fk-qcard {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  flex: 0 0 auto;
+  padding: 16px 20px;
+  border-radius: var(--radius-card);
+  background: var(--neutral-0);
+  box-shadow: var(--shadow-card);
+}
+.fk-qcard[data-selected="true"] {
+  background: var(--blue-50);
+  box-shadow: inset 0 0 0 1.5px var(--blue-500);
+}
+
+/* The dark caption plate at the foot of a pinned scene. */
+.fk-plate {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: clamp(14px, 2.2vh, 24px) clamp(20px, 4vw, 46px);
+  background: var(--neutral-950);
+}
+.fk-plate-eyebrow {
+  font-size: 11.5px;
+  letter-spacing: 0.16em;
+  color: var(--blue-300);
+}
+.fk-plate h2,
+.fk-plate h3 {
+  margin: 8px 0 0;
+  font-size: clamp(17px, 2.2vw, 32px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: #ffffff;
+}
+.fk-plate p {
+  margin: 0;
+  max-width: 64ch;
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* ---------- shape ---------- */
+
+.fk-shape-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+}
+
+.fk-logicline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: clamp(3px, 0.7vh, 9px) 13px;
+  border-radius: 10px;
+  background: var(--neutral-50);
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 0.4s ease,
+    transform 0.4s ease;
+}
+
+.fk-respq {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: clamp(8px, 1.5vh, 14px) 16px;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px var(--neutral-200);
+  transition:
+    opacity 0.45s ease,
+    transform 0.45s ease,
+    box-shadow 0.3s ease;
+}
+
+/* ---------- answer ---------- */
+
+.fk-live-choice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--neutral-200);
+  border-radius: 12px;
+  background: #ffffff;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    transform 0.12s ease;
+}
+.fk-live-choice[data-on="true"] {
+  border-color: var(--blue-500);
+  background: var(--blue-50);
+}
+.fk-live-choice:active {
+  transform: scale(0.985);
+}
+
+/* ---------- features ---------- */
+
+.fk-ftrack {
+  display: flex;
+  align-items: stretch;
+  gap: clamp(13px, 2vw, 26px);
+  padding: 0 clamp(24px, 7vw, 110px);
+  will-change: transform;
+}
+
+.fk-fcard {
+  flex: 0 0 clamp(270px, 27vw, 340px);
+  display: flex;
+  flex-direction: column;
+  padding: 26px 24px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+}
+
+.fk-round-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--neutral-0);
+  cursor: pointer;
+}
+.fk-round-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* ---------- responsive ---------- */
+
+/* Two-column scenes collapse before the pins do. */
+@media (max-width: 1024px) {
+  .fk-shape-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fk-shape-grid > div:first-child {
+    border-right: none !important;
+    box-shadow: inset 0 -1px 0 var(--neutral-200);
+  }
+  .fk-inbox {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .fk-inbox > div:first-child {
+    border-right: none !important;
+    border-bottom: 1px solid var(--neutral-200);
+  }
+}
+
+/* The floaters sit at viewport percentages tuned for a wide canvas; below this
+   the centred headline reaches them. */
+@media (max-width: 1100px) {
+  .fk-floaties {
+    display: none;
+  }
+}
+
+/* Phone and small tablet: the pinned scenes cannot work in a short viewport, so
+   they unpin and the horizontal track wraps. The scroll engine detects this and
+   stops driving transforms. */
+@media (max-width: 820px) {
+  .fk-landing > section[data-scene] {
+    height: auto !important;
+  }
+  .fk-landing > section[data-scene] > .fk-shell {
+    position: static !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  .fk-builder,
+  .fk-hero-paper {
+    display: none !important;
+  }
+  .fk-hero-stage {
+    min-height: 82vh;
+  }
+  /* These are absolutely positioned on desktop, so they paint after the Night
+     Sky. Unpinned they return to flow, where in-flow inline content paints
+     BEFORE positioned descendants — the sky would cover them. `relative` with a
+     z-index puts them back on top. */
+  .fk-hero-marketing {
+    position: relative !important;
+    z-index: 1;
+    padding: clamp(96px, 18vh, 150px) clamp(20px, 6vw, 40px) clamp(40px, 8vh, 80px) !important;
+  }
+  .fk-hero-cue {
+    position: relative !important;
+    z-index: 1;
+    margin: 0 auto clamp(20px, 4vh, 40px);
+  }
+  .fk-plate {
+    position: relative !important;
+    z-index: 1;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .fk-ftrack {
+    flex-wrap: wrap;
+    transform: none !important;
+    gap: 12px;
+  }
+  .fk-fcard {
+    flex: 1 1 260px !important;
+  }
+  .fk-fnav,
+  .fk-fbar {
+    display: none !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .fk-hero-cta a {
+    width: 100%;
+    justify-content: center;
+  }
+}
