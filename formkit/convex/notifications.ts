@@ -1,0 +1,510 @@
+import { v } from "convex/values";
+import { Resend as ResendAPI } from "resend";
+import {
+  action,
+  internalAction,
+  internalMutation,
+  internalQuery,
+  query,
+} from "./_generated/server";
+import { api, internal } from "./_generated/api";
+import { Doc, Id } from "./_generated/dataModel";
+import { requireUser } from "./model/identity";
+import { formFor } from "./model/forms";
+import {
+  fill,
+  renderConfirmation,
+  renderExport,
+  renderNotification,
+  type Vars,
+} from "./emails/response";
+
+/**
+ * What Formkit sends on a customer's behalf.
+ *
+ * Notification settings belong to the *form*, not the account — a support form
+ * and a job application go to different people. The account's email only
+ * supplies the first draft, which `notifyDefaults` fills in.
+ *
+ * Everything sent is written to `emailLog`, which the customer can read under
+ * Settings → Email log. A send that fails is logged as failed rather than
+ * disappearing.
+ */
+
+const FROM = process.env.AUTH_EMAIL_FROM ?? "Formkit <onboarding@resend.dev>";
+const SITE = process.env.SITE_URL ?? "https://formkit.app";
+
+export type NotifySettings = {
+  to: string;
+  subject: string;
+  body: string;
+  routes: { when?: string; value?: string; to?: string }[];
+  confirm: boolean;
+  replyTo: string;
+  confirmSubject: string;
+  confirmBody: string;
+  confirmAttach: boolean;
+};
+
+/** The settings a form has, with the account's address standing in for blanks. */
+export function notifyDefaults(stored: unknown, ownerEmail: string): NotifySettings {
+  const n = (stored ?? {}) as Partial<NotifySettings>;
+  return {
+    to: n.to ?? ownerEmail,
+    subject: n.subject ?? "New response to {{form_name}}",
+    body: n.body ?? "{{name}} ({{email}}) just submitted {{form_name}}.",
+    routes: n.routes ?? [],
+    confirm: !!n.confirm,
+    replyTo: n.replyTo ?? ownerEmail,
+    confirmSubject: n.confirmSubject ?? "We have your answers — {{form_name}}",
+    confirmBody:
+      n.confirmBody ??
+      "Thank you {{name}}. We have your answers and will come back to you shortly.",
+    confirmAttach: n.confirmAttach !== false,
+  };
+}
+
+/** Several addresses, comma-separated, is one field in the UI. */
+function addresses(value: string) {
+  return value
+    .split(/[,\s]+/)
+    .map((a) => a.trim())
+    .filter((a) => a.includes("@"));
+}
+
+/**
+ * The first rule that matches wins; a response matching nothing goes to the
+ * address on the form. A rule missing a question, a value or an address is
+ * incomplete and skipped rather than silently redirecting everything.
+ */
+function route(settings: NotifySettings, response: Doc<"responses">) {
+  for (const rule of settings.routes) {
+    if (!rule.when || !rule.to || rule.value === undefined || rule.value === "") continue;
+    const answer = response.answers.find((a) => a.blockId === rule.when);
+    if (!answer) continue;
+    const given = answer.values ? answer.values.join(", ") : (answer.value ?? "");
+    if (given.trim().toLowerCase() === rule.value.trim().toLowerCase()) return rule.to;
+  }
+  return settings.to;
+}
+
+function variables(response: Doc<"responses">, formTitle: string): Vars {
+  return {
+    name: response.respondentName ?? "Someone",
+    email: response.respondentEmail ?? "no email given",
+    form_name: formTitle,
+    submitted_at: new Date(response.submittedAt).toUTCString(),
+  };
+}
+
+function rowsOf(response: Doc<"responses">) {
+  return response.answers.map((a) => ({
+    question: a.question,
+    value: a.fileName ?? (a.values ? a.values.join(", ") : (a.value ?? "")),
+  }));
+}
+
+/* ------------------------------------------------------------------ */
+/* Everything the send needs, read in one go so the action holds no db */
+/* ------------------------------------------------------------------ */
+
+export const forResponse = internalQuery({
+  args: { responseId: v.id("responses") },
+  handler: async (ctx, { responseId }) => {
+    const response = await ctx.db.get(responseId);
+    if (!response) return null;
+    const form = await ctx.db.get(response.formId);
+    if (!form) return null;
+    const owner = await ctx.db.get(form.ownerId);
+    if (!owner?.email) return null;
+
+    const settings = notifyDefaults(form.notify, owner.email);
+    const vars = variables(response, form.title);
+    const rows = rowsOf(response);
+
+    const brandName =
+      form.brand === "me"
+        ? (owner.name ?? "Formkit")
+        : ((await ctx.db.get(form.brand as Id<"companies">))?.name ?? owner.name ?? "Formkit");
+
+    return {
+      userId: owner._id,
+      formId: form._id,
+      formTitle: form.title,
+      brandName,
+      partial: response.partial,
+      respondentEmail: response.respondentEmail ?? null,
+      notification: {
+        to: addresses(route(settings, response)),
+        subject: fill(settings.subject, vars),
+        message: fill(settings.body, vars),
+        rows,
+        link: `${SITE}/app/forms/${form._id}/responses?open=${response._id}`,
+      },
+      confirmation: settings.confirm
+        ? {
+            subject: fill(settings.confirmSubject, vars),
+            message: fill(settings.confirmBody, vars),
+            replyTo: settings.replyTo,
+            rows: settings.confirmAttach ? rows : [],
+          }
+        : null,
+    };
+  },
+});
+
+export const record = internalMutation({
+  args: {
+    userId: v.id("users"),
+    formId: v.optional(v.id("forms")),
+    kind: v.string(),
+    to: v.string(),
+    subject: v.string(),
+    state: v.string(),
+    detail: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ctx.db.insert("emailLog", { ...args, at: Date.now() });
+    return null;
+  },
+});
+
+/* ------------------------------------------------------------------ */
+/* The send itself                                                     */
+/* ------------------------------------------------------------------ */
+
+async function send(
+  payload: {
+    to: string[];
+    subject: string;
+    html: string;
+    replyTo?: string;
+  },
+): Promise<{ state: "sent" | "failed"; detail?: string }> {
+  const key = process.env.AUTH_RESEND_KEY;
+  if (!key) return { state: "failed", detail: "No Resend key is configured." };
+  try {
+    const resend = new ResendAPI(key);
+    const { error } = await resend.emails.send({
+      from: FROM,
+      to: payload.to,
+      subject: payload.subject,
+      html: payload.html,
+      ...(payload.replyTo ? { replyTo: payload.replyTo } : {}),
+    });
+    if (error) return { state: "failed", detail: error.message };
+    return { state: "sent" };
+  } catch (e) {
+    return { state: "failed", detail: e instanceof Error ? e.message : "Unknown error" };
+  }
+}
+
+/** Scheduled by `publicForm.submit` once a response is complete. */
+export const onResponse = internalAction({
+  args: { responseId: v.id("responses") },
+  returns: v.null(),
+  handler: async (ctx, { responseId }) => {
+    const job = await ctx.runQuery(internal.notifications.forResponse, { responseId });
+    if (!job) return null;
+
+    if (job.notification.to.length) {
+      const result = await send({
+        to: job.notification.to,
+        subject: job.notification.subject,
+        html: renderNotification({ ...job.notification, partial: job.partial }),
+      });
+      await ctx.runMutation(internal.notifications.record, {
+        userId: job.userId,
+        formId: job.formId,
+        kind: "notification",
+        to: job.notification.to.join(", "),
+        subject: job.notification.subject,
+        ...result,
+      });
+    }
+
+    // The confirmation needs an address, which only an email question supplies.
+    if (job.confirmation && job.respondentEmail) {
+      const result = await send({
+        to: [job.respondentEmail],
+        subject: job.confirmation.subject,
+        replyTo: job.confirmation.replyTo,
+        html: renderConfirmation({
+          subject: job.confirmation.subject,
+          message: job.confirmation.message,
+          rows: job.confirmation.rows,
+          brandName: job.brandName,
+        }),
+      });
+      await ctx.runMutation(internal.notifications.record, {
+        userId: job.userId,
+        formId: job.formId,
+        kind: "confirmation",
+        to: job.respondentEmail,
+        subject: job.confirmation.subject,
+        ...result,
+      });
+    }
+
+    return null;
+  },
+});
+
+/**
+ * An action that calls back into this file has to be told its own shape, or
+ * TypeScript chases `api` round in a circle and gives up with `any`.
+ */
+type SendResult = { state: string; to: string; detail?: string };
+
+type TestJob = {
+  userId: Id<"users">;
+  to: string;
+  replyTo: string | undefined;
+  subject: string;
+  html: string;
+};
+
+/**
+ * "Send me a test" on the notification settings, so the customer sees the real
+ * email rather than a description of one.
+ */
+export const sendTest = action({
+  args: {
+    formId: v.id("forms"),
+    which: v.union(v.literal("notification"), v.literal("confirmation")),
+  },
+  returns: v.object({ state: v.string(), to: v.string(), detail: v.optional(v.string()) }),
+  handler: async (ctx, { formId, which }): Promise<SendResult> => {
+    const job: TestJob = await ctx.runQuery(internal.notifications.testFor, { formId, which });
+    const result = await send({
+      to: [job.to],
+      subject: job.subject,
+      html: job.html,
+      replyTo: job.replyTo,
+    });
+    await ctx.runMutation(internal.notifications.record, {
+      userId: job.userId,
+      formId,
+      kind: which,
+      to: job.to,
+      subject: job.subject,
+      ...result,
+    });
+    return { state: result.state, to: job.to, detail: result.detail };
+  },
+});
+
+export const testFor = internalQuery({
+  args: {
+    formId: v.id("forms"),
+    which: v.union(v.literal("notification"), v.literal("confirmation")),
+  },
+  handler: async (ctx, { formId, which }): Promise<TestJob> => {
+    const user = await requireUser(ctx);
+    const form = await formFor(ctx, formId, "read");
+    const settings = notifyDefaults(form.notify, user.email ?? "");
+
+    const blocks = (
+      await ctx.db
+        .query("blocks")
+        .withIndex("by_form_order", (q) => q.eq("formId", formId))
+        .collect()
+    )
+      .filter((b) => b.kind === "field")
+      .sort((a, b) => a.order - b.order);
+
+    const vars: Vars = {
+      name: user.name ?? "Sam Taylor",
+      email: user.email ?? "sam@example.com",
+      form_name: form.title,
+      submitted_at: new Date().toUTCString(),
+    };
+    // A test shows the shape of the email, filled with example answers.
+    const rows = blocks.slice(0, 6).map((b) => ({
+      question: b.title ?? "Question",
+      value: b.options?.[0] ?? "An example answer",
+    }));
+
+    const to = which === "notification" ? addresses(settings.to)[0] : settings.replyTo;
+    if (!to) throw new Error("Add an address to send to before sending a test.");
+
+    return {
+      userId: user._id,
+      to,
+      replyTo: which === "confirmation" ? settings.replyTo : undefined,
+      subject: fill(
+        which === "notification" ? settings.subject : settings.confirmSubject,
+        vars,
+      ),
+      html:
+        which === "notification"
+          ? renderNotification({
+              subject: fill(settings.subject, vars),
+              message: fill(settings.body, vars),
+              rows,
+              link: `${SITE}/app/forms/${formId}/responses`,
+            })
+          : renderConfirmation({
+              subject: fill(settings.confirmSubject, vars),
+              message: fill(settings.confirmBody, vars),
+              rows: settings.confirmAttach ? rows : [],
+              brandName: user.name ?? "Formkit",
+            }),
+    };
+  },
+});
+
+/**
+ * Export by email. The same rows the Export button downloads, sent as a CSV
+ * attachment — for exports too large to wait on, and for sending to somebody
+ * who is not signed in.
+ */
+export const exportByEmail = action({
+  args: {
+    formId: v.id("forms"),
+    to: v.optional(v.string()),
+    ids: v.optional(v.array(v.id("responses"))),
+    includePartial: v.optional(v.boolean()),
+  },
+  returns: v.object({ state: v.string(), to: v.string(), detail: v.optional(v.string()) }),
+  handler: async (ctx, { formId, to, ids, includePartial }): Promise<SendResult> => {
+    const me: { _id: Id<"users">; email: string } | null = await ctx.runQuery(
+      api.users.viewer,
+      {},
+    );
+    const address = (to ?? me?.email ?? "").trim();
+    if (!address.includes("@")) throw new Error("Add an address to send the export to.");
+
+    const data: { filename: string; columns: string[]; rows: string[][] } =
+      await ctx.runQuery(api.responses.forExport, { formId, ids, includePartial });
+    const csv = [data.columns, ...data.rows].map((row) => row.map(csvCell).join(",")).join("\r\n");
+    const filename = `${data.filename}.csv`;
+
+    const key = process.env.AUTH_RESEND_KEY;
+    let result: { state: "sent" | "failed"; detail?: string };
+    if (!key) {
+      result = { state: "failed", detail: "No Resend key is configured." };
+    } else {
+      try {
+        const resend = new ResendAPI(key);
+        const { error } = await resend.emails.send({
+          from: FROM,
+          to: [address],
+          subject: `Your export from Formkit — ${data.filename}`,
+          html: renderExport({
+            formTitle: data.filename,
+            count: data.rows.length,
+            filename,
+          }),
+          attachments: [{ filename, content: toBase64(csv) }],
+        });
+        result = error ? { state: "failed", detail: error.message } : { state: "sent" };
+      } catch (e) {
+        result = { state: "failed", detail: e instanceof Error ? e.message : "Unknown error" };
+      }
+    }
+
+    if (me) {
+      await ctx.runMutation(internal.notifications.record, {
+        userId: me._id,
+        formId,
+        kind: "export",
+        to: address,
+        subject: `Your export from Formkit — ${data.filename}`,
+        ...result,
+      });
+    }
+    return { state: result.state, to: address, detail: result.detail };
+  },
+});
+
+/** A cell is quoted whenever a comma, a quote or a newline would break it. */
+function csvCell(value: string) {
+  return /[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+}
+
+function toBase64(text: string) {
+  const bytes = new TextEncoder().encode(text);
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
+/* ------------------------------------------------------------------ */
+/* What the customer sees                                              */
+/* ------------------------------------------------------------------ */
+
+/** Settings → Email log: everything Formkit sent on their behalf, newest first. */
+export const log = query({
+  args: { formId: v.optional(v.id("forms")), limit: v.optional(v.number()) },
+  handler: async (ctx, { formId, limit = 60 }) => {
+    const user = await requireUser(ctx);
+    const rows = formId
+      ? await ctx.db
+          .query("emailLog")
+          .withIndex("by_form", (q) => q.eq("formId", formId))
+          .collect()
+      : await ctx.db
+          .query("emailLog")
+          .withIndex("by_user", (q) => q.eq("userId", user._id))
+          .collect();
+
+    const forms = new Map<string, string>();
+    const out = [];
+    for (const row of rows.sort((a, b) => b.at - a.at).slice(0, limit)) {
+      if (row.userId !== user._id) continue;
+      if (row.formId && !forms.has(row.formId)) {
+        forms.set(row.formId, (await ctx.db.get(row.formId))?.title ?? "");
+      }
+      out.push({
+        _id: row._id,
+        kind: row.kind,
+        to: row.to,
+        subject: row.subject,
+        state: row.state,
+        detail: row.detail ?? null,
+        at: row.at,
+        form: row.formId ? (forms.get(row.formId) ?? "") : "",
+      });
+    }
+    return out;
+  },
+});
+
+/**
+ * The bell drawer. Unread means a response nobody has opened yet — the same
+ * `status` the inbox uses, so opening a response in one place clears it in both.
+ */
+export const recent = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireUser(ctx);
+    const rows = (
+      await ctx.db
+        .query("responses")
+        .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
+        .collect()
+    )
+      .sort((a, b) => b.submittedAt - a.submittedAt)
+      .slice(0, 8);
+
+    const titles = new Map<string, string>();
+    const items = [];
+    for (const r of rows) {
+      if (!titles.has(r.formId)) {
+        titles.set(r.formId, (await ctx.db.get(r.formId))?.title ?? "A form");
+      }
+      items.push({
+        _id: r._id,
+        formId: r.formId,
+        form: titles.get(r.formId)!,
+        who: r.respondentName ?? r.respondentEmail ?? "Someone",
+        partial: r.partial,
+        unread: r.status === "new",
+        at: r.submittedAt,
+      });
+    }
+    return { items, unread: items.filter((i) => i.unread).length };
+  },
+});

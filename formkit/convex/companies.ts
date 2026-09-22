@@ -17,18 +17,18 @@ export const list = query({
       .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
       .collect();
 
+    // Read the forms once, not once per company.
+    const forms = await ctx.db
+      .query("forms")
+      .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
+      .collect();
+
     return Promise.all(
-      companies.map(async (c) => {
-        const forms = await ctx.db
-          .query("forms")
-          .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
-          .collect();
-        return {
-          ...c,
-          logoUrl: c.logoId ? await ctx.storage.getUrl(c.logoId) : null,
-          formCount: forms.filter((f) => f.brand === c._id && !f.deletedAt).length,
-        };
-      }),
+      companies.map(async (c) => ({
+        ...c,
+        logoUrl: c.logoId ? await ctx.storage.getUrl(c.logoId) : null,
+        formCount: forms.filter((f) => f.brand === c._id && !f.deletedAt).length,
+      })),
     );
   },
 });

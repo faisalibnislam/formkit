@@ -8,13 +8,26 @@
  */
 
 import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
+import type * as analytics from "../analytics.js";
 import type * as auth from "../auth.js";
+import type * as blocks from "../blocks.js";
+import type * as collaborators from "../collaborators.js";
 import type * as companies from "../companies.js";
 import type * as email from "../email.js";
 import type * as emails_authCode from "../emails/authCode.js";
+import type * as emails_response from "../emails/response.js";
+import type * as forms from "../forms.js";
+import type * as handles from "../handles.js";
 import type * as http from "../http.js";
+import type * as logic from "../logic.js";
+import type * as model_builtinTemplates from "../model/builtinTemplates.js";
+import type * as model_forms from "../model/forms.js";
 import type * as model_handles from "../model/handles.js";
 import type * as model_identity from "../model/identity.js";
+import type * as notifications from "../notifications.js";
+import type * as publicForm from "../publicForm.js";
+import type * as responses from "../responses.js";
+import type * as templates from "../templates.js";
 import type * as users from "../users.js";
 
 /**
@@ -26,13 +39,26 @@ import type * as users from "../users.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  "analytics": typeof analytics,
   "auth": typeof auth,
+  "blocks": typeof blocks,
+  "collaborators": typeof collaborators,
   "companies": typeof companies,
   "email": typeof email,
   "emails/authCode": typeof emails_authCode,
+  "emails/response": typeof emails_response,
+  "forms": typeof forms,
+  "handles": typeof handles,
   "http": typeof http,
+  "logic": typeof logic,
+  "model/builtinTemplates": typeof model_builtinTemplates,
+  "model/forms": typeof model_forms,
   "model/handles": typeof model_handles,
   "model/identity": typeof model_identity,
+  "notifications": typeof notifications,
+  "publicForm": typeof publicForm,
+  "responses": typeof responses,
+  "templates": typeof templates,
   "users": typeof users,
 }>;
 export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "public">>;
