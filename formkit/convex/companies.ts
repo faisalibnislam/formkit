@@ -140,3 +140,26 @@ export const release = mutation({
     return null;
   },
 });
+
+/**
+ * The company's logo.
+ *
+ * The same one-use upload URL as an avatar — `users.generateUploadUrl` issues
+ * it, since a person may only upload for their own account either way.
+ */
+export const setLogo = mutation({
+  args: {
+    companyId: v.id("companies"),
+    storageId: v.union(v.id("_storage"), v.null()),
+  },
+  returns: v.null(),
+  handler: async (ctx, { companyId, storageId }) => {
+    const user = await requireUser(ctx);
+    const company = await ctx.db.get(companyId);
+    if (!company || company.ownerId !== user._id) throw new Error("That company is not yours.");
+    const previous = company.logoId;
+    await ctx.db.patch(companyId, { logoId: storageId ?? undefined });
+    if (previous && previous !== storageId) await ctx.storage.delete(previous);
+    return null;
+  },
+});

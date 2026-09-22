@@ -2,10 +2,13 @@
 
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
+import { useAuthActions } from "@convex-dev/auth/react";
 import {
   ChartPie,
   LifeBuoy,
+  LogOut,
   MailCheck,
   Megaphone,
   ScrollText,
@@ -148,6 +151,8 @@ const SECTIONS: {
 ];
 
 export function AdminConsole() {
+  const router = useRouter();
+  const { signOut } = useAuthActions();
   const me = useQuery(api.admin.who, {});
   const stats = useQuery(api.admin.overview, {});
   const [key, setKey] = useState<Key>("overview");
@@ -216,10 +221,23 @@ export function AdminConsole() {
             </div>
           );
         })}
+        {/* Every staff role signs out from here. There is deliberately no link
+            from the console back to the customer app. */}
         <div style={{ marginTop: "auto", paddingTop: 18 }}>
-          <Link href="/app" className="fk-admin-link">
-            Back to Formkit
-          </Link>
+          <div className="fk-admin-whoami">
+            <span>{me.staff.name}</span>
+            <span>{me.staff.role}</span>
+          </div>
+          <button
+            type="button"
+            className="fk-admin-link"
+            onClick={() => {
+              void signOut().then(() => router.push("/"));
+            }}
+          >
+            <LogOut size={17} strokeWidth={1.8} aria-hidden />
+            <span style={{ flex: 1, minWidth: 0 }}>Sign out</span>
+          </button>
         </div>
       </nav>
 

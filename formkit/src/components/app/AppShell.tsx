@@ -31,7 +31,7 @@ import { CreateFormDialog } from "./CreateFormDialog";
 import { NotificationsDrawer } from "./NotificationsDrawer";
 import { CommandPalette } from "./CommandPalette";
 import { EditorHeader } from "./EditorHeader";
-import { Avatar, TabCard } from "./bits";
+import { AvatarPill, ClientTab, TabSummary } from "./ds";
 
 /**
  * The signed-in shell.
@@ -40,12 +40,21 @@ import { Avatar, TabCard } from "./bits";
  * passes up, so a page renders only its body. Inside a form the header is the
  * editor's own — title, status, publish — which `EditorHeader` draws.
  *
- * Ask Formkit appears in the rail only when the account has been allowed it. An
- * account without access sees no AI surface at all: no pill, no locked state,
- * no mention of it. Do not add one back.
+ * The record dock along the band's bottom edge is the navigation; there is no
+ * second row of tabs in the bar above it. The dock is the last thing in the
+ * band and the band carries no padding below it, so the tabs meet its bottom
+ * edge however tall the active one grows — the active tab carries a summary row
+ * its neighbours do not, and a reserved constant would clip it.
+ *
+ * Ask Formkit appears only when the account has been allowed it. An account
+ * without access sees no AI surface at all: no tab, no locked state, no mention
+ * of it. Do not add one back.
  */
 
 type NavKey = "home" | "forms" | "responses" | "analytics" | "templates" | "ask";
+
+/** The band's own breathing room under the title when no dock is present. */
+const BAND_PAD = 116;
 
 const NAV: { value: NavKey; label: string; href: string; icon: ReactNode }[] = [
   { value: "home", label: "Dashboard", href: "/app", icon: <LayoutGrid size={16} strokeWidth={1.8} aria-hidden /> },
@@ -77,6 +86,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const viewer = useQuery(api.users.viewer, {});
   const formsList = useQuery(api.forms.list, { filter: "all" });
   const notifications = useQuery(api.notifications.recent, {});
+  const analytics = useQuery(api.analytics.overview, {});
+  const templates = useQuery(api.templates.list, {});
 
   const [createOpen, setCreateOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
@@ -87,7 +98,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const headerRef = useRef<HTMLElement>(null);
 
-  // The floating rail appears once the header's own tabs have scrolled away.
+  // The floating rail appears once the header has scrolled away.
   useEffect(() => {
     const onScroll = () => {
       const el = headerRef.current;
@@ -121,6 +132,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [pathname]);
 
   const inSettings = pathname?.startsWith("/app/settings") ?? false;
+  const showDock = !editorId && !inSettings;
 
   const nav = useMemo(
     () => (viewer?.ai.allowed ? [...NAV, ASK_NAV] : NAV),
@@ -146,20 +158,89 @@ export function AppShell({ children }: { children: ReactNode }) {
   const counts = formsList?.counts;
   const live = counts?.published ?? 0;
   const unread = notifications?.unread ?? 0;
+  const templateCount = templates?.length ?? 0;
+  const completion = analytics?.completionRate ?? 0;
+
+  const askAllowed = viewer?.ai.allowed ?? false;
+  const askCreditsLeft = viewer ? Math.max(0, viewer.ai.limit - viewer.ai.used) : 0;
 
   const dock = useMemo(
     () => [
-      { href: "/app", name: "Dashboard", meta: "Overview", icon: <LayoutGrid size={15} strokeWidth={1.8} aria-hidden />, label: "Live forms", value: String(live), key: "home" },
-      { href: "/app/forms", name: "Forms", meta: `${counts?.all ?? 0} forms`, icon: <FileText size={15} strokeWidth={1.8} aria-hidden />, label: "Collecting", value: String(live), key: "forms" },
-      { href: "/app/responses", name: "Responses", meta: "All submissions", icon: <Inbox size={15} strokeWidth={1.8} aria-hidden />, label: "New", value: String(unread), key: "responses" },
-      { href: "/app/analytics", name: "Analytics", meta: "Last 30 days", icon: <ChartPie size={15} strokeWidth={1.8} aria-hidden />, label: "Forms", value: String(counts?.all ?? 0), key: "analytics" },
-      { href: "/app/templates", name: "Templates", meta: "Start from one", icon: <LayoutTemplate size={15} strokeWidth={1.8} aria-hidden />, label: "Ready to use", value: "6", key: "templates" },
+      {
+        key: "home" as NavKey,
+        href: "/app",
+        name: "Dashboard",
+        meta: "Overview",
+        icon: <LayoutGrid size={15} strokeWidth={1.8} aria-hidden />,
+        label: "Live forms:",
+        value: String(live),
+      },
+      {
+        key: "forms" as NavKey,
+        href: "/app/forms",
+        name: "Forms",
+        meta: `${counts?.all ?? 0} ${counts?.all === 1 ? "form" : "forms"}`,
+        icon: <FileText size={15} strokeWidth={1.8} aria-hidden />,
+        label: "Collecting:",
+        value: String(live),
+      },
+      {
+        key: "responses" as NavKey,
+        href: "/app/responses",
+        name: "Responses",
+        meta: "All submissions",
+        icon: <Inbox size={15} strokeWidth={1.8} aria-hidden />,
+        label: "New:",
+        value: String(unread),
+      },
+      {
+        key: "analytics" as NavKey,
+        href: "/app/analytics",
+        name: "Analytics",
+        meta: "Last 30 days",
+        icon: <ChartPie size={15} strokeWidth={1.8} aria-hidden />,
+        label: "Completion:",
+        value: `${completion}%`,
+      },
+      {
+        key: "templates" as NavKey,
+        href: "/app/templates",
+        name: "Templates",
+        meta: templateCount ? `${templateCount} to start from` : "Start from one",
+        icon: <LayoutTemplate size={15} strokeWidth={1.8} aria-hidden />,
+        label: "Templates:",
+        value: String(templateCount),
+      },
+      // The AI surface exists only for an account that has been allowed it.
+      ...(askAllowed
+        ? [
+            {
+              key: "ask" as NavKey,
+              href: "/app/ask",
+              name: "Ask Formkit",
+              meta: "Describe a form",
+              icon: <Sparkles size={15} strokeWidth={1.8} aria-hidden />,
+              label: "Credits left:",
+              value: String(askCreditsLeft),
+            },
+          ]
+        : []),
     ],
-    [counts, live, unread],
+    [counts, live, unread, completion, templateCount, askAllowed, askCreditsLeft],
   );
 
   const hour = new Date().getHours();
   const firstName = (viewer?.name ?? "").trim().split(/\s+/)[0] || "there";
+
+  /**
+   * The chrome leads with the person. A second line names the company when
+   * there is one and counts them when there are several — nothing when solo.
+   */
+  const orgLine = viewer?.companies.length
+    ? viewer.companies.length === 1
+      ? viewer.companies[0]!.name
+      : `${viewer.companies.length} companies`
+    : "";
 
   const heroes: Record<string, { eyebrow: string; title: string; sub: string }> = {
     home: {
@@ -174,19 +255,19 @@ export function AppShell({ children }: { children: ReactNode }) {
         : "Nothing here yet. One form is all it takes to start.",
     },
     forms: {
-      eyebrow: viewer?.email ?? "",
+      eyebrow: orgLine,
       title: "Forms",
       sub: counts?.all
         ? `${counts.all} forms, ${live} of them collecting right now.`
         : "No forms yet — create one, or lift a template.",
     },
     responses: {
-      eyebrow: viewer?.email ?? "",
+      eyebrow: orgLine,
       title: "Responses",
       sub: "Everything people have sent you, in one inbox.",
     },
     analytics: {
-      eyebrow: viewer?.email ?? "",
+      eyebrow: orgLine,
       title: "Analytics",
       sub: "Where people drop off, and how long they stay.",
     },
@@ -214,15 +295,21 @@ export function AppShell({ children }: { children: ReactNode }) {
         Skip to content
       </a>
 
-      <header className="fk-app-head" ref={headerRef}>
+      <header
+        className="fk-app-head"
+        ref={headerRef}
+        data-dock={showDock || editorId ? "true" : undefined}
+        style={{ paddingBottom: showDock || editorId ? undefined : BAND_PAD }}
+      >
         <NightSky />
 
         <div className="fk-app-bar">
           <div className="fk-app-bar-left">
-            <span style={{ position: "relative", display: "inline-flex" }} className="fk-only-narrow">
+            <span className="fk-app-menu fk-only-narrow">
               <button
                 type="button"
-                className="fk-glass"
+                className="fk-ring-btn"
+                data-on-sky="true"
                 aria-label="Sections"
                 aria-expanded={menuOpen}
                 onClick={() => setMenuOpen((v) => !v)}
@@ -256,30 +343,15 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Link>
           </div>
 
-          <div className="fk-app-bar-mid">
-            <PillTabs
-              ariaLabel="Sections"
-              tabs={nav.map((n) => ({ value: n.value, label: n.label, icon: n.icon }))}
-              value={current}
-              onChange={(next) => {
-                const target = nav.find((n) => n.value === next);
-                if (target) router.push(target.href);
-              }}
-            />
-          </div>
-
           <div className="fk-app-bar-right">
-            <button
-              type="button"
-              className="fk-glass fk-glass-pill fk-glass-solid fk-only-wide"
-              onClick={() => setCreateOpen(true)}
-            >
-              <Plus size={16} strokeWidth={1.8} aria-hidden />
+            <button type="button" className="fk-cta fk-only-wide" onClick={() => setCreateOpen(true)}>
+              <Plus size={16} strokeWidth={1.9} aria-hidden />
               Create form
             </button>
             <button
               type="button"
-              className="fk-glass fk-only-narrow"
+              className="fk-ring-btn fk-only-narrow"
+              data-on-sky="true"
               aria-label="Create form"
               onClick={() => setCreateOpen(true)}
             >
@@ -288,7 +360,8 @@ export function AppShell({ children }: { children: ReactNode }) {
 
             <button
               type="button"
-              className="fk-glass fk-only-wide"
+              className="fk-ring-btn"
+              data-on-sky="true"
               aria-label="Search"
               onClick={() => setPaletteOpen(true)}
             >
@@ -298,7 +371,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span className="fk-bell">
               <button
                 type="button"
-                className="fk-glass"
+                className="fk-ring-btn"
+                data-on-sky="true"
                 aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"}
                 onClick={() => setBellOpen(true)}
               >
@@ -308,16 +382,12 @@ export function AppShell({ children }: { children: ReactNode }) {
             </span>
 
             <span className="fk-account">
-              <button
-                type="button"
-                className="fk-account-trigger"
-                aria-haspopup="menu"
-                aria-expanded={accountOpen}
+              <AvatarPill
+                name={viewer?.name ?? ""}
+                image={viewer?.image ?? null}
+                expanded={accountOpen}
                 onClick={() => setAccountOpen((v) => !v)}
-              >
-                <Avatar name={viewer?.name ?? ""} image={viewer?.image ?? null} />
-                <span className="fk-account-name">{viewer?.name ?? "Account"}</span>
-              </button>
+              />
               {accountOpen && (
                 <>
                   <span className="fk-menu-scrim" onClick={() => setAccountOpen(false)} aria-hidden />
@@ -391,19 +461,21 @@ export function AppShell({ children }: { children: ReactNode }) {
               </div>
             </div>
 
-            {!inSettings && (
+            {showDock && (
               <div className="fk-dock">
                 {dock.map((d) => (
-                  <TabCard
+                  <ClientTab
                     key={d.key}
                     href={d.href}
                     name={d.name}
                     meta={d.meta}
                     mark={d.icon}
                     active={d.key === current}
-                    sumLabel={`${d.label}:`}
-                    sumValue={d.value}
-                  />
+                  >
+                    {d.key === current && (
+                      <TabSummary label={d.label} value={d.value} tone="up" />
+                    )}
+                  </ClientTab>
                 ))}
               </div>
             )}

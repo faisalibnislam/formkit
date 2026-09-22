@@ -128,3 +128,36 @@ export const completeOnboarding = mutation({
     return null;
   },
 });
+
+/**
+ * Uploading a picture of yourself.
+ *
+ * Convex hands out a one-use URL, the browser posts the file straight to it,
+ * and the id that comes back is written to the account. The file never passes
+ * through a mutation, so a large one cannot blow the argument limit.
+ */
+export const generateUploadUrl = mutation({
+  args: {},
+  returns: v.string(),
+  handler: async (ctx) => {
+    await requireUser(ctx);
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+/** Sets the avatar, and deletes whatever it replaced rather than orphaning it. */
+export const setAvatar = mutation({
+  args: { storageId: v.union(v.id("_storage"), v.null()) },
+  returns: v.null(),
+  handler: async (ctx, { storageId }) => {
+    const user = await requireUser(ctx);
+    const previous = user.avatarId;
+    await ctx.db.patch(user._id, {
+      avatarId: storageId ?? undefined,
+      // A picture of their own wins over whatever an identity provider gave us.
+      ...(storageId ? { image: undefined } : {}),
+    });
+    if (previous && previous !== storageId) await ctx.storage.delete(previous);
+    return null;
+  },
+});

@@ -1,0 +1,83 @@
+"use client";
+
+/**
+ * Stands in for `convex/react` while `FK_PREVIEW=1`.
+ *
+ * Only the hooks the application actually calls are here — `useQuery`,
+ * `useMutation`, `useAction` and `useConvex`. Queries read the fixtures;
+ * mutations log and resolve, so a click does not throw.
+ */
+
+import type { ReactNode } from "react";
+import { getFunctionName } from "convex/server";
+import { fixtureFor } from "./fixtures";
+
+function nameOf(reference: unknown) {
+  try {
+    return getFunctionName(reference as never);
+  } catch {
+    return String(reference);
+  }
+}
+
+export function useQuery(reference: unknown, ..._args: unknown[]) {
+  void _args;
+  return fixtureFor(nameOf(reference)) as never;
+}
+
+export function useMutation(reference: unknown) {
+  const name = nameOf(reference);
+  return (async (args: unknown) => {
+    // eslint-disable-next-line no-console
+    console.info("[preview] mutation", name, args);
+    // The upload flow posts to whatever this returns, so it has to be a URL.
+    if (name === "users:generateUploadUrl") return "/__preview_upload";
+    return null;
+  }) as never;
+}
+
+export function useAction(reference: unknown) {
+  return useMutation(reference);
+}
+
+export function useConvex() {
+  return {
+    query: async (reference: unknown) => fixtureFor(nameOf(reference)),
+    mutation: async () => null,
+    action: async () => null,
+  } as never;
+}
+
+export function usePaginatedQuery(reference: unknown) {
+  const page = fixtureFor(nameOf(reference));
+  return { results: Array.isArray(page) ? page : [], status: "Exhausted", loadMore: () => {}, isLoading: false } as never;
+}
+
+export function useConvexAuth() {
+  return { isLoading: false, isAuthenticated: true };
+}
+
+export class ConvexReactClient {
+  constructor(public url?: string) {}
+  setAuth() {}
+  clearAuth() {}
+  close() {
+    return Promise.resolve();
+  }
+}
+
+export function ConvexProvider({ children }: { children: ReactNode }) {
+  return <>{children}</>;
+}
+
+export function Authenticated({ children }: { children: ReactNode }) {
+  return <>{children}</>;
+}
+
+export function Unauthenticated() {
+  return null;
+}
+
+export function AuthLoading() {
+  return null;
+}

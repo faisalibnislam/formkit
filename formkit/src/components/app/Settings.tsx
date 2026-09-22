@@ -3,8 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery } from "convex/react";
-import { useSearchParams } from "next/navigation";
-import { Plus, Trash2 } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Image as ImageIcon, Plus, Trash2 } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import {
@@ -19,7 +19,9 @@ import {
   Textarea,
 } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
-import { Avatar, fullTime } from "./bits";
+import { Avatar } from "./ds";
+import { ImageUpload } from "./ImageUpload";
+import { fullTime } from "./bits";
 
 /**
  * Account settings.
@@ -31,8 +33,18 @@ type Tab = "account" | "companies" | "sharing" | "emails";
 
 export function Settings() {
   const toast = useToast();
+  const router = useRouter();
   const search = useSearchParams();
-  const [tab, setTab] = useState<Tab>((search.get("tab") as Tab) ?? "account");
+
+  /* The section is read from the URL rather than held in state, so the account
+     menu's "Companies and branding" lands on that section even from inside
+     Settings — a soft navigation does not remount this component, so seeded
+     state would have kept whichever section was already open. */
+  const tab: Tab = (search.get("tab") as Tab) ?? "account";
+  const setTab = (next: Tab) =>
+    router.replace(next === "account" ? "/app/settings" : `/app/settings?tab=${next}`, {
+      scroll: false,
+    });
 
   const viewer = useQuery(api.users.viewer, {});
   const companies = useQuery(api.companies.list, {});
@@ -40,6 +52,8 @@ export function Settings() {
   const log = useQuery(api.notifications.log, {});
 
   const updateProfile = useMutation(api.users.updateProfile);
+  const setAvatar = useMutation(api.users.setAvatar);
+  const setLogo = useMutation(api.companies.setLogo);
   const addCompany = useMutation(api.companies.add);
   const updateCompany = useMutation(api.companies.update);
   const removeCompany = useMutation(api.companies.remove);
@@ -75,7 +89,14 @@ export function Settings() {
               This is the account. Companies are optional, and you can have several.
             </p>
             <div style={{ display: "flex", gap: 18, alignItems: "flex-start", flexWrap: "wrap" }}>
-              <Avatar name={viewer.name} image={viewer.image} size="lg" />
+              <ImageUpload
+                label="Your picture"
+                help="PNG, JPEG, WebP or SVG, up to 5 MB. It appears wherever your name does."
+                hasImage={!!viewer.image}
+                preview={<Avatar name={viewer.name} image={viewer.image} size="xl" />}
+                onUploaded={(storageId) => setAvatar({ storageId })}
+                onCleared={() => setAvatar({ storageId: null })}
+              />
               <div style={{ flex: 1, minWidth: 260, display: "flex", flexDirection: "column", gap: 14 }}>
                 <Field label="Name">
                   <Input
@@ -207,6 +228,23 @@ export function Settings() {
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <ImageUpload
+                    label="Logo"
+                    help="Shown on this company's published forms and in the emails they send. Up to 5 MB."
+                    hasImage={!!c.logoUrl}
+                    preview={
+                      <span className="fk-logo-plate">
+                        {c.logoUrl ? (
+                          <img src={c.logoUrl} alt="" />
+                        ) : (
+                          <ImageIcon size={22} strokeWidth={1.6} aria-hidden />
+                        )}
+                      </span>
+                    }
+                    onUploaded={(storageId) => setLogo({ companyId: c._id, storageId })}
+                    onCleared={() => setLogo({ companyId: c._id, storageId: null })}
+                  />
+
                   <div className="fk-fieldrow">
                     <Field label="Name">
                       <Input

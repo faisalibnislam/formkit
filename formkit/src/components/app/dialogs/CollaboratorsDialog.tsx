@@ -7,7 +7,7 @@ import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import { Badge, Button, Field, IconButton, Input, Modal, Select } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
-import { Avatar } from "../bits";
+import { Avatar } from "../ds";
 
 /**
  * Collaborators owns people, and only people. What each role can do is spelled

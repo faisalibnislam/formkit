@@ -3,7 +3,7 @@
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Switch } from "@/components/ui";
-import { Stat } from "@/components/app/bits";
+import { StatCard } from "@/components/app/ds";
 import { useToast } from "@/components/ui/Toast";
 
 /** What the platform is doing right now, counted from stored data. */
@@ -15,18 +15,18 @@ export function AdminOverview() {
 
   return (
     <>
-      <div className="fk-grid" data-cols="stats">
-        <Stat label="Accounts" value={stats.users} note={`${stats.newUsers} in the last week`} />
-        <Stat label="Forms" value={stats.forms} note={`${stats.live} collecting`} />
-        <Stat
+      <div className="fk-grid" data-cols="stats-sm">
+        <StatCard label="Accounts" value={stats.users.toLocaleString()} caption={`${stats.newUsers.toLocaleString()} in the last week`} />
+        <StatCard label="Forms" value={stats.forms.toLocaleString()} caption={`${stats.live.toLocaleString()} collecting`} />
+        <StatCard
           label="Responses"
-          value={stats.responses}
-          note={`${stats.responsesWeek} in the last week`}
+          value={stats.responses.toLocaleString()}
+          caption={`${stats.responsesWeek.toLocaleString()} in the last week`}
         />
-        <Stat
+        <StatCard
           label="On the AI allow-list"
-          value={stats.aiAllowed}
-          note={`${stats.aiUsed} credits used this month`}
+          value={stats.aiAllowed.toLocaleString()}
+          caption={`${stats.aiUsed.toLocaleString()} credits used this month`}
         />
       </div>
 
@@ -52,10 +52,10 @@ export function AdminOverview() {
       </section>
 
       <div className="fk-grid" data-cols="two">
-        <Stat label="Open reports" value={stats.openReports} />
-        <Stat label="Open tickets" value={stats.openTickets} />
-        <Stat label="Suspended accounts" value={stats.deactivated} />
-        <Stat label="Staff" value={stats.staff} note="People who can reach this console" />
+        <StatCard label="Open reports" value={stats.openReports} />
+        <StatCard label="Open tickets" value={stats.openTickets} />
+        <StatCard label="Suspended accounts" value={stats.deactivated} />
+        <StatCard label="Staff" value={stats.staff} caption="People who can reach this console" />
       </div>
     </>
   );

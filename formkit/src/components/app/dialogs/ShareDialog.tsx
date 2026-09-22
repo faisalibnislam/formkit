@@ -71,7 +71,7 @@ export function ShareDialog({ formId, onClose }: { formId: Id<"forms">; onClose:
           <>
             <Field label="Public link">
               <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                <Input readOnly value={url} onFocus={(e) => e.currentTarget.select()} style={{ flex: 1 }} />
+                <Input readOnly value={url} onFocus={(e) => e.currentTarget.select()} wrapStyle={{ flex: 1 }} />
                 <Button
                   variant="secondary"
                   onClick={() => copy("link", url)}

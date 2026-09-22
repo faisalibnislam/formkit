@@ -112,8 +112,43 @@ src/components/
 src/styles/        tokens copied from the design system, then one file per area
 ```
 
+## Looking at the signed-in app
+
+The application is drawn almost entirely from Convex queries, so it cannot be
+looked at without a backend — which is how it came to be written without ever
+being rendered. `scripts/preview/` swaps the Convex hooks for fixtures:
+
+```bash
+npm run preview     # the whole app on fixture data, at the real routes
+npm run shots       # drives a browser over every screen into preview-shots/
+npm run shots -- --width 430    # the narrow layout
+```
+
+`shots` reports console errors and horizontal overflow beside each screen,
+because neither shows up in a screenshot and both are fatal in the product.
+`next.config.ts` installs the aliases only when `FK_PREVIEW=1`, so a normal
+build resolves the real modules. The renders the screens are measured against
+are in `../project/shots/`.
+
 ## Things worth knowing before changing them
 
+- **The record dock is the app's navigation.** The tabs along the bottom of the
+  sky band are it — there is deliberately no second row of tabs in the bar
+  above. `ClientTab` in `src/components/app/ds.tsx` is a locked design: the
+  active tab's concave bottom shoulders are a radial-gradient square parked
+  outside each corner, because `border-radius` cannot express a concave corner.
+  The dock is the last thing in the band and the band carries no padding below
+  it, so the tabs meet its edge however tall the active one grows.
+- **A builder card is always `draggable`.** `onCardPointerDown` decides whether
+  the press may start a drag — it arms `gripArm` unless the pointer landed on a
+  control, and `onDragStart` cancels the drag when the flag is unset. Setting
+  `draggable` from state on mousedown does not work: the browser reads the
+  attribute before that state lands. The card being dragged is held in a ref as
+  well, because `drop` runs from a browser event and cannot wait for a render.
+- **Pictures never pass through a mutation.** `users.generateUploadUrl` hands
+  out a one-use URL, the browser posts the file straight to it, and only the
+  storage id is written down. `setAvatar` and `companies.setLogo` delete what
+  they replace rather than orphaning it.
 - **The nav hide guard reads resting geometry, not the live rect.** Computing it
   from `getBoundingClientRect()` makes the bar flicker as it hides itself.
 - **The landing page does not use React state.** One rAF loop writes to refs

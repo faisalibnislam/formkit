@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import type { DragEvent, PointerEvent } from "react";
 import { useMutation, useQuery } from "convex/react";
 import {
   Copy,
@@ -32,7 +33,16 @@ import { QuestionPreview } from "./QuestionPreview";
  * Questions and page breaks are one ordered list, because that is what the
  * canvas shows. Reordering sends the whole new order in one mutation rather
  * than a pair of swaps, so a dropped card never lands twice.
+ *
+ * Drag to reorder: a card is ALWAYS `draggable`, and `onCardPointerDown`
+ * decides whether the press that began may start a drag. Do not go back to
+ * setting `draggable` from state on mousedown — the browser reads the attribute
+ * before that state lands, and the drag never starts.
  */
+
+/* A press that lands on one of these is that control's, not the card's:
+   without this, selecting the text in a page name starts a drag instead. */
+const CONTROLS = "input, textarea, select, button, a, [contenteditable], [role='button']";
 export function Builder({ formId }: { formId: Id<"forms"> }) {
   const toast = useToast();
   const form = useQuery(api.forms.get, { formId });
@@ -50,6 +60,36 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
   const [selected, setSelected] = useState<Id<"blocks"> | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
+
+  /* Armed by a press that may start a drag, and read synchronously inside
+     onDragStart — a ref rather than state, because a state update would not
+     have landed by the time the browser asks. */
+  const gripArm = useRef(false);
+
+  /* The card being dragged, kept beside the state that styles it: `drop` runs
+     from a browser event and cannot wait for a render to commit. */
+  const dragId = useRef<string | null>(null);
+
+  function onCardPointerDown(e: PointerEvent<HTMLElement>) {
+    gripArm.current = !(e.target as HTMLElement).closest(CONTROLS);
+  }
+
+  function onCardDragStart(e: DragEvent<HTMLElement>, id: string) {
+    if (!gripArm.current) {
+      e.preventDefault();
+      return;
+    }
+    e.dataTransfer.effectAllowed = "move";
+    dragId.current = id;
+    setDragging(id);
+  }
+
+  function onCardDragEnd() {
+    gripArm.current = false;
+    dragId.current = null;
+    setDragging(null);
+    setOver(null);
+  }
 
   const blocks = useMemo(() => form?.blocks ?? [], [form]);
   const active = blocks.find((b) => b._id === selected) ?? null;
@@ -75,12 +115,15 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
   }
 
   async function drop(targetId: string) {
-    if (!dragging || dragging === targetId) return;
+    const source = dragId.current;
+    if (!source || source === targetId) return;
     const order = blocks.map((b) => b._id as string);
-    const from = order.indexOf(dragging);
+    const from = order.indexOf(source);
     const to = order.indexOf(targetId);
     if (from < 0 || to < 0) return;
     order.splice(to, 0, ...order.splice(from, 1));
+    gripArm.current = false;
+    dragId.current = null;
     setDragging(null);
     setOver(null);
     await reorder({ formId, ids: order as Id<"blocks">[] });
@@ -182,18 +225,18 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
             <div
               key={b._id}
               className="fk-pagebreak"
+              data-dragging={b._id === dragging ? "true" : undefined}
+              data-over={b._id === over && dragging !== b._id ? "true" : undefined}
               draggable
-              onDragStart={() => setDragging(b._id)}
+              onPointerDown={onCardPointerDown}
+              onDragStart={(e) => onCardDragStart(e, b._id)}
               onDragOver={(e) => {
                 e.preventDefault();
                 setOver(b._id);
               }}
               onDragLeave={() => setOver((v) => (v === b._id ? null : v))}
               onDrop={() => drop(b._id)}
-              onDragEnd={() => {
-                setDragging(null);
-                setOver(null);
-              }}
+              onDragEnd={onCardDragEnd}
             >
               <Rows3 size={15} strokeWidth={1.8} aria-hidden />
               <input
@@ -224,19 +267,26 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
               data-over={b._id === over && dragging !== b._id ? "true" : undefined}
               onClick={() => setSelected(b._id)}
               draggable
-              onDragStart={() => setDragging(b._id)}
+              onPointerDown={onCardPointerDown}
+              onDragStart={(e) => onCardDragStart(e, b._id)}
               onDragOver={(e) => {
                 e.preventDefault();
                 setOver(b._id);
               }}
               onDragLeave={() => setOver((v) => (v === b._id ? null : v))}
               onDrop={() => drop(b._id)}
-              onDragEnd={() => {
-                setDragging(null);
-                setOver(null);
-              }}
+              onDragEnd={onCardDragEnd}
             >
-              <span className="fk-qcard-grip" aria-hidden title="Drag to reorder">
+              {/* The grip arms on hover too, so a press that starts there is a
+                  drag even when it lands on something the guard would refuse. */}
+              <span
+                className="fk-qcard-grip"
+                aria-hidden
+                title="Drag to reorder"
+                onMouseEnter={() => {
+                  gripArm.current = true;
+                }}
+              >
                 <GripVertical size={16} strokeWidth={1.8} />
               </span>
               <div className="fk-qcard-body">

@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "preview": "FK_PREVIEW=1 next dev --port 3001",
+    "shots": "node scripts/shots.mjs"
   },
   "dependencies": {
     "@auth/core": "^0.41.3",

@@ -22,9 +22,15 @@
   background: linear-gradient(180deg, #03102c 0%, #0a2a5e 55%, #12457c 100%);
   color: var(--neutral-0);
 }
+.fk-app-head[data-dock="true"] {
+  padding-bottom: 0;
+}
 .fk-app-head .fk-sky {
   position: absolute;
   inset: 0;
+  /* The wisps and orbs are drawn wider than the band on purpose; clipping them
+     here is what stops them widening the page on a narrow screen. */
+  overflow: hidden;
   pointer-events: none;
 }
 
@@ -32,7 +38,7 @@
   position: relative;
   z-index: 4;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: clamp(10px, 2vw, 20px);
 }
@@ -48,15 +54,10 @@
   z-index: 6;
   justify-content: flex-end;
 }
-.fk-app-bar-mid {
-  display: flex;
-  justify-content: center;
-  min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.fk-app-bar-mid::-webkit-scrollbar {
-  display: none;
+/* The record dock below is the navigation — there is deliberately no second
+   row of tabs in the bar. */
+.fk-app-menu {
+  position: relative;
 }
 
 .fk-app-home {
@@ -103,12 +104,26 @@
   font-size: 15px;
   font-weight: 500;
 }
-.fk-app-bar-right .fk-glass-solid {
-  background: var(--neutral-0);
-  color: var(--neutral-900);
+/* The one filled control on the sky: Formkit's single dark pill. */
+.fk-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  height: 44px;
+  flex: 0 0 auto;
+  padding: 0 22px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--neutral-900);
+  color: var(--neutral-0);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition-control);
 }
-.fk-app-bar-right .fk-glass-solid:hover {
-  background: var(--blue-50);
+.fk-cta:hover {
+  background: var(--neutral-800);
 }
 
 .fk-bell {
@@ -131,7 +146,7 @@
   color: var(--neutral-0);
   font-size: 11px;
   font-weight: 500;
-  box-shadow: 0 0 0 2px var(--blue-300);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.24);
   pointer-events: none;
 }
 
@@ -141,31 +156,6 @@
   position: relative;
   display: inline-flex;
 }
-.fk-account-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  height: 52px;
-  padding: 0 14px 0 6px;
-  border: none;
-  border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.16);
-  color: var(--neutral-0);
-  font: inherit;
-  cursor: pointer;
-  transition: var(--transition-control);
-}
-.fk-account-trigger:hover {
-  background: rgba(255, 255, 255, 0.28);
-}
-.fk-account-name {
-  max-width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 14.5px;
-}
-
 .fk-avatar {
   display: inline-flex;
   align-items: center;
@@ -194,6 +184,11 @@
   width: 64px;
   height: 64px;
   font-size: 22px;
+}
+.fk-avatar[data-size="xl"] {
+  width: 92px;
+  height: 92px;
+  font-size: 30px;
 }
 
 .fk-menu {
@@ -380,84 +375,127 @@
   border-radius: 0 var(--radius-pill) var(--radius-pill) 0;
 }
 
-/* ---------- dock of tab cards ---------- */
+/* ---------- the record dock ---------- */
 
+/* LOCKED GEOMETRY — see ClientTab in src/components/app/ds.tsx.
+
+   The dock is the last thing in the sky band and the band carries no padding
+   below it, so the tabs meet the band's bottom edge exactly however tall the
+   active one grows. It hangs outside the band's own side padding to keep the
+   SHOULDER-wide gutters the flares need: without them the first and last tab's
+   flare is clipped by this scroll box. */
 .fk-dock {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: flex;
   align-items: flex-end;
   gap: 7px;
-  margin: clamp(24px, 3.5vw, 38px) calc(-1 * clamp(16px, 3.5vw, 40px)) -30px;
+  margin: clamp(30px, 4vw, 44px) calc(-1 * clamp(16px, 3.5vw, 40px)) 0;
   padding: 0 20px;
   overflow-x: auto;
+  overflow-y: hidden;
   scrollbar-width: none;
 }
 .fk-dock::-webkit-scrollbar {
   display: none;
 }
-.fk-tabcard {
+
+.fk-tab {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  flex: 0 0 auto;
-  width: 216px;
-  min-height: 92px;
-  padding: 16px 18px 20px;
-  border: none;
-  border-radius: 22px 22px 0 0;
-  background: rgba(255, 255, 255, 0.81);
-  color: var(--color-text-primary);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
+  gap: 14px;
+  flex: 1 1 0;
+  padding: 18px 20px 20px;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(12px);
+  color: var(--neutral-900);
+  text-decoration: none;
   transition: var(--transition-surface);
 }
-.fk-tabcard:hover {
-  background: rgba(255, 255, 255, 0.92);
+.fk-tab:hover {
+  background: rgba(255, 255, 255, 0.42);
 }
-.fk-tabcard[data-active="true"] {
+.fk-tab[data-active="true"] {
+  z-index: 5;
+  padding: 20px 22px 24px;
   background: var(--paper);
-  min-height: 104px;
-  cursor: default;
+  backdrop-filter: none;
+  box-shadow:
+    0 -16px 36px -20px rgba(44, 48, 52, 0.3),
+    -14px 0 28px -22px rgba(44, 48, 52, 0.22),
+    14px 0 28px -22px rgba(44, 48, 52, 0.22);
 }
-.fk-tabcard-name {
+.fk-tab[data-active="true"]:hover {
+  background: var(--paper);
+}
+
+/* The concave bottom corner: a square parked outside the tab, filled with a
+   radial gradient whose transparent disc is centred on its outer-top corner,
+   so everything beyond the disc paints in --paper. */
+.fk-tab-shoulder {
+  position: absolute;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.fk-tab-head {
   display: flex;
   align-items: center;
-  gap: 9px;
-  font-size: 15.5px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
+  gap: 12px;
+  min-width: 0;
 }
-.fk-tabcard-meta {
-  font-size: 13px;
-  color: var(--color-text-tertiary);
-}
-.fk-tabcard-sum {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: auto;
-  font-size: 14.5px;
-}
-.fk-tabcard-sum span {
-  color: var(--color-text-tertiary);
-}
-.fk-tabcard-sum strong {
-  font-weight: 500;
-}
-.fk-tabcard-mark {
+.fk-tab-mark {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  border-radius: var(--radius-pill);
-  background: var(--blue-200);
-  color: var(--blue-700);
-  font-size: 12px;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--neutral-900);
 }
+.fk-tab[data-active="true"] .fk-tab-mark {
+  background: var(--neutral-900);
+  color: var(--neutral-0);
+}
+.fk-tab-text {
+  flex: 1;
+  min-width: 0;
+}
+.fk-tab-name {
+  display: block;
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fk-tab-meta {
+  display: block;
+  font-size: 13.5px;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--neutral-800);
+}
+.fk-tab-sum {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14.5px;
+}
+.fk-tab-sum > span {
+  color: var(--color-text-tertiary);
+}
+.fk-tab-sum strong {
+  font-weight: 500;
+}
+
 
 /* The rail that replaces the header once it scrolls away. */
 .fk-float {
@@ -536,39 +574,17 @@
   gap: clamp(14px, 1.8vw, 20px);
 }
 .fk-grid[data-cols="stats"] {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+.fk-grid[data-cols="stats-sm"] {
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
 }
 .fk-grid[data-cols="cards"] {
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
 }
 .fk-grid[data-cols="two"] {
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
 }
-
-.fk-stat {
-  padding: 22px 24px;
-  border-radius: var(--radius-panel);
-  background: var(--color-surface-card);
-  box-shadow: var(--shadow-card);
-}
-.fk-stat-label {
-  font-size: 14px;
-  color: var(--color-text-tertiary);
-}
-.fk-stat-value {
-  margin-top: 6px;
-  font-size: clamp(32px, 4vw, 42px);
-  font-weight: 200;
-  letter-spacing: -0.03em;
-  line-height: 1;
-}
-.fk-stat-note {
-  margin-top: 8px;
-  font-size: 13.5px;
-  color: var(--color-text-tertiary);
-}
-
-/* ---------- rows and lists ---------- */
 
 .fk-rows {
   display: flex;
@@ -605,6 +621,7 @@
   min-width: 0;
 }
 .fk-row-title {
+  display: block;
   font-size: 15.5px;
   font-weight: 500;
   letter-spacing: -0.01em;
@@ -613,6 +630,7 @@
   white-space: nowrap;
 }
 .fk-row-meta {
+  display: block;
   margin-top: 4px;
   font-size: 13.5px;
   color: var(--color-text-tertiary);
@@ -1072,6 +1090,927 @@
   mix-blend-mode: normal;
 }
 
+/* ---------- data surfaces ported from the design system ---------- */
+
+/* The circular drill-in affordance in a card's top-right corner, and the
+   utility circles that sit on the sky band. Both are a ring, never a fill. */
+.fk-ring-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--color-border-default);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font: inherit;
+  transition: var(--transition-control);
+}
+.fk-ring-btn:hover {
+  background: var(--neutral-100);
+  color: var(--color-text-primary);
+}
+.fk-ring-btn[data-on-sky="true"] {
+  width: 44px;
+  height: 44px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.42);
+  color: var(--neutral-0);
+}
+.fk-ring-btn[data-on-sky="true"]:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: var(--neutral-0);
+}
+
+/* ---------- StatDot ---------- */
+
+.fk-statdot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--green-300);
+  color: var(--neutral-0);
+}
+.fk-statdot[data-tone="down"] {
+  background: var(--red-300);
+}
+
+/* ---------- TickBars ---------- */
+
+.fk-tickbars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.fk-tickbars-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.fk-tickbars-row[data-kind="label"] {
+  font-size: 13.5px;
+  color: var(--color-text-secondary);
+}
+.fk-tickbars-row[data-kind="foot"] {
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+}
+.fk-tickbars-plot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 3px;
+  overflow: hidden;
+}
+.fk-tickbars-plot > span {
+  width: 2px;
+  flex: 0 0 auto;
+  height: 42%;
+  border-radius: 1px;
+  background: var(--color-chart-track);
+  transition: var(--transition-bar);
+}
+.fk-tickbars-plot > span[data-on="true"] {
+  height: 100%;
+  background: var(--color-chart-positive);
+}
+.fk-tickbars-plot > span[data-on="true"][data-tone="negative"] {
+  background: var(--color-chart-negative);
+}
+.fk-tickbars-plot > span[data-on="true"][data-tone="neutral"] {
+  background: var(--color-chart-neutral);
+}
+.fk-tickbars-plot > span[data-on="true"][data-tone="info"] {
+  background: var(--color-chart-info);
+}
+
+/* ---------- MetricCard ---------- */
+
+.fk-metric {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 26px;
+  border-radius: var(--radius-card);
+  background: var(--color-surface-card);
+  box-shadow: var(--shadow-card);
+  color: var(--color-text-primary);
+  transition: var(--transition-surface);
+}
+.fk-metric[data-tone="sunken"] {
+  background: var(--color-surface-sunken);
+  box-shadow: none;
+}
+.fk-metric-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.fk-metric-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+.fk-metric-title h3 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: -0.012em;
+  line-height: 1.25;
+}
+.fk-metric-eyebrow {
+  margin: 0 0 18px;
+  font-size: 14px;
+  color: var(--color-text-tertiary);
+}
+.fk-metric-value {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  margin-bottom: 24px;
+  font-size: clamp(38px, 4vw, 52px);
+  font-weight: 200;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.fk-metric-unit {
+  font-size: 18px;
+  font-weight: 300;
+  color: var(--color-text-tertiary);
+}
+.fk-metric-chart {
+  margin-top: auto;
+}
+
+/* ---------- StatCard ---------- */
+
+.fk-statcard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 22px;
+  border-radius: var(--radius-card);
+  background: var(--color-surface-card);
+  box-shadow: var(--shadow-card);
+  color: var(--color-text-primary);
+}
+.fk-statcard[data-tone="sunken"] {
+  background: var(--color-surface-sunken);
+  box-shadow: none;
+}
+.fk-statcard[data-tone="sky"] {
+  background: var(--blue-300);
+  box-shadow: none;
+}
+.fk-statcard[data-tone="ink"] {
+  background: var(--neutral-900);
+  color: var(--neutral-0);
+}
+.fk-statcard-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  color: var(--color-text-tertiary);
+}
+.fk-statcard[data-tone="ink"] .fk-statcard-label,
+.fk-statcard[data-tone="ink"] .fk-statcard-caption,
+.fk-statcard[data-tone="ink"] .fk-statcard-delta {
+  color: rgba(255, 255, 255, 0.66);
+}
+.fk-statcard[data-tone="sky"] .fk-statcard-label,
+.fk-statcard[data-tone="sky"] .fk-statcard-caption,
+.fk-statcard[data-tone="sky"] .fk-statcard-delta {
+  color: var(--neutral-700);
+}
+.fk-statcard-value {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 32px;
+  font-weight: 200;
+  letter-spacing: -0.028em;
+  line-height: 1;
+}
+.fk-statcard-delta,
+.fk-statcard-caption {
+  font-size: 13.5px;
+  color: var(--color-text-tertiary);
+}
+.fk-statcard-delta {
+  font-weight: 400;
+}
+
+/* ---------- FormCard ---------- */
+
+.fk-formcard {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  background: var(--color-surface-card);
+  box-shadow: var(--shadow-card);
+  transition: var(--transition-surface);
+}
+.fk-formcard:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-3px);
+}
+.fk-formcard-plate {
+  position: relative;
+  display: block;
+  height: 136px;
+  padding: 18px 20px;
+  overflow: hidden;
+}
+/* The plate stands in for the form's own published theme: a sheet of the
+   brand colour with the top of a question card lifting off it. */
+.fk-formcard-preview {
+  position: absolute;
+  left: 22px;
+  right: -44px;
+  top: 38px;
+  display: block;
+  padding: 16px 18px;
+  border-radius: var(--radius-lg) 0 0 0;
+  background: var(--neutral-0);
+  box-shadow: var(--shadow-sm);
+}
+.fk-formcard-preview > span {
+  display: block;
+  border-radius: 99px;
+}
+.fk-formcard-preview > span:nth-child(1) {
+  height: 8px;
+  width: 104px;
+  background: var(--neutral-900);
+}
+.fk-formcard-preview > span:nth-child(2) {
+  height: 6px;
+  width: 156px;
+  margin-top: 10px;
+  background: var(--neutral-200);
+}
+.fk-formcard-preview > span:nth-child(3) {
+  height: 32px;
+  margin-top: 14px;
+  background: var(--neutral-100);
+}
+.fk-formcard-body {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  padding: 20px 22px 22px;
+}
+.fk-formcard-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.fk-formcard-head h3 {
+  flex: 1;
+  margin: 0;
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: -0.012em;
+  line-height: 1.3;
+}
+.fk-formcard-head a {
+  color: inherit;
+}
+.fk-formcard-body > p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--color-text-tertiary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.fk-formcard-foot {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 4px;
+  font-size: 13.5px;
+  color: var(--color-text-tertiary);
+}
+.fk-formcard-foot [data-strong="true"] {
+  color: var(--color-text-primary);
+}
+.fk-formcard-updated {
+  margin-left: auto;
+}
+.fk-formcard-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+/* The round document mark a form row or card leads with. */
+.fk-formmark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--blue-200);
+  color: var(--neutral-900);
+}
+
+/* ---------- BarChart ---------- */
+
+.fk-barchart {
+  display: flex;
+  align-items: flex-end;
+  gap: clamp(4px, 1vw, 14px);
+  width: 100%;
+}
+.fk-barchart-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+}
+.fk-barchart-figure {
+  font-size: 12.5px;
+  color: var(--color-text-tertiary);
+}
+.fk-barchart-bar {
+  width: 10px;
+  min-height: 2px;
+  border-radius: 99px;
+  background: var(--color-chart-positive);
+}
+.fk-barchart-bar[data-tone="marker"] {
+  background: var(--color-chart-marker);
+}
+.fk-barchart-label {
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--color-text-tertiary);
+}
+
+/* ---------- the account capsule ---------- */
+
+.fk-avatarpill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px 6px 18px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--neutral-0);
+  box-shadow: var(--shadow-card);
+  color: var(--neutral-900);
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition-control);
+}
+.fk-avatarpill:hover {
+  box-shadow: var(--shadow-md);
+}
+.fk-avatarpill-name {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- sparkbars and section headings ---------- */
+
+.fk-sparkbars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  width: 100%;
+}
+.fk-sparkbars > span {
+  flex: 1 1 0;
+  min-width: 2px;
+  border-radius: 99px;
+  background: var(--color-chart-positive);
+}
+.fk-sparkbars > span[data-empty="true"] {
+  background: var(--color-chart-track);
+}
+
+.fk-section-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.fk-section-head h2 {
+  margin: 0;
+  font-size: clamp(22px, 2.4vw, 28px);
+  font-weight: 500;
+  letter-spacing: -0.018em;
+}
+.fk-section-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: var(--radius-pill);
+  background: var(--neutral-100);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+.fk-section-spacer {
+  flex: 1;
+}
+
+/* A panel that carries its own heading row rather than a section heading. */
+.fk-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 22px 24px 14px;
+}
+.fk-panel-head h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: -0.012em;
+}
+
+/* ---------- the forms toolbar and rows ---------- */
+
+.fk-toolbar-panel {
+  display: flex;
+  align-items: center;
+  gap: clamp(10px, 1.6vw, 18px);
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  border-radius: var(--radius-panel);
+  background: var(--color-surface-card);
+  box-shadow: var(--shadow-card);
+}
+
+/* Filter chips: an outline each, and the one in force filled with the one
+   dark. Never a segmented control — this run can grow. */
+.fk-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* It scrolls rather than wrapping, so the run can grow without pushing the
+     rest of the toolbar around — and never wider than the page. */
+  flex: 1 1 260px;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.fk-filters::-webkit-scrollbar {
+  display: none;
+}
+.fk-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 40px;
+  flex: 0 0 auto;
+  padding: 0 18px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--color-border-default);
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: 14.5px;
+  cursor: pointer;
+  transition: var(--transition-control);
+}
+.fk-filter:hover {
+  background: var(--neutral-50);
+  color: var(--color-text-primary);
+}
+.fk-filter[aria-pressed="true"] {
+  background: var(--neutral-900);
+  box-shadow: none;
+  color: var(--neutral-0);
+}
+.fk-filter-count {
+  font-size: 13px;
+  opacity: 0.66;
+}
+
+/* The keyboard hint inside the search field. */
+.fk-kbd {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: var(--radius-xs);
+  background: var(--neutral-100);
+  color: var(--color-text-tertiary);
+  font-size: 12.5px;
+}
+
+/* The list-versus-grid switch. */
+.fk-viewtoggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+  padding: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-sunken);
+}
+.fk-viewtoggle button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition: var(--transition-control);
+}
+.fk-viewtoggle button[aria-pressed="true"] {
+  background: var(--neutral-0);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-text-primary);
+}
+
+/* A form, as one wide pill. */
+.fk-formrow {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 16px 22px;
+  border-radius: var(--radius-panel);
+  background: var(--color-surface-card);
+  box-shadow: var(--shadow-card);
+  transition: var(--transition-surface);
+}
+.fk-formrow:hover {
+  box-shadow: var(--shadow-md);
+}
+.fk-formrow-main {
+  flex: 1 1 260px;
+  min-width: 0;
+  color: inherit;
+}
+.fk-formrow-title {
+  display: block;
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.012em;
+}
+.fk-formrow-sub {
+  display: block;
+  margin-top: 4px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fk-formrow-figures {
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 1.6vw, 26px);
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.fk-formrow-figure {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 74px;
+  font-size: 14px;
+  color: var(--color-text-primary);
+}
+.fk-formrow-figure span {
+  font-size: 12.5px;
+  color: var(--color-text-tertiary);
+}
+.fk-formrow-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+
+/* ---------- analytics ---------- */
+
+.fk-range-row {
+  display: flex;
+  align-items: center;
+  gap: clamp(10px, 1.6vw, 18px);
+  flex-wrap: wrap;
+}
+
+/* A choice among a fixed few: one sunken track, the chosen one lifted out of
+   it in white. Used where the options will not grow. */
+.fk-segmented {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+  padding: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-sunken);
+}
+.fk-segmented button {
+  height: 38px;
+  padding: 0 20px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text-tertiary);
+  font: inherit;
+  font-size: 14.5px;
+  cursor: pointer;
+  transition: var(--transition-control);
+}
+.fk-segmented button:hover {
+  color: var(--color-text-primary);
+}
+.fk-segmented button[aria-pressed="true"] {
+  background: var(--neutral-0);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-text-primary);
+}
+.fk-range-note {
+  font-size: 14.5px;
+  color: var(--color-text-tertiary);
+}
+
+.fk-funnel-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.fk-funnel-step-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+  min-width: 0;
+}
+.fk-funnel-step-head strong {
+  font-size: 28px;
+  font-weight: 200;
+  letter-spacing: -0.028em;
+  line-height: 1;
+}
+.fk-funnel-step-head span {
+  font-size: 14px;
+  color: var(--color-text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fk-quiet {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text-tertiary);
+}
+
+/* ---------- tables ---------- */
+
+.fk-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.fk-table-wrap {
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.fk-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14.5px;
+}
+.fk-table th {
+  padding: 16px 18px;
+  text-align: left;
+  font-size: 13.5px;
+  font-weight: 400;
+  white-space: nowrap;
+  color: var(--color-text-tertiary);
+  box-shadow: inset 0 -1px 0 var(--neutral-200);
+}
+.fk-table td {
+  padding: 16px 18px;
+  white-space: nowrap;
+  box-shadow: inset 0 -1px 0 var(--neutral-200);
+}
+.fk-table tbody tr {
+  cursor: pointer;
+  transition: var(--transition-control);
+}
+.fk-table tbody tr:hover {
+  background: var(--neutral-50);
+}
+.fk-table tbody tr:last-child td {
+  box-shadow: none;
+}
+.fk-table-pick {
+  width: 52px;
+  padding-right: 0 !important;
+}
+.fk-table-name {
+  font-weight: 500;
+}
+.fk-table tbody tr[data-unread="true"] .fk-table-name {
+  font-weight: 600;
+}
+.fk-table-quiet {
+  color: var(--color-text-tertiary);
+}
+
+/* The dark bar that appears while rows are selected. */
+.fk-bulkbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 20px;
+  border-radius: var(--radius-pill);
+  background: var(--neutral-900);
+  color: var(--neutral-0);
+  font-size: 14px;
+}
+.fk-bulkbar .ui-btn[data-variant="ghost"] {
+  color: var(--neutral-0);
+}
+.fk-bulkbar .ui-btn[data-variant="ghost"]:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* ---------- templates ---------- */
+
+.fk-template {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  background: var(--color-surface-card);
+  box-shadow: var(--shadow-card);
+  transition: var(--transition-surface);
+}
+.fk-template:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-3px);
+}
+.fk-template-plate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 124px;
+  color: var(--neutral-900);
+}
+.fk-template-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 20px 22px 22px;
+}
+.fk-template-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+}
+.fk-template-head h3 {
+  flex: 1;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.012em;
+  line-height: 1.3;
+}
+.fk-template-body > p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--color-text-tertiary);
+}
+.fk-template-foot {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+}
+
+/* A one-line explanation with its own mark and a way to act on it. */
+.fk-hint-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 16px 18px;
+  border-radius: var(--radius-card-inner);
+  background: var(--color-surface-sunken);
+}
+.fk-hint-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--neutral-0);
+  color: var(--color-text-secondary);
+}
+.fk-hint-row > p {
+  flex: 1;
+  min-width: 240px;
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+
+/* ---------- image upload ---------- */
+
+.fk-upload {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.fk-upload-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 220px;
+}
+.fk-upload-help {
+  margin: 0;
+  max-width: 420px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-tertiary);
+}
+
+/* A logo sits on its own plate, because most are drawn for a light ground and
+   a bare transparent PNG would vanish into the card. */
+.fk-logo-plate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 92px;
+  height: 92px;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border-radius: var(--radius-card-inner);
+  background: var(--color-surface-sunken);
+  color: var(--color-text-tertiary);
+}
+.fk-logo-plate img {
+  max-width: 76px;
+  max-height: 76px;
+  object-fit: contain;
+}
+
 /* ---------- small screens ---------- */
 
 /* One pair of switches for everything that swaps at the narrow breakpoint, so
@@ -1083,27 +2022,38 @@
   .fk-app-bar {
     grid-template-columns: minmax(0, 1fr) auto;
   }
-  .fk-app-bar-mid {
-    display: none;
-  }
   .fk-only-narrow {
     display: inline-flex;
   }
   .fk-only-wide {
     display: none;
   }
-  .fk-account-name {
+  .fk-avatarpill-name {
     display: none;
   }
-  .fk-account-trigger {
-    padding: 0 6px;
+  .fk-avatarpill {
+    padding: 6px;
   }
 }
 @media (max-width: 720px) {
+  /* The toolbars stop being a row of controls and become a stack, so nothing
+     is squeezed to the point of being unusable. */
+  .fk-toolbar-panel > .ui-input-wrap,
+  .fk-toolbar-panel > .ui-select,
+  .fk-toolbar-panel > .ui-btn {
+    flex: 1 1 100%;
+    width: auto !important;
+  }
+  .fk-toolbar-panel > .fk-section-spacer {
+    display: none;
+  }
+
+  /* Below this the dock cannot hold a readable tab, so the bar's own menu is
+     the navigation and the band reverts to its plain padding. */
   .fk-dock {
     display: none;
   }
-  .fk-app-head {
-    padding-bottom: 20px;
+  .fk-app-head[data-dock="true"] {
+    padding-bottom: 26px;
   }
 }

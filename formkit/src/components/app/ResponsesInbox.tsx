@@ -1,21 +1,34 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAction, useConvex, useMutation, useQuery } from "convex/react";
-import { Download, Mail, Paperclip, Search, Trash2 } from "lucide-react";
+import {
+  CalendarDays,
+  FileDown,
+  Inbox,
+  Mail,
+  MailOpen,
+  Paperclip,
+  Search,
+  SlidersHorizontal,
+  Sunrise,
+  Trash2,
+} from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import {
   Badge,
   Button,
   Checkbox,
+  Drawer,
   EmptyState,
   Input,
-  PillTabs,
+  Select,
   Textarea,
 } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
-import { Stat, fullTime, relativeTime } from "./bits";
+import { StatCard } from "./ds";
+import { fullTime, relativeTime } from "./bits";
 
 /**
  * The response inbox, for one form or for everything.
@@ -23,6 +36,10 @@ import { Stat, fullTime, relativeTime } from "./bits";
  * A partial response is a real record: it keeps what was answered before the
  * person left, is counted on its own rather than folded into Completed, and
  * carries a link that puts them back where they stopped.
+ *
+ * The list is one table across the full width and a response opens in a
+ * drawer over it, rather than in a column that would leave neither the list nor
+ * the answers enough room.
  */
 export function ResponsesInbox({
   formId,
@@ -35,6 +52,8 @@ export function ResponsesInbox({
   const convex = useConvex();
 
   const [completeness, setCompleteness] = useState<"all" | "complete" | "partial">("all");
+  const [status, setStatusFilter] = useState<"all" | "new" | "read" | "reviewed">("all");
+  const [pickedForm, setPickedForm] = useState<string>("all");
   const [term, setTerm] = useState("");
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState<string | null>(openId ?? null);
@@ -45,12 +64,22 @@ export function ResponsesInbox({
     completeness,
     search: term || undefined,
   });
+  const formsList = useQuery(api.forms.list, { filter: "all" });
   const setStatus = useMutation(api.responses.setStatus);
   const remove = useMutation(api.responses.remove);
   const exportByEmail = useAction(api.notifications.exportByEmail);
 
-  const rows = data?.responses ?? [];
-  const current = rows.find((r) => r._id === open) ?? null;
+  const titles = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const f of formsList?.forms ?? []) map.set(f._id, f.title);
+    return map;
+  }, [formsList]);
+
+  const all = data?.responses ?? [];
+  const rows = all
+    .filter((r) => (status === "all" ? true : r.status === status))
+    .filter((r) => (pickedForm === "all" || formId ? true : r.formId === pickedForm));
+  const current = all.find((r) => r._id === open) ?? null;
 
   // Opening a response marks it read, in the inbox and in the bell alike.
   useEffect(() => {
@@ -73,7 +102,7 @@ export function ResponsesInbox({
       toast("Pick a form first", { detail: "Exports come from one form at a time." });
       return;
     }
-    const data = await convex.query(api.responses.forExport, {
+    const sheet = await convex.query(api.responses.forExport, {
       formId,
       ids: picked.size ? (Array.from(picked) as Id<"responses">[]) : undefined,
     });
@@ -84,7 +113,7 @@ export function ResponsesInbox({
         : /[",\r\n]/.test(v)
           ? `"${v.replace(/"/g, '""')}"`
           : v;
-    const text = [data.columns, ...data.rows].map((r) => r.map(cell).join(sep)).join("\r\n");
+    const text = [sheet.columns, ...sheet.rows].map((r) => r.map(cell).join(sep)).join("\r\n");
     // Excel reads a tab-separated file as a spreadsheet without a converter.
     const blob = new Blob([kind === "csv" ? "﻿" + text : text], {
       type: kind === "csv" ? "text/csv;charset=utf-8" : "text/tab-separated-values;charset=utf-8",
@@ -92,171 +121,240 @@ export function ResponsesInbox({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${data.filename}.${kind === "csv" ? "csv" : "xls"}`;
+    a.download = `${sheet.filename}.${kind === "csv" ? "csv" : "xls"}`;
     a.click();
     URL.revokeObjectURL(url);
-    toast(`${data.rows.length} ${data.rows.length === 1 ? "response" : "responses"} exported`);
+    toast(`${sheet.rows.length} ${sheet.rows.length === 1 ? "response" : "responses"} exported`);
   }
+
+  const stats = data?.stats;
 
   return (
     <>
-      <div className="fk-grid" data-cols="stats">
-        <Stat label="Total" value={data?.stats.total ?? 0} />
-        <Stat label="Completed" value={data?.stats.completed ?? 0} note="Partials counted separately" />
-        <Stat label="Partial" value={data?.stats.partial ?? 0} note="Started but left" />
-        <Stat label="Unread" value={data?.stats.unread ?? 0} />
+      <div className="fk-grid" data-cols="stats-sm">
+        <StatCard
+          icon={<Inbox size={16} strokeWidth={1.9} aria-hidden />}
+          label="Total responses"
+          value={(stats?.total ?? 0).toLocaleString()}
+        />
+        <StatCard
+          icon={<Sunrise size={16} strokeWidth={1.9} aria-hidden />}
+          label="Today"
+          value={(stats?.today ?? 0).toLocaleString()}
+        />
+        <StatCard
+          icon={<CalendarDays size={16} strokeWidth={1.9} aria-hidden />}
+          label="This week"
+          value={(stats?.week ?? 0).toLocaleString()}
+          tone="sky"
+        />
+        <StatCard
+          icon={<MailOpen size={16} strokeWidth={1.9} aria-hidden />}
+          label="Unread"
+          value={(stats?.unread ?? 0).toLocaleString()}
+          tone="ink"
+        />
       </div>
 
-      <div className="fk-panel" data-pad="tight">
-        <div className="fk-toolbar">
-          <PillTabs
-            ariaLabel="Which responses"
-            value={completeness}
-            onChange={setCompleteness}
-            tabs={[
-              { value: "all", label: "All" },
-              { value: "complete", label: "Complete" },
-              { value: "partial", label: "Partial" },
+      <div className="fk-toolbar-panel">
+        <Input
+          value={term}
+          onChange={(e) => setTerm(e.target.value)}
+          placeholder="Search responses"
+          aria-label="Search responses"
+          icon={<Search size={17} strokeWidth={1.8} aria-hidden />}
+          wrapStyle={{ width: 260 }}
+        />
+
+        {!formId && (
+          <Select
+            value={pickedForm}
+            onChange={setPickedForm}
+            ariaLabel="Which form"
+            options={[
+              { value: "all", label: "All forms" },
+              ...(formsList?.forms ?? []).map((f) => ({ value: f._id, label: f.title })),
             ]}
           />
-          <span className="fk-toolbar-spacer" />
-          <Input
-            value={term}
-            onChange={(e) => setTerm(e.target.value)}
-            placeholder="Search answers"
-            icon={<Search size={17} strokeWidth={1.8} aria-hidden />}
-            style={{ width: 220 }}
-          />
-          {formId && (
-            <>
-              <Button variant="secondary" size="sm" onClick={() => download("csv")} iconLeft={<Download size={15} strokeWidth={1.8} aria-hidden />}>
-                CSV
-              </Button>
-              <Button variant="secondary" size="sm" onClick={() => download("excel")}>
-                Excel
-              </Button>
-            </>
-          )}
-        </div>
+        )}
 
-        {picked.size > 0 && (
-          <div className="fk-toolbar" style={{ marginTop: 12 }}>
-            <span style={{ fontSize: 14 }}>
-              {picked.size} selected
-            </span>
+        <Select
+          value={status}
+          onChange={(next) => setStatusFilter(next as typeof status)}
+          ariaLabel="Which status"
+          options={[
+            { value: "all", label: "Status: all" },
+            { value: "new", label: "New" },
+            { value: "read", label: "Read" },
+            { value: "reviewed", label: "Reviewed" },
+          ]}
+        />
+
+        <Select
+          value={completeness}
+          onChange={(next) => setCompleteness(next as typeof completeness)}
+          ariaLabel="Complete or partial"
+          options={[
+            { value: "all", label: "All submissions" },
+            { value: "complete", label: "Complete only" },
+            { value: "partial", label: "Partial only" },
+          ]}
+        />
+
+        <span className="fk-range-note">
+          <SlidersHorizontal size={14} strokeWidth={1.8} aria-hidden style={{ verticalAlign: -2, marginRight: 6 }} />
+          {rows.length} of {all.length} responses
+        </span>
+
+        <span className="fk-section-spacer" />
+
+        {formId && (
+          <>
             <Button
-              variant="ghost"
-              size="sm"
-              onClick={async () => {
-                await setStatus({ ids: Array.from(picked) as Id<"responses">[], status: "read" });
-                setPicked(new Set());
-              }}
+              variant="secondary"
+              onClick={() => download("excel")}
+              iconLeft={<FileDown size={16} strokeWidth={1.8} aria-hidden />}
             >
-              Mark as read
+              Export Excel
             </Button>
             <Button
-              variant="ghost"
-              size="sm"
-              onClick={async () => {
-                await setStatus({ ids: Array.from(picked) as Id<"responses">[], status: "reviewed" });
-                setPicked(new Set());
-              }}
+              variant="secondary"
+              onClick={() => download("csv")}
+              iconLeft={<FileDown size={16} strokeWidth={1.8} aria-hidden />}
             >
-              Mark as reviewed
+              Export CSV
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={async () => {
-                const n = picked.size;
-                await remove({ ids: Array.from(picked) as Id<"responses">[] });
-                setPicked(new Set());
-                setOpen(null);
-                toast(`${n} ${n === 1 ? "response" : "responses"} deleted`);
-              }}
-            >
-              <Trash2 size={15} strokeWidth={1.8} aria-hidden /> Delete
-            </Button>
-            <span className="fk-toolbar-spacer" />
-            <Button variant="ghost" size="sm" onClick={() => setPicked(new Set())}>
-              Clear
-            </Button>
-          </div>
+          </>
         )}
       </div>
 
-      <div className="fk-resp-layout">
-        <section className="fk-panel" data-pad="none">
-          {rows.length === 0 ? (
-            <div style={{ padding: 24 }}>
-              <EmptyState
-                title={term ? `Nothing matches “${term}”` : "Nothing in yet"}
-                description={
-                  term
-                    ? "Try a shorter search."
-                    : "Answers land here the moment someone submits."
-                }
-              />
-            </div>
-          ) : (
-            <div className="fk-rows">
-              {rows.map((r) => (
-                <div
-                  key={r._id}
-                  className="fk-row"
-                  onClick={() => setOpen(r._id)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      setOpen(r._id);
-                    }
-                  }}
-                  style={open === r._id ? { background: "var(--blue-50)" } : undefined}
-                >
-                  <span onClick={(e) => e.stopPropagation()}>
-                    <Checkbox
-                      label=""
-                      checked={picked.has(r._id)}
-                      onChange={() => toggle(r._id)}
-                    />
-                  </span>
-                  <span className="fk-row-main">
-                    <span className="fk-row-title">
-                      {r.respondentName ?? r.respondentEmail ?? "Someone"}
-                    </span>
-                    <span className="fk-row-meta">
-                      {relativeTime(r.submittedAt)} ·{" "}
-                      {r.partial
-                        ? `${r.answeredCount} of ${r.totalCount} answered`
-                        : `${r.answeredCount} answers`}
-                      {r.files.length > 0 && ` · ${r.files.length} attached`}
-                    </span>
-                  </span>
-                  <span className="fk-row-side">
-                    {r.partial && <Badge tone="warning">Partial</Badge>}
-                    {r.status === "new" && <Badge tone="info">New</Badge>}
-                    {r.status === "reviewed" && <Badge tone="success">Reviewed</Badge>}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+      {picked.size > 0 && (
+        <div className="fk-bulkbar">
+          <span>{picked.size} selected</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={async () => {
+              await setStatus({ ids: Array.from(picked) as Id<"responses">[], status: "read" });
+              setPicked(new Set());
+            }}
+          >
+            Mark as read
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={async () => {
+              await setStatus({ ids: Array.from(picked) as Id<"responses">[], status: "reviewed" });
+              setPicked(new Set());
+            }}
+          >
+            Mark as reviewed
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            iconLeft={<Trash2 size={15} strokeWidth={1.8} aria-hidden />}
+            onClick={async () => {
+              const n = picked.size;
+              await remove({ ids: Array.from(picked) as Id<"responses">[] });
+              setPicked(new Set());
+              setOpen(null);
+              toast(`${n} ${n === 1 ? "response" : "responses"} deleted`);
+            }}
+          >
+            Delete
+          </Button>
+          <span className="fk-section-spacer" />
+          <Button variant="ghost" size="sm" onClick={() => setPicked(new Set())}>
+            Clear
+          </Button>
+        </div>
+      )}
 
-        <aside className="fk-panel" style={{ position: "sticky", top: 90 }}>
-          {!current ? (
-            <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: "var(--color-text-tertiary)" }}>
-              Pick a response and it opens here.
-            </p>
-          ) : (
-            // Keyed by the response, so its note field starts from that
-            // response's note rather than being reset by an effect.
-            <ResponseDetail key={current._id} response={current} onDeleted={() => setOpen(null)} />
-          )}
-        </aside>
-      </div>
+      <section className="fk-panel" data-pad="none">
+        {rows.length === 0 ? (
+          <div style={{ padding: 24 }}>
+            <EmptyState
+              title={term ? `Nothing matches “${term}”` : "Nothing in yet"}
+              description={
+                term ? "Try a shorter search." : "Answers land here the moment someone submits."
+              }
+            />
+          </div>
+        ) : (
+          <div className="fk-table-wrap">
+            <table className="fk-table">
+              <thead>
+                <tr>
+                  <th scope="col" className="fk-table-pick">
+                    <span className="fk-visually-hidden">Select</span>
+                  </th>
+                  <th scope="col">Respondent</th>
+                  <th scope="col">Email</th>
+                  {!formId && <th scope="col">Form</th>}
+                  <th scope="col">Answers</th>
+                  <th scope="col">Submitted</th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr
+                    key={r._id}
+                    onClick={() => setOpen(r._id)}
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setOpen(r._id);
+                      }
+                    }}
+                    data-unread={r.status === "new" ? "true" : undefined}
+                  >
+                    <td className="fk-table-pick" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        label={`Select the response from ${r.respondentName ?? r.respondentEmail ?? "someone"}`}
+                        hideLabel
+                        checked={picked.has(r._id)}
+                        onChange={() => toggle(r._id)}
+                      />
+                    </td>
+                    <td className="fk-table-name">
+                      {r.respondentName ?? r.respondentEmail ?? "Someone"}
+                    </td>
+                    <td className="fk-table-quiet">{r.respondentEmail ?? "—"}</td>
+                    {!formId && <td>{titles.get(r.formId) ?? "A form"}</td>}
+                    <td className="fk-table-quiet">
+                      {r.partial ? `${r.answeredCount} of ${r.totalCount}` : `${r.answeredCount}`}
+                      {r.files.length > 0 && (
+                        <Paperclip
+                          size={13}
+                          strokeWidth={1.8}
+                          aria-label={`${r.files.length} attached`}
+                          style={{ marginLeft: 6, verticalAlign: -2 }}
+                        />
+                      )}
+                    </td>
+                    <td className="fk-table-quiet">{relativeTime(r.submittedAt)}</td>
+                    <td>
+                      {r.partial ? (
+                        <Badge tone="warning">Partial</Badge>
+                      ) : r.status === "new" ? (
+                        <Badge tone="info">New</Badge>
+                      ) : r.status === "reviewed" ? (
+                        <Badge tone="success">Reviewed</Badge>
+                      ) : (
+                        <Badge tone="neutral">Read</Badge>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       {formId && (
         <section className="fk-panel">
@@ -269,8 +367,9 @@ export function ResponsesInbox({
             <Input
               value={emailTo}
               onChange={(e) => setEmailTo(e.target.value)}
+              aria-label="Where to send the export"
               placeholder="Leave blank to send it to yourself"
-              style={{ flex: 1, minWidth: 220 }}
+              wrapStyle={{ flex: 1, minWidth: 220 }}
             />
             <Button
               variant="secondary"
@@ -281,14 +380,24 @@ export function ResponsesInbox({
                   ids: picked.size ? (Array.from(picked) as Id<"responses">[]) : undefined,
                 });
                 if (result.state === "sent") toast(`Sent to ${result.to}`);
-                else
-                  toast("That export did not go out", { detail: result.detail, tone: "error" });
+                else toast("That export did not go out", { detail: result.detail, tone: "error" });
               }}
             >
               Email it
             </Button>
           </div>
         </section>
+      )}
+
+      {current && (
+        <Drawer
+          title={current.respondentName ?? current.respondentEmail ?? "Someone"}
+          onClose={() => setOpen(null)}
+        >
+          {/* Keyed by the response, so its note field starts from that
+              response's note rather than being reset by an effect. */}
+          <ResponseDetail key={current._id} response={current} onDeleted={() => setOpen(null)} />
+        </Drawer>
       )}
     </>
   );
@@ -324,10 +433,7 @@ function ResponseDetail({
 
   return (
     <>
-      <h3 style={{ marginBottom: 2 }}>
-        {response.respondentName ?? response.respondentEmail ?? "Someone"}
-      </h3>
-      <p className="fk-panel-lede" style={{ marginBottom: 14 }}>
+      <p className="fk-panel-lede" style={{ marginTop: 0, marginBottom: 14 }}>
         {fullTime(response.submittedAt)}
         {response.device ? ` · ${response.device}` : ""}
         {response.source ? ` · ${response.source}` : ""}
@@ -377,13 +483,7 @@ function ResponseDetail({
           {response.files.map(
             (f, i) =>
               f.url && (
-                <a
-                  key={i}
-                  href={f.url}
-                  download={f.name}
-                  className="fk-chip"
-                  style={{ width: "fit-content" }}
-                >
+                <a key={i} href={f.url} download={f.name} className="fk-chip" style={{ width: "fit-content" }}>
                   Download {f.name}
                 </a>
               ),

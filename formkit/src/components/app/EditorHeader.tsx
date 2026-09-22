@@ -24,7 +24,7 @@ import {
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { useToast } from "@/components/ui/Toast";
-import { TabCard } from "./bits";
+import { ClientTab, TabSummary } from "./ds";
 import { CloseFormDialog } from "./dialogs/CloseFormDialog";
 import { CollaboratorsDialog } from "./dialogs/CollaboratorsDialog";
 import { SaveTemplateDialog } from "./dialogs/SaveTemplateDialog";
@@ -132,7 +132,7 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
 
   return (
     <>
-      <div style={{ position: "relative", zIndex: 1, marginTop: "clamp(22px,3.5vw,38px)" }}>
+      <div className="fk-app-hero" style={{ display: "block" }}>
         <div style={{ display: "flex", alignItems: "flex-end", gap: 24, flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: 240 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 7 }}>
@@ -244,20 +244,23 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
           </div>
         </div>
 
-        <div className="fk-dock">
-          {TABS.map((t) => (
-            <TabCard
-              key={t.id}
-              href={`/app/forms/${formId}?tab=${t.id}`}
-              name={t.name}
-              meta={t.meta}
-              mark={t.icon}
-              active={t.id === tab}
-              sumLabel={summaryLabels[t.id]!}
-              sumValue={summaries[t.id]!}
-            />
-          ))}
-        </div>
+      </div>
+
+      <div className="fk-dock">
+        {TABS.map((t) => (
+          <ClientTab
+            key={t.id}
+            href={`/app/forms/${formId}?tab=${t.id}`}
+            name={t.name}
+            meta={t.meta}
+            mark={t.icon}
+            active={t.id === tab}
+          >
+            {t.id === tab && (
+              <TabSummary label={summaryLabels[t.id]!} value={summaries[t.id]!} />
+            )}
+          </ClientTab>
+        ))}
       </div>
 
       {dialog === "share" && <ShareDialog formId={formId} onClose={() => setDialog(null)} />}

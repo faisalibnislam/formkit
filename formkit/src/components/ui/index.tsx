@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
   type ButtonHTMLAttributes,
+  type CSSProperties,
   type InputHTMLAttributes,
   type ReactNode,
   type TextareaHTMLAttributes,
@@ -109,18 +110,28 @@ export function Field({
 
 type InputProps = InputHTMLAttributes<HTMLInputElement> & {
   icon?: ReactNode;
+  /** Sits after the field — a unit, or the shortcut that opens it. */
+  trailing?: ReactNode;
   invalid?: boolean;
   inputSize?: "sm" | "md";
+  /** Sizing belongs on the pill, not on the bare input inside it. */
+  wrapStyle?: CSSProperties;
 };
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { icon, invalid, inputSize = "md", ...rest },
+  { icon, trailing, invalid, inputSize = "md", wrapStyle, ...rest },
   ref,
 ) {
   return (
-    <span className="ui-input-wrap" data-size={inputSize} data-invalid={invalid || undefined}>
+    <span
+      className="ui-input-wrap"
+      data-size={inputSize}
+      data-invalid={invalid || undefined}
+      style={wrapStyle}
+    >
       {icon}
       <input ref={ref} {...rest} />
+      {trailing}
     </span>
   );
 });
@@ -137,11 +148,15 @@ export function Checkbox({
   description,
   checked,
   onChange,
+  hideLabel,
 }: {
   label: ReactNode;
   description?: string;
   checked: boolean;
   onChange: (next: boolean) => void;
+  /** The box alone, in a table cell whose column heading already names it.
+      The label is still written down, for anyone not looking at the screen. */
+  hideLabel?: boolean;
 }) {
   return (
     <label className="ui-check">
@@ -153,7 +168,7 @@ export function Checkbox({
       <span className="ui-check-box">
         <Check size={13} strokeWidth={3} aria-hidden />
       </span>
-      <span style={{ flex: 1, minWidth: 0 }}>
+      <span style={{ flex: 1, minWidth: 0 }} className={hideLabel ? "fk-visually-hidden" : undefined}>
         <span style={{ display: "block", fontSize: 14.5, lineHeight: 1.45 }}>{label}</span>
         {description && (
           <span

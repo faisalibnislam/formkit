@@ -43,6 +43,19 @@ export const overview = query({
     const since = Date.now() - days * DAY;
     const recent = responses.filter((r) => r.submittedAt >= since);
 
+    /* The window before this one, so a figure can say which way it is going.
+       Only what carries a timestamp gets a delta: views and starts are
+       lifetime counters on the form, so there is no earlier value to compare
+       them with, and inventing one would be a modelled number. */
+    const previousFrom = since - days * DAY;
+    const previous = responses.filter(
+      (r) => r.submittedAt >= previousFrom && r.submittedAt < since,
+    );
+    const share = (now: number, before: number) =>
+      before === 0 ? null : Math.round(((now - before) / before) * 1000) / 10;
+    const recentCompleted = recent.filter((r) => !r.partial).length;
+    const previousCompleted = previous.filter((r) => !r.partial).length;
+
     // One bucket per day, oldest first, so the bars read left to right.
     const start = new Date(since);
     start.setHours(0, 0, 0, 0);
@@ -118,6 +131,23 @@ export const overview = query({
       finishRate: views ? Math.round((completed / views) * 1000) / 10 : 0,
       medianSeconds: median ? Math.round(median / 1000) : null,
       buckets,
+      /** Change against the window immediately before this one. */
+      change: {
+        responses: share(recent.length, previous.length),
+        completed: share(recentCompleted, previousCompleted),
+        completionRate:
+          previous.length === 0
+            ? null
+            : Math.round(
+                ((recent.length ? (recentCompleted / recent.length) * 100 : 0) -
+                  (previousCompleted / previous.length) * 100) * 10,
+              ) / 10,
+      },
+      /** What happened inside the window, as against the lifetime totals. */
+      window: {
+        responses: recent.length,
+        completed: recentCompleted,
+      },
       dropOff,
       devices: [...byDevice.entries()].map(([name, count]) => ({ name, count })),
       sources: [...bySource.entries()].map(([name, count]) => ({ name, count })),
