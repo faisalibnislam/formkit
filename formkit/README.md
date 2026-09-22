@@ -34,12 +34,23 @@ Two different places hold secrets, and it matters which.
 **The Convex deployment** — these are server-side and never reach the browser,
 so they are set with `npx convex env set`, not in `.env.local`:
 
+Two of them are Convex Auth's own signing keys, and nothing works without
+them: accounts are created and then token generation throws
+`Missing environment variable JWT_PRIVATE_KEY`, which reads on screen as a
+failed sign-up. They are generated, and set, by
+
+```bash
+npx @convex-dev/auth --prod      # writes JWT_PRIVATE_KEY and JWKS
+```
+
+The rest:
+
 ```bash
 npx convex env set --prod AUTH_RESEND_KEY re_...                 # Resend, send-only, scoped to formkit.app
-npx convex env set AUTH_EMAIL_FROM   "Formkit <hello@formkit.app>"
-npx convex env set SITE_URL          https://formkit.app          # links inside notification emails
-npx convex env set ANTHROPIC_API_KEY sk-ant-...                   # only if Ask Formkit is to work
-npx convex env set STAFF_EMAILS      you@formkit.app                # who gets the admin console
+npx convex env set --prod AUTH_EMAIL_FROM "Formkit <hello@formkit.app>"
+npx convex env set --prod SITE_URL        https://formkit.app    # links inside notification emails
+npx convex env set --prod STAFF_EMAILS    you@formkit.app        # who gets the admin console
+npx convex env set --prod ANTHROPIC_API_KEY sk-ant-...           # only if Ask Formkit is to work
 ```
 
 `STAFF_EMAILS` is how the first staff account comes to exist. The console at
@@ -75,8 +86,8 @@ preview build never writes to production data. Both `CONVEX_DEPLOY_KEY` and
 deployment — change one and change the other.
 
 Environment variables do not travel between Convex deployments. A new
-deployment starts with none, so the list above has to be set again on it before
-anyone can sign up.
+deployment starts with none — including `JWT_PRIVATE_KEY` and `JWKS` — so the
+whole list above has to be set again on it before anyone can sign up.
 
 To push Convex by hand instead:
 
