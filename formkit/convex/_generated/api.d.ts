@@ -9,9 +9,11 @@
 
 import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
 import type * as auth from "../auth.js";
+import type * as companies from "../companies.js";
 import type * as email from "../email.js";
 import type * as emails_authCode from "../emails/authCode.js";
 import type * as http from "../http.js";
+import type * as model_handles from "../model/handles.js";
 import type * as model_identity from "../model/identity.js";
 import type * as users from "../users.js";
 
@@ -25,9 +27,11 @@ import type * as users from "../users.js";
  */
 declare const fullApi: ApiFromModules<{
   "auth": typeof auth,
+  "companies": typeof companies,
   "email": typeof email,
   "emails/authCode": typeof emails_authCode,
   "http": typeof http,
+  "model/handles": typeof model_handles,
   "model/identity": typeof model_identity,
   "users": typeof users,
 }>;
