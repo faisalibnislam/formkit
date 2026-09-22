@@ -58,14 +58,23 @@ Ask Formkit refuses and says which variable is missing. Neither fails silently.
 repository root is not the app root: the Next.js project lives in `formkit/`,
 which is the project's configured root directory.
 
-Convex is deployed separately:
+Convex ships with the same build. The project's build command is
 
-```bash
-npx convex deploy          # pushes schema and functions
+```
+npx convex deploy --cmd 'npm run build'
 ```
 
-Point `NEXT_PUBLIC_CONVEX_URL` at whichever deployment the site should talk to.
-A production Convex deployment is a different URL from the dev one.
+so every Vercel build pushes the schema and functions first, and `convex
+deploy` hands the resulting deployment URL to the inner `npm run build` as
+`NEXT_PUBLIC_CONVEX_URL`. Which deployment that is comes from
+`CONVEX_DEPLOY_KEY`, set on the Vercel project. Change the key and the site
+follows it; there is no second place to keep in sync.
+
+To push Convex by hand instead:
+
+```bash
+npx convex deploy
+```
 
 ## The shape of the code
 
