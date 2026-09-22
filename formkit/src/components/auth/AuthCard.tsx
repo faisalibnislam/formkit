@@ -132,7 +132,7 @@ export function AuthCard({ initialView }: { initialView: View }) {
     run(async () => {
       await signIn("password", { email: address, code, flow: "email-verification" });
       router.push("/onboarding");
-    }, "Formkit could not check that code. Try again in a moment.");
+    }, "That code was not accepted. Only the newest code works and they last fifteen minutes — send a new one and use that.");
 
   const onSendReset = async () => {
     const ok = await run(async () => {
