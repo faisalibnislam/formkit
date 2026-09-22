@@ -41,6 +41,14 @@ function readableError(err: unknown, fallback: string) {
   if (/Could not verify code|InvalidVerificationCode/i.test(raw)) {
     return "That code did not match. Check the six digits, or send a new one.";
   }
+  // The code was real but belonged to another address — a different message,
+  // because retyping the digits will not help.
+  if (/sent to a different address|matching `email`/i.test(raw)) {
+    return "That code was sent to a different address. Check the email above, or send a new code.";
+  }
+  if (/expired/i.test(raw)) {
+    return "That code has expired. Send a new one — they last fifteen minutes.";
+  }
   if (/could not send the code/i.test(raw)) {
     return "Formkit could not send the code. Try again in a moment.";
   }
@@ -90,9 +98,14 @@ export function AuthCard({ initialView }: { initialView: View }) {
     [],
   );
 
+  // The server stores the address lowercased and trimmed, and the verification
+  // step compares against that. Send the same spelling every time, or a code
+  // that is perfectly correct gets rejected.
+  const address = email.trim().toLowerCase();
+
   const onSignIn = () =>
     run(async () => {
-      await signIn("password", { email, password, flow: "signIn" });
+      await signIn("password", { email: address, password, flow: "signIn" });
       router.push(landing());
     }, "Formkit could not sign you in. Try again in a moment.");
 
@@ -102,20 +115,20 @@ export function AuthCard({ initialView }: { initialView: View }) {
       return;
     }
     const ok = await run(async () => {
-      await signIn("password", { email, password, name, flow: "signUp" });
+      await signIn("password", { email: address, password, name, flow: "signUp" });
     }, "Formkit could not create the account. Try again in a moment.");
     if (ok) setView("verify");
   };
 
   const onVerify = () =>
     run(async () => {
-      await signIn("password", { email, code, flow: "email-verification" });
+      await signIn("password", { email: address, code, flow: "email-verification" });
       router.push("/onboarding");
     }, "Formkit could not check that code. Try again in a moment.");
 
   const onSendReset = async () => {
     const ok = await run(async () => {
-      await signIn("password", { email, flow: "reset" });
+      await signIn("password", { email: address, flow: "reset" });
     }, "Formkit could not send the reset code. Try again in a moment.");
     if (ok) setView("reset");
   };
@@ -127,7 +140,7 @@ export function AuthCard({ initialView }: { initialView: View }) {
     }
     const ok = await run(async () => {
       await signIn("password", {
-        email,
+        email: address,
         code,
         newPassword: password,
         flow: "reset-verification",
@@ -329,7 +342,7 @@ export function AuthCard({ initialView }: { initialView: View }) {
                   <LinkButton
                     onClick={() =>
                       run(
-                        () => signIn("password", { email, password, name, flow: "signUp" }),
+                        () => signIn("password", { email: address, password, name, flow: "signUp" }),
                         "Formkit could not send another code just now.",
                       )
                     }

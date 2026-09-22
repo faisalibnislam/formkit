@@ -15,6 +15,33 @@ function verificationCode(length = 6) {
 
 const FROM = process.env.AUTH_EMAIL_FROM ?? "Formkit <onboarding@resend.dev>";
 
+/** The one way an address is written down, everywhere. */
+export function normaliseEmail(value: unknown) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase();
+}
+
+/**
+ * Checking that the code was sent to the address being claimed.
+ *
+ * This replaces the provider's default check, which compares the two raw
+ * strings. The account's id is stored normalised — `auth.ts` lowercases and
+ * trims it — so a raw comparison rejects a perfectly good code the moment
+ * somebody types a capital or autofill leaves a trailing space. Both sides are
+ * normalised here, and the message says what actually went wrong.
+ */
+const sameAddress = async (params: Record<string, unknown>, account: unknown) => {
+  const given = normaliseEmail(params.email);
+  const stored = (account as { providerAccountId?: string }).providerAccountId ?? "";
+  if (!given) {
+    throw new Error("Enter the email address you signed up with.");
+  }
+  if (normaliseEmail(stored) !== given) {
+    throw new Error("That code was sent to a different address.");
+  }
+};
+
 /**
  * The code Formkit emails when somebody signs up, so the address is verified
  * before the account is usable.
@@ -23,6 +50,7 @@ export const ResendVerifyOTP = Email({
   id: "resend-verify",
   apiKey: process.env.AUTH_RESEND_KEY,
   maxAge: 60 * 15,
+  authorize: sameAddress,
   async generateVerificationToken() {
     return verificationCode();
   },
@@ -49,6 +77,7 @@ export const ResendResetOTP = Email({
   id: "resend-reset",
   apiKey: process.env.AUTH_RESEND_KEY,
   maxAge: 60 * 15,
+  authorize: sameAddress,
   async generateVerificationToken() {
     return verificationCode();
   },

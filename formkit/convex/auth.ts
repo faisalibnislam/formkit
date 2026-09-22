@@ -1,7 +1,7 @@
 import { convexAuth } from "@convex-dev/auth/server";
 import { Password } from "@convex-dev/auth/providers/Password";
 import { DataModel } from "./_generated/dataModel";
-import { ResendResetOTP, ResendVerifyOTP } from "./email";
+import { ResendResetOTP, ResendVerifyOTP, normaliseEmail } from "./email";
 
 /**
  * Email and password only. Faisal's instruction: authentication is Convex's,
@@ -12,9 +12,8 @@ const FormkitPassword = Password<DataModel>({
   reset: ResendResetOTP,
   profile(params) {
     return {
-      email: String(params.email ?? "")
-        .trim()
-        .toLowerCase(),
+      // The same spelling the Email providers compare against.
+      email: normaliseEmail(params.email),
       name: typeof params.name === "string" ? params.name.trim() : undefined,
     };
   },
