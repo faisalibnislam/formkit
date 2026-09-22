@@ -35,7 +35,7 @@ Two different places hold secrets, and it matters which.
 so they are set with `npx convex env set`, not in `.env.local`:
 
 ```bash
-npx convex env set AUTH_RESEND_KEY   re_...                      # Resend, send-only, scoped to formkit.app
+npx convex env set --prod AUTH_RESEND_KEY re_...                 # Resend, send-only, scoped to formkit.app
 npx convex env set AUTH_EMAIL_FROM   "Formkit <hello@formkit.app>"
 npx convex env set SITE_URL          https://formkit.app          # links inside notification emails
 npx convex env set ANTHROPIC_API_KEY sk-ant-...                   # only if Ask Formkit is to work
@@ -67,8 +67,16 @@ npx convex deploy --cmd 'npm run build'
 so every Vercel build pushes the schema and functions first, and `convex
 deploy` hands the resulting deployment URL to the inner `npm run build` as
 `NEXT_PUBLIC_CONVEX_URL`. Which deployment that is comes from
-`CONVEX_DEPLOY_KEY`, set on the Vercel project. Change the key and the site
-follows it; there is no second place to keep in sync.
+`CONVEX_DEPLOY_KEY`, set on the Vercel project.
+
+Production and preview point at different Convex deployments on purpose, so a
+preview build never writes to production data. Both `CONVEX_DEPLOY_KEY` and
+`NEXT_PUBLIC_CONVEX_URL` are set per target and the two must name the same
+deployment — change one and change the other.
+
+Environment variables do not travel between Convex deployments. A new
+deployment starts with none, so the list above has to be set again on it before
+anyone can sign up.
 
 To push Convex by hand instead:
 
