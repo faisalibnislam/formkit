@@ -1,0 +1,14 @@
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font-family:var(--font-sans);font-size:var(--text-body-size);line-height:var(--text-body-line);color:var(--color-text-primary);background:var(--color-background-primary);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+h1,h2,h3,h4,h5,p,figure{margin:0}
+/* Faisal's standing instruction: no underline-looking links anywhere. The old
+   rule drew a 1px currentColor border under every anchor (and removed it on
+   hover, which read backwards). Links now signal themselves with colour alone;
+   anything needing more gets an explicit treatment in the design. */
+a{color:var(--color-text-link);text-decoration:none;border-bottom:none;padding-bottom:0;transition:color var(--duration-fast) var(--ease-out)}
+a:hover{color:var(--color-text-link-hover)}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:none;box-shadow:var(--focus-ring);border-radius:var(--radius-sm)}
+button,input,select,textarea{font:inherit;color:inherit}
+::selection{background:var(--blue-300);color:var(--neutral-900)}
+code,pre{font-family:var(--font-mono);font-size:var(--text-code-size)}

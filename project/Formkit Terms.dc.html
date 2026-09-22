@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/radius.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/shadows.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/motion.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/layout.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/base.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/styles.css">
+  <title>Terms of service — Formkit</title>
+  <meta name="description" content="The terms you agree to when you use Formkit: your account, your content, acceptable use, and how either side can end the agreement.">
+  <link rel="canonical" href="https://formkit.app/terms">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Formkit">
+  <meta property="og:url" content="https://formkit.app/terms">
+  <meta property="og:title" content="Terms of service — Formkit">
+  <script src="./fk-icons.js"></script>
+  <script src="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/_ds_bundle.js"></script>
+  <style>
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{background:var(--paper);color:var(--neutral-900);font-family:var(--font-sans);-webkit-font-smoothing:antialiased}
+    a{color:var(--blue-700);text-decoration:none;border-bottom:none;padding-bottom:0}
+    a:hover{color:var(--neutral-900)}
+    :root{--fk-gutter:clamp(10px,1.5vw,20px);--fk-gap:clamp(10px,1.5vw,20px);--fk-round:clamp(20px,2.4vw,34px)}
+    [data-page] > section,[data-page] > main{margin:0 var(--fk-gutter) var(--fk-gap);border-radius:var(--fk-round);box-shadow:0 0 0 1px rgba(134,178,220,.25);overflow:hidden}
+    @media (max-width:640px){[data-toc]{position:static!important}}
+  </style>
+</helmet>
+
+<a href="#fk-main" style="position:absolute;left:-9999px;top:0;padding:10px 16px;background:var(--neutral-900);color:var(--neutral-0);border-radius:var(--radius-pill);z-index:100" style-focus="left:16px;top:16px">Skip to content</a>
+
+<div data-page="true" style="min-height:100vh;display:flex;flex-direction:column;background:var(--paper);font-family:var(--font-sans);color:var(--color-text-primary);padding:var(--fk-gap) 0">
+
+  <dc-import name="Formkit Nav" hint-size="100%,60px"></dc-import>
+
+  <section style="position:relative;background:#0a3d6f;color:#ffffff;padding:calc(104px + clamp(20px,4vw,44px)) clamp(20px,5vw,56px) clamp(52px,6vw,72px)">
+    <dc-import name="Formkit Sky" hint-size="100%,100%"></dc-import>
+    <div style="position:relative;z-index:1;max-width:940px;margin:0 auto">
+      <span style="font-size:11.5px;letter-spacing:.16em;color:rgba(255,255,255,.75)">LEGAL</span>
+      <h1 style="margin:14px 0 0;font-size:clamp(30px,4.6vw,56px);font-weight:700;letter-spacing:-.035em;line-height:1.02;color:#ffffff">{{ docTitle }}</h1>
+      <p style="margin:14px 0 0;max-width:56ch;font-size:16.5px;line-height:1.6;color:#ffffff;opacity:.86;text-wrap:pretty">{{ docIntro }}</p>
+      <p style="margin:18px 0 0;font-size:13.5px;color:rgba(255,255,255,.7)">Last updated {{ docDate }}</p>
+    </div>
+  </section>
+
+  <main id="fk-main" style="flex:1;background:var(--neutral-0);padding:clamp(34px,5vw,64px) clamp(20px,5vw,56px) clamp(40px,6vw,72px)">
+    <div style="max-width:940px;margin:0 auto;display:grid;gap:clamp(20px,3vw,40px);grid-template-columns:repeat(auto-fit,minmax(min(230px,100%),1fr))">
+      <nav data-toc="true" aria-label="On this page" style="position:sticky;top:110px;align-self:start;display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:11.5px;letter-spacing:.14em;color:var(--color-text-tertiary);padding:0 10px 8px">ON THIS PAGE</span>
+        <sc-for list="{{ toc }}" as="s" hint-placeholder-count="8">
+          <a href="{{ s.href }}" style="padding:8px 10px;border-radius:10px;font-size:14px;color:var(--neutral-800)" style-hover="background:var(--neutral-100);color:var(--neutral-900)">{{ s.title }}</a>
+        </sc-for>
+      </nav>
+
+      <div style="grid-column:span 2;min-width:0">
+        <sc-for list="{{ sections }}" as="sec" hint-placeholder-count="8">
+          <div id="{{ sec.id }}" style="padding-bottom:clamp(24px,3vw,38px);scroll-margin-top:110px">
+            <h2 style="margin:0 0 12px;font-size:clamp(20px,2.2vw,26px);font-weight:600;letter-spacing:-.02em;color:var(--neutral-900)">{{ sec.title }}</h2>
+            <sc-for list="{{ sec.paras }}" as="para" hint-placeholder-count="2">
+              <p style="margin:0 0 12px;max-width:68ch;font-size:15.5px;line-height:1.65;color:var(--color-text-secondary);text-wrap:pretty">{{ para }}</p>
+            </sc-for>
+            <sc-for list="{{ sec.bullets }}" as="b" hint-placeholder-count="3">
+              <div style="display:flex;align-items:flex-start;gap:11px;margin:0 0 9px;max-width:68ch">
+                <span style="flex:0 0 auto;width:5px;height:5px;margin-top:9px;border-radius:50%;background:var(--neutral-400)"></span>
+                <span style="flex:1;font-size:15.5px;line-height:1.6;color:var(--color-text-secondary);text-wrap:pretty">{{ b }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+        <div style="padding-top:24px;box-shadow:inset 0 1px 0 var(--neutral-200);font-size:14.5px;line-height:1.6;color:var(--color-text-tertiary);text-wrap:pretty">{{ docFoot }}</div>
+      </div>
+    </div>
+  </main>
+
+  <dc-import name="Formkit Footer" hint-size="100%,760px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1120,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  doc() { return 'terms'; }
+
+  static TERMS = [
+    { id: 'the-agreement', title: 'The short version', paras: [
+      'Use Formkit to build and share forms. Do not use it to hurt people. It is free, we will do our best to keep it running, and we do not promise perfection.',
+      'The rest of this page is the same thing said carefully. Using Formkit means you accept it.'
+    ] },
+    { id: 'your-account', title: 'Your account', paras: [
+      'An account belongs to one person. Keep your password to yourself; anything done from your account is treated as done by you. If you invite collaborators to a form, you are responsible for what they do with it.',
+      'You need to be 16 or older to have an account.'
+    ] },
+    { id: 'what-you-may-not-do', title: 'What you may not do', paras: ['A short list, and we enforce it:'], bullets: [
+      'Collect card numbers, bank details or passwords. Formkit has no payment field and is not built to hold them.',
+      'Send unsolicited email, or use a form as the landing page for a spam campaign.',
+      'Impersonate somebody else, or run a form designed to trick people into handing over credentials.',
+      'Upload malware, or use a form to distribute it.',
+      'Collect data about people where you have no lawful reason to, or where you have hidden what you are doing with it.',
+      'Hammer the service with scripts, or work around a rate limit.'
+    ] },
+    { id: 'your-content', title: 'Your forms stay yours', paras: [
+      'You own your questions, your design and every response. You give us permission to store and display them, which is the only way a form tool can work. That permission ends when you delete the content or close your account.',
+      'We will not use your forms in our marketing without asking you first.'
+    ] },
+    { id: 'respondents', title: 'The people who answer', paras: [
+      'You decide what to ask, so you carry the duties that go with it: telling respondents who you are, why you are asking, and what happens to their answers; and having a lawful reason to hold what they send.',
+      'Formkit gives you the tools — a description, a closing message, a confirmation email, an export and a delete button. Using them well is your part.'
+    ] },
+    { id: 'availability', title: 'What we promise about uptime', paras: [
+      'We aim to keep Formkit up and to warn you before planned maintenance. We do not offer a service-level agreement, because the service is free. Forms stay live during most maintenance; when the dashboard is read-only we say so in advance.'
+    ] },
+    { id: 'moderation', title: 'Reported and locked forms', paras: [
+      'Anyone can report a form. A Formkit admin reads the report and either dismisses it or locks the form, which stops it collecting while we look into it. We tell you when that happens and why.',
+      'We can suspend an account that is breaking the rules in this page, and delete one that is doing it deliberately or repeatedly. Suspension stops your forms collecting; it does not delete what you have already collected.'
+    ] },
+    { id: 'free', title: 'Free, and what happens if that changes', paras: [
+      'Formkit is free. There are no plans, no seats and no card on file. If we ever introduce a paid tier, everything you have built stays yours and stays accessible, and you will hear about the change with enough notice to export and leave if you want to.'
+    ] },
+    { id: 'liability', title: 'Where our responsibility ends', paras: [
+      'Formkit is provided as it is. We do not warrant that it will be uninterrupted or free of faults, and we are not liable for lost profits, lost data or business you did not win because a form was down. Where the law lets us cap liability, it is capped at nothing, because you have paid us nothing — and nothing in this page limits liability we cannot lawfully limit, including for death, personal injury or fraud.'
+    ] },
+    { id: 'ending-it', title: 'Ending it', paras: [
+      'You can close your account whenever you like, from Settings. We can end this agreement if you break the rules above, or if we shut the service down — in which case we will give you at least 60 days to export everything.'
+    ] },
+    { id: 'changes', title: 'Changes to these terms', paras: [
+      'We will post any change here and tell you in the app before it takes effect. Carrying on using Formkit after that means you accept the new version.',
+      'Questions go to hello@formkit.app.'
+    ] }
+  ];
+
+  renderVals() {
+    const sections = Component.TERMS;
+    return {
+      n19: 19, n22: 22,
+      docTitle: 'Terms of service',
+      docIntro: 'The agreement between you and Formkit: your account, your content, what counts as fair use, and how either side can end it.',
+      docDate: '21 September 2026',
+      toc: sections.map(s => ({ title: s.title, href: '#' + s.id })),
+      sections: sections.map(s => ({ id: s.id, title: s.title, paras: s.paras || [], bullets: s.bullets || [] })),
+      docFoot: 'This is written to be read, not to be impressive. If a term here conflicts with a right you have under your local law, your local law wins.'
+    };
+  }
+}
+</script>
+</body>
+</html>

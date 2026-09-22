@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/radius.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/shadows.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/motion.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/layout.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/base.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/styles.css">
+  <title>Page not found — Formkit</title>
+  <meta name="robots" content="noindex, follow">
+  <script src="./fk-icons.js"></script>
+  <script src="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/_ds_bundle.js"></script>
+  <style>
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{background:var(--paper);color:var(--neutral-900);font-family:var(--font-sans);-webkit-font-smoothing:antialiased}
+    a{color:var(--blue-700);text-decoration:none;border-bottom:none;padding-bottom:0}
+    a:hover{color:var(--neutral-900)}
+    :root{--fk-gutter:clamp(10px,1.5vw,20px);--fk-gap:clamp(10px,1.5vw,20px);--fk-round:clamp(20px,2.4vw,34px)}
+    [data-page] > section{margin:0 var(--fk-gutter) var(--fk-gap);border-radius:var(--fk-round);box-shadow:0 0 0 1px rgba(134,178,220,.25);overflow:hidden}
+    @media (max-width:560px){[data-page] > section a{width:100%;justify-content:center}}
+  </style>
+</helmet>
+
+<div data-page="true" style="min-height:100vh;display:flex;flex-direction:column;background:var(--paper);font-family:var(--font-sans);color:var(--neutral-900);padding:var(--fk-gap) 0">
+
+  <dc-import name="Formkit Nav" hint-size="100%,60px"></dc-import>
+
+  <section style="position:relative;flex:1;background:#0a3d6f;color:#ffffff;padding:calc(104px + clamp(28px,6vw,64px)) clamp(20px,5vw,56px) clamp(56px,8vw,96px);display:flex;align-items:center">
+    <dc-import name="Formkit Sky" hint-size="100%,100%"></dc-import>
+    <div style="position:relative;z-index:1;width:100%;max-width:820px;margin:0 auto;text-align:center">
+      <span style="font-size:11.5px;letter-spacing:.16em;color:rgba(255,255,255,.7)">404</span>
+      <h1 style="margin:16px 0 0;font-size:clamp(32px,5.2vw,62px);font-weight:700;letter-spacing:-.04em;line-height:1.02;color:#ffffff">This page has no answers.</h1>
+      <p style="margin:18px auto 0;max-width:48ch;font-size:16.5px;line-height:1.6;color:#ffffff;opacity:.86;text-wrap:pretty">The link is wrong, or the page moved. If you were opening someone's form, check the address against the one they sent — a changed handle or slug is the usual cause.</p>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:30px">
+        <a href="Formkit Landing.dc.html" style="display:inline-flex;align-items:center;gap:9px;height:50px;padding:0 24px;border-radius:var(--radius-pill);background:#ffffff;color:var(--neutral-900);font-size:15.5px;font-weight:500">
+          Formkit home
+          <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Icon" name="arrow-right" size="{{ n17 }}" hint-size="17px,17px"></x-import>
+        </a>
+        <a href="Formkit Help.dc.html" style="display:inline-flex;align-items:center;height:50px;padding:0 22px;border-radius:var(--radius-pill);color:#ffffff;font-size:15.5px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.4)" style-hover="background:rgba(255,255,255,.14);color:#ffffff">Search the help center</a>
+      </div>
+
+      <div style="margin-top:clamp(36px,5vw,56px);padding-top:clamp(24px,3vw,36px);box-shadow:inset 0 1px 0 rgba(255,255,255,.2)">
+        <div style="font-size:11.5px;letter-spacing:.14em;color:rgba(255,255,255,.55)">TRY ONE OF THESE</div>
+        <div style="display:flex;gap:9px;flex-wrap:wrap;justify-content:center;margin-top:16px">
+          <sc-for list="{{ links }}" as="l" hint-placeholder-count="6">
+            <a href="{{ l.href }}" style="display:inline-flex;align-items:center;height:38px;padding:0 17px;border-radius:var(--radius-pill);background:rgba(255,255,255,.14);color:#ffffff;font-size:14px" style-hover="background:rgba(255,255,255,.24);color:#ffffff">{{ l.label }}</a>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <dc-import name="Formkit Footer" hint-size="100%,760px"></dc-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1240,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      n17: 17,
+      links: [
+        { label: 'Templates', href: 'Formkit Templates.dc.html' },
+        { label: 'Pricing', href: 'Formkit Pricing.dc.html' },
+        { label: 'Compare', href: 'Formkit Compare.dc.html' },
+        { label: 'Getting started', href: 'Formkit Help.dc.html#create-first-form' },
+        { label: 'Dashboard', href: 'Formkit Main App.dc.html' },
+        { label: 'Sign in', href: 'Formkit Main App.dc.html?view=signin' }
+      ]
+    };
+  }
+}
+
+</script>
+</body>
+</html>

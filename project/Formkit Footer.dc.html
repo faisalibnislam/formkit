@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/radius.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/shadows.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/base.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/styles.css">
+  <script src="./fk-icons.js"></script>
+  <script src="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/_ds_bundle.js"></script>
+  <style>
+    [data-fkfoot] a{text-decoration:none;border-bottom:none;padding-bottom:0}
+    @media (max-width:560px){
+      [data-fkfoot-row]{flex-direction:column;gap:8px!important}
+      [data-fkfoot-row] > span:first-child{min-width:0!important;text-align:center!important}
+      [data-fkfoot-ask]{flex-direction:column;border-radius:20px!important;padding:12px!important}
+      [data-fkfoot-ask] a{width:100%;justify-content:center}
+    }
+    /* The footer is an inset card like every other chapter on the page. */
+    [data-fkfoot]{--fk-gutter:clamp(10px,1.5vw,20px);--fk-round:clamp(20px,2.4vw,34px)}
+  </style>
+</helmet>
+
+<footer data-fkfoot="true" style="position:relative;background:var(--neutral-950);color:var(--neutral-0);font-family:var(--font-sans);margin:0 var(--fk-gutter);border-radius:var(--fk-round);overflow:hidden;box-shadow:0 0 0 1px rgba(134,178,220,.25);padding:clamp(56px,8vw,110px) clamp(24px,7vw,110px) 34px;display:flex;flex-direction:column;align-items:center;text-align:center" data-comment-anchor="893dd9831e-footer">
+  <h2 style="margin:0;font-size:clamp(28px,4.4vw,58px);font-weight:700;letter-spacing:-.04em;line-height:1;max-width:16ch">What will you ask first?</h2>
+  <div data-fkfoot-ask="true" style="display:flex;align-items:center;gap:10px;width:min(620px,100%);margin-top:clamp(22px,3vw,34px);padding:8px 8px 8px 20px;border:1px solid rgba(255,255,255,.24);border-radius:var(--radius-pill);background:rgba(255,255,255,.05);text-align:left">
+    <input data-ask="true" aria-label="What will you ask first?" placeholder="What does success look like?" style="flex:1;min-width:0;border:none;background:transparent;outline:none;font:inherit;font-size:clamp(15px,1.6vw,18px);color:var(--neutral-0)">
+    <a href="Formkit Main App.dc.html?view=signup" style="display:inline-flex;align-items:center;gap:9px;height:46px;padding:0 22px;border-radius:var(--radius-pill);background:var(--neutral-0);color:var(--neutral-900);font-size:15px;white-space:nowrap">
+      Build a form
+      <span data-askarrow="true" style="display:inline-flex;transition:transform .25s cubic-bezier(.22,.8,.24,1)">
+        <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Icon" name="arrow-right" size="{{ n16 }}" hint-size="16px,16px"></x-import>
+      </span>
+    </a>
+  </div>
+
+  <div style="display:flex;flex-direction:column;align-items:center;gap:clamp(14px,2.4vw,24px);width:100%;margin-top:clamp(40px,6vw,72px)">
+    <sc-for list="{{ cols }}" as="col" hint-placeholder-count="3">
+      <div data-fkfoot-row="true" style="{{ col.rowStyle }}">
+        <span style="font-size:11px;letter-spacing:.12em;color:rgba(255,255,255,.4);min-width:7ch;text-align:right">{{ col.heading }}</span>
+        <sc-for list="{{ col.links }}" as="l" hint-placeholder-count="4">
+          <a href="{{ l.href }}" style="font-size:15px;color:rgba(255,255,255,.82)" style-hover="color:var(--neutral-0)">{{ l.label }}</a>
+        </sc-for>
+      </div>
+    </sc-for>
+  </div>
+
+  <span style="flex:1"></span>
+
+  <div style="position:relative;width:100%;display:flex;justify-content:center;margin-top:clamp(30px,5vw,60px);overflow:hidden">
+    <div aria-hidden="true" style="display:flex;justify-content:center;color:rgba(255,255,255,.18)">
+      <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Logo" size="{{ markSize }}" tone="current" hint-size="100%,140px"></x-import>
+    </div>
+    <div data-wordmark="true" aria-label="Formkit" role="img" style="position:absolute;inset:0;display:flex;justify-content:center;color:#ffffff;clip-path:inset(0 100% 0 0)">
+      <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Logo" size="{{ markSize }}" tone="current" hint-size="100%,140px"></x-import>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap;width:100%;margin-top:22px;padding-top:20px;font-size:12.5px;color:rgba(255,255,255,.45)">
+    <span>© 2026 Formkit</span>
+    
+    
+    
+  </div>
+</footer>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200,&quot;height&quot;:700}}">
+class Component extends DCLogic {
+  componentDidMount() {
+    this.reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches);
+    setTimeout(() => this.wire(), 60);
+  }
+  componentWillUnmount() {
+    if (this.off) this.off();
+  }
+
+  /* The wordmark fills from outline to solid as the footer scrolls in, and
+     typing in the ask field pushes the reveal further. */
+  wire() {
+    const root = document.querySelector('#dc-root') || document;
+    const foot = root.querySelector('[data-fkfoot]');
+    const mark = root.querySelector('[data-wordmark]');
+    const input = root.querySelector('[data-ask]');
+    const arrow = root.querySelector('[data-askarrow]');
+    if (!foot || !mark) return;
+    let typed = 0, last = -1;
+    const paint = () => {
+      const r = foot.getBoundingClientRect();
+      const p = this.reduced ? 1 : Math.min(1, Math.max(0,
+        (window.innerHeight - r.top) / Math.max(1, Math.min(r.height, window.innerHeight * 1.4))));
+      const fill = Math.max(typed, Math.round(p * 100));
+      if (fill === last) return;
+      last = fill;
+      mark.style.clipPath = 'inset(0 ' + (100 - fill) + '% 0 0)';
+    };
+    if (input) input.addEventListener('input', () => {
+      const v = input.value.trim();
+      typed = Math.min(100, v.length * 3);
+      last = -1;
+      if (arrow) arrow.style.transform = v ? 'translateX(4px)' : 'none';
+      paint();
+    });
+    window.addEventListener('scroll', paint, { passive: true });
+    window.addEventListener('resize', paint);
+    this.off = () => {
+      window.removeEventListener('scroll', paint);
+      window.removeEventListener('resize', paint);
+    };
+    paint();
+  }
+
+  renderVals() {
+    return {
+      n16: 16,
+      markSize: Math.round(Math.min(150, Math.max(56, window.innerWidth * 0.1))),
+      cols: [
+        { heading: 'PRODUCT', links: [
+          { label: 'Form builder', href: 'Formkit Landing.dc.html#ask' },
+          { label: 'Templates', href: 'Formkit Templates.dc.html' },
+          { label: 'Pricing', href: 'Formkit Pricing.dc.html' },
+          { label: 'Compare', href: 'Formkit Compare.dc.html' },
+          { label: 'Dashboard', href: 'Formkit Main App.dc.html' }
+        ] },
+        { heading: 'LEARN', links: [
+          { label: 'Help center', href: 'Formkit Help.dc.html' },
+          { label: 'Getting started', href: 'Formkit Help.dc.html#create-first-form' },
+          { label: 'Logic rules', href: 'Formkit Help.dc.html#logic-basics' },
+          { label: 'Building with AI', href: 'Formkit Help.dc.html#ai-what' }
+        ] },
+        { heading: 'ACCOUNT', links: [
+          { label: 'Sign in', href: 'Formkit Main App.dc.html?view=signin' },
+          { label: 'Privacy', href: 'Formkit Privacy.dc.html' },
+          { label: 'Terms', href: 'Formkit Terms.dc.html' }
+        ] }
+      ].map((col, i, all) => Object.assign({}, col, {
+        rowStyle: 'display:flex;align-items:center;justify-content:center;gap:clamp(12px,2vw,26px);flex-wrap:wrap;width:100%;padding-bottom:clamp(14px,2.4vw,24px)'
+          + (i < all.length - 1 ? ';border-bottom:1px solid rgba(255,255,255,.14)' : '')
+      }))
+    };
+  }
+}
+
+</script>
+</body>
+</html>

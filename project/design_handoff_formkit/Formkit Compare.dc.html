@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/radius.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/shadows.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/motion.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/layout.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/base.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/styles.css">
+  <title>Compare form builders — Formkit</title>
+  <meta name="description" content="An honest comparison of Formkit with Google Forms and Typeform, based on each product's published free tier. All three are capable tools; they suit different jobs.">
+  <link rel="canonical" href="https://formkit.app/compare">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Formkit">
+  <meta property="og:url" content="https://formkit.app/compare">
+  <meta property="og:title" content="Compare form builders — Formkit">
+  <meta property="og:description" content="What each free tier gives you, stated plainly and without attack language.">
+  <meta name="twitter:card" content="summary_large_image">
+  <script type="application/ld+json" data-ld="true">{}</script>
+  <style>
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{background:var(--paper);color:var(--neutral-900);font-family:var(--font-sans);-webkit-font-smoothing:antialiased}
+    a{color:var(--blue-700);text-decoration:none;border-bottom:none;padding-bottom:0}
+    a:hover{color:var(--neutral-900)}
+    :root{--fk-gutter:clamp(10px,1.5vw,20px);--fk-gap:clamp(10px,1.5vw,20px);--fk-round:clamp(20px,2.4vw,34px)}
+    [data-page] > section,[data-page] > main{margin:0 var(--fk-gutter) var(--fk-gap);border-radius:var(--fk-round);box-shadow:0 0 0 1px rgba(134,178,220,.25);overflow:hidden}
+    @media (max-width:560px){[data-page] > main{padding-left:18px!important;padding-right:18px!important}}
+  </style>
+</helmet>
+
+<a href="#fk-main" style="position:absolute;left:-9999px;top:0;padding:10px 16px;background:var(--neutral-900);color:var(--neutral-0);border-radius:var(--radius-pill);z-index:100" style-focus="left:16px;top:16px">Skip to content</a>
+
+<div data-page="true" style="min-height:100vh;display:flex;flex-direction:column;background:var(--paper);font-family:var(--font-sans);color:var(--neutral-900);padding:var(--fk-gap) 0">
+
+  <dc-import name="Formkit Nav" current="compare" hint-size="100%,60px"></dc-import>
+
+  <section style="position:relative;background:#0a3d6f;color:#ffffff;padding:calc(104px + clamp(20px,4vw,44px)) clamp(20px,5vw,56px) clamp(48px,6vw,72px)">
+    <dc-import name="Formkit Sky" hint-size="100%,100%"></dc-import>
+    <div style="position:relative;z-index:1;max-width:1120px;margin:0 auto">
+      <nav aria-label="Breadcrumb" style="display:flex;align-items:center;gap:9px;font-size:13px;color:rgba(255,255,255,.72);margin-bottom:16px">
+        <a href="Formkit Landing.dc.html" style="color:rgba(255,255,255,.8)">Formkit</a>
+        <span>/</span>
+        <a href="Formkit Compare.dc.html" style="color:rgba(255,255,255,.8)">Compare</a>
+        <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+          <span>/</span>
+          <span style="color:#ffffff">{{ rivalName }}</span>
+        </sc-if>
+      </nav>
+      <h1 style="margin:0;font-size:clamp(30px,4.6vw,56px);font-weight:700;letter-spacing:-.035em;line-height:1.02;max-width:20ch;color:#ffffff">{{ heroTitle }}</h1>
+      <p style="margin:16px 0 0;max-width:58ch;font-size:16.5px;line-height:1.6;color:#ffffff;opacity:.88;text-wrap:pretty">{{ heroSub }}</p>
+    </div>
+  </section>
+
+  <main id="fk-main" style="flex:1;background:var(--neutral-0);padding:clamp(32px,4vw,56px) clamp(20px,5vw,56px) clamp(44px,6vw,72px)">
+    <div style="max-width:1120px;margin:0 auto">
+
+      <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:18px;margin-bottom:clamp(30px,4vw,50px)">
+          <div style="padding:24px;border-radius:var(--radius-card);background:var(--neutral-50)">
+            <h2 style="margin:0;font-size:19px;font-weight:600;letter-spacing:-.015em">{{ rivalName }}</h2>
+            <p style="margin:10px 0 0;font-size:15px;line-height:1.6;color:var(--color-text-secondary);text-wrap:pretty">{{ rivalLine }}</p>
+            <p style="margin:12px 0 0;font-size:15px;line-height:1.6;color:var(--color-text-secondary);text-wrap:pretty"><strong style="font-weight:500">Pick it when</strong> {{ rivalWhen }}</p>
+          </div>
+          <div style="padding:24px;border-radius:var(--radius-card);background:var(--blue-50)">
+            <h2 style="margin:0;font-size:19px;font-weight:600;letter-spacing:-.015em">Formkit</h2>
+            <p style="margin:10px 0 0;font-size:15px;line-height:1.6;color:var(--color-text-secondary);text-wrap:pretty">A workspace for designing the form, shaping the journey and using what comes back. Free, with nothing held behind a paid tier.</p>
+            <p style="margin:12px 0 0;font-size:15px;line-height:1.6;color:var(--color-text-secondary);text-wrap:pretty"><strong style="font-weight:500">Pick it when</strong> {{ ourWhen }}</p>
+          </div>
+        </div>
+      </sc-if>
+
+      <h2 style="margin:0;font-size:clamp(22px,2.8vw,34px);font-weight:700;letter-spacing:-.03em">{{ tableTitle }}</h2>
+      <p style="margin:12px 0 0;max-width:60ch;font-size:15.5px;line-height:1.6;color:var(--color-text-secondary)">Based on what each product gives you for free as of September 2026. Paid plans differ. A dash means the feature exists but is narrower, not that it is missing.</p>
+
+      <div style="overflow-x:auto;margin-top:clamp(22px,3vw,36px);border-radius:var(--radius-card);background:var(--neutral-0);box-shadow:var(--shadow-card)">
+        <table style="width:100%;min-width:640px;border-collapse:collapse;text-align:left">
+          <thead>
+            <tr>
+              <th scope="col" style="padding:18px clamp(16px,2vw,26px);font-size:12px;letter-spacing:.06em;font-weight:400;color:var(--color-text-tertiary);border-bottom:1px solid var(--neutral-200)">On the free tier</th>
+              <sc-for list="{{ cols }}" as="c" hint-placeholder-count="3">
+                <th scope="col" style="{{ c.headStyle }}">{{ c.name }}</th>
+              </sc-for>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{ rows }}" as="r" hint-placeholder-count="10">
+              <tr>
+                <th scope="row" style="padding:14px clamp(16px,2vw,26px);font-size:14.5px;font-weight:400;color:var(--neutral-900);border-bottom:1px solid var(--neutral-200)">{{ r.label }}</th>
+                <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="3">
+                  <td style="{{ c.cellStyle }}">
+                    <span style="display:inline-flex;align-items:center;gap:9px">
+                      <span style="{{ c.iconStyle }}">
+                        <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Icon" name="{{ c.icon }}" size="{{ n15 }}" hint-size="15px,15px"></x-import>
+                      </span>
+                      <span style="font-size:13.5px;color:var(--neutral-700)">{{ c.note }}</span>
+                    </span>
+                  </td>
+                </sc-for>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+
+      <sc-if value="{{ isIndex }}" hint-placeholder-val="{{ true }}">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:18px;margin-top:clamp(30px,4vw,50px)">
+          <sc-for list="{{ rivals }}" as="r" hint-placeholder-count="2">
+            <a href="{{ r.href }}" style="display:block;padding:26px;border-radius:var(--radius-card);background:var(--neutral-50);color:var(--neutral-900)" style-hover="background:var(--blue-50);color:var(--neutral-900)">
+              <span style="display:block;font-size:19px;font-weight:600;letter-spacing:-.015em">Formkit vs {{ r.name }}</span>
+              <span style="display:block;font-size:14.5px;line-height:1.55;color:var(--color-text-tertiary);margin-top:9px">{{ r.line }}</span>
+              <span style="display:inline-flex;align-items:center;gap:8px;margin-top:16px;font-size:14px;color:var(--blue-700);font-weight:500">
+                Read the comparison
+                <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Icon" name="arrow-right" size="{{ n15 }}" hint-size="15px,15px"></x-import>
+              </span>
+            </a>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+        <h2 style="margin:clamp(40px,5vw,68px) 0 0;font-size:clamp(22px,2.8vw,34px);font-weight:700;letter-spacing:-.03em">Questions people ask</h2>
+        <div style="display:flex;flex-direction:column;max-width:70ch;margin-top:14px">
+          <sc-for list="{{ faqs }}" as="f" hint-placeholder-count="4">
+            <div style="padding:18px 0;box-shadow:inset 0 1px 0 var(--neutral-200)">
+              <h3 style="margin:0;font-size:16.5px;font-weight:500">{{ f.q }}</h3>
+              <p style="margin:8px 0 0;font-size:15px;line-height:1.6;color:var(--color-text-secondary);text-wrap:pretty">{{ f.a }}</p>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <p style="margin:clamp(36px,5vw,64px) 0 0;font-size:clamp(17px,2vw,24px);line-height:1.35;letter-spacing:-.02em;max-width:36ch">Pick the tool that fits the job. Pick Formkit when the form is part of how people see you.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:24px">
+        <a href="Formkit Main App.dc.html?view=signup" style="display:inline-flex;align-items:center;gap:9px;height:48px;padding:0 24px;border-radius:var(--radius-pill);background:var(--neutral-900);color:var(--neutral-0);font-size:15px;font-weight:500" style-hover="color:var(--neutral-0)">Start building free</a>
+        <a href="Formkit Templates.dc.html" style="display:inline-flex;align-items:center;height:48px;padding:0 22px;border-radius:var(--radius-pill);color:var(--neutral-900);font-size:15px;box-shadow:inset 0 0 0 1px var(--neutral-200)" style-hover="background:var(--neutral-50);color:var(--neutral-900)">Browse templates</a>
+      </div>
+    </div>
+  </main>
+
+  <dc-import name="Formkit Footer" hint-size="100%,760px"></dc-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1240,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = { slug: null };
+
+  componentDidMount() {
+    const read = () => {
+      const h = (location.hash || '').replace('#', '');
+      this.setState({ slug: Component.RIVALS.some(r => r.slug === h) ? h : null });
+    };
+    read();
+    this.onHash = read;
+    window.addEventListener('hashchange', this.onHash);
+  }
+  componentWillUnmount() { window.removeEventListener('hashchange', this.onHash); }
+
+  head(r) {
+    const base = 'https://formkit.app/compare';
+    const url = r ? base + '/' + r.slug : base;
+    const title = r ? 'Formkit vs ' + r.name + ' — an honest comparison' : 'Compare form builders — Formkit';
+    const desc = r ? r.meta : "An honest comparison of Formkit with Google Forms and Typeform, based on each product's published free tier.";
+    document.title = title;
+    const set = (sel, attr, v) => { const el = document.querySelector(sel); if (el) el.setAttribute(attr, v); };
+    set('meta[name="description"]', 'content', desc);
+    set('link[rel="canonical"]', 'href', url);
+    set('meta[property="og:url"]', 'content', url);
+    set('meta[property="og:title"]', 'content', title);
+    set('meta[property="og:description"]', 'content', desc);
+
+    const crumbs = [{ '@type': 'ListItem', position: 1, name: 'Formkit', item: 'https://formkit.app/' },
+      { '@type': 'ListItem', position: 2, name: 'Compare', item: base }];
+    if (r) crumbs.push({ '@type': 'ListItem', position: 3, name: 'Formkit vs ' + r.name, item: url });
+    const graph = [{ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: crumbs }];
+    if (r) graph.push({ '@context': 'https://schema.org', '@type': 'FAQPage',
+      mainEntity: r.faqs.map(f => ({ '@type': 'Question', name: f[0], acceptedAnswer: { '@type': 'Answer', text: f[1] } })) });
+    const ld = document.querySelector('script[data-ld]');
+    if (ld) ld.textContent = JSON.stringify(graph);
+  }
+
+  renderVals() {
+    const rival = Component.RIVALS.find(r => r.slug === this.state.slug) || null;
+    this.head(rival);
+    // A detail page drops the third column so the reader compares two things.
+    const names = rival ? [rival.name, 'Formkit'] : ['Google Forms', 'Typeform', 'Formkit'];
+    const pick = rival ? (rival.name === 'Google Forms' ? [0, 2] : [1, 2]) : [0, 1, 2];
+
+    const vals = {
+      n15: 15,
+      isIndex: !rival, isDetail: !!rival,
+      heroTitle: rival ? 'Formkit vs ' + rival.name : 'Three ways to ask a question',
+      heroSub: rival ? rival.meta
+        : 'Google Forms, Typeform and Formkit all collect answers well. This is what each one gives you for free, stated plainly — no attack language, no invented specifications.',
+      tableTitle: rival ? 'Feature by feature' : 'What each free tier gives you',
+      cols: names.map((n, i) => ({
+        name: n,
+        headStyle: 'padding:18px clamp(16px,2vw,26px);vertical-align:top;border-bottom:1px solid var(--neutral-200);font-size:16px;font-weight:600;letter-spacing:-.01em;color:var(--neutral-900);'
+          + (n === 'Formkit' ? 'background:var(--blue-50)' : '')
+      })),
+      rows: Component.COMPARE.map(row => ({
+        label: row[0],
+        cells: pick.map((srcIdx, i) => {
+          const cell = row[1 + srcIdx];
+          const kind = cell[0];
+          const tone = kind === 'yes' ? { icon: 'check', bg: 'var(--green-100)', ink: 'var(--green-600)' }
+            : kind === 'no' ? { icon: 'x', bg: 'var(--red-100)', ink: 'var(--red-600)' }
+            : { icon: 'minus', bg: 'var(--yellow-100)', ink: 'var(--yellow-600)' };
+          return {
+            icon: tone.icon, note: cell[1],
+            iconStyle: 'display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;flex:0 0 auto;border-radius:50%;background:' + tone.bg + ';color:' + tone.ink,
+            cellStyle: 'padding:14px clamp(16px,2vw,26px);border-bottom:1px solid var(--neutral-200);vertical-align:middle;'
+              + (names[i] === 'Formkit' ? 'background:var(--blue-50)' : '')
+          };
+        })
+      })),
+      rivals: Component.RIVALS.map(r => ({ name: r.name, line: r.line, href: 'Formkit Compare.dc.html#' + r.slug }))
+    };
+
+    if (rival) Object.assign(vals, {
+      rivalName: rival.name, rivalLine: rival.line, rivalWhen: rival.when, ourWhen: rival.ourWhen,
+      faqs: rival.faqs.map(f => ({ q: f[0], a: f[1] }))
+    });
+    return vals;
+  }
+}
+
+Component.RIVALS = [
+  {
+    slug: 'google-forms', name: 'Google Forms',
+    line: 'Fast, familiar and practical. If you have a Google account you already have it, and for straightforward internal collection that is often the whole argument.',
+    meta: 'Formkit compared with Google Forms on the free tier: branding, conditional logic, partial responses, analytics and publishing under your own link.',
+    when: 'the form is internal, the look does not matter, and you want the answers in a spreadsheet in the next five minutes.',
+    ourWhen: 'the form goes to a client and carries your name, or you need to know which question people stop on.',
+    faqs: [
+      ['Is Formkit a replacement for Google Forms?', 'For client-facing work, yes. For a quick internal poll, Google Forms is genuinely hard to beat on speed — you are already signed in.'],
+      ['Can I move my existing forms across?', 'There is no importer. Formkit templates cover the common cases, and rebuilding a short form takes a few minutes.'],
+      ['Does Formkit export to Sheets?', 'Formkit exports to CSV and Excel, which Sheets opens directly. There is no live Sheets connection.'],
+      ['Which one is better for a long form?', 'Both support pages. Formkit keeps partial responses and shows you the question people abandon on, which matters more the longer the form gets.']
+    ]
+  },
+  {
+    slug: 'typeform', name: 'Typeform',
+    line: 'Conversation-led forms with a polished respondent experience. It made one-question-at-a-time the default expectation for a considered form.',
+    meta: 'Formkit compared with Typeform on the free tier: response limits, conversational mode, branding, custom links, version history and collaborator cost.',
+    when: 'the conversational format is the point and you are happy within the free tier response cap.',
+    ourWhen: 'you need unlimited responses, your own link, or several people working on the form without paying per seat.',
+    faqs: [
+      ['Does Formkit do one question at a time?', 'Yes. Conversational mode presents one question per screen with a sticky submit; classic mode puts everything on one page. It is a setting on the form.'],
+      ['What about response limits?', "Formkit does not cap responses. Typeform's free tier does — check their current figure, as it changes."],
+      ['Can I publish under my own domain?', 'Formkit gives you formkit.app/your-name free, and a separate handle for each company you add. A fully custom domain is not offered by either product on a free tier.'],
+      ['How many people can work on a form?', 'As many as you like in Formkit, as Editor, Commenter or Viewer, at no cost.']
+    ]
+  }
+];
+
+/* Only rows we can state plainly about each product's published free tier.
+   'part' means offered but narrower, never a judgement. */
+Component.COMPARE = [
+  ['Unlimited forms and responses', ['yes', 'Included'], ['part', 'Capped per month'], ['yes', 'Included']],
+  ['Conditional logic', ['yes', 'Section skipping'], ['yes', 'Logic jumps'], ['yes', 'Skip, show, hide']],
+  ['Your own colours, type and logo', ['part', 'Colour and header'], ['yes', 'Themes'], ['yes', 'Full theme editor']],
+  ['Publish under your own link', ['no', 'Shared domain'], ['part', 'Paid plans'], ['yes', 'Personal and company handles']],
+  ['One question at a time', ['no', 'Page-based'], ['yes', 'Conversational'], ['yes', 'Classic or conversational']],
+  ['Partial responses kept', ['no', 'Submitted only'], ['yes', 'Partials shown'], ['yes', 'Badged and resumable']],
+  ['Drop-off by question', ['no', 'Summary charts'], ['yes', 'Completion reporting'], ['yes', 'Per question']],
+  ['Version history with restore', ['no', 'Not offered'], ['no', 'Not offered'], ['yes', 'Every publish snapshotted']],
+  ['CSV and spreadsheet export', ['yes', 'Sheets and CSV'], ['yes', 'CSV and XLSX'], ['yes', 'CSV and Excel']],
+  ['Collaborators at no cost', ['yes', 'Editors'], ['part', 'Paid seats'], ['yes', 'Editor, Commenter, Viewer']]
+];
+
+</script>
+</body>
+</html>

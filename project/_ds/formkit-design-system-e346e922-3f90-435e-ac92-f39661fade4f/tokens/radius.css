@@ -1,0 +1,21 @@
+:root{
+--radius-xs:8px;
+--radius-sm:12px;
+--radius-md:16px;
+--radius-lg:20px;
+--radius-xl:28px;
+--radius-2xl:36px;
+--radius-pill:999px;
+
+/* role aliases — in this system every control is a pill and every surface is
+   generously rounded. Nothing is squarer than 8px. */
+--radius-control:var(--radius-pill);
+--radius-input:var(--radius-pill);
+--radius-input-multiline:var(--radius-lg);
+--radius-chip:var(--radius-pill);
+--radius-card:var(--radius-xl);
+--radius-card-inner:var(--radius-lg);
+--radius-panel:var(--radius-2xl);
+--radius-hero:40px;
+--radius-avatar:var(--radius-pill);
+}

@@ -1,0 +1,1959 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/colors.css">
+<link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/typography.css">
+<link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/radius.css">
+<link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/shadows.css">
+<link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/motion.css">
+<link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/layout.css">
+<link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/base.css">
+<link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/styles.css">
+  <title>Formkit admin</title>
+  <meta name="robots" content="noindex, nofollow">
+<script src="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/_ds_bundle.js"></script>
+<style>
+  html,body{margin:0;background:var(--paper);scrollbar-width:none}
+  html::-webkit-scrollbar{width:0;height:0}
+  a{color:var(--blue-700);text-decoration:none}
+  a:hover{color:var(--neutral-900)}
+  @keyframes fk-rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @keyframes fk-soft{from{opacity:0}to{opacity:1}}
+  @media (prefers-reduced-motion: reduce){[style*="fk-rise"],[style*="fk-soft"]{animation:none !important}}
+</style>
+</helmet>
+
+<div style="display:flex;gap:clamp(14px,1.6vw,20px);min-height:100vh;padding:clamp(14px,1.6vw,20px);background:var(--paper);font-family:var(--font-sans);color:var(--color-text-primary);box-sizing:border-box">
+
+  <sc-if value="{{ wideNav }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:0 0 auto;position:sticky;top:clamp(14px,1.6vw,20px);height:calc(100vh - 2 * clamp(14px,1.6vw,20px))">
+      <x-import component-from-global-scope="FormkitDesignSystem_e346e9.SidebarNav" items="{{ navItems }}" active="{{ nav }}" on-select="{{ onNav }}" workspace="{{ navWorkspace }}" footer="{{ navFooter }}" hint-size="248px,100%"></x-import>
+    </div>
+  </sc-if>
+
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:clamp(16px,2vw,22px)" data-comment-anchor="16e84bab42-div">
+
+    <sc-if value="{{ narrowNav }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:12px;background:var(--color-surface-card);border-radius:var(--radius-panel);box-shadow:var(--shadow-card);padding:14px 16px">
+        <div style="display:flex;align-items:center;gap:11px">
+          <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Logo" size="{{ n19 }}" hint-size="100px,20px"></x-import>
+          <span style="font-size:12px;letter-spacing:.04em;color:var(--neutral-700);padding:3px 9px;border-radius:var(--radius-pill);background:var(--neutral-100)">ADMIN</span>
+        </div>
+        <div style="display:flex;gap:6px;min-width:0;overflow-x:auto;scrollbar-width:none">
+          <sc-for list="{{ navPills }}" as="p" hint-placeholder-count="9">
+            <button onClick="{{ p.onPick }}" style="{{ p.style }}">
+              <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Icon" name="{{ p.icon }}" size="{{ n15 }}" hint-size="15px,15px"></x-import>
+              <span>{{ p.label }}</span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;padding:4px 2px 0">
+      <div style="flex:1;min-width:220px">
+        <div style="font-size:13px;color:var(--color-text-tertiary)">{{ pageEyebrow }}</div>
+        <h1 style="font-size:var(--text-h2-size);font-weight:var(--text-h2-weight);letter-spacing:var(--text-h2-tracking);margin:6px 0 0">{{ pageTitle }}</h1>
+        <div style="font-size:14.5px;line-height:1.55;color:var(--color-text-tertiary);margin-top:7px;max-width:64ch;text-wrap:pretty">{{ pageSub }}</div>
+      </div>
+      <sc-if value="{{ narrowNav }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;gap:11px;padding:7px 15px 7px 8px;border-radius:var(--radius-pill);background:var(--color-surface-card);box-shadow:var(--shadow-card)">
+          <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Avatar" name="{{ opName }}" size="{{ n34 }}" hint-size="34px,34px"></x-import>
+          <span style="min-width:0">
+            <span style="display:block;font-size:14px;font-weight:450;white-space:nowrap">{{ opName }}</span>
+            <span style="display:block;font-size:12.5px;color:var(--color-text-tertiary);margin-top:1px;white-space:nowrap">{{ opRole }}</span>
+          </span>
+          <x-import component-from-global-scope="FormkitDesignSystem_e346e9.IconButton" icon="log-out" label="Sign out of the admin panel" variant="ghost" on-click="{{ onSignOut }}" hint-size="38px,38px"></x-import>
+        </div>
+      </sc-if>
+    </div>
+
+    <!-- OVERVIEW -->
+    <sc-if value="{{ isOverview }}" hint-placeholder-val="{{ true }}">
+      <div data-screen-label="Overview" style="display:flex;flex-direction:column;gap:clamp(14px,1.8vw,20px);animation:fk-soft var(--duration-base) var(--ease-soft)">
+        <div style="display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(230px,100%),1fr))">
+          <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+            <div style="background:var(--color-surface-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card);padding:22px">
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;flex:0 0 auto;border-radius:50%;background:var(--neutral-100);color:var(--neutral-900)">
+                  <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Icon" name="{{ k.icon }}" size="{{ n16 }}" hint-size="16px,16px"></x-import>
+                </span>
+                <span style="flex:1;min-width:0;font-size:14px;color:var(--color-text-tertiary)">{{ k.label }}</span>
+              </div>
+              <div style="display:flex;align-items:baseline;gap:10px;margin-top:16px">
+                <span style="font-size:46px;font-weight:300;letter-spacing:-.02em;line-height:1">{{ k.value }}</span>
+                <span style="font-size:13px;color:var(--color-text-tertiary)">{{ k.unit }}</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:14px">
+                <x-import component-from-global-scope="FormkitDesignSystem_e346e9.StatDot" tone="{{ k.tone }}" size="{{ n18 }}" label="{{ k.deltaLabel }}" hint-size="18px,18px"></x-import>
+                <span style="font-size:13px;color:var(--color-text-tertiary)">{{ k.delta }}</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr))">
+          <div style="background:var(--color-surface-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card);padding:24px">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px">
+              <span style="flex:1;min-width:120px;font-size:16px;font-weight:500;letter-spacing:-.01em">New users</span>
+              <div style="max-width:100%;min-width:0;overflow-x:auto;scrollbar-width:none">
+                <x-import component-from-global-scope="FormkitDesignSystem_e346e9.SegmentedControl" options="{{ rangeOptions }}" value="{{ range }}" on-change="{{ onRange }}" hint-size="180px,38px"></x-import>
+              </div>
+            </div>
+            <x-import component-from-global-scope="FormkitDesignSystem_e346e9.TickChart" data="{{ signupData }}" marker-index="{{ signupMarker }}" height="{{ n120 }}" hint-size="100%,120px"></x-import>
+            <div style="display:flex;align-items:center;gap:12px;margin-top:12px">
+              <span style="font-size:12.5px;color:var(--color-text-tertiary)">{{ rangeStart }}</span>
+              <span style="flex:1;height:1px;background:var(--neutral-200)"></span>
+              <span style="font-size:12.5px;color:var(--color-text-tertiary)">Today</span>
+            </div>
+            <div style="display:flex;align-items:baseline;gap:10px;margin-top:18px">
+              <span style="font-size:30px;font-weight:300;letter-spacing:-.02em">{{ signupTotal }}</span>
+              <span style="font-size:13.5px;color:var(--color-text-tertiary)">{{ signupNote }}</span>
+            </div>
+          </div>
+
+          <div style="background:var(--color-surface-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card);padding:24px">
+            <div style="font-size:16px;font-weight:500;letter-spacing:-.01em;margin-bottom:20px">Users by standing</div>
+            <div style="display:flex;flex-direction:column;gap:16px">
+              <sc-for list="{{ standingMix }}" as="p" hint-placeholder-count="3">
+                <div>
+                  <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px">
+                    <span style="flex:1;min-width:0;font-size:14.5px">{{ p.name }}</span>
+                    <span style="font-size:20px;font-weight:300">{{ p.count }}</span>
+                    <span style="font-size:13px;color:var(--color-text-tertiary);width:44px;text-align:right">{{ p.pct }}</span>
+                  </div>
+                  <x-import component-from-global-scope="FormkitDesignSystem_e346e9.ProgressBar" value="{{ p.value }}" color="{{ p.color }}" hint-size="100%,8px"></x-import>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr))">
+          <div style="background:var(--color-surface-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card);padding:24px">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+              <span style="flex:1;font-size:16px;font-weight:500;letter-spacing:-.01em">AI forms built this month</span>
+              <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Button" variant="ghost" size="sm" icon="arrow-right" on-click="{{ gotoCredits }}" hint-size="90px,34px">Access</x-import>
+            </div>
+            <div style="display:flex;align-items:baseline;gap:10px;margin:14px 0 18px">
+              <span style="font-size:46px;font-weight:300;letter-spacing:-.02em;line-height:1">{{ aiBuiltTotal }}</span>
+              <span style="font-size:13.5px;color:var(--color-text-tertiary)">of {{ aiCeiling }} available to the {{ aiOnTotal }} users with AI on</span>
+            </div>
+            <x-import component-from-global-scope="FormkitDesignSystem_e346e9.TickBars" value="{{ aiUsePct }}" ticks="{{ n48 }}" label-left="Used" label-right="Unused" foot-left="{{ aiBuiltTotal }}" foot-right="{{ aiUnused }}" hint-size="100%,90px"></x-import>
+          </div>
+
+          <div style="background:var(--color-surface-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card);padding:24px">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
+              <span style="flex:1;font-size:16px;font-weight:500;letter-spacing:-.01em">Needs a look</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <sc-for list="{{ attention }}" as="a" hint-placeholder-count="4">
+                <button onClick="{{ a.onOpen }}" style="display:flex;align-items:center;gap:13px;width:100%;min-height:52px;padding:10px 12px;margin:0 -12px;border:none;border-radius:14px;background:transparent;cursor:pointer;font:inherit;text-align:left;transition:var(--transition-control)" style-hover="background:var(--neutral-50)">
+                  <span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;flex:0 0 auto;border-radius:50%;background:{{ a.bg }};color:var(--neutral-900)">
+                    <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Icon" name="{{ a.icon }}" size="{{ n15 }}" hint-size="15px,15px"></x-import>
+                  </span>
+                  <span style="flex:1;min-width:0">
+                    <span style="display:block;font-size:14.5px">{{ a.label }}</span>
+                    <span style="display:block;font-size:13px;color:var(--color-text-tertiary);margin-top:2px">{{ a.meta }}</span>
+                  </span>
+                  <span style="flex:0 0 auto;font-size:22px;font-weight:300">{{ a.count }}</span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- USERS -->
+    <sc-if value="{{ isAccounts }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Users" style="display:flex;flex-direction:column;gap:14px;animation:fk-soft var(--duration-base) var(--ease-soft)">
+        <div style="background:var(--color-surface-card);border-radius:var(--radius-panel);box-shadow:var(--shadow-card);padding:14px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px">
+            <x-import component-from-global-scope="FormkitDesignSystem_e346e9.SearchInput" placeholder="Search by name, email or workspace" value="{{ acctQuery }}" on-change="{{ onAcctQuery }}" hint-size="100%,44px"></x-import>
+          </div>
+          <div style="min-width:150px">
+            <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Select" options="{{ statusFilterOptions }}" value="{{ statusFilter }}" on-change="{{ onStatusFilter }}" hint-size="150px,44px"></x-import>
+          </div>
+          <div style="min-width:132px">
+            <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Select" options="{{ aiFilterOptions }}" value="{{ aiFilter }}" on-change="{{ onAiFilter }}" hint-size="132px,44px"></x-import>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:0 4px">
+          <span style="font-size:13.5px;color:var(--color-text-tertiary)">{{ acctCountLabel }}</span>
+          <sc-if value="{{ acctFiltered }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ onClearFilters }}" style="min-height:34px;padding:0 13px;border:none;border-radius:var(--radius-pill);background:var(--neutral-100);color:var(--color-text-primary);font:inherit;font-size:13px;cursor:pointer">Clear filters</button>
+          </sc-if>
+        </div>
+
+        <sc-if value="{{ acctTable }}" hint-placeholder-val="{{ true }}">
+          <div style="overflow-x:auto">
+            <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Table" columns="{{ acctCols }}" rows="{{ acctRows }}" on-row-click="{{ onOpenAccount }}" sort-key="responses" dc-props="{{ tableWide }}" hint-size="100%,420px"></x-import>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ acctCards }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <sc-for list="{{ acctRows }}" as="a" hint-placeholder-count="6">
+              <button onClick="{{ a.onOpen }}" style="display:flex;flex-direction:column;gap:10px;width:100%;text-align:left;border:none;background:var(--color-surface-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card);padding:16px;cursor:pointer;font:inherit">
+                <div style="display:flex;align-items:flex-start;gap:12px">
+                  <div style="flex:1;min-width:0">
+                    <div style="font-size:15.5px;font-weight:500;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ a.person }}</div>
+                    <div style="font-size:13px;color:var(--color-text-tertiary);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ a.email }}</div>
+                    <div style="font-size:13px;color:var(--color-text-tertiary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ a.org }}</div>
+                  </div>
+                  <div style="flex:0 0 auto">{{ a.statusNode }}</div>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px 14px;font-size:13px;color:var(--color-text-tertiary);padding-top:10px;box-shadow:inset 0 1px 0 var(--neutral-200)">
+                  <span>{{ a.forms }} forms</span>
+                  <span>{{ a.responses }} responses</span>
+                  <span style="margin-left:auto">AI {{ a.aiLabel }}</span>
+                </div>
+              </button>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Pagination" page="{{ page }}" page-count="{{ pageCount }}" summary="{{ pageSummary }}" on-change="{{ onPage }}" hint-size="100%,44px"></x-import>
+      </div>
+    </sc-if>
+
+    <!-- AI ACCESS -->
+    <sc-if value="{{ isCredits }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="AI access" style="display:flex;flex-direction:column;gap:14px;animation:fk-soft var(--duration-base) var(--ease-soft)">
+
+        <div style="background:var(--color-surface-card);border-radius:var(--radius-panel);box-shadow:var(--shadow-card);padding:clamp(20px,2.4vw,28px);display:flex;flex-direction:column;gap:20px">
+          <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap">
+            <div style="flex:1;min-width:250px">
+              <div style="font-size:19px;font-weight:500;letter-spacing:-.01em">{{ aiStateTitle }}</div>
+              <div style="font-size:14px;line-height:1.6;color:var(--color-text-tertiary);margin-top:8px;max-width:62ch;text-wrap:pretty">{{ aiStateNote }}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:13px;flex:0 0 auto">
+              <span style="font-size:13.5px;color:var(--color-text-tertiary);white-space:nowrap">{{ aiPauseLabel }}</span>
+              <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Switch" checked="{{ aiRunning }}" on-change="{{ onPause }}" hint-size="46px,26px"></x-import>
+            </div>
+          </div>
+          <div style="display:flex;gap:14px;flex-wrap:wrap;padding-top:18px;box-shadow:inset 0 1px 0 var(--neutral-200)">
+            <div style="flex:1;min-width:150px">
+              <div style="font-size:46px;font-weight:300;letter-spacing:-.03em;line-height:1">{{ aiOnTotal }}</div>
+              <div style="font-size:13px;color:var(--color-text-tertiary);margin-top:7px">users with AI on</div>
+            </div>
+            <div style="flex:1;min-width:150px">
+              <div style="font-size:46px;font-weight:300;letter-spacing:-.03em;line-height:1">{{ aiOffTotal }}</div>
+              <div style="font-size:13px;color:var(--color-text-tertiary);margin-top:7px">without it</div>
+            </div>
+            <div style="flex:1;min-width:150px">
+              <div style="font-size:46px;font-weight:300;letter-spacing:-.03em;line-height:1">{{ aiSampleOn }}</div>
+              <div style="font-size:13px;color:var(--color-text-tertiary);margin-top:7px">on in this sample</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:var(--color-surface-card);border-radius:var(--radius-panel);box-shadow:var(--shadow-card);padding:clamp(18px,2vw,24px);display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <span style="flex:1;min-width:150px;font-size:16px;font-weight:500;letter-spacing:-.01em">Who has it</span>
+            <span style="font-size:13px;color:var(--color-text-tertiary)">{{ accessCountLabel }}</span>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+            <div style="flex:1;min-width:200px">
+              <x-import component-from-global-scope="FormkitDesignSystem_e346e9.SearchInput" placeholder="Search this sample" value="{{ accessQuery }}" on-change="{{ onAccessQuery }}" style="width:100%" hint-size="100%,44px"></x-import>
+            </div>
+            <div style="flex:0 0 auto;max-width:100%;overflow-x:auto;scrollbar-width:none">
+              <x-import component-from-global-scope="FormkitDesignSystem_e346e9.SegmentedControl" options="{{ accessFilterOptions }}" value="{{ accessFilter }}" on-change="{{ onAccessFilter }}" aria-label="Filter by AI access" hint-size="200px,44px"></x-import>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <sc-for list="{{ accessRows }}" as="r" hint-placeholder-count="5">
+              <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:13px 0;box-shadow:inset 0 -1px 0 var(--neutral-200)">
+                <span style="flex:1;min-width:160px">
+                  <span style="display:block;font-size:14.5px;font-weight:450">{{ r.name }}</span>
+                  <span style="display:block;font-size:13px;color:var(--color-text-tertiary);margin-top:2px">{{ r.meta }}</span>
+                </span>
+                <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Switch" checked="{{ r.on }}" on-change="{{ r.onToggle }}" hint-size="46px,26px"></x-import>
+              </div>
+            </sc-for>
+          </div>
+          <sc-if value="{{ accessSearching }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:13px;color:var(--color-text-tertiary)">Searching shows every match, on or off, so you can switch someone on from here.</div>
+          </sc-if>
+          <sc-if value="{{ accessEmpty }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:14px;color:var(--color-text-tertiary);padding:8px 0">Nothing in this sample matches. Everyone outside it is off unless an admin turned it on.</div>
+          </sc-if>
+        </div>
+
+        <div style="background:var(--color-surface-card);border-radius:var(--radius-panel);box-shadow:var(--shadow-card);padding:clamp(20px,2.4vw,28px);display:flex;flex-direction:column;gap:20px">
+          <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap">
+            <div style="flex:1;min-width:240px">
+              <div style="font-size:19px;font-weight:500;letter-spacing:-.01em">Monthly AI forms per user</div>
+              <div style="font-size:14px;line-height:1.6;color:var(--color-text-tertiary);margin-top:8px;max-width:58ch;text-wrap:pretty">What someone gets once you turn AI on for them. Building a new form spends one; rewriting questions, writing logic, picking themes and reading responses stay free for everyone. Overrides below take precedence.</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <button onClick="{{ onDefaultDown }}" aria-label="Lower the default" style="display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;flex:0 0 auto;border:none;border-radius:50%;background:var(--neutral-100);color:var(--color-text-primary);cursor:pointer;font:inherit;transition:var(--transition-control)" style-hover="background:var(--neutral-200)">
+                <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Icon" name="minus" size="{{ n18 }}" hint-size="18px,18px"></x-import>
+              </button>
+              <div style="min-width:104px;text-align:center">
+                <div style="font-size:52px;font-weight:300;letter-spacing:-.03em;line-height:1">{{ aiDefault }}</div>
+                <div style="font-size:12.5px;color:var(--color-text-tertiary);margin-top:4px">a month</div>
+              </div>
+              <button onClick="{{ onDefaultUp }}" aria-label="Raise the default" style="display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;flex:0 0 auto;border:none;border-radius:50%;background:var(--neutral-900);color:var(--neutral-0);cursor:pointer;font:inherit;transition:var(--transition-control)" style-hover="background:var(--neutral-800)">
+                <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Icon" name="plus" size="{{ n18 }}" hint-size="18px,18px"></x-import>
+              </button>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-top:18px;box-shadow:inset 0 1px 0 var(--neutral-200)">
+            <sc-if value="{{ aiDefaultDirty }}" hint-placeholder-val="{{ false }}">
+              <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Button" icon="check" on-click="{{ onSaveDefault }}" hint-size="180px,48px">Apply to all users</x-import>
+            </sc-if>
+            <sc-if value="{{ aiDefaultDirty }}" hint-placeholder-val="{{ false }}">
+              <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Button" variant="secondary" on-click="{{ onRevertDefault }}" hint-size="90px,48px">Revert</x-import>
+            </sc-if>
+            <sc-if value="{{ aiDefaultClean }}" hint-placeholder-val="{{ true }}">
+              <span style="font-size:13.5px;color:var(--color-text-tertiary)">{{ aiDefaultSavedNote }}</span>
+            </sc-if>
+          </div>
+        </div>
+
+        <div style="display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(230px,100%),1fr))">
+          <sc-for list="{{ creditStats }}" as="c" hint-placeholder-count="4">
+            <div style="background:var(--color-surface-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card);padding:20px">
+              <div style="font-size:13.5px;color:var(--color-text-tertiary)">{{ c.label }}</div>
+              <div style="font-size:30px;font-weight:300;letter-spacing:-.02em;margin-top:12px">{{ c.value }}</div>
+              <div style="font-size:12.5px;color:var(--color-text-tertiary);margin-top:6px">{{ c.note }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="background:var(--color-surface-card);border-radius:var(--radius-panel);box-shadow:var(--shadow-card);padding:clamp(18px,2vw,24px);display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <span style="flex:1;min-width:140px;font-size:16px;font-weight:500;letter-spacing:-.01em">Users with an override</span>
+            <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Badge" tone="neutral" size="sm" hint-size="30px,22px">{{ overrideCount }}</x-import>
+          </div>
+          <sc-if value="{{ hasOverrides }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;gap:2px">
+              <sc-for list="{{ overrideRows }}" as="o" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:14px 0;box-shadow:inset 0 -1px 0 var(--neutral-200)">
+                  <span style="flex:1;min-width:150px">
+                    <span style="display:block;font-size:14.5px;font-weight:450">{{ o.name }}</span>
+                    <span style="display:block;font-size:13px;color:var(--color-text-tertiary);margin-top:2px">{{ o.meta }}</span>
+                  </span>
+                  <span style="display:flex;align-items:baseline;gap:7px;flex:0 0 auto">
+                    <span style="font-size:24px;font-weight:300">{{ o.limit }}</span>
+                    <span style="font-size:12.5px;color:var(--color-text-tertiary)">a month</span>
+                  </span>
+                  <span style="display:flex;gap:7px;flex:0 0 auto">
+                    <button onClick="{{ o.onOpen }}" style="min-height:36px;padding:0 13px;border:none;border-radius:var(--radius-pill);background:var(--neutral-100);color:var(--color-text-primary);font:inherit;font-size:13px;cursor:pointer">Edit</button>
+                    <button onClick="{{ o.onClear }}" style="min-height:36px;padding:0 13px;border:none;border-radius:var(--radius-pill);background:transparent;color:var(--color-text-tertiary);font:inherit;font-size:13px;cursor:pointer" style-hover="background:var(--neutral-100)">Use default</button>
+                  </span>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ noOverrides }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:14px;color:var(--color-text-tertiary);padding:8px 0">Everyone with AI on is on the default of {{ aiDefaultSaved }}. Open someone to give them their own limit.</div>
+          </sc-if>
+        </div>
+
+        <div style="background:var(--color-surface-card);border-radius:var(--radius-panel);box-shadow:var(--shadow-card);padding:clamp(18px,2vw,24px);display:flex;flex-direction:column;gap:16px">
+          <span style="font-size:16px;font-weight:500;letter-spacing:-.01em">Heaviest use this month</span>
+          <sc-if value="{{ noTopUsers }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:14px;color:var(--color-text-tertiary)">Nobody in this sample has AI on yet.</div>
+          </sc-if>
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <sc-for list="{{ topUsers }}" as="t" hint-placeholder-count="5">
+              <div>
+                <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:7px">
+                  <span style="flex:1;min-width:0;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ t.name }}</span>
+                  <span style="font-size:13.5px;color:var(--color-text-tertiary)">{{ t.label }}</span>
+                </div>
+                <x-import component-from-global-scope="FormkitDesignSystem_e346e9.ProgressBar" value="{{ t.pct }}" color="{{ t.color }}" hint-size="100%,8px"></x-import>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- TEAM ACCESS -->
+    <sc-if value="{{ isStaff }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Team access" style="display:flex;flex-direction:column;gap:14px;animation:fk-soft var(--duration-base) var(--ease-soft)">
+
+        <div style="background:var(--color-surface-card);border-radius:var(--radius-panel);box-shadow:var(--shadow-card);padding:clamp(18px,2vw,24px);display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <span style="flex:1;min-width:150px;font-size:16px;font-weight:500;letter-spacing:-.01em">People with access</span>
+            <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Badge" tone="neutral" size="sm" hint-size="30px,22px">{{ staffCount }}</x-import>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <sc-for list="{{ staffRows }}" as="m" hint-placeholder-count="5">
+              <div style="padding:14px 0;box-shadow:inset 0 -1px 0 var(--neutral-200)">
+                <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+                  <span style="flex:0 0 auto">{{ m.avatarNode }}</span>
+                  <span style="flex:1;min-width:170px">
+                    <span style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+                      <span style="font-size:14.5px;font-weight:450">{{ m.name }}</span>
+                      <span>{{ m.tagNode }}</span>
+                    </span>
+                    <span style="display:block;font-size:13px;color:var(--color-text-tertiary);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ m.meta }}</span>
+                  </span>
+                  <span style="flex:0 0 auto;width:150px">
+                    <sc-if value="{{ m.roleEditable }}" hint-placeholder-val="{{ true }}">
+                      <dc-import name="FkSelect" size="sm" options="{{ m.roleOpts }}" value="{{ m.role }}" on-change="{{ m.onRole }}" hint-size="150px,38px"></dc-import>
+                    </sc-if>
+                    <sc-if value="{{ m.roleLocked }}" hint-placeholder-val="{{ false }}">
+                      <span style="display:inline-flex;align-items:center;height:38px;padding:0 14px;border-radius:var(--radius-pill);background:var(--neutral-100);font-size:13.5px">Owner</span>
+                    </sc-if>
+                  </span>
+                  <button onClick="{{ m.onExpand }}" style="{{ m.permBtnStyle }}" style-hover="background:var(--neutral-200)">{{ m.permBtnLabel }}</button>
+                  <sc-if value="{{ m.removable }}" hint-placeholder-val="{{ true }}">
+                    <x-import component-from-global-scope="FormkitDesignSystem_e346e9.IconButton" icon="trash-2" label="{{ m.removeLabel }}" variant="ghost" size="sm" on-click="{{ m.onRemove }}" hint-size="36px,36px"></x-import>
+                  </sc-if>
+                </div>
+
+                <sc-if value="{{ m.expanded }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top:14px;padding:16px;border-radius:20px;background:var(--neutral-50);display:flex;flex-direction:column;gap:14px">
+                    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                      <span style="flex:1;min-width:200px;font-size:13.5px;line-height:1.55;color:var(--color-text-secondary);text-wrap:pretty">{{ m.permNote }}</span>
+                      <sc-if value="{{ m.custom }}" hint-placeholder-val="{{ false }}">
+                        <button onClick="{{ m.onResetPerms }}" style="min-height:36px;padding:0 14px;border:none;border-radius:var(--radius-pill);background:var(--neutral-0);color:var(--color-text-primary);font:inherit;font-size:13px;cursor:pointer">Follow the role again</button>
+                      </sc-if>
+                    </div>
+                    <div style="display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(min(250px,100%),1fr))">
+                      <sc-for list="{{ m.perms }}" as="p" hint-placeholder-count="8">
+                        <button onClick="{{ p.onToggle }}" title="{{ p.desc }}" style="{{ p.style }}">
+                          <span style="{{ p.dotStyle }}"></span>
+                          <span style="flex:1;min-width:0;text-align:left">{{ p.label }}</span>
+                        </button>
+                      </sc-for>
+                    </div>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;padding-top:6px">
+            <div style="flex:1;min-width:220px">
+              <div style="font-size:13.5px;color:var(--color-text-tertiary);margin-bottom:8px">Invite someone to the admin panel</div>
+              <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Input" placeholder="name@formkit.app" value="{{ inviteEmail }}" on-change="{{ onInviteEmail }}" hint-size="100%,48px"></x-import>
+            </div>
+            <div style="width:150px">
+              <dc-import name="FkSelect" options="{{ inviteRoleOpts }}" value="{{ inviteRole }}" on-change="{{ onInviteRole }}" hint-size="150px,48px"></dc-import>
+            </div>
+            <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Button" icon="user-plus" on-click="{{ onInvite }}" hint-size="140px,48px">Send invite</x-import>
+          </div>
+        </div>
+
+        <div style="background:var(--color-surface-card);border-radius:var(--radius-panel);box-shadow:var(--shadow-card);padding:clamp(18px,2vw,24px);display:flex;flex-direction:column;gap:6px">
+          <div style="font-size:16px;font-weight:500;letter-spacing:-.01em">What each role can do</div>
+          <p style="font-size:14px;line-height:1.55;color:var(--color-text-tertiary);margin:0 0 12px;max-width:62ch;text-wrap:pretty">This applies to everyone on the role. Anyone given their own permissions above keeps those instead.</p>
+          <div style="overflow-x:auto;scrollbar-width:none">
+            <div style="min-width:540px">
+              <div style="display:grid;grid-template-columns:1fr 92px 92px 92px;gap:12px;align-items:center;padding-bottom:12px;box-shadow:inset 0 -1px 0 var(--neutral-200)">
+                <span></span>
+                <span style="font-size:13px;color:var(--color-text-tertiary);text-align:center">Owner</span>
+                <span style="font-size:13px;color:var(--color-text-tertiary);text-align:center">Admin</span>
+                <span style="font-size:13px;color:var(--color-text-tertiary);text-align:center">Support</span>
+              </div>
+              <sc-for list="{{ permRows }}" as="p" hint-placeholder-count="8">
+                <div style="display:grid;grid-template-columns:1fr 92px 92px 92px;gap:12px;align-items:center;padding:14px 0;box-shadow:inset 0 -1px 0 var(--neutral-200)">
+                  <span style="min-width:0">
+                    <span style="display:block;font-size:14.5px">{{ p.label }}</span>
+                    <span style="display:block;font-size:13px;line-height:1.5;color:var(--color-text-tertiary);margin-top:3px;text-wrap:pretty">{{ p.desc }}</span>
+                  </span>
+                  <span style="display:flex;justify-content:center;font-size:13px;color:var(--color-text-tertiary)">Always</span>
+                  <span style="display:flex;justify-content:center">
+                    <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Switch" checked="{{ p.adminOn }}" on-change="{{ p.onAdmin }}" hint-size="46px,26px"></x-import>
+                  </span>
+                  <span style="display:flex;justify-content:center">
+                    <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Switch" checked="{{ p.supportOn }}" on-change="{{ p.onSupport }}" hint-size="46px,26px"></x-import>
+                  </span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- FORMS / MODERATION -->
+    <sc-if value="{{ isForms }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Moderation" style="display:flex;flex-direction:column;gap:14px;animation:fk-soft var(--duration-base) var(--ease-soft)">
+        <div style="max-width:100%;min-width:0;overflow-x:auto;scrollbar-width:none">
+          <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Tabs" tabs="{{ modTabs }}" value="{{ modTab }}" on-change="{{ onModTab }}" hint-size="300px,44px"></x-import>
+        </div>
+        <sc-if value="{{ hasReports }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <sc-for list="{{ reportRows }}" as="r" hint-placeholder-count="4">
+              <div style="background:var(--color-surface-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card);padding:20px;display:flex;flex-direction:column;gap:14px">
+                <div style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap">
+                  <div style="flex:1;min-width:200px">
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                      <span style="font-size:16px;font-weight:500;letter-spacing:-.01em">{{ r.title }}</span>
+                      <div>{{ r.badgeNode }}</div>
+                    </div>
+                    <div style="font-size:13.5px;color:var(--color-text-tertiary);margin-top:5px">{{ r.meta }}</div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                    <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Button" size="sm" variant="secondary" on-click="{{ r.onOpenAccount }}" hint-size="120px,38px">View user</x-import>
+                    <sc-if value="{{ r.isOpen }}" hint-placeholder-val="{{ true }}">
+                      <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Button" size="sm" icon="lock" on-click="{{ r.onLock }}" hint-size="110px,38px">Lock form</x-import>
+                    </sc-if>
+                    <sc-if value="{{ r.isOpen }}" hint-placeholder-val="{{ true }}">
+                      <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Button" size="sm" variant="ghost" on-click="{{ r.onDismiss }}" hint-size="100px,38px">Dismiss</x-import>
+                    </sc-if>
+                    <sc-if value="{{ r.isLocked }}" hint-placeholder-val="{{ false }}">
+                      <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Button" size="sm" variant="secondary" icon="lock-open" on-click="{{ r.onUnlock }}" hint-size="110px,38px">Unlock</x-import>
+                    </sc-if>
+                  </div>
+                </div>
+                <div style="font-size:14px;line-height:1.6;color:var(--color-text-secondary);padding:13px 15px;border-radius:14px;background:var(--neutral-50);text-wrap:pretty">{{ r.reason }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ noReports }}" hint-placeholder-val="{{ false }}">
+          <x-import component-from-global-scope="FormkitDesignSystem_e346e9.EmptyState" icon="shield-check" title="Nothing in the queue" description="No forms are waiting on a decision right now." hint-size="100%,220px"></x-import>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- SUPPORT -->
+    <sc-if value="{{ isSupport }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Support" style="display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(330px,100%),1fr));align-items:start;animation:fk-soft var(--duration-base) var(--ease-soft)">
+        <div style="background:var(--color-surface-card);border-radius:var(--radius-panel);box-shadow:var(--shadow-card);padding:14px;display:flex;flex-direction:column;gap:4px">
+          <div style="display:flex;align-items:center;gap:10px;padding:6px 8px 12px">
+            <span style="flex:1;font-size:15px;font-weight:500;letter-spacing:-.01em">Inbox</span>
+            <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Badge" tone="neutral" size="sm" hint-size="30px,22px">{{ openTicketCount }}</x-import>
+          </div>
+          <sc-for list="{{ ticketRows }}" as="t" hint-placeholder-count="5">
+            <button onClick="{{ t.onOpen }}" style="{{ t.style }}" style-hover="background:var(--neutral-50)">
+              <span style="display:flex;align-items:center;gap:9px;width:100%">
+                <span style="flex:1;min-width:0;font-size:14.5px;font-weight:450;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ t.subject }}</span>
+                <sc-if value="{{ t.isOpen }}" hint-placeholder-val="{{ false }}">
+                  <x-import component-from-global-scope="FormkitDesignSystem_e346e9.StatDot" tone="warning" size="{{ n16 }}" label="Waiting on us" hint-size="16px,16px"></x-import>
+                </sc-if>
+              </span>
+              <span style="display:block;font-size:13px;color:var(--color-text-tertiary);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ t.who }} · {{ t.at }}</span>
+            </button>
+          </sc-for>
+        </div>
+
+        <div style="background:var(--color-surface-card);border-radius:var(--radius-panel);box-shadow:var(--shadow-card);padding:clamp(18px,2vw,24px);display:flex;flex-direction:column;gap:18px">
+          <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap">
+            <div style="flex:1;min-width:180px">
+              <div style="font-size:17px;font-weight:500;letter-spacing:-.01em;text-wrap:pretty">{{ ticketSubject }}</div>
+              <div style="font-size:13.5px;color:var(--color-text-tertiary);margin-top:5px">{{ ticketMeta }}</div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Button" size="sm" variant="secondary" on-click="{{ onTicketAccount }}" hint-size="120px,38px">View user</x-import>
+              <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Button" size="sm" variant="ghost" icon="check" on-click="{{ onTicketResolve }}" hint-size="110px,38px">{{ ticketResolveLabel }}</x-import>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:14px;max-height:min(46vh,420px);overflow-y:auto">
+            <sc-for list="{{ ticketMessages }}" as="m" hint-placeholder-count="3">
+              <div style="{{ m.style }}">
+                <div style="font-size:12.5px;color:var(--color-text-tertiary);margin-bottom:6px">{{ m.who }} · {{ m.at }}</div>
+                <div style="font-size:14.5px;line-height:1.6;text-wrap:pretty">{{ m.text }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;padding-top:16px;box-shadow:inset 0 1px 0 var(--neutral-200)">
+            <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Textarea" rows="{{ n3 }}" placeholder="Write a reply" value="{{ replyDraft }}" on-change="{{ onReplyDraft }}" hint-size="100%,96px"></x-import>
+            <div>
+              <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Button" icon="send" on-click="{{ onSendReply }}" hint-size="120px,44px">Reply</x-import>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ANNOUNCEMENTS -->
+    <sc-if value="{{ isNews }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Announcements" style="display:flex;flex-direction:column;gap:14px;animation:fk-soft var(--duration-base) var(--ease-soft)">
+        <div style="background:var(--color-surface-card);border-radius:var(--radius-panel);box-shadow:var(--shadow-card);padding:clamp(18px,2vw,24px);display:flex;flex-direction:column;gap:14px">
+          <span style="font-size:16px;font-weight:500;letter-spacing:-.01em">New announcement</span>
+          <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Input" placeholder="Headline" value="{{ newsTitle }}" on-change="{{ onNewsTitle }}" hint-size="100%,48px"></x-import>
+          <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Textarea" rows="{{ n3 }}" placeholder="What are you telling everyone?" value="{{ newsBody }}" on-change="{{ onNewsBody }}" hint-size="100%,96px"></x-import>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <div style="min-width:170px">
+              <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Select" options="{{ audienceOptions }}" value="{{ newsAudience }}" on-change="{{ onNewsAudience }}" hint-size="170px,44px"></x-import>
+            </div>
+            <div style="flex:1"></div>
+            <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Button" icon="send" on-click="{{ onPublishNews }}" hint-size="140px,48px">Publish</x-import>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <sc-for list="{{ newsRows }}" as="n" hint-placeholder-count="3">
+            <div style="background:var(--color-surface-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card);padding:20px;display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap">
+              <div style="flex:1;min-width:200px">
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                  <span style="font-size:16px;font-weight:500;letter-spacing:-.01em">{{ n.title }}</span>
+                  <div>{{ n.badgeNode }}</div>
+                </div>
+                <div style="font-size:14px;line-height:1.6;color:var(--color-text-secondary);margin-top:7px;text-wrap:pretty">{{ n.body }}</div>
+                <div style="font-size:13px;color:var(--color-text-tertiary);margin-top:9px">{{ n.meta }}</div>
+              </div>
+              <x-import component-from-global-scope="FormkitDesignSystem_e346e9.IconButton" icon="trash-2" label="Delete announcement" variant="ghost" on-click="{{ n.onDelete }}" hint-size="40px,40px"></x-import>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- FEATURE FLAGS -->
+    <sc-if value="{{ isFlags }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Feature flags" style="display:flex;flex-direction:column;gap:12px;animation:fk-soft var(--duration-base) var(--ease-soft)">
+        <sc-for list="{{ flagRows }}" as="f" hint-placeholder-count="5">
+          <div style="background:var(--color-surface-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card);padding:20px;display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap">
+            <div style="flex:1;min-width:220px">
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                <span style="font-size:15.5px;font-weight:500;letter-spacing:-.01em">{{ f.name }}</span>
+                <span style="font-family:var(--font-mono);font-size:11.5px;color:var(--neutral-700);padding:3px 8px;border-radius:var(--radius-pill);background:var(--neutral-100)">{{ f.key }}</span>
+              </div>
+              <div style="font-size:14px;line-height:1.55;color:var(--color-text-tertiary);margin-top:7px;max-width:60ch;text-wrap:pretty">{{ f.desc }}</div>
+              <div style="display:flex;align-items:center;gap:12px;margin-top:14px;max-width:340px">
+                <span style="font-size:13px;color:var(--color-text-tertiary);white-space:nowrap">{{ f.rolloutLabel }}</span>
+                <div style="flex:1;min-width:80px">
+                  <x-import component-from-global-scope="FormkitDesignSystem_e346e9.ProgressBar" value="{{ f.rollout }}" color="{{ f.color }}" hint-size="100%,8px"></x-import>
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px">
+              <span style="font-size:13.5px;color:var(--color-text-tertiary);white-space:nowrap">{{ f.stateLabel }}</span>
+              <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Switch" checked="{{ f.on }}" on-change="{{ f.onToggle }}" hint-size="46px,26px"></x-import>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <!-- EMAIL LOG -->
+    <sc-if value="{{ isMail }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Email log" style="display:flex;flex-direction:column;gap:14px;animation:fk-soft var(--duration-base) var(--ease-soft)">
+        <div style="background:var(--color-surface-card);border-radius:var(--radius-panel);box-shadow:var(--shadow-card);padding:14px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px">
+            <x-import component-from-global-scope="FormkitDesignSystem_e346e9.SearchInput" placeholder="Search by person, address or subject" value="{{ mailQuery }}" on-change="{{ onMailQuery }}" hint-size="100%,44px"></x-import>
+          </div>
+          <div style="max-width:100%;min-width:0;overflow-x:auto;scrollbar-width:none">
+            <x-import component-from-global-scope="FormkitDesignSystem_e346e9.SegmentedControl" size="sm" options="{{ mailKinds }}" value="{{ mailKind }}" on-change="{{ onMailKind }}" aria-label="Filter by kind" hint-size="320px,38px"></x-import>
+          </div>
+          <span style="font-size:13.5px;color:var(--color-text-tertiary)">{{ mailCountLabel }}</span>
+        </div>
+        <sc-if value="{{ mailTable }}" hint-placeholder-val="{{ true }}">
+          <div style="overflow-x:auto">
+            <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Table" columns="{{ mailCols }}" rows="{{ mailRows }}" dc-props="{{ tableWide }}" hint-size="100%,420px"></x-import>
+          </div>
+        </sc-if>
+        <sc-if value="{{ mailCards }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <sc-for list="{{ mailRows }}" as="m" hint-placeholder-count="6">
+              <div style="background:var(--color-surface-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card);padding:15px">
+                <div style="font-size:14.5px;line-height:1.5;text-wrap:pretty">{{ m.subject }}</div>
+                <div style="font-size:13px;color:var(--color-text-tertiary);margin-top:6px">{{ m.to }} · {{ m.kind }}</div>
+                <div style="font-size:12.5px;color:var(--color-text-tertiary);margin-top:4px">{{ m.user }} · {{ m.at }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ mailEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="background:var(--color-surface-card);border-radius:var(--radius-panel);box-shadow:var(--shadow-card);padding:26px;font-size:14px;color:var(--color-text-tertiary)">Nothing matches. Formkit only keeps the last 30 days here.</div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- AUDIT LOG -->
+    <sc-if value="{{ isAudit }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Audit log" style="display:flex;flex-direction:column;gap:14px;animation:fk-soft var(--duration-base) var(--ease-soft)">
+        <div style="background:var(--color-surface-card);border-radius:var(--radius-panel);box-shadow:var(--shadow-card);padding:14px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px">
+            <x-import component-from-global-scope="FormkitDesignSystem_e346e9.SearchInput" placeholder="Search the log" value="{{ auditQuery }}" on-change="{{ onAuditQuery }}" hint-size="100%,44px"></x-import>
+          </div>
+          <span style="font-size:13.5px;color:var(--color-text-tertiary)">{{ auditCountLabel }}</span>
+        </div>
+        <sc-if value="{{ auditTable }}" hint-placeholder-val="{{ true }}">
+          <div style="overflow-x:auto">
+            <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Table" columns="{{ auditCols }}" rows="{{ auditRows }}" dc-props="{{ tableWide }}" hint-size="100%,420px"></x-import>
+          </div>
+        </sc-if>
+        <sc-if value="{{ auditCards }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <sc-for list="{{ auditRows }}" as="a" hint-placeholder-count="6">
+              <div style="background:var(--color-surface-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card);padding:15px">
+                <div style="font-size:14.5px;line-height:1.5;text-wrap:pretty">{{ a.what }}</div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px 12px;font-size:12.5px;color:var(--color-text-tertiary);margin-top:8px">
+                  <span>{{ a.who }}</span>
+                  <span style="margin-left:auto;font-family:var(--font-mono)">{{ a.at }}</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+  </div>
+
+  <!-- USER DETAIL -->
+  <sc-if value="{{ acctOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;z-index:300">
+      <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Drawer" title="{{ detailTitle }}" width="{{ n520 }}" on-close="{{ onCloseAccount }}" hint-size="520px,100%">
+        <div style="display:flex;flex-direction:column;gap:22px">
+
+          <div style="display:flex;align-items:center;gap:14px">
+            <span style="display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;flex:0 0 auto;border-radius:50%;background:var(--blue-300);color:var(--neutral-900);font-size:17px;font-weight:500">{{ detailInitials }}</span>
+            <span style="flex:1;min-width:0">
+              <span style="display:block;font-size:15px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ detailEmail }}</span>
+              <span style="display:block;font-size:13px;color:var(--color-text-tertiary);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ detailOrg }}</span>
+            </span>
+            <span style="flex:0 0 auto">{{ detailStatusNode }}</span>
+          </div>
+
+          <div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(120px,100%),1fr))">
+            <sc-for list="{{ detailStats }}" as="s" hint-placeholder-count="4">
+              <div style="padding:14px;border-radius:16px;background:var(--neutral-50)">
+                <div style="font-size:12.5px;color:var(--color-text-tertiary)">{{ s.label }}</div>
+                <div style="font-size:24px;font-weight:300;letter-spacing:-.02em;margin-top:6px">{{ s.value }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:14px;padding:18px;border-radius:20px;background:var(--blue-50)">
+            <div style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap">
+              <div style="flex:1;min-width:190px">
+                <div style="font-size:15px;font-weight:500;letter-spacing:-.01em">Form building with AI</div>
+                <div style="font-size:13px;line-height:1.55;color:var(--color-text-secondary);margin-top:5px;text-wrap:pretty">{{ detailAiNote }}</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:11px;flex:0 0 auto">
+                <span style="font-size:13px;color:var(--color-text-tertiary)">{{ detailAiState }}</span>
+                <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Switch" checked="{{ detailAiOn }}" on-change="{{ onToggleAccess }}" hint-size="46px,26px"></x-import>
+              </div>
+            </div>
+
+            <sc-if value="{{ detailAiOn }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:14px;padding-top:14px;box-shadow:inset 0 1px 0 rgba(44,48,52,.1)">
+                <div style="font-size:13.5px;color:var(--color-text-secondary);line-height:1.55;text-wrap:pretty">{{ detailLimitNote }}</div>
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                  <button onClick="{{ onLimitDown }}" aria-label="Lower this user's limit" style="display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;flex:0 0 auto;border:none;border-radius:50%;background:var(--neutral-0);color:var(--color-text-primary);cursor:pointer;font:inherit">
+                    <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Icon" name="minus" size="{{ n17 }}" hint-size="17px,17px"></x-import>
+                  </button>
+                  <div style="min-width:74px;text-align:center">
+                    <div style="font-size:34px;font-weight:300;letter-spacing:-.02em;line-height:1.1">{{ detailLimit }}</div>
+                    <div style="font-size:12px;color:var(--color-text-tertiary);margin-top:2px">a month</div>
+                  </div>
+                  <button onClick="{{ onLimitUp }}" aria-label="Raise this user's limit" style="display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;flex:0 0 auto;border:none;border-radius:50%;background:var(--neutral-900);color:var(--neutral-0);cursor:pointer;font:inherit">
+                    <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Icon" name="plus" size="{{ n17 }}" hint-size="17px,17px"></x-import>
+                  </button>
+                  <div style="flex:1"></div>
+                  <sc-if value="{{ detailHasOverride }}" hint-placeholder-val="{{ false }}">
+                    <button onClick="{{ onClearOverride }}" style="min-height:40px;padding:0 14px;border:none;border-radius:var(--radius-pill);background:var(--neutral-0);color:var(--color-text-primary);font:inherit;font-size:13.5px;cursor:pointer">Use default</button>
+                  </sc-if>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Button" size="sm" variant="secondary" icon="gift" on-click="{{ onGrant }}" hint-size="150px,38px">Grant 5 extra</x-import>
+                  <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Button" size="sm" variant="secondary" icon="rotate-ccw" on-click="{{ onResetUsage }}" hint-size="140px,38px">Reset usage</x-import>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="font-size:15px;font-weight:500;letter-spacing:-.01em">Message {{ detailFirstName }}</div>
+            <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Textarea" rows="{{ n3 }}" placeholder="This goes to their inbox and their email" value="{{ msgDraft }}" on-change="{{ onMsgDraft }}" hint-size="100%,96px"></x-import>
+            <div>
+              <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Button" size="sm" icon="send" on-click="{{ onSendMessage }}" hint-size="120px,38px">Send</x-import>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:12px;padding-top:18px;box-shadow:inset 0 1px 0 var(--neutral-200)">
+            <div style="font-size:15px;font-weight:500;letter-spacing:-.01em">Support</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Button" size="sm" variant="secondary" icon="eye" on-click="{{ onViewAs }}" hint-size="150px,38px">{{ viewAsLabel }}</x-import>
+              <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Button" size="sm" variant="ghost" icon="mail-check" on-click="{{ onViewMail }}" hint-size="150px,38px">Their emails</x-import>
+            </div>
+            <div style="font-size:13px;color:var(--color-text-tertiary);line-height:1.55;text-wrap:pretty">Opens their dashboard in a new tab with a support banner. Nothing you do there can change their data.</div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:12px;padding-top:18px;box-shadow:inset 0 1px 0 var(--neutral-200)">
+            <div style="font-size:15px;font-weight:500;letter-spacing:-.01em">Standing</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <sc-if value="{{ detailActive }}" hint-placeholder-val="{{ true }}">
+                <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Button" size="sm" variant="secondary" icon="pause" on-click="{{ onSuspend }}" hint-size="120px,38px">Suspend</x-import>
+              </sc-if>
+              <sc-if value="{{ detailSuspended }}" hint-placeholder-val="{{ false }}">
+                <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Button" size="sm" icon="play" on-click="{{ onReactivate }}" hint-size="130px,38px">Reactivate</x-import>
+              </sc-if>
+              <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Button" size="sm" variant="ghost" icon="trash-2" on-click="{{ onAskDelete }}" hint-size="150px,38px">Delete user</x-import>
+            </div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ delOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;z-index:340">
+      <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Modal" title="{{ delTitle }}" description="Every form, response, template and export goes with it. This cannot be undone." size="sm" on-close="{{ onCloseDelete }}" hint-size="460px,320px">
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Alert" tone="warning" title="{{ delWarnTitle }}" hint-size="100%,88px">{{ delWarnBody }}</x-import>
+          <div>
+            <div style="font-size:14px;margin-bottom:8px">Type <strong style="font-weight:600">delete</strong> to confirm</div>
+            <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Input" placeholder="delete" value="{{ delText }}" on-change="{{ onDelText }}" hint-size="100%,48px"></x-import>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Button" variant="destructive" on-click="{{ onConfirmDelete }}" dc-props="{{ delBtnProps }}" hint-size="150px,48px">Delete for good</x-import>
+            <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Button" variant="secondary" on-click="{{ onCloseDelete }}" hint-size="100px,48px">Cancel</x-import>
+          </div>
+        </div>
+      </x-import>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ gateOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--paper)">
+      <div style="width:100%;max-width:460px;background:var(--color-surface-card);border-radius:var(--radius-panel);box-shadow:var(--shadow-float);padding:32px 34px;text-align:center">
+        <div style="display:flex;align-items:center;justify-content:center;gap:11px;margin-bottom:22px">
+          <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Logo" size="{{ n19 }}" hint-size="100px,20px"></x-import>
+          <sc-if value="{{ gateIsAdmin }}" hint-placeholder-val="{{ true }}">
+            <span style="font-size:12px;letter-spacing:.04em;color:var(--neutral-700);padding:3px 9px;border-radius:var(--radius-pill);background:var(--neutral-100)">ADMIN</span>
+          </sc-if>
+        </div>
+        <h1 style="font-size:var(--text-h3-size);font-weight:var(--text-h3-weight);letter-spacing:var(--text-h3-tracking);margin:0">{{ gateTitle }}</h1>
+        <p style="font-size:14.5px;color:var(--color-text-tertiary);margin:10px 0 24px;line-height:1.6;text-wrap:pretty">{{ gateNote }}</p>
+        <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Button" icon="{{ gateIcon }}" full-width="{{ true }}" on-click="{{ onGateAction }}" hint-size="100%,48px">{{ gateCta }}</x-import>
+        <sc-if value="{{ gateHasSecond }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:10px">
+            <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Button" variant="ghost" full-width="{{ true }}" on-click="{{ onGateSecond }}" hint-size="100%,44px">{{ gateSecondCta }}</x-import>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <div aria-live="polite" style="position:fixed;right:clamp(14px,2vw,24px);bottom:clamp(14px,2vw,24px);z-index:400;display:flex;flex-direction:column;gap:10px;align-items:flex-end;pointer-events:none">
+    <sc-for list="{{ toasts }}" as="t" hint-placeholder-count="0">
+      <div style="pointer-events:auto;animation:fk-rise var(--duration-base) var(--ease-soft)">
+        <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Toast" message="{{ t.message }}" detail="{{ t.detail }}" tone="{{ t.tone }}" on-dismiss="{{ t.onClose }}" hint-size="320px,64px"></x-import>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:940},&quot;visitor&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Staff&quot;,&quot;Signed in, not staff&quot;,&quot;Signed out&quot;],&quot;default&quot;:&quot;Staff&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Access&quot;}}">
+class Component extends DCLogic {
+  static KEY = 'formkit.admin.v1';
+  static SAVE = ['aiDefault', 'overrides', 'grants', 'statusById', 'usageById',
+    'flags', 'news', 'reportState', 'ticketState', 'audit', 'uid',
+    'staff', 'rolePerms', 'staffPerms', 'aiAccess', 'aiPaused', 'mail'];
+  static TOTAL = 10020;
+  /* Every permission an admin-panel member can hold. Owners always have all of them. */
+  static PERMS = [
+    ['accounts.view', 'See users', 'Open anyone and read their forms, responses and usage.'],
+    ['ai.limits', 'Manage AI access', 'Turn form building with AI on or off for one person, set their limit and grant extra credits.'],
+    ['accounts.standing', 'Suspend or delete users', 'Includes destroying an account and everything in it.'],
+    ['forms.moderate', 'Moderate forms', 'Lock a reported form or dismiss the report.'],
+    ['support.reply', 'Reply to support', 'Answer tickets as Formkit and resolve them.'],
+    ['news.publish', 'Publish announcements', 'Push a message to every customer dashboard.'],
+    ['flags.toggle', 'Change feature flags', 'Turn platform features on and off.'],
+    ['staff.manage', 'Manage team access', 'Invite staff, change roles and set permissions.']
+  ];
+  static ROLE_DEFAULTS = {
+    Admin: { 'accounts.view': true, 'ai.limits': true, 'accounts.standing': true, 'forms.moderate': true,
+      'support.reply': true, 'news.publish': true, 'flags.toggle': true, 'staff.manage': false },
+    Support: { 'accounts.view': true, 'ai.limits': false, 'accounts.standing': false, 'forms.moderate': false,
+      'support.reply': true, 'news.publish': false, 'flags.toggle': false, 'staff.manage': false }
+  };
+  /* Platform-wide figures are platform figures, like live forms and responses.
+     Nothing derived from the 20-row sample is multiplied up to stand in for them. */
+  /* Form building with AI is off for everyone until an admin turns it on, so
+     these figures count only the users that have it. */
+  static AI_BUILT = 742;
+  static AI_ON_OTHERS = 208; // users with AI on that sit outside the 20-row sample
+
+  static A(id, name, owner, email, status, forms, responses, aiUsed, joined) {
+    return { id, name, owner, email, status, forms, responses, aiUsed, joined };
+  }
+
+  static seed() {
+    const A = Component.A;
+    return {
+      nav: 'overview', wide: true, range: '30',
+      acctQuery: '', statusFilter: 'All statuses', page: 1,
+      acctOpenId: null, msgDraft: '', delOpen: false, delText: '',
+      modTab: 'open', ticketId: 't1', replyDraft: '',
+      newsTitle: '', newsBody: '', newsAudience: 'Everyone',
+      auditQuery: '', mailQuery: '', mailKind: 'All', toasts: [], toastSeq: 0, uid: 40,
+      mail: [
+        { id: 'm1', kind: 'Confirmation', to: 'john@email.com', subject: 'We have your answers — Client Onboarding', acct: 'studio-nine', at: 'Today, 09:14', state: 'Delivered' },
+        { id: 'm2', kind: 'Notification', to: 'maya@studionine.co', subject: 'New response to Client Onboarding', acct: 'studio-nine', at: 'Today, 09:14', state: 'Delivered' },
+        { id: 'm3', kind: 'Notification', to: 'ops@lumenhealth.io', subject: 'New response to Patient intake', acct: 'lumen', at: 'Today, 08:52', state: 'Delivered' },
+        { id: 'm4', kind: 'Confirmation', to: 'k.jensen@nordhus.dk', subject: 'Pick up where you left off', acct: 'northwind', at: 'Today, 08:31', state: 'Bounced' },
+        { id: 'm5', kind: 'Notification', to: 'grace@oakfield.law', subject: 'New response to Grievance intake', acct: 'oakfield', at: 'Yesterday, 17:40', state: 'Delivered' },
+        { id: 'm6', kind: 'Weekly report', to: 'priya@velto.io', subject: 'Your week on Formkit', acct: 'velto', at: 'Yesterday, 08:00', state: 'Delivered' },
+        { id: 'm7', kind: 'Confirmation', to: 'hello@atlasfoods.pt', subject: 'We have your answers — Website questionnaire', acct: 'northwind', at: 'Yesterday, 07:12', state: 'Delivered' },
+        { id: 'm8', kind: 'Notification', to: 'nils@harbour.dk', subject: 'New response to Studio night', acct: 'harbour', at: '2 days ago, 19:22', state: 'Delivered' },
+        { id: 'm9', kind: 'Weekly report', to: 'ayo@lumenhealth.io', subject: 'Your week on Formkit', acct: 'lumen', at: '2 days ago, 08:00', state: 'Delivered' },
+        { id: 'm10', kind: 'Confirmation', to: 'ruth@thelittlepress.co', subject: 'Pick up where you left off', acct: 'studio-nine', at: '3 days ago, 14:05', state: 'Delivered' },
+        { id: 'm11', kind: 'Notification', to: 'erik@northlight.no', subject: 'New response to Tender enquiry', acct: 'northlight', at: '3 days ago, 11:47', state: 'Delivered' },
+        { id: 'm12', kind: 'Notification', to: 'dan@pinecrest.events', subject: 'New response to Autumn fair', acct: 'pinecrest', at: '4 days ago, 16:09', state: 'Suppressed' }
+      ],
+      aiDefault: 5, aiDefaultEdit: 5,
+      /* Nobody has AI form building unless they are in here. */
+      aiAccess: { 'lumen': true, 'oakfield': true, 'rivetworks': true },
+      aiPaused: false, accessQuery: '', accessFilter: 'On', accessTouched: null, aiFilter: 'AI: all',
+      overrides: { 'lumen': 25, 'rivetworks': 20, 'oakfield': 15 },
+      grants: {}, statusById: {}, usageById: {},
+      staffOpenId: null, inviteEmail: '', inviteRole: 'Support',
+      rolePerms: JSON.parse(JSON.stringify(Component.ROLE_DEFAULTS)),
+      staffPerms: {},
+      staff: [
+        { id: 'u1', name: 'Sam Okafor', email: 'sam@formkit.app', role: 'Owner', last: 'Online now', you: true },
+        { id: 'u2', name: 'Faisal Islam', email: 'faisal@formkit.app', role: 'Admin', last: '12 minutes ago' },
+        { id: 'u3', name: 'Noor Haddad', email: 'noor@formkit.app', role: 'Admin', last: 'Yesterday' },
+        { id: 'u4', name: 'Priya Menon', email: 'priya@formkit.app', role: 'Support', last: '2 hours ago' },
+        { id: 'u5', name: 'Dominic Cole', email: 'dom@formkit.app', role: 'Support', last: '3 days ago' },
+        { id: 'u6', name: 'Hana Yusuf', email: 'hana@formkit.app', role: 'Support', last: 'Invited 2 days ago', pending: true }
+      ],
+      flags: { 'ai.live': true, 'ai.brief': true, 'forms.partial': false, 'app.dark': false, 'export.xlsx': true },
+      reportState: {}, ticketState: {},
+      news: [
+        { id: 'n1', title: 'Conversational forms are out of beta', body: 'One question at a time, for everyone. Existing forms are untouched until you switch them over.', audience: 'Everyone', at: '3 days ago', live: true },
+        { id: 'n2', title: 'Scheduled maintenance, Sunday 02:00 UTC', body: 'Around twenty minutes. Forms stay live and keep collecting; the dashboard will be read-only.', audience: 'Everyone', at: '1 week ago', live: true },
+        { id: 'n3', title: 'Excel exports are here', body: 'Export responses straight to .xlsx with the column types intact.', audience: 'Everyone', at: '2 weeks ago', live: true }
+      ],
+      accounts: [
+        A('studio-nine', '', 'Maya Ortiz', 'maya@studionine.co', 'active', 6, 1284, 1, 'Mar 2025'),
+        A('northwind', 'Northwind Partners', 'Alex Reed', 'alex@northwind.co', 'active', 41, 18422, 4, 'Jan 2024'),
+        A('velto', 'Velto', 'Priya Raman', 'priya@velto.io', 'active', 28, 9310, 3, 'Sep 2024'),
+        A('kite', 'Kite & Co', 'Tom Whelan', 'tom@kiteand.co', 'active', 12, 3402, 5, 'Feb 2025'),
+        A('mossline', '', 'Ida Berg', 'ida@mossline.se', 'active', 3, 214, 5, 'Jul 2025'),
+        A('harbour', 'Harbour Studio', 'Nils Dahl', 'nils@harbour.dk', 'active', 9, 2761, 3, 'Nov 2024'),
+        A('junip', '', 'Rosa Lima', 'rosa@junip.br', 'trial', 2, 41, 4, 'Sep 2026'),
+        A('oakfield', 'Oakfield Legal', 'Grace Okoro', 'grace@oakfield.law', 'active', 33, 12908, 8, 'Apr 2024'),
+        A('pinecrest', 'Pinecrest Events', 'Dan Iverson', 'dan@pinecrest.events', 'suspended', 15, 5120, 2, 'Aug 2024'),
+        A('lumen', 'Lumen Health', 'Ayo Bello', 'ayo@lumenhealth.io', 'active', 52, 24106, 19, 'Feb 2023'),
+        A('tindal', '', 'Sam Tindal', 'sam@tindalbros.com', 'active', 1, 88, 1, 'Jun 2026'),
+        A('cascade', 'Cascade Fitness', 'Mia Chen', 'mia@cascadefit.com', 'active', 11, 4290, 5, 'Dec 2024'),
+        A('brightsea', 'Brightsea Media', 'Owen Pratt', 'owen@brightsea.tv', 'active', 17, 6033, 3, 'May 2025'),
+        A('foldpaper', '', 'Lena Hoffman', 'lena@foldpaper.de', 'active', 4, 302, 3, 'Aug 2026'),
+        A('rivetworks', 'Rivet Works', 'Hugo Marchetti', 'hugo@rivetworks.it', 'active', 24, 8817, 14, 'Oct 2024'),
+        A('saltbox', '', 'Ken Adeyemi', 'ken@saltbox.co', 'active', 8, 1902, 0, 'Jan 2026'),
+        A('quarterly', '', 'Ines Duarte', 'ines@quarterly.pt', 'trial', 2, 63, 5, 'Sep 2026'),
+        A('northlight', 'Northlight Arch', 'Erik Holm', 'erik@northlight.no', 'active', 37, 15440, 5, 'Mar 2024'),
+        A('mendel', 'Mendel Labs', 'Sara Vidal', 'sara@mendel-labs.es', 'suspended', 6, 1140, 4, 'Jul 2025'),
+        A('halcyon', 'Halcyon Travel', 'Jo Nakamura', 'jo@halcyon.travel', 'active', 19, 7188, 4, 'Apr 2025')
+      ],
+      reports: [
+        { id: 'r1', form: 'Win a free iPhone 17', account: 'quarterly', reason: 'Three respondents reported this as a prize scam. The form asks for a card number in a short-text field, which Formkit never needs.', at: '2 hours ago', severity: 'high' },
+        { id: 'r2', form: 'Employee grievance intake', account: 'oakfield', reason: 'Reported for collecting health details without a consent question. Likely a compliance gap rather than abuse.', at: '1 day ago', severity: 'medium' },
+        { id: 'r3', form: 'Beta tester signup', account: 'velto', reason: 'Automated flag: 4,200 submissions in 40 minutes from a single address range.', at: '2 days ago', severity: 'medium' },
+        { id: 'r4', form: 'Newsletter', account: 'foldpaper', reason: 'One report of misleading unsubscribe copy. The footer text has since been edited by the owner.', at: '4 days ago', severity: 'low' }
+      ],
+      tickets: [
+        { id: 't1', subject: 'AI credits did not reset this month', account: 'lumen', at: '40 minutes ago', open: true, messages: [
+          { who: 'Ayo Bello', at: '40 minutes ago', them: true, text: 'We get twenty-five AI forms a month but it still shows nothing left, and it is the first of the month. Have I misread how this works?' }
+        ] },
+        { id: 't2', subject: 'Can I move responses between forms?', account: 'harbour', at: '3 hours ago', open: true, messages: [
+          { who: 'Nils Dahl', at: '3 hours ago', them: true, text: 'I rebuilt our intake form from scratch and would like the old responses to sit alongside the new ones. Is that possible without exporting and reimporting?' }
+        ] },
+        { id: 't3', subject: 'Can two people edit the same form?', account: 'lumen', at: 'Yesterday', open: true, messages: [
+          { who: 'Ayo Bello', at: 'Yesterday', them: true, text: 'Two of us need to work on our intake form in the same week. Will we overwrite each other?' },
+          { who: 'You', at: 'Yesterday', them: false, text: 'You will not — edits save per block and you can see who changed what in the form activity. Comments are the easiest way to hand work over.' }
+        ] },
+        { id: 't4', subject: 'Account suspended by mistake?', account: 'pinecrest', at: '2 days ago', open: true, messages: [
+          { who: 'Dan Iverson', at: '2 days ago', them: true, text: 'We came back from a break and the account is suspended. Our forms were live for an event next week. Can you tell me what happened?' }
+        ] },
+        { id: 't5', subject: 'Thanks for the export fix', account: 'brightsea', at: '5 days ago', open: false, messages: [
+          { who: 'Owen Pratt', at: '5 days ago', them: true, text: 'Excel export is working again. Thanks for turning that around so quickly.' },
+          { who: 'You', at: '5 days ago', them: false, text: 'Glad it landed. Shout if the column types look off on anything older.' }
+        ] }
+      ],
+      audit: [
+        { id: 'a1', who: 'You', what: 'Raised the AI form default to 5 a month', at: 'Today, 09:14' },
+        { id: 'a2', who: 'You', what: 'Turned on AI form building for Lumen Health', at: 'Today, 09:11' },
+        { id: 'a3', who: 'Faisal Islam', what: 'Suspended Pinecrest Events after a spam report', at: 'Yesterday, 16:48' },
+        { id: 'a4', who: 'Faisal Islam', what: 'Locked the form Win a free iPhone 17', at: 'Yesterday, 16:02' },
+        { id: 'a5', who: 'You', what: 'Published the announcement Conversational forms are out of beta', at: '3 days ago, 11:20' },
+        { id: 'a6', who: 'Noor Haddad', what: 'Turned on the flag export.xlsx for everyone', at: '4 days ago, 14:35' },
+        { id: 'a7', who: 'Noor Haddad', what: 'Gave Priya Menon the Support role', at: '5 days ago, 10:07' },
+        { id: 'a8', who: 'You', what: 'Reset AI usage for Ida Berg', at: '6 days ago, 17:52' },
+        { id: 'a9', who: 'Faisal Islam', what: 'Deleted Halden Group and its data', at: '1 week ago, 12:30' },
+        { id: 'a10', who: 'Noor Haddad', what: 'Turned off the flag forms.partial after a rollback', at: '1 week ago, 09:15' },
+        { id: 'a11', who: 'You', what: 'Suspended Sara Vidal after three abuse reports', at: '2 weeks ago, 15:41' },
+        { id: 'a12', who: 'Faisal Islam', what: 'Invited hana@formkit.app to the admin panel', at: '2 weeks ago, 11:02' }
+      ]
+    };
+  }
+
+  state = Component.seed();
+
+  componentDidMount() {
+    this.restore();
+    this.onSize = () => {
+      const w = (this.host && this.host.clientWidth) || window.innerWidth;
+      if ((w >= 1024) !== this.state.wide) this.setState({ wide: w >= 1024 });
+      this.setState({ vw: w });
+    };
+    window.addEventListener('resize', this.onSize);
+    this.onSize();
+  }
+  componentWillUnmount() { window.removeEventListener('resize', this.onSize); }
+  /* Persist from setState rather than componentDidUpdate — the DC runtime does not
+     forward componentDidUpdate to the logic class, so a lifecycle hook silently
+     never ran and nothing reached storage. Debounced so typing is not a write per key. */
+  setState(patch, cb) {
+    super.setState(patch, () => {
+      clearTimeout(this.saveTimer);
+      this.saveTimer = setTimeout(() => this.persist(), 140);
+      if (cb) cb();
+    });
+  }
+
+  restore() {
+    try {
+      const raw = localStorage.getItem(Component.KEY);
+      if (!raw) return this.persist();
+      const saved = JSON.parse(raw);
+      const patch = {};
+      Component.SAVE.forEach(k => { if (saved[k] !== undefined) patch[k] = saved[k]; });
+      if (patch.aiDefault !== undefined) patch.aiDefaultEdit = patch.aiDefault;
+      if (Object.keys(patch).length) this.setState(patch);
+    } catch (e) { /* corrupt payload — keep the seed */ }
+  }
+  persist() {
+    try {
+      const out = {};
+      Component.SAVE.forEach(k => { out[k] = this.state[k]; });
+      localStorage.setItem(Component.KEY, JSON.stringify(out));
+    } catch (e) { /* storage unavailable */ }
+  }
+
+  /* ProgressBar takes a colour, not a tone name. */
+  barColor(k) {
+    return ({ neutral: 'var(--neutral-300)', sky: 'var(--blue-400)', success: 'var(--green-400)',
+      warning: 'var(--yellow-300)', error: 'var(--red-400)' })[k] || 'var(--neutral-900)';
+  }
+  ds() { return window.FormkitDesignSystem_e346e9 || {}; }
+  el(name, props, children) { const C = this.ds()[name]; return C ? React.createElement(C, props, children) : null; }
+  n(v) { return Number(v || 0).toLocaleString('en-US'); }
+  toast(message, detail, tone) {
+    const id = 'k' + (this.state.toastSeq + 1);
+    this.setState(s => ({ toasts: s.toasts.concat([{ id, message, detail, tone: tone || 'default' }]), toastSeq: s.toastSeq + 1 }));
+    setTimeout(() => this.setState(s => ({ toasts: s.toasts.filter(t => t.id !== id) })), 4200);
+  }
+  log(what) {
+    this.setState(s => ({
+      audit: [{ id: 'a' + (s.uid + 1), who: 'You', what, at: 'Just now' }].concat(s.audit),
+      uid: s.uid + 1
+    }));
+  }
+
+  /* Signing out is available to every staff role. The panel is a separate
+     surface from the customer app, so it ends on its own signed-out screen. */
+  signOut() {
+    this.log('Signed out of the admin panel');
+    this.setState({ signedOut: true, acctOpenId: null, delOpen: false, staffOpenId: null });
+  }
+
+  /* ---------- user helpers ---------- */
+  statusOf(a) { return this.state.statusById[a.id] || a.status; }
+  usageOf(a) { const u = this.state.usageById[a.id]; return u === undefined ? a.aiUsed : u; }
+  limitOf(a) {
+    const o = this.state.overrides[a.id];
+    return (o === undefined ? this.state.aiDefault : o) + (this.state.grants[a.id] || 0);
+  }
+  acct(id) { return this.state.accounts.find(a => a.id === id); }
+  /* A user is a person. A workspace is optional and secondary: most people on
+     Formkit never make one, so `name` is often empty. */
+  who(a) { return a ? (a.owner || a.name || a.id) : ''; }
+  org(a) { return a ? String(a.name || '').trim() : ''; }
+  orgLine(a) { return this.org(a) || '—'; }
+
+  /* ---------- AI access ---------- */
+  /* Access is an allow-list. Someone not in it has no AI form building at all,
+     whatever their limit says, and sees no trace of the feature in their own app.
+     The pause is a platform kill switch that suspends everyone at once without
+     forgetting who was allowed. Users cannot ask for it — admins decide. */
+  aiOn(id) { return !this.state.aiPaused && !!this.state.aiAccess[id]; }
+  aiGranted(id) { return !!this.state.aiAccess[id]; }
+  aiOnTotal() {
+    return Component.AI_ON_OTHERS + this.state.accounts.filter(a => !!this.state.aiAccess[a.id]).length;
+  }
+  setAccess(id, on) {
+    const a = this.acct(id) || { id, owner: id };
+    this.setState(st => {
+      const next = Object.assign({}, st.aiAccess);
+      if (on) next[id] = true; else delete next[id];
+      return { aiAccess: next, accessTouched: id };
+    });
+    this.log((on ? 'Turned on' : 'Turned off') + ' AI form building for ' + this.who(a));
+    this.toast(on ? 'AI is on for ' + this.who(a) : 'AI is off for ' + this.who(a),
+      on
+        ? 'They get ' + this.limitOf(a) + ' forms a month.'
+        : 'The feature disappears from their app. Forms they already built are untouched.',
+      on ? 'success' : 'default');
+  }
+
+  /* Both the overview and the access page must report the same figures, so they
+     come from here. Only users with AI on can build anything. */
+  aiTotals() {
+    const s = this.state;
+    const on = s.accounts.filter(a => !!s.aiAccess[a.id]);
+    const sampleUsed = on.reduce((t, a) => t + this.usageOf(a), 0);
+    const sampleAvail = on.reduce((t, a) => t + this.limitOf(a), 0);
+    const ceilingAll = sampleAvail + Component.AI_ON_OTHERS * s.aiDefault;
+    const builtAll = Component.AI_BUILT;
+    return {
+      sampleUsed, sampleAvail, sampleOn: on.length,
+      overrideCount: Object.keys(s.overrides).length,
+      ceilingAll, builtAll, onCount: this.aiOnTotal(),
+      pct: ceilingAll ? Math.round(builtAll / ceilingAll * 100) : 0
+    };
+  }
+  initials(name) { return String(name).split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase(); }
+  statusNode(st) {
+    const map = { active: ['published', 'Active'], suspended: ['paused', 'Suspended'], trial: ['progress', 'Trial'] };
+    const m = map[st] || map.active;
+    return this.el('StatusBadge', { status: m[0], label: m[1] });
+  }
+
+  filtered() {
+    const s = this.state;
+    const q = s.acctQuery.trim().toLowerCase();
+    return s.accounts.filter(a => {
+      if (q && (a.name + ' ' + a.owner + ' ' + a.email).toLowerCase().indexOf(q) < 0) return false;
+      if (s.statusFilter !== 'All statuses' && this.statusOf(a) !== s.statusFilter.toLowerCase()) return false;
+      if (s.aiFilter === 'AI: on' && !this.state.aiAccess[a.id]) return false;
+      if (s.aiFilter === 'AI: off' && !!this.state.aiAccess[a.id]) return false;
+      return true;
+    });
+  }
+
+  setOverride(id, v) {
+    this.setState(s => ({ overrides: Object.assign({}, s.overrides, { [id]: Math.max(0, Math.min(500, v)) }) }));
+  }
+  clearOverride(id) {
+    this.setState(s => { const o = Object.assign({}, s.overrides); delete o[id]; return { overrides: o }; });
+  }
+
+  /* ---------- staff helpers ---------- */
+  roleGrant(role) {
+    if (role === 'Owner') return null; // owners hold every permission, always
+    return this.state.rolePerms[role] || Component.ROLE_DEFAULTS[role] || {};
+  }
+  permsOf(m) {
+    if (m.role === 'Owner') {
+      const all = {};
+      Component.PERMS.forEach(p => { all[p[0]] = true; });
+      return all;
+    }
+    const own = this.state.staffPerms[m.id];
+    return own ? Object.assign({}, this.roleGrant(m.role), own) : Object.assign({}, this.roleGrant(m.role));
+  }
+  permCount(m) {
+    const p = this.permsOf(m);
+    return Component.PERMS.filter(x => p[x[0]]).length;
+  }
+
+  /* ---------- sections ---------- */
+  vNav() {
+    const visitor = this.props.visitor || 'Staff';
+    const s = this.state;
+    const openTickets = s.tickets.filter(t => (s.ticketState[t.id] === undefined ? t.open : s.ticketState[t.id])).length;
+    const openReports = s.reports.filter(r => !s.reportState[r.id]).length;
+    const items = [
+      { id: 'overview', label: 'Overview', icon: 'chart-pie' },
+      { section: 'Customers' },
+      { id: 'accounts', label: 'Users', icon: 'users', count: this.n(Component.TOTAL) },
+      { id: 'credits', label: 'AI access', icon: 'sparkles' },
+      { section: 'Operations' },
+      { id: 'forms', label: 'Moderation', icon: 'shield-alert', count: openReports || undefined },
+      { id: 'support', label: 'Support', icon: 'life-buoy', count: openTickets || undefined },
+      { id: 'news', label: 'Announcements', icon: 'megaphone' },
+      { id: 'mail', label: 'Email log', icon: 'mail-check' },
+      { section: 'Administrative' },
+      { id: 'staff', label: 'Team access', icon: 'user-cog' },
+      { id: 'flags', label: 'Feature flags', icon: 'toggle-right' },
+      { id: 'audit', label: 'Audit log', icon: 'scroll-text' }
+    ];
+    const pick = id => this.setState({ nav: id, acctOpenId: null });
+    const titles = {
+      overview: ['Administrative', 'Overview', 'Signups, how people are standing and how much of the AI allowance is actually being used.'],
+      accounts: ['Customers', 'Users', 'Everyone on Formkit. Most work on their own; a workspace shows when they have made one. Open someone to turn AI on, change their limit or change their standing.'],
+      credits: ['Customers', 'AI access', 'Form building with AI is off everywhere until you turn it on for a named user.'],
+      staff: ['Administrative', 'Team access', 'Who can reach formkit.app/admin, and exactly what each of them can do here.'],
+      forms: ['Operations', 'Moderation', 'Forms people have reported, and the automated flags worth a second look.'],
+      support: ['Operations', 'Support', 'Conversations waiting on a reply from the team.'],
+      news: ['Operations', 'Announcements', 'What customers see in their dashboard and inbox.'],
+      mail: ['Operations', 'Email log', 'Every message Formkit has sent on a user\'s behalf. Support asks about these more than anything else.'],
+      flags: ['Administrative', 'Feature flags', 'What is switched on, for whom, and how far it has rolled out.'],
+      audit: ['Administrative', 'Audit log', 'Every change an admin has made, oldest at the bottom.']
+    };
+    const t = titles[s.nav] || titles.overview;
+    return {
+      navItems: items, nav: s.nav, onNav: pick,
+      wideNav: !!s.wide, narrowNav: !s.wide,
+      navPills: items.filter(i => !i.section).map(i => ({
+        label: i.label, icon: i.icon, onPick: () => pick(i.id),
+        style: 'display:inline-flex;align-items:center;gap:8px;flex:0 0 auto;min-height:40px;padding:0 14px;border:none;border-radius:var(--radius-pill);cursor:pointer;font-family:var(--font-sans);font-size:13.5px;white-space:nowrap;transition:var(--transition-control);background:' +
+          (i.id === s.nav ? 'var(--neutral-900)' : 'var(--neutral-100)') + ';color:' + (i.id === s.nav ? 'var(--neutral-0)' : 'var(--color-text-primary)')
+      })),
+      navWorkspace: React.createElement('div', {
+        style: { display: 'flex', alignItems: 'center', gap: 9, padding: '0 10px 4px' }
+      }, React.createElement('span', {
+        style: {
+          fontSize: 12, letterSpacing: '.04em', color: 'var(--neutral-700)',
+          padding: '3px 9px', borderRadius: 'var(--radius-pill)', background: 'var(--neutral-100)'
+        }
+      }, 'ADMIN')),
+      navFooter: React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 10 } },
+        React.createElement('div', {
+          style: { display: 'flex', alignItems: 'center', gap: 11, padding: '6px 8px' }
+        },
+          this.el('Avatar', { name: 'Sam Okafor', size: 34 }),
+          React.createElement('span', { style: { minWidth: 0, flex: 1 } },
+            React.createElement('span', {
+              style: { display: 'block', fontSize: 14, fontWeight: 450, whiteSpace: 'nowrap' }
+            }, 'Sam Okafor'),
+            React.createElement('span', {
+              style: { display: 'block', fontSize: 12.5, color: 'var(--color-text-tertiary)', marginTop: 1, whiteSpace: 'nowrap' }
+            }, 'Owner'))),
+        this.el('Button', { size: 'sm', icon: 'log-out', fullWidth: true, onClick: () => this.signOut() }, 'Sign out')
+      ),
+      /* formkit.app/admin is not linked from anywhere. Who you are decides what
+         happens when you land on it: staff see the console, a signed-in customer
+         is sent back to their dashboard, a stranger to the marketing site. */
+      gateOpen: !!s.signedOut || visitor !== 'Staff',
+      gateIsAdmin: !!s.signedOut || visitor === 'Signed in, not staff',
+      gateTitle: s.signedOut ? 'You are signed out'
+        : visitor === 'Signed out' ? 'Taking you to formkit.app'
+        : 'This is the staff console',
+      gateNote: s.signedOut
+        ? 'The console is closed on this device. Nothing you changed is affected.'
+        : visitor === 'Signed out'
+          ? 'There is nothing here to sign in to. Admin access is granted to a Formkit account, not to this address.'
+          : 'You are signed in as a Formkit customer, and your account does not hold staff access. Your dashboard is where you want to be.',
+      gateIcon: s.signedOut ? 'log-in' : visitor === 'Signed out' ? 'arrow-right' : 'layout-dashboard',
+      gateCta: s.signedOut ? 'Sign in again' : visitor === 'Signed out' ? 'Continue to formkit.app' : 'Back to my dashboard',
+      onGateAction: () => {
+        if (s.signedOut) return this.setState({ signedOut: false });
+        window.location.href = 'Formkit Main App.dc.html';
+      },
+      gateHasSecond: !s.signedOut && visitor === 'Signed out',
+      gateSecondCta: 'Sign in',
+      onGateSecond: () => { window.location.href = 'Formkit Main App.dc.html?view=signin'; },
+      onSignOut: () => this.signOut(),
+      pageEyebrow: t[0], pageTitle: t[1], pageSub: t[2],
+      opName: 'Sam Okafor', opRole: 'Owner',
+      isOverview: s.nav === 'overview', isAccounts: s.nav === 'accounts', isCredits: s.nav === 'credits',
+      isStaff: s.nav === 'staff', isForms: s.nav === 'forms', isSupport: s.nav === 'support',
+      isNews: s.nav === 'news', isFlags: s.nav === 'flags', isAudit: s.nav === 'audit',
+      isMail: s.nav === 'mail',
+      n3: 3, n15: 15, n16: 16, n17: 17, n18: 18, n19: 19, n34: 34, n48: 48, n120: 120, n520: 520,
+      tableWide: { style: { minWidth: 760 } },
+      toasts: s.toasts.map(t2 => Object.assign({}, t2, {
+        onClose: () => this.setState(st => ({ toasts: st.toasts.filter(x => x.id !== t2.id) }))
+      })),
+      gotoCredits: () => this.setState({ nav: 'credits' })
+    };
+  }
+
+  vOverview() {
+    const s = this.state;
+    const live = 34871;
+    const T = this.aiTotals();
+    const aiBuilt = T.builtAll, ceiling = T.ceilingAll;
+    const series = { '7': [34, 41, 38, 52, 47, 61, 58], '30': [22, 28, 31, 27, 35, 33, 41, 38, 44, 40, 48, 45, 52, 49, 57, 54, 61, 58, 66, 63, 70, 67, 74, 71, 78, 75, 82, 79, 86, 91], '90': [18, 24, 29, 26, 34, 31, 39, 36, 44, 41, 49, 46, 54, 51, 59, 56, 64, 61, 69, 66, 74, 71, 79, 76, 84, 81, 89, 86, 94, 98] }[s.range] || [];
+    const sum = series.reduce((a, b) => a + b, 0);
+    const standing = { active: 0, trial: 0, suspended: 0 };
+    s.accounts.forEach(a => { standing[this.statusOf(a)] += 1; });
+    const scale = Component.TOTAL / s.accounts.length;
+    const mix = [
+      { name: 'Active', n: Math.round(standing.active * scale), tone: 'success' },
+      { name: 'On trial', n: Math.round(standing.trial * scale), tone: 'sky' },
+      { name: 'Suspended', n: Math.round(standing.suspended * scale), tone: 'neutral' }
+    ];
+    const openReports = s.reports.filter(r => !s.reportState[r.id]).length;
+    const openTickets = s.tickets.filter(t => (s.ticketState[t.id] === undefined ? t.open : s.ticketState[t.id])).length;
+    const suspended = s.accounts.filter(a => this.statusOf(a) === 'suspended').length;
+    const atLimit = s.accounts.filter(a => this.aiGranted(a.id) && this.usageOf(a) >= this.limitOf(a)).length;
+    const T2 = this.aiTotals();
+    return {
+      kpis: [
+        { icon: 'users', label: 'Users', value: this.n(Component.TOTAL), unit: '', tone: 'up', delta: '+412 this month', deltaLabel: 'Up on last month' },
+        { icon: 'radio', label: 'Live forms', value: this.n(live), unit: '', tone: 'up', delta: '+1,208 this month', deltaLabel: 'Up on last month' },
+        { icon: 'inbox', label: 'Responses', value: '1.28', unit: 'million, all time', tone: 'up', delta: '+96k this month', deltaLabel: 'Up on last month' },
+        { icon: 'sparkles', label: 'AI forms built', value: this.n(aiBuilt), unit: 'this month', tone: 'up', delta: T.pct + '% of the allowance', deltaLabel: 'Share of allowance used' }
+      ],
+      rangeOptions: [{ value: '7', label: '7d' }, { value: '30', label: '30d' }, { value: '90', label: '90d' }],
+      range: s.range, onRange: v => this.setState({ range: v }),
+      /* TickChart wants {value} objects as 0-1 fractions of the plot height. */
+      signupData: (() => {
+        const max = Math.max.apply(null, series.concat([1]));
+        return series.map((v, i) => ({ value: v / max, tone: i === series.length - 1 ? 'info' : 'ink' }));
+      })(),
+      signupMarker: series.length - 1,
+      rangeStart: { '7': '7 days ago', '30': '30 days ago', '90': '90 days ago' }[s.range],
+      signupTotal: this.n(sum * 7),
+      signupNote: 'new users in the last ' + s.range + ' days',
+      standingMix: mix.map(m => ({
+        name: m.name, count: this.n(m.n), pct: Math.round(m.n / Component.TOTAL * 100) + '%',
+        value: Math.round(m.n / Component.TOTAL * 100), color: this.barColor(m.tone)
+      })),
+      aiBuiltTotal: this.n(aiBuilt), aiCeiling: this.n(ceiling),
+      aiOnTotal: this.n(T.onCount),
+      aiUsePct: T.pct, aiUnused: this.n(ceiling - aiBuilt),
+      attention: [
+        { icon: 'key-round', bg: 'var(--blue-400)', label: 'Users with AI on', meta: 'Everyone else has no AI', count: this.n(T2.onCount), onOpen: () => this.setState({ nav: 'credits' }) },
+        { icon: 'shield-alert', bg: 'var(--red-400)', label: 'Forms reported', meta: 'Waiting on a decision', count: String(openReports), onOpen: () => this.setState({ nav: 'forms' }) },
+        { icon: 'life-buoy', bg: 'var(--yellow-300)', label: 'Support waiting', meta: 'No reply from us yet', count: String(openTickets), onOpen: () => this.setState({ nav: 'support' }) },
+        { icon: 'pause', bg: 'var(--neutral-200)', label: 'Suspended users', meta: 'In the sample below', count: String(suspended), onOpen: () => this.setState({ nav: 'accounts', statusFilter: 'Suspended', page: 1 }) },
+        { icon: 'sparkles', bg: 'var(--blue-300)', label: 'Out of AI credits', meta: 'May ask for more', count: String(atLimit), onOpen: () => this.setState({ nav: 'credits' }) }
+      ]
+    };
+  }
+
+  vAccounts() {
+    const s = this.state;
+    const rows = this.filtered();
+    const per = 12;
+    const pageCount = Math.max(1, Math.ceil(rows.length / per));
+    const page = Math.min(s.page, pageCount);
+    const slice = rows.slice((page - 1) * per, page * per);
+    const narrow = (s.vw || 1200) < 760;
+    const open = s.acctOpenId ? this.acct(s.acctOpenId) : null;
+    const limit = open ? this.limitOf(open) : 0;
+    const used = open ? this.usageOf(open) : 0;
+    const hasOverride = open ? s.overrides[open.id] !== undefined : false;
+    return {
+      acctQuery: s.acctQuery,
+      onAcctQuery: e => this.setState({ acctQuery: e.target.value, page: 1 }),
+      statusFilterOptions: ['All statuses', 'Active', 'Trial', 'Suspended'],
+      statusFilter: s.statusFilter, onStatusFilter: e => this.setState({ statusFilter: e.target.value, page: 1 }),
+      aiFilterOptions: ['AI: all', 'AI: on', 'AI: off'],
+      aiFilter: s.aiFilter, onAiFilter: e => this.setState({ aiFilter: e.target.value, page: 1 }),
+      acctFiltered: s.acctQuery.trim() !== '' || s.statusFilter !== 'All statuses' || s.aiFilter !== 'AI: all',
+      onClearFilters: () => this.setState({ acctQuery: '', statusFilter: 'All statuses', aiFilter: 'AI: all', page: 1 }),
+      acctCountLabel: (s.acctQuery.trim() || s.statusFilter !== 'All statuses' || s.aiFilter !== 'AI: all')
+        ? rows.length + (rows.length === 1 ? ' person matches' : ' people match') + ' in this sample'
+        : 'Showing a sample of ' + this.n(Component.TOTAL) + ' users',
+      acctTable: !narrow, acctCards: narrow,
+      acctCols: [
+        { key: 'person', label: 'User', strong: true, render: r => r.personNode },
+        { key: 'forms', label: 'Forms', align: 'right', width: 82 },
+        { key: 'responses', label: 'Responses', align: 'right', width: 108 },
+        { key: 'ai', label: 'AI', align: 'right', width: 92 },
+        { key: 'status', label: 'Status', width: 116, render: r => r.statusNode }
+      ],
+      acctRows: slice.map(a => ({
+        id: a.id, person: this.who(a), org: this.orgLine(a), email: a.email,
+        personNode: React.createElement('span', { style: { display: 'block', minWidth: 0 } },
+          React.createElement('span', { style: { display: 'block', fontWeight: 450 } }, this.who(a)),
+          React.createElement('span', {
+            style: { display: 'block', fontSize: '13px', color: 'var(--color-text-tertiary)', marginTop: '2px' }
+          }, this.org(a) || '—')),
+        forms: this.n(a.forms), responses: this.n(a.responses),
+        ai: this.aiGranted(a.id) ? this.usageOf(a) + ' / ' + this.limitOf(a) : 'Off',
+        aiLabel: this.aiGranted(a.id) ? this.usageOf(a) + ' of ' + this.limitOf(a) : 'off',
+        status: this.statusOf(a), statusNode: this.statusNode(this.statusOf(a)),
+        onOpen: () => this.setState({ acctOpenId: a.id, msgDraft: '' })
+      })),
+      onOpenAccount: r => this.setState({ acctOpenId: r.id, msgDraft: '' }),
+      page, pageCount, onPage: p => this.setState({ page: p }),
+      pageSummary: rows.length
+        ? ((page - 1) * per + 1) + '–' + Math.min(page * per, rows.length) + ' of ' + this.n(Component.TOTAL)
+        : 'Nothing matches',
+
+      acctOpen: !!open,
+      detailTitle: open ? this.who(open) : '',
+      detailOwner: open ? this.who(open) : '',
+      detailOrg: open ? (this.org(open) || 'No workspace — works on their own') : '',
+      detailFirstName: open ? String(open.owner).split(' ')[0] : '',
+      detailEmail: open ? open.email : '',
+      detailInitials: open ? this.initials(open.owner) : '',
+      detailStatusNode: open ? this.statusNode(this.statusOf(open)) : null,
+      detailActive: open ? this.statusOf(open) !== 'suspended' : false,
+      detailSuspended: open ? this.statusOf(open) === 'suspended' : false,
+      detailStats: open ? [
+        { label: 'Forms', value: this.n(open.forms) },
+        { label: 'Responses', value: this.n(open.responses) },
+        { label: 'AI used', value: this.aiGranted(open.id) ? used + ' / ' + limit : 'Off' },
+        { label: 'Joined', value: open.joined }
+      ] : [],
+      detailAiOn: open ? this.aiGranted(open.id) : false,
+      detailAiOff: open ? !this.aiGranted(open.id) : false,
+      detailAiState: open ? (this.aiGranted(open.id) ? (s.aiPaused ? 'On, paused' : 'On') : 'Off') : 'Off',
+      detailAiNote: open
+        ? (this.aiGranted(open.id)
+          ? (s.aiPaused
+            ? 'Turned on for them, but AI is paused platform-wide, so nobody can build anything right now.'
+            : 'They can describe a form and have Formkit write it. Rewriting, logic and themes are free and always were.')
+          : 'Off, like everyone by default. They do not see the feature at all.')
+        : '',
+      onToggleAccess: v => {
+        if (!open) return;
+        this.setAccess(open.id, typeof v === 'boolean' ? v : !this.aiGranted(open.id));
+      },
+      detailLimit: String(limit),
+      detailHasOverride: hasOverride,
+      detailLimitNote: open
+        ? (hasOverride
+          ? 'They have their own limit. It will not follow changes to the default.'
+          : 'Following the platform default of ' + s.aiDefault + '. Changing it here creates an override.')
+          + (s.grants[open.id] ? ' Includes ' + s.grants[open.id] + ' granted this month.' : '')
+        : '',
+      onLimitUp: () => { if (!open) return; this.setOverride(open.id, this.limitOf(open) + 1 - (s.grants[open.id] || 0)); },
+      onLimitDown: () => { if (!open) return; this.setOverride(open.id, this.limitOf(open) - 1 - (s.grants[open.id] || 0)); },
+      onClearOverride: () => {
+        if (!open) return;
+        this.clearOverride(open.id);
+        this.log(this.who(open) + ' moved back to the default AI limit');
+        this.toast('Back on the default', this.who(open) + ' now gets ' + s.aiDefault + ' a month');
+      },
+      onGrant: () => {
+        if (!open) return;
+        this.setState(st => ({ grants: Object.assign({}, st.grants, { [open.id]: (st.grants[open.id] || 0) + 5 }) }));
+        this.log('Granted ' + this.who(open) + ' 5 extra AI forms this month');
+        this.toast('5 extra granted', 'Only for this month — the limit is unchanged');
+      },
+      onResetUsage: () => {
+        if (!open) return;
+        this.setState(st => ({ usageById: Object.assign({}, st.usageById, { [open.id]: 0 }) }));
+        this.log('Reset AI usage for ' + this.who(open));
+        this.toast('Usage reset', this.who(open) + ' starts the month again');
+      },
+      msgDraft: s.msgDraft,
+      onMsgDraft: e => this.setState({ msgDraft: e.target.value }),
+      onSendMessage: () => {
+        if (!open) return;
+        const t = s.msgDraft.trim();
+        if (!t) { this.toast('Write something first', 'The message is empty'); return; }
+        this.setState({ msgDraft: '' });
+        this.log('Messaged ' + open.owner);
+        this.toast('Message sent', 'To ' + open.email);
+      },
+      onSuspend: () => {
+        if (!open) return;
+        this.setState(st => ({ statusById: Object.assign({}, st.statusById, { [open.id]: 'suspended' }) }));
+        this.log('Suspended ' + this.who(open));
+        this.toast('User suspended', 'Their forms stop collecting immediately', 'warning');
+      },
+      onReactivate: () => {
+        if (!open) return;
+        this.setState(st => ({ statusById: Object.assign({}, st.statusById, { [open.id]: 'active' }) }));
+        this.log('Reactivated ' + this.who(open));
+        this.toast('Active again', this.who(open) + ' can collect responses', 'success');
+      },
+      /* Support opens the customer app in a new tab, flagged and read-only. */
+      viewAsLabel: open ? 'View as ' + String(this.who(open)).split(' ')[0] : 'View as user',
+      onViewAs: () => {
+        if (!open) return;
+        const url = 'Formkit Main App.dc.html?viewAs=' + encodeURIComponent(open.id) +
+          '&who=' + encodeURIComponent(this.who(open)) + '&by=' + encodeURIComponent('Sam Okafor');
+        window.open(url, '_blank', 'noopener');
+        this.log('Opened ' + this.who(open) + "'s dashboard in support view");
+        this.toast('Support view opened', 'Read-only, in a new tab');
+      },
+      onViewMail: () => {
+        if (!open) return;
+        this.setState({ nav: 'mail', acctOpenId: null, mailQuery: this.who(open), mailKind: 'All' });
+      },
+      onCloseAccount: () => this.setState({ acctOpenId: null }),
+      onAskDelete: () => this.setState({ delOpen: true, delText: '' }),
+
+      delOpen: s.delOpen,
+      delTitle: open ? 'Delete ' + this.who(open) + '?' : 'Delete this user?',
+      delWarnTitle: open ? this.n(open.responses) + ' responses will be destroyed' : 'This destroys data',
+      delWarnBody: open
+        ? open.owner + ' and everyone they have invited will lose access straight away. Nothing is recoverable after this.'
+        : 'Nothing is recoverable after this.',
+      delText: s.delText,
+      onDelText: e => this.setState({ delText: e.target.value }),
+      delBtnProps: { disabled: s.delText.trim().toLowerCase() !== 'delete' },
+      onCloseDelete: () => this.setState({ delOpen: false, delText: '' }),
+      onConfirmDelete: () => {
+        if (!open || s.delText.trim().toLowerCase() !== 'delete') return;
+        const name = this.who(open);
+        this.setState(st => ({
+          accounts: st.accounts.filter(a => a.id !== open.id),
+          acctOpenId: null, delOpen: false, delText: ''
+        }));
+        this.log('Deleted the account ' + name + ' and its data');
+        this.toast('Account deleted', name + ' and everything in it is gone', 'warning');
+      }
+    };
+  }
+
+  vCredits() {
+    const s = this.state;
+    const saved = s.aiDefault, edit = s.aiDefaultEdit;
+    const overrideIds = Object.keys(s.overrides);
+    const T = this.aiTotals();
+    const atLimit = s.accounts.filter(a => this.aiGranted(a.id) && this.usageOf(a) >= this.limitOf(a)).length;
+    const granted = Object.keys(s.grants).reduce((t, k) => t + s.grants[k], 0);
+    const top = s.accounts.filter(a => this.aiGranted(a.id))
+      .sort((a, b) => this.usageOf(b) - this.usageOf(a)).slice(0, 5);
+    const q = (s.accessQuery || '').trim().toLowerCase();
+    /* A search looks across every account in the sample, whatever the On / Off
+       filter says — otherwise you cannot find an account in order to turn it on.
+       The account you just switched also stays put instead of vanishing out of
+       the filter under your cursor. */
+    const accessList = s.accounts.filter(a => {
+      if (q) return (a.name + ' ' + a.owner).toLowerCase().indexOf(q) >= 0;
+      if (s.accessTouched === a.id) return true;
+      const on = this.aiGranted(a.id);
+      if (s.accessFilter === 'On' && !on) return false;
+      if (s.accessFilter === 'Off' && on) return false;
+      return true;
+    });
+    return {
+      aiPaused: !!s.aiPaused, aiRunning: !s.aiPaused,
+      aiPauseLabel: s.aiPaused ? 'Paused' : 'Running',
+      aiStateTitle: s.aiPaused ? 'AI is paused for everyone' : 'AI is off unless you turn it on',
+      aiStateNote: s.aiPaused
+        ? 'Nobody can build a form with AI, including the people you have already allowed. Their access is remembered and comes back the moment you unpause.'
+        : 'Everyone starts with no AI form building, new users included, and nothing about it appears in their app until you turn it on here. Rewriting questions, logic and themes were never gated.',
+      aiOnTotal: this.n(T.onCount),
+      aiOffTotal: this.n(Component.TOTAL - T.onCount),
+      aiSampleOn: String(T.sampleOn) + ' of ' + s.accounts.length,
+
+      accessQuery: s.accessQuery,
+      onAccessQuery: e => this.setState({ accessQuery: e.target.value, accessTouched: null }),
+      accessFilter: s.accessFilter,
+      accessFilterOptions: ['On', 'Off', 'All'],
+      onAccessFilter: v => this.setState({ accessFilter: v, accessTouched: null }),
+      accessSearching: !!q && s.accessFilter !== 'All',
+      accessCountLabel: accessList.length + (accessList.length === 1 ? ' person' : ' people') + (q ? ' match' : ' in this sample'),
+      accessEmpty: accessList.length === 0,
+      accessRows: accessList.slice(0, 14).map(a => {
+        const on = this.aiGranted(a.id);
+        return {
+          id: a.id, name: this.who(a), on,
+          meta: on ? this.usageOf(a) + ' of ' + this.limitOf(a) + ' used this month' : (this.org(a) || a.email),
+          onToggle: v => this.setAccess(a.id, typeof v === 'boolean' ? v : !on)
+        };
+      }),
+
+      aiDefault: String(edit),
+      aiDefaultSaved: String(saved),
+      aiDefaultDirty: edit !== saved,
+      aiDefaultClean: edit === saved,
+      aiDefaultSavedNote: 'Everyone with AI on, and no override, gets ' + saved + ' forms a month.',
+      onDefaultUp: () => this.setState({ aiDefaultEdit: Math.min(200, edit + 1) }),
+      onDefaultDown: () => this.setState({ aiDefaultEdit: Math.max(0, edit - 1) }),
+      onRevertDefault: () => this.setState({ aiDefaultEdit: saved }),
+      onPause: v => {
+        const paused = typeof v === 'boolean' ? !v : !s.aiPaused;
+        this.setState({ aiPaused: paused });
+        this.log(paused ? 'Paused AI form building for every account' : 'Resumed AI form building');
+        this.toast(paused ? 'AI paused everywhere' : 'AI resumed',
+          paused
+            ? 'The ' + this.n(this.aiOnTotal()) + ' accounts you allowed lose it until you unpause'
+            : 'The accounts you allowed can build again');
+      },
+      hasTopUsers: top.length > 0,
+      noTopUsers: top.length === 0,
+      onSaveDefault: () => {
+        this.setState({ aiDefault: edit });
+        this.log('Set the AI form default to ' + edit + ' a month');
+        this.toast('Default updated', 'Every account without an override now gets ' + edit + ' a month', 'success');
+      },
+      creditStats: [
+        { label: 'Built this month', value: this.n(T.builtAll), note: 'across the users with AI on, ' + T.pct + '% of the ceiling' },
+        { label: 'Monthly ceiling', value: this.n(T.ceilingAll), note: 'if all ' + this.n(T.onCount) + ' of them used everything' },
+        { label: 'On in this sample', value: String(T.sampleOn) + ' of ' + s.accounts.length, note: T.sampleUsed + ' built of ' + T.sampleAvail + ' available' },
+        { label: 'At their limit', value: String(atLimit), note: 'in this sample, may ask for more' },
+        { label: 'Granted this month', value: String(granted), note: 'one-off extras, limits unchanged' }
+      ],
+      overrideCount: String(overrideIds.length),
+      hasOverrides: overrideIds.length > 0,
+      noOverrides: overrideIds.length === 0,
+      overrideRows: overrideIds.map(id => {
+        const a = this.acct(id);
+        if (!a) return { name: id, meta: 'This user no longer exists', limit: String(s.overrides[id]), onOpen: () => {}, onClear: () => this.clearOverride(id) };
+        return {
+          name: this.who(a), meta: this.aiGranted(a.id)
+            ? (this.statusOf(a) === 'suspended' ? 'Suspended · ' + this.usageOf(a) + ' used this month' : this.usageOf(a) + ' used this month')
+            : 'AI is off for this user, so the limit does nothing',
+          limit: String(this.limitOf(a)),
+          onOpen: () => this.setState({ nav: 'accounts', acctOpenId: a.id }),
+          onClear: () => {
+            this.clearOverride(id);
+            this.log(this.who(a) + ' moved back to the default AI limit');
+            this.toast('Back on the default', this.who(a) + ' now gets ' + saved + ' a month');
+          }
+        };
+      }),
+      topUsers: top.map(a => {
+        const u = this.usageOf(a), l = this.limitOf(a);
+        const pct = l ? Math.round(u / l * 100) : 0;
+        return {
+          name: this.who(a), label: u + ' of ' + l,
+          pct: Math.min(100, pct), color: this.barColor(pct >= 100 ? 'warning' : pct >= 70 ? 'sky' : 'neutral')
+        };
+      })
+    };
+  }
+
+  vStaff() {
+    const s = this.state;
+    const roleOpts = ['Admin', 'Support'];
+    const roleLabel = { Owner: 'Owner', Admin: 'Admin', Support: 'Support' };
+    const chip = (on, locked) => ({
+      display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+      minHeight: 44, padding: '0 14px', border: 'none', borderRadius: 'var(--radius-pill)',
+      background: on ? 'var(--blue-50)' : 'var(--neutral-0)',
+      color: on ? 'var(--color-text-primary)' : 'var(--color-text-tertiary)',
+      font: 'inherit', fontSize: '13.5px', textAlign: 'left',
+      cursor: locked ? 'default' : 'pointer', opacity: locked ? .75 : 1,
+      transition: 'var(--transition-control)'
+    });
+    return {
+      staffCount: String(s.staff.length),
+      inviteEmail: s.inviteEmail,
+      onInviteEmail: e => this.setState({ inviteEmail: e.target.value }),
+      inviteRoleOpts: roleOpts,
+      inviteRole: s.inviteRole,
+      onInviteRole: e => this.setState({ inviteRole: e.target.value }),
+      onInvite: () => {
+        const email = s.inviteEmail.trim();
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+          this.toast('That does not look like an email', 'Check it and try again');
+          return;
+        }
+        if (s.staff.some(m => m.email.toLowerCase() === email.toLowerCase())) {
+          this.toast('They already have access', email);
+          return;
+        }
+        const id = 'u' + (s.uid + 1);
+        const name = email.split('@')[0].replace(/[._-]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        this.setState(st => ({
+          staff: st.staff.concat([{ id, name, email, role: st.inviteRole, last: 'Invited just now', pending: true }]),
+          inviteEmail: '', uid: st.uid + 1
+        }));
+        this.log('Invited ' + email + ' to the admin panel as ' + s.inviteRole);
+        this.toast('Invite sent', email + ' joins as ' + s.inviteRole, 'success');
+      },
+      staffRows: s.staff.map(m => {
+        const owner = m.role === 'Owner';
+        const perms = this.permsOf(m);
+        const custom = !!s.staffPerms[m.id];
+        const open = s.staffOpenId === m.id;
+        const held = this.permCount(m);
+        return {
+          id: m.id,
+          name: m.name,
+          meta: m.email + ' · ' + m.last,
+          avatarNode: this.el('Avatar', { name: m.name, size: 38 }),
+          tagNode: m.you
+            ? this.el('Badge', { tone: 'neutral', size: 'sm' }, 'You')
+            : (m.pending ? this.el('Badge', { tone: 'warning', size: 'sm' }, 'Invited') : null),
+          role: m.role, roleOpts,
+          roleEditable: !owner, roleLocked: owner,
+          onRole: e => {
+            const v = e.target.value;
+            this.setState(st => ({ staff: st.staff.map(x => x.id === m.id ? Object.assign({}, x, { role: v }) : x) }));
+            this.log('Changed ' + m.name + ' to the ' + v + ' role');
+            this.toast(m.name + ' is now ' + roleLabel[v], custom ? 'Their own permissions still apply' : 'They follow the ' + v + ' permissions');
+          },
+          removable: !owner,
+          removeLabel: 'Remove ' + m.name + "'s access",
+          onRemove: () => {
+            this.setState(st => {
+              const p = Object.assign({}, st.staffPerms); delete p[m.id];
+              return { staff: st.staff.filter(x => x.id !== m.id), staffPerms: p, staffOpenId: null };
+            });
+            this.log('Removed admin access for ' + m.name);
+            this.toast('Access removed', m.name + ' can no longer reach the admin panel', 'warning');
+          },
+          expanded: open,
+          permBtnLabel: (open ? 'Hide ' : '') + held + ' of ' + Component.PERMS.length + (custom ? ' · custom' : ''),
+          permBtnStyle: {
+            flex: '0 0 auto', minHeight: 36, padding: '0 14px', border: 'none',
+            borderRadius: 'var(--radius-pill)',
+            background: open ? 'var(--neutral-900)' : (custom ? 'var(--blue-50)' : 'var(--neutral-100)'),
+            color: open ? 'var(--neutral-0)' : 'var(--color-text-primary)',
+            font: 'inherit', fontSize: '13px', cursor: 'pointer', whiteSpace: 'nowrap',
+            transition: 'var(--transition-control)'
+          },
+          onExpand: () => this.setState({ staffOpenId: open ? null : m.id }),
+          custom: custom && !owner,
+          permNote: owner
+            ? 'Owners hold every permission. To take something away, move them to Admin first.'
+            : (custom
+              ? m.name.split(' ')[0] + ' has their own permissions. Changes to the ' + m.role + ' role no longer reach them.'
+              : 'Following the ' + m.role + ' role. Turn anything on or off here and it becomes theirs alone.'),
+          onResetPerms: () => {
+            this.setState(st => { const p = Object.assign({}, st.staffPerms); delete p[m.id]; return { staffPerms: p }; });
+            this.log('Put ' + m.name + ' back on the ' + m.role + ' permissions');
+            this.toast('Back on the role', m.name + ' follows ' + m.role + ' again');
+          },
+          perms: Component.PERMS.map(p => {
+            const on = !!perms[p[0]];
+            return {
+              key: p[0], label: p[1], desc: p[2],
+              style: chip(on, owner),
+              dotStyle: {
+                width: 9, height: 9, flex: '0 0 auto', borderRadius: '50%',
+                background: on ? 'var(--green-400)' : 'var(--neutral-300)'
+              },
+              onToggle: () => {
+                if (owner) { this.toast('Owners keep every permission', 'Move them to Admin to change this'); return; }
+                this.setState(st => {
+                  const base = Object.assign({}, this.roleGrant(m.role), st.staffPerms[m.id] || {});
+                  base[p[0]] = !on;
+                  return { staffPerms: Object.assign({}, st.staffPerms, { [m.id]: base }) };
+                });
+                this.log((on ? 'Removed' : 'Gave') + ' “' + p[1] + '” ' + (on ? 'from ' : 'to ') + m.name);
+              }
+            };
+          })
+        };
+      }),
+      permRows: Component.PERMS.map(p => {
+        const key = p[0];
+        const flip = (role, next) => {
+          this.setState(st => ({
+            rolePerms: Object.assign({}, st.rolePerms, {
+              [role]: Object.assign({}, st.rolePerms[role], { [key]: next })
+            })
+          }));
+          this.log((next ? 'Gave' : 'Removed') + ' “' + p[1] + '” ' + (next ? 'to' : 'from') + ' the ' + role + ' role');
+          this.toast(role + (next ? ' can now ' : ' can no longer ') + p[1].charAt(0).toLowerCase() + p[1].slice(1),
+            'Anyone with their own permissions is unaffected');
+        };
+        const adminOn = !!(s.rolePerms.Admin || {})[key];
+        const supportOn = !!(s.rolePerms.Support || {})[key];
+        return {
+          key, label: p[1], desc: p[2],
+          adminOn, supportOn,
+          onAdmin: v => flip('Admin', typeof v === 'boolean' ? v : !adminOn),
+          onSupport: v => flip('Support', typeof v === 'boolean' ? v : !supportOn)
+        };
+      })
+    };
+  }
+
+  vForms() {
+    const s = this.state;
+    const list = s.reports.filter(r => {
+      const st = s.reportState[r.id];
+      return s.modTab === 'open' ? !st : s.modTab === 'locked' ? st === 'locked' : st === 'dismissed';
+    });
+    const sev = { high: ['error', 'High'], medium: ['warning', 'Medium'], low: ['neutral', 'Low'] };
+    return {
+      modTabs: [
+        { value: 'open', label: 'Open', count: String(s.reports.filter(r => !s.reportState[r.id]).length) },
+        { value: 'locked', label: 'Locked' },
+        { value: 'dismissed', label: 'Dismissed' }
+      ],
+      modTab: s.modTab, onModTab: v => this.setState({ modTab: v }),
+      hasReports: list.length > 0, noReports: list.length === 0,
+      reportRows: list.map(r => {
+        const a = this.acct(r.account);
+        const st = s.reportState[r.id];
+        return {
+          title: r.form, reason: r.reason,
+          meta: (a ? this.who(a) : r.account) + ' · reported ' + r.at,
+          badgeNode: this.el('Badge', { tone: (sev[r.severity] || sev.low)[0], size: 'sm' }, (sev[r.severity] || sev.low)[1]),
+          isOpen: !st, isLocked: st === 'locked',
+          onOpenAccount: () => a && this.setState({ nav: 'accounts', acctOpenId: a.id }),
+          onLock: () => {
+            this.setState(st2 => ({ reportState: Object.assign({}, st2.reportState, { [r.id]: 'locked' }) }));
+            this.log('Locked the form ' + r.form);
+            this.toast('Form locked', 'It stops collecting and the owner is told why', 'warning');
+          },
+          onUnlock: () => {
+            this.setState(st2 => { const o = Object.assign({}, st2.reportState); delete o[r.id]; return { reportState: o }; });
+            this.log('Unlocked the form ' + r.form);
+            this.toast('Form unlocked', 'It can collect responses again');
+          },
+          onDismiss: () => {
+            this.setState(st2 => ({ reportState: Object.assign({}, st2.reportState, { [r.id]: 'dismissed' }) }));
+            this.log('Dismissed the report on ' + r.form);
+            this.toast('Report dismissed', 'Nothing changes for the owner');
+          }
+        };
+      })
+    };
+  }
+
+  vSupport() {
+    const s = this.state;
+    const isOpen = t => (s.ticketState[t.id] === undefined ? t.open : s.ticketState[t.id]);
+    const cur = s.tickets.find(t => t.id === s.ticketId) || s.tickets[0];
+    const a = cur ? this.acct(cur.account) : null;
+    return {
+      openTicketCount: String(s.tickets.filter(isOpen).length),
+      ticketRows: s.tickets.map(t => ({
+        subject: t.subject, who: this.who(this.acct(t.account)) || t.account, at: t.at,
+        isOpen: isOpen(t),
+        onOpen: () => this.setState({ ticketId: t.id, replyDraft: '' }),
+        style: 'display:block;width:100%;text-align:left;border:none;padding:11px 12px;border-radius:14px;cursor:pointer;font:inherit;transition:var(--transition-control);background:' +
+          (t.id === (cur || {}).id ? 'var(--blue-50)' : 'transparent')
+      })),
+      ticketSubject: cur ? cur.subject : '',
+      ticketMeta: cur ? ((a ? this.who(a) : cur.account) + ' · ' + cur.at) : '',
+      ticketResolveLabel: cur && isOpen(cur) ? 'Resolve' : 'Reopen',
+      ticketMessages: cur ? cur.messages.map(m => ({
+        who: m.who, at: m.at, text: m.text,
+        style: 'padding:14px 16px;border-radius:18px;background:' + (m.them ? 'var(--neutral-50)' : 'var(--blue-50)')
+      })) : [],
+      replyDraft: s.replyDraft,
+      onReplyDraft: e => this.setState({ replyDraft: e.target.value }),
+      onSendReply: () => {
+        const t = s.replyDraft.trim();
+        if (!cur) return;
+        if (!t) { this.toast('Write a reply first', 'The box is empty'); return; }
+        this.setState(st => ({
+          tickets: st.tickets.map(x => x.id === cur.id
+            ? Object.assign({}, x, { messages: x.messages.concat([{ who: 'You', at: 'Just now', them: false, text: t }]) })
+            : x),
+          replyDraft: ''
+        }));
+        this.toast('Reply sent', 'To ' + ((a || {}).owner || 'the customer'));
+      },
+      onTicketResolve: () => {
+        if (!cur) return;
+        const next = !isOpen(cur);
+        this.setState(st => ({ ticketState: Object.assign({}, st.ticketState, { [cur.id]: next }) }));
+        this.toast(next ? 'Reopened' : 'Resolved', cur.subject);
+      },
+      onTicketAccount: () => a && this.setState({ nav: 'accounts', acctOpenId: a.id })
+    };
+  }
+
+  vNews() {
+    const s = this.state;
+    return {
+      newsTitle: s.newsTitle, onNewsTitle: e => this.setState({ newsTitle: e.target.value }),
+      newsBody: s.newsBody, onNewsBody: e => this.setState({ newsBody: e.target.value }),
+      audienceOptions: ['Everyone', 'New accounts', 'Accounts using AI', 'Suspended accounts'],
+      newsAudience: s.newsAudience, onNewsAudience: e => this.setState({ newsAudience: e.target.value }),
+      onPublishNews: () => {
+        const title = s.newsTitle.trim(), body = s.newsBody.trim();
+        if (!title) { this.toast('It needs a headline', 'One line is enough'); return; }
+        const id = 'n' + (s.uid + 1);
+        this.setState(st => ({
+          news: [{ id, title, body, audience: st.newsAudience, at: 'Just now', live: true }].concat(st.news),
+          newsTitle: '', newsBody: '', uid: st.uid + 1
+        }));
+        this.log('Published the announcement ' + title);
+        this.toast('Announcement published', 'Visible to ' + s.newsAudience.toLowerCase(), 'success');
+      },
+      newsRows: s.news.map(n => ({
+        title: n.title, body: n.body,
+        meta: n.audience + ' · ' + n.at,
+        badgeNode: this.el('Badge', { tone: 'success', size: 'sm' }, 'Live'),
+        onDelete: () => {
+          this.setState(st => ({ news: st.news.filter(x => x.id !== n.id) }));
+          this.log('Removed the announcement ' + n.title);
+          this.toast('Announcement removed', n.title);
+        }
+      }))
+    };
+  }
+
+  vFlags() {
+    const s = this.state;
+    const defs = [
+      { key: 'ai.live', name: 'Live AI generation', desc: 'Forms are written from the prompt in real time. Off means the tested pattern library is used instead.', rollout: 100 },
+      { key: 'ai.brief', name: 'Build from a brief', desc: 'Lets people paste a scope document or email and have Formkit read it for the questions.', rollout: 100 },
+      { key: 'forms.partial', name: 'Save partial responses', desc: 'Keeps answers from people who start a form and do not submit. Rolled back once already.', rollout: 15 },
+      { key: 'app.dark', name: 'Dark mode', desc: 'Still being drawn. Internal accounts only.', rollout: 4 },
+      { key: 'export.xlsx', name: 'Excel export', desc: 'Exports responses as .xlsx with column types preserved.', rollout: 100 }
+    ];
+    return {
+      flagRows: defs.map(f => {
+        const on = s.flags[f.key] !== false && s.flags[f.key] !== undefined ? true : !!s.flags[f.key];
+        return {
+          key: f.key, name: f.name, desc: f.desc,
+          rollout: on ? f.rollout : 0,
+          rolloutLabel: on ? f.rollout + '% of users' : 'Nobody',
+          color: this.barColor(f.rollout === 100 ? 'success' : 'sky'),
+          stateLabel: on ? 'On' : 'Off',
+          on: on,
+          onToggle: v => {
+            const next = typeof v === 'boolean' ? v : !on;
+            this.setState(st => ({ flags: Object.assign({}, st.flags, { [f.key]: next }) }));
+            this.log('Turned ' + (next ? 'on' : 'off') + ' the flag ' + f.key);
+            this.toast(f.name + (next ? ' is on' : ' is off'), next ? f.rollout + '% of users' : 'Nobody sees it now');
+          }
+        };
+      })
+    };
+  }
+
+  vMail() {
+    const s = this.state;
+    const q = (s.mailQuery || '').trim().toLowerCase();
+    const kind = s.mailKind || 'All';
+    const rows = (s.mail || []).filter(m => {
+      const who = this.who(this.acct(m.acct)) || m.acct;
+      if (kind !== 'All' && m.kind !== kind) return false;
+      return !q || (who + ' ' + m.to + ' ' + m.subject).toLowerCase().indexOf(q) >= 0;
+    });
+    const narrow = (s.vw || 1200) < 900;
+    const tone = { Delivered: 'positive', Bounced: 'negative', Suppressed: 'neutral' };
+    return {
+      mailQuery: s.mailQuery || '',
+      onMailQuery: e => this.setState({ mailQuery: e.target.value }),
+      mailKinds: ['All', 'Notification', 'Confirmation', 'Weekly report'],
+      mailKind: kind,
+      onMailKind: v => this.setState({ mailKind: typeof v === 'string' ? v : (v && v.target ? v.target.value : v) }),
+      mailCountLabel: rows.length + (rows.length === 1 ? ' message' : ' messages') + ', last 30 days',
+      mailTable: !narrow && rows.length > 0,
+      mailCards: narrow && rows.length > 0,
+      mailEmpty: rows.length === 0,
+      mailCols: [
+        { key: 'at', label: 'When', width: 150, muted: true },
+        { key: 'kind', label: 'Kind', width: 128 },
+        { key: 'user', label: 'User', width: 150 },
+        { key: 'to', label: 'To', muted: true },
+        { key: 'subject', label: 'Subject', strong: true },
+        { key: 'state', label: 'Delivery', align: 'right', width: 116, render: r => this.el('Badge', { tone: tone[r.state] || 'neutral', size: 'sm' }, r.state) }
+      ],
+      mailRows: rows.map(m => ({
+        id: m.id, at: m.at, kind: m.kind, to: m.to, subject: m.subject, state: m.state,
+        user: this.who(this.acct(m.acct)) || m.acct
+      }))
+    };
+  }
+
+  vAudit() {
+    const s = this.state;
+    const q = s.auditQuery.trim().toLowerCase();
+    const rows = s.audit.filter(a => !q || (a.who + ' ' + a.what).toLowerCase().indexOf(q) >= 0);
+    const narrow = (s.vw || 1200) < 760;
+    return {
+      auditQuery: s.auditQuery,
+      onAuditQuery: e => this.setState({ auditQuery: e.target.value }),
+      auditCountLabel: rows.length + (rows.length === 1 ? ' entry' : ' entries'),
+      auditTable: !narrow, auditCards: narrow,
+      auditCols: [
+        { key: 'at', label: 'When', width: 168, muted: true },
+        { key: 'who', label: 'Admin', width: 140 },
+        { key: 'what', label: 'Change', strong: true }
+      ],
+      auditRows: rows.map(a => ({ id: a.id, at: a.at, who: a.who, what: a.what }))
+    };
+  }
+
+  renderVals() {
+    return Object.assign({},
+      this.vNav(), this.vOverview(), this.vAccounts(), this.vCredits(), this.vStaff(),
+      this.vForms(), this.vSupport(), this.vNews(), this.vFlags(), this.vAudit(), this.vMail(),
+      { hostRef: el => { this.host = el; } });
+  }
+}
+</script>
+</body>
+</html>

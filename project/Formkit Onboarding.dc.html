@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/radius.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/shadows.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/motion.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/layout.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/base.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/styles.css">
+  <title>Get started — Formkit</title>
+  <meta name="robots" content="noindex, nofollow">
+  <script src="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/_ds_bundle.js"></script>
+  <style>
+    html,body{margin:0;background:#0a3d6f}
+    a{color:var(--blue-700)}
+    a:hover{color:var(--neutral-900)}
+  </style>
+</helmet>
+
+<div style="position:fixed;inset:0;z-index:400;overflow-y:auto;display:flex;align-items:center;justify-content:center;padding:clamp(20px,4vw,48px) clamp(16px,4vw,40px);background:#0a3d6f;font-family:var(--font-sans);color:var(--color-text-primary)">
+  <dc-import name="Formkit Sky" hint-size="100%,100%"></dc-import>
+
+  <div style="position:relative;z-index:1;width:100%;max-width:620px;box-sizing:border-box;background:var(--color-surface-raised);border-radius:var(--radius-panel);box-shadow:var(--shadow-float);padding:32px 34px 28px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+      <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Logo" hint-size="110px,24px"></x-import>
+      <span style="flex:0 0 auto;white-space:nowrap;font-size:13px;color:var(--color-text-tertiary)">Step {{ onbStepNum }} of 4</span>
+    </div>
+    <div style="margin:16px 0 26px">
+      <x-import component-from-global-scope="FormkitDesignSystem_e346e9.ProgressBar" value="{{ onbPct }}" hint-size="100%,8px"></x-import>
+    </div>
+
+    <sc-if value="{{ onb0 }}" hint-placeholder-val="{{ true }}">
+      <h1 style="font-size:var(--text-h3-size);font-weight:var(--text-h3-weight);letter-spacing:var(--text-h3-tracking);margin:0">A little about you</h1>
+      <p style="font-size:15px;color:var(--color-text-tertiary);margin:8px 0 22px;line-height:1.55">This is what your name looks like on shared forms.</p>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div>
+          <div style="font-size:14px;margin-bottom:8px">Full name</div>
+          <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Input" icon="user" placeholder="Maya Ortiz" value="{{ onbName }}" on-change="{{ onOnbName }}" style="width:100%" hint-size="100%,48px"></x-import>
+        </div>
+        <div>
+          <div style="font-size:14px;margin-bottom:8px">What do you do</div>
+          <dc-import name="FkSelect" options="{{ onbRoleOpts }}" value="{{ onbRole }}" on-change="{{ onOnbRole }}" style="width:100%" hint-size="100%,48px"></dc-import>
+        </div>
+        <div>
+          <div style="font-size:14px;margin-bottom:8px">How many people work on your forms</div>
+          <x-import component-from-global-scope="FormkitDesignSystem_e346e9.SegmentedControl" options="{{ onbSizeOpts }}" value="{{ onbSize }}" on-change="{{ onOnbSize }}" aria-label="Team size" hint-size="100%,44px"></x-import>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ onb1 }}" hint-placeholder-val="{{ false }}">
+      <h1 style="font-size:var(--text-h3-size);font-weight:var(--text-h3-weight);letter-spacing:var(--text-h3-tracking);margin:0">Your company, if you have one</h1>
+      <p style="font-size:15px;color:var(--color-text-tertiary);margin:8px 0 22px;line-height:1.55">Optional. Without one, forms go out under your own name — which is how most people use Formkit.</p>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div>
+          <div style="font-size:14px;margin-bottom:8px">Company name</div>
+          <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Input" icon="store" placeholder="Studio Nine" value="{{ onbCompany }}" on-change="{{ onOnbCompany }}" style="width:100%" hint-size="100%,48px"></x-import>
+        </div>
+        <div>
+          <div style="font-size:14px;margin-bottom:8px">One line about it</div>
+          <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Input" placeholder="Brand and product design" value="{{ onbTagline }}" on-change="{{ onOnbTagline }}" style="width:100%" hint-size="100%,48px"></x-import>
+        </div>
+        <p style="font-size:13.5px;color:var(--color-text-tertiary);margin:0;line-height:1.55">You can add a company, a logo and brand colours at any time under Settings, Companies. One person can hold as many as they need.</p>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ onb2 }}" hint-placeholder-val="{{ false }}">
+      <h1 style="font-size:var(--text-h3-size);font-weight:var(--text-h3-weight);letter-spacing:var(--text-h3-tracking);margin:0">What will you collect?</h1>
+      <p style="font-size:15px;color:var(--color-text-tertiary);margin:8px 0 22px;line-height:1.55">Pick as many as you like. We put matching templates at the top of your library.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:12px">
+        <sc-for list="{{ onbUses }}" as="u" hint-placeholder-count="6">
+          <div style="padding:14px 16px;border-radius:var(--radius-card-inner);background:var(--neutral-50)">
+            <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Checkbox" label="{{ u.label }}" description="{{ u.hint }}" checked="{{ u.on }}" on-change="{{ u.onToggle }}" hint-size="100%,48px"></x-import>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ onb3 }}" hint-placeholder-val="{{ false }}">
+      <h1 style="font-size:var(--text-h3-size);font-weight:var(--text-h3-weight);letter-spacing:var(--text-h3-tracking);margin:0">When should we email you?</h1>
+      <p style="font-size:15px;color:var(--color-text-tertiary);margin:8px 0 22px;line-height:1.55">Both of these are easy to change later.</p>
+      <div style="display:flex;flex-direction:column">
+        <sc-for list="{{ onbNotify }}" as="n" hint-placeholder-count="2">
+          <x-import component-from-global-scope="FormkitDesignSystem_e346e9.PropertyRow" label="{{ n.label }}" hint="{{ n.hint }}" hint-size="100%,62px">
+            <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Switch" checked="{{ n.on }}" on-change="{{ n.onToggle }}" hint-size="48px,28px"></x-import>
+          </x-import>
+        </sc-for>
+      </div>
+      <div style="margin-top:20px;padding:16px 18px;border-radius:var(--radius-card-inner);background:var(--neutral-50);font-size:14px;color:var(--color-text-secondary);line-height:1.6">{{ onbSummary }}</div>
+    </sc-if>
+
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:28px">
+      <sc-if value="{{ onbCanBack }}" hint-placeholder-val="{{ false }}">
+        <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Button" variant="secondary" icon="arrow-left" on-click="{{ onbBack }}" hint-size="110px,48px">Back</x-import>
+      </sc-if>
+      <div style="flex:1;min-width:8px"></div>
+      <sc-if value="{{ onb1 }}" hint-placeholder-val="{{ false }}">
+        <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Button" variant="secondary" on-click="{{ onbSkipStep }}" hint-size="150px,48px">I work on my own</x-import>
+      </sc-if>
+      <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Button" variant="ghost" on-click="{{ onbSkip }}" hint-size="120px,48px">Skip setup</x-import>
+      <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Button" icon-right="arrow-right" on-click="{{ onbNext }}" hint-size="160px,48px">{{ onbNextLabel }}</x-import>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:960,&quot;height&quot;:760},&quot;step&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:1,&quot;min&quot;:1,&quot;max&quot;:4,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Preview&quot;},&quot;v&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;object&quot;}}">
+/* The app embeds this as a child and passes every value in through `v`.
+   The local set below only exists so the file still runs on its own. */
+class Component extends DCLogic {
+  static USES = [
+    { label: 'Client intake', hint: 'Briefs, budgets and scope' },
+    { label: 'Event registration', hint: 'Sign-ups and guest lists' },
+    { label: 'Feedback and surveys', hint: 'Ratings and open questions' },
+    { label: 'Job applications', hint: 'CVs and portfolio links' },
+    { label: 'Lead capture', hint: 'Contact details from your site' },
+    { label: 'Orders and bookings', hint: 'Products, dates and delivery' }
+  ];
+
+  state = { step: null, name: '', role: 'Designer', size: 'Just me', company: '', tagline: '', uses: [], nNew: true, nWeekly: true };
+
+  step() {
+    const s = this.state;
+    return s.step === null ? Math.max(0, Math.min(3, (this.props.step || 1) - 1)) : s.step;
+  }
+  set(patch) { this.setState(patch); }
+
+  local() {
+    const s = this.state;
+    const step = this.step();
+    const uses = s.uses || [];
+    return {
+      onbStepNum: String(step + 1),
+      onbPct: (step + 1) * 25,
+      onb0: step === 0, onb1: step === 1, onb2: step === 2, onb3: step === 3,
+      onbCanBack: step > 0,
+      onbNextLabel: step === 3 ? 'Finish setup' : 'Continue',
+      onbBack: () => this.setState({ step: Math.max(0, step - 1) }),
+      onbNext: () => this.setState({ step: Math.min(3, step + 1) }),
+      onbSkip: () => this.setState({ step: 0 }),
+      /* A company is optional, so the step can be left empty and passed over. */
+      onbSkipStep: () => this.setState({ company: '', tagline: '', step: Math.min(3, step + 1) }),
+      onbName: s.name, onOnbName: e => this.set({ name: e.target.value }),
+      onbRole: s.role, onOnbRole: e => this.set({ role: e && e.target ? e.target.value : e }),
+      onbRoleOpts: ['Designer', 'Founder', 'Product manager', 'Marketing', 'Operations', 'Engineer', 'Research', 'Something else'],
+      onbSize: s.size,
+      onOnbSize: v => this.set({ size: typeof v === 'string' ? v : (v && v.target ? v.target.value : v) }),
+      onbSizeOpts: ['Just me', '2–10', '11–50', '50+'],
+      onbCompany: s.company, onOnbCompany: e => this.set({ company: e.target.value }),
+      onbTagline: s.tagline, onOnbTagline: e => this.set({ tagline: e.target.value }),
+      onbUses: Component.USES.map(u => ({
+        label: u.label, hint: u.hint,
+        on: uses.indexOf(u.label) >= 0,
+        onToggle: v => this.setState(st => ({
+          uses: v ? (st.uses || []).concat([u.label]) : (st.uses || []).filter(x => x !== u.label)
+        }))
+      })),
+      onbNotify: [
+        { label: 'A new response arrives', hint: 'One email per submission', key: 'nNew' },
+        { label: 'Weekly report', hint: 'Completion rate and drop-off, every Monday', key: 'nWeekly' }
+      ].map(n => ({ label: n.label, hint: n.hint, on: s[n.key] !== false, onToggle: v => this.set({ [n.key]: !!v }) })),
+      onbSummary: (() => {
+        const who = String(s.company || '').trim() || String(s.name || '').trim().split(' ')[0] || 'your dashboard';
+        return uses.length
+          ? 'We will open ' + who + ' with ' + uses.length + (uses.length === 1 ? ' template' : ' templates') + ' matching what you picked.'
+          : 'We will open ' + who + ' with the full template library so you can browse.';
+      })()
+    };
+  }
+
+  renderVals() {
+    const v = this.props.v;
+    return v ? Object.assign({}, this.local(), v) : this.local();
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/radius.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/shadows.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/motion.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/layout.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/base.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/styles.css">
+  <script src="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/_ds_bundle.js"></script>
+</helmet>
+
+<div style="display:flex;flex-direction:column;gap:10px;width:100%;font-family:var(--font-sans)">
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <sc-for list="{{ swatches }}" as="s" hint-placeholder-count="6">
+      <button type="button" onClick="{{ s.onPick }}" title="{{ s.hex }}" aria-label="{{ s.hex }}" style="{{ s.style }}"></button>
+    </sc-for>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:8px">
+    <label style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;flex:0 0 auto;cursor:pointer;background:{{ value }};box-shadow:inset 0 0 0 1px var(--color-border-default),var(--shadow-xs)" title="Pick any color">
+      <input type="color" value="{{ value }}" onChange="{{ onNative }}" aria-label="Pick any color" style="position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer">
+      <span style="{{ eyedropStyle }}">
+        <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Icon" name="pipette" size="{{ n16 }}" hint-size="16px,16px"></x-import>
+      </span>
+    </label>
+    <div style="{{ fieldStyle }}">
+      <span style="font-family:var(--font-mono);font-size:14px;color:var(--color-text-tertiary);flex:0 0 auto">#</span>
+      <input value="{{ hexInput }}" onChange="{{ onHex }}" onBlur="{{ onHexBlur }}" spellcheck="false" maxlength="6" aria-label="Hex color code" style="flex:1;min-width:0;border:none;background:transparent;font-family:var(--font-mono);font-size:14px;letter-spacing:.04em;text-transform:uppercase;color:var(--color-text-primary);outline:none">
+      <sc-if value="{{ invalid }}" hint-placeholder-val="{{ false }}">
+        <span style="flex:0 0 auto;font-size:12.5px;color:var(--red-500)">6 digits</span>
+      </sc-if>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:320,&quot;height&quot;:140},&quot;value&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#2e78bb&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;#2e78bb&quot;,&quot;#0a3573&quot;,&quot;#2c3034&quot;,&quot;#4b9d6e&quot;]},&quot;presets&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string[]&quot;},&quot;onChange&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(e: {target: {value: string}}) =&gt; void&quot;}}">
+class Component extends DCLogic {
+  state = { draft: null };
+
+  norm(v) {
+    const s = String(v || '').replace('#', '').trim();
+    return s.slice(0, 6);
+  }
+
+  commit(hex) {
+    const clean = this.norm(hex);
+    if (!/^[0-9a-fA-F]{6}$/.test(clean)) return false;
+    if (this.props.onChange) this.props.onChange({ target: { value: '#' + clean.toLowerCase() } });
+    return true;
+  }
+
+  renderVals() {
+    const p = this.props;
+    const value = p.value || '#2e78bb';
+    const draft = this.state.draft;
+    const shown = draft === null ? this.norm(value) : draft;
+    const invalid = draft !== null && draft.length > 0 && !/^[0-9a-fA-F]{6}$/.test(draft);
+    const presets = p.presets && p.presets.length ? p.presets
+      : ['#2e78bb', '#0a3573', '#2c3034', '#4b9d6e', '#c98a1e', '#c4614f', '#7a5480', '#f7fbff'];
+    return {
+      n16: 16,
+      value,
+      hexInput: shown,
+      invalid,
+      eyedropStyle: {
+        display: 'inline-flex', pointerEvents: 'none',
+        color: this.isLight(value) ? 'var(--neutral-900)' : 'var(--neutral-0)',
+        opacity: .8
+      },
+      fieldStyle: {
+        display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, height: 44,
+        padding: '0 14px', borderRadius: 'var(--radius-input)',
+        border: '1px solid ' + (invalid ? 'var(--red-400)' : 'var(--color-border-default)'),
+        background: 'var(--color-surface-card)', boxShadow: 'var(--shadow-xs)'
+      },
+      swatches: presets.map(hex => ({
+        hex,
+        style: {
+          width: 32, height: 32, borderRadius: '50%', border: 'none', flex: '0 0 auto', cursor: 'pointer',
+          background: hex,
+          boxShadow: hex.toLowerCase() === String(value).toLowerCase()
+            ? 'inset 0 0 0 1px rgba(0,0,0,.1),0 0 0 2px var(--neutral-0),0 0 0 4px var(--blue-500)'
+            : 'inset 0 0 0 1px rgba(0,0,0,.1),var(--shadow-xs)',
+          transition: 'var(--transition-control)'
+        },
+        onPick: () => { this.setState({ draft: null }); this.commit(hex); }
+      })),
+      onNative: e => { this.setState({ draft: null }); this.commit(e.target.value); },
+      onHex: e => {
+        const v = this.norm(e.target.value);
+        this.setState({ draft: v });
+        if (/^[0-9a-fA-F]{6}$/.test(v)) this.commit(v);
+      },
+      onHexBlur: () => this.setState({ draft: null })
+    };
+  }
+
+  isLight(hex) {
+    const s = this.norm(hex);
+    if (!/^[0-9a-fA-F]{6}$/.test(s)) return false;
+    const r = parseInt(s.slice(0, 2), 16), g = parseInt(s.slice(2, 4), 16), b = parseInt(s.slice(4, 6), 16);
+    return (0.299 * r + 0.587 * g + 0.114 * b) > 150;
+  }
+}
+
+</script>
+</body>
+</html>

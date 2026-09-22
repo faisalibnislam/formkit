@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/colors.css">
+<link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/typography.css">
+<link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/radius.css">
+<link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/shadows.css">
+<link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/motion.css">
+<link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/layout.css">
+<link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/base.css">
+<link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/styles.css">
+<script src="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/_ds_bundle.js"></script>
+<style>
+  html,body{margin:0;background:#22262b}
+  a{color:var(--blue-700)}
+  a:hover{color:var(--neutral-900)}
+</style>
+</helmet>
+
+<div style="height:100vh;display:flex;flex-direction:column;background:#22262b;font-family:var(--font-sans);color:var(--neutral-0)">
+
+  <div style="position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:14px 20px;background:#2c3034;box-shadow:0 1px 0 rgba(255,255,255,.08)">
+    <div style="display:flex;align-items:baseline;gap:10px;flex:0 0 auto;margin-right:4px;white-space:nowrap">
+      <span style="font-size:14.5px;font-weight:500;letter-spacing:-.01em">Responsive check</span>
+      <span style="font-size:13px;color:rgba(255,255,255,.5)">{{ fileLabel }}</span>
+    </div>
+    <div style="display:flex;gap:4px;flex:0 0 auto">
+      <sc-for list="{{ fileTabs }}" as="f" hint-placeholder-count="2">
+        <button onClick="{{ f.onPick }}" style="{{ f.style }}">{{ f.label }}</button>
+      </sc-for>
+    </div>
+
+    <div style="display:flex;gap:6px;flex-wrap:nowrap;min-width:0;overflow-x:auto;scrollbar-width:none;padding-bottom:2px">
+      <sc-for list="{{ devices }}" as="d" hint-placeholder-count="6">
+        <button onClick="{{ d.pick }}" title="{{ d.title }}" style="display:flex;align-items:center;gap:8px;flex:0 0 auto;height:34px;padding:0 14px;border:0;border-radius:var(--radius-pill);background:{{ d.bg }};color:{{ d.fg }};font-family:var(--font-sans);font-size:13.5px;font-weight:450;white-space:nowrap;cursor:pointer;transition:background 140ms cubic-bezier(.22,.8,.24,1)">
+          <span>{{ d.name }}</span>
+          <span style="font-family:var(--font-mono);font-size:11.5px;opacity:.6">{{ d.dims }}</span>
+        </button>
+      </sc-for>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+      <sc-if value="{{ sized }}" hint-placeholder-val="{{ true }}">
+        <button onClick="{{ rotate }}" title="Rotate" style="display:flex;align-items:center;gap:8px;height:34px;padding:0 14px;border:0;border-radius:var(--radius-pill);background:rgba(255,255,255,.1);color:var(--neutral-0);font-family:var(--font-sans);font-size:13.5px;cursor:pointer">Rotate</button>
+      </sc-if>
+      <button onClick="{{ reload }}" title="Reload the frame" style="display:flex;align-items:center;gap:8px;height:34px;padding:0 14px;border:0;border-radius:var(--radius-pill);background:rgba(255,255,255,.1);color:var(--neutral-0);font-family:var(--font-sans);font-size:13.5px;cursor:pointer">Reload</button>
+      <sc-if value="{{ sized }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:center;gap:10px;height:34px;padding:0 14px;border-radius:var(--radius-pill);background:rgba(255,255,255,.1)">
+          <span style="font-size:12.5px;color:rgba(255,255,255,.6)">Width</span>
+          <input type="range" min="{{ minW }}" max="{{ maxW }}" step="{{ stepW }}" value="{{ w }}" onChange="{{ onW }}" aria-label="Frame width" style="width:132px;accent-color:var(--blue-400)">
+          <span style="font-family:var(--font-mono);font-size:12px;min-width:44px;text-align:right">{{ wLabel }}</span>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+
+  <div style="{{ scrollStyle }}">
+    <div style="display:flex;align-items:center;justify-content:center;gap:14px;flex:0 0 auto;font-size:12.5px;color:rgba(255,255,255,.55)">
+      <span style="font-family:var(--font-mono)">{{ sizeLabel }}</span>
+      <span>·</span>
+      <span>{{ modeLabel }}</span>
+      <sc-if value="{{ sized }}" hint-placeholder-val="{{ true }}">
+        <span>·</span>
+        <span>{{ zoomLabel }}</span>
+      </sc-if>
+    </div>
+    <div style="{{ stageStyle }}">
+      <div style="{{ frameStyle }}">
+        <iframe src="{{ src }}" title="Preview" key="{{ nonce }}" style="display:block;width:100%;height:100%;border:0;background:var(--paper)" data-comment-anchor="89bbdff4e9-iframe"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:900}}">
+const DEVICES = [
+  { id: 'fluid', name: 'Responsive', fluid: true },
+  { id: 'se', name: 'iPhone SE', w: 375, h: 667 },
+  { id: 'p15', name: 'iPhone 15', w: 393, h: 852 },
+  { id: 'px', name: 'Pixel 8', w: 412, h: 915 },
+  { id: 'mini', name: 'iPad mini', w: 744, h: 1024 },
+  { id: 'ipad', name: 'iPad Pro', w: 1024, h: 1366 },
+  { id: 'lap', name: 'Laptop', w: 1280, h: 800 },
+  { id: 'desk', name: 'Desktop', w: 1440, h: 900 }
+];
+
+class Component extends DCLogic {
+  state = { id: 'p15', land: false, custom: null, nonce: 0, avail: 900 };
+
+  componentDidMount() {
+    this.onSize = () => this.setState({ avail: this.el ? this.el.clientWidth : window.innerWidth });
+    window.addEventListener('resize', this.onSize);
+    this.onSize();
+  }
+  componentWillUnmount() { window.removeEventListener('resize', this.onSize); }
+
+  dev() { return DEVICES.find(d => d.id === this.state.id) || DEVICES[2]; }
+
+  dims() {
+    const d = this.dev(), s = this.state;
+    let w = s.custom != null ? s.custom : (s.land ? d.h : d.w);
+    let h = s.land ? Math.min(d.w, d.h) : Math.max(d.w, d.h);
+    if (s.custom != null) h = s.land ? Math.min(d.w, d.h) : (d.id === 'lap' || d.id === 'desk' ? d.h : Math.max(d.w, d.h));
+    return { w, h };
+  }
+
+  renderVals() {
+    const s = this.state, d = this.dev(), fluid = !!d.fluid;
+    const { w, h } = fluid ? { w: Math.max(320, s.avail || 900), h: 900 } : this.dims();
+    const avail = Math.max(320, (s.avail || 900) - 40);
+    const zoom = fluid ? 1 : Math.min(1, avail / w);
+    const phone = !fluid && w <= 520;
+    const radius = fluid ? 0 : (phone ? 42 : (w <= 900 ? 26 : 14));
+
+    return {
+      fileLabel: s.file === 'admin' ? 'Formkit Admin' : 'Formkit Main App',
+      src: s.file === 'admin' ? 'Formkit Admin.dc.html' : 'Formkit Main App.dc.html',
+      fileTabs: [['app', 'Customer app'], ['admin', 'Admin']].map(f => ({
+        label: f[1],
+        onPick: () => this.setState({ file: f[0], nonce: s.nonce + 1 }),
+        style: 'flex:0 0 auto;min-height:34px;padding:0 13px;border:none;border-radius:var(--radius-pill);cursor:pointer;font-family:var(--font-sans);font-size:13px;white-space:nowrap;transition:background 140ms cubic-bezier(.22,.8,.24,1);background:' +
+          ((s.file || 'app') === f[0] ? 'var(--blue-400)' : 'rgba(255,255,255,.1)') + ';color:' + ((s.file || 'app') === f[0] ? 'var(--neutral-900)' : 'var(--neutral-0)')
+      })),
+      nonce: 'f' + s.nonce,
+      devices: DEVICES.map(x => ({
+        name: x.name,
+        dims: x.fluid ? 'fluid' : x.w + '×' + x.h,
+        title: x.fluid ? 'Responsive — no frame, full preview width' : x.name + ' — ' + x.w + '×' + x.h,
+        bg: x.id === s.id ? 'var(--blue-400)' : 'rgba(255,255,255,.1)',
+        fg: x.id === s.id ? 'var(--neutral-900)' : 'var(--neutral-0)',
+        pick: () => this.setState({ id: x.id, custom: null })
+      })),
+      rotate: () => this.setState({ land: !s.land, custom: null }),
+      reload: () => this.setState({ nonce: s.nonce + 1 }),
+      minW: 320, maxW: 1600, stepW: 8, w,
+      wLabel: w + 'px',
+      onW: e => this.setState({ custom: Number(e.target.value) }),
+      sizeLabel: fluid ? 'fills the preview · ' + w + 'px' : w + ' × ' + h,
+      modeLabel: w < 1080 ? (w < 760 ? 'phone layout — no tab dock' : 'tablet layout — no tab dock') : (w < 1180 ? 'desktop, single-pane builder' : 'desktop, three-pane builder'),
+      zoomLabel: Math.round(zoom * 100) + '% scale',
+      minH: Math.round(h * zoom),
+      sized: !fluid,
+      scrollStyle: fluid
+        ? 'flex:1;min-height:0;display:flex;flex-direction:column;align-items:stretch;gap:10px;padding:12px 0 0;overflow:hidden'
+        : 'flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;gap:14px;padding:26px 20px 40px;overflow:auto',
+      stageStyle: fluid
+        ? 'flex:1;min-height:0;align-self:stretch;display:flex;width:100%'
+        : 'width:100%;display:flex;justify-content:center;height:' + Math.round(h * zoom) + 'px',
+      frameStyle: fluid
+        ? 'flex:1;min-width:0;min-height:0;background:var(--paper)'
+        : [
+        'width:' + w + 'px', 'height:' + h + 'px', 'flex:none',
+        'transform:scale(' + zoom + ')', 'transform-origin:top center',
+        'border-radius:' + radius + 'px', 'overflow:hidden',
+        'background:var(--paper)',
+        'box-shadow:0 0 0 ' + (phone ? 10 : 6) + 'px #14171a, 0 0 0 ' + (phone ? 11 : 7) + 'px rgba(255,255,255,.14), 0 30px 70px rgba(0,0,0,.45)'
+      ].join(';')
+    };
+  }
+}
+</script>
+</body>
+</html>

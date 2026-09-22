@@ -1,0 +1,6 @@
+/* Clerio-family typefaces.
+   Outfit = the single primary typeface (UI + display + numerals). Geometric
+   sans with a tall x-height: it carries 64px headlines at weight 700 and the
+   signature large-light metric numerals at weight 200-300.
+   JetBrains Mono = code, slugs and field indices only. */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700&display=swap');

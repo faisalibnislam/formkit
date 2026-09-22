@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/radius.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/shadows.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/motion.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/layout.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/base.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/styles.css">
+  <title>Privacy policy — Formkit</title>
+  <meta name="description" content="What Formkit collects, how long it is kept, who can see it, and how to delete your forms, responses and account.">
+  <link rel="canonical" href="https://formkit.app/privacy">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Formkit">
+  <meta property="og:url" content="https://formkit.app/privacy">
+  <meta property="og:title" content="Privacy policy — Formkit">
+  <script src="./fk-icons.js"></script>
+  <script src="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/_ds_bundle.js"></script>
+  <style>
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{background:var(--paper);color:var(--neutral-900);font-family:var(--font-sans);-webkit-font-smoothing:antialiased}
+    a{color:var(--blue-700);text-decoration:none;border-bottom:none;padding-bottom:0}
+    a:hover{color:var(--neutral-900)}
+    :root{--fk-gutter:clamp(10px,1.5vw,20px);--fk-gap:clamp(10px,1.5vw,20px);--fk-round:clamp(20px,2.4vw,34px)}
+    [data-page] > section,[data-page] > main{margin:0 var(--fk-gutter) var(--fk-gap);border-radius:var(--fk-round);box-shadow:0 0 0 1px rgba(134,178,220,.25);overflow:hidden}
+    @media (max-width:640px){[data-toc]{position:static!important}}
+  </style>
+</helmet>
+
+<a href="#fk-main" style="position:absolute;left:-9999px;top:0;padding:10px 16px;background:var(--neutral-900);color:var(--neutral-0);border-radius:var(--radius-pill);z-index:100" style-focus="left:16px;top:16px">Skip to content</a>
+
+<div data-page="true" style="min-height:100vh;display:flex;flex-direction:column;background:var(--paper);font-family:var(--font-sans);color:var(--color-text-primary);padding:var(--fk-gap) 0">
+
+  <dc-import name="Formkit Nav" hint-size="100%,60px"></dc-import>
+
+  <section style="position:relative;background:#0a3d6f;color:#ffffff;padding:calc(104px + clamp(20px,4vw,44px)) clamp(20px,5vw,56px) clamp(52px,6vw,72px)">
+    <dc-import name="Formkit Sky" hint-size="100%,100%"></dc-import>
+    <div style="position:relative;z-index:1;max-width:940px;margin:0 auto">
+      <span style="font-size:11.5px;letter-spacing:.16em;color:rgba(255,255,255,.75)">LEGAL</span>
+      <h1 style="margin:14px 0 0;font-size:clamp(30px,4.6vw,56px);font-weight:700;letter-spacing:-.035em;line-height:1.02;color:#ffffff">{{ docTitle }}</h1>
+      <p style="margin:14px 0 0;max-width:56ch;font-size:16.5px;line-height:1.6;color:#ffffff;opacity:.86;text-wrap:pretty">{{ docIntro }}</p>
+      <p style="margin:18px 0 0;font-size:13.5px;color:rgba(255,255,255,.7)">Last updated {{ docDate }}</p>
+    </div>
+  </section>
+
+  <main id="fk-main" style="flex:1;background:var(--neutral-0);padding:clamp(34px,5vw,64px) clamp(20px,5vw,56px) clamp(40px,6vw,72px)">
+    <div style="max-width:940px;margin:0 auto;display:grid;gap:clamp(20px,3vw,40px);grid-template-columns:repeat(auto-fit,minmax(min(230px,100%),1fr))">
+      <nav data-toc="true" aria-label="On this page" style="position:sticky;top:110px;align-self:start;display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:11.5px;letter-spacing:.14em;color:var(--color-text-tertiary);padding:0 10px 8px">ON THIS PAGE</span>
+        <sc-for list="{{ toc }}" as="s" hint-placeholder-count="8">
+          <a href="{{ s.href }}" style="padding:8px 10px;border-radius:10px;font-size:14px;color:var(--neutral-800)" style-hover="background:var(--neutral-100);color:var(--neutral-900)">{{ s.title }}</a>
+        </sc-for>
+      </nav>
+
+      <div style="grid-column:span 2;min-width:0">
+        <sc-for list="{{ sections }}" as="sec" hint-placeholder-count="8">
+          <div id="{{ sec.id }}" style="padding-bottom:clamp(24px,3vw,38px);scroll-margin-top:110px">
+            <h2 style="margin:0 0 12px;font-size:clamp(20px,2.2vw,26px);font-weight:600;letter-spacing:-.02em;color:var(--neutral-900)">{{ sec.title }}</h2>
+            <sc-for list="{{ sec.paras }}" as="para" hint-placeholder-count="2">
+              <p style="margin:0 0 12px;max-width:68ch;font-size:15.5px;line-height:1.65;color:var(--color-text-secondary);text-wrap:pretty">{{ para }}</p>
+            </sc-for>
+            <sc-for list="{{ sec.bullets }}" as="b" hint-placeholder-count="3">
+              <div style="display:flex;align-items:flex-start;gap:11px;margin:0 0 9px;max-width:68ch">
+                <span style="flex:0 0 auto;width:5px;height:5px;margin-top:9px;border-radius:50%;background:var(--neutral-400)"></span>
+                <span style="flex:1;font-size:15.5px;line-height:1.6;color:var(--color-text-secondary);text-wrap:pretty">{{ b }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+        <div style="padding-top:24px;box-shadow:inset 0 1px 0 var(--neutral-200);font-size:14.5px;line-height:1.6;color:var(--color-text-tertiary);text-wrap:pretty">{{ docFoot }}</div>
+      </div>
+    </div>
+  </main>
+
+  <dc-import name="Formkit Footer" hint-size="100%,760px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1120,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  doc() { return 'privacy'; }
+
+  static PRIVACY = [
+    { id: 'what-this-covers', title: 'What this covers', paras: [
+      'Formkit is a form builder. You write questions, share a link, and the answers come back to you. This policy explains what we do with two different sets of data: the information about you as a Formkit user, and the answers your respondents send through your forms.',
+      'The two are treated differently, and the difference matters. Your account is ours to look after. The answers in your forms are yours — we hold them on your behalf and do not use them for anything of our own.'
+    ] },
+    { id: 'what-we-collect', title: 'What we collect', paras: ['Three things, and nothing else:'], bullets: [
+      'Your account. A name, an email address, a hashed password, and a company name if you choose to add one. A company is optional and most people never add one.',
+      'Your forms and their answers. Questions, themes, settings, every response, and any file somebody uploads — up to 10 MB per file.',
+      'Technical records. Sign-in times, the pages you opened in the app, the browser and rough location (city level) a request came from, and errors. We keep these to work out what broke and to spot someone attacking the service.'
+    ] },
+    { id: 'what-we-do-with-it', title: 'What we do with it', paras: [
+      'We use your account data to sign you in, send the notifications you asked for, and answer you when you contact support. We use the technical records to keep the service up and to investigate abuse.',
+      'We do not sell anything to anyone. We do not run advertising, we do not build profiles of your respondents, and we do not train anything on your responses.'
+    ] },
+    { id: 'answers-belong-to-you', title: 'The answers belong to you', paras: [
+      'When somebody fills in your form, you decide what was asked and what happens next; we store it and show it back to you. In data-protection language you are the controller and we are the processor.',
+      'That means two practical things. If a respondent asks us to delete their answer, we will point them to you — it is your record to delete. And if you ask for something sensitive, it is on you to have a reason and to say so on the form.'
+    ] },
+    { id: 'who-else-sees-it', title: 'Who else touches it', paras: [
+      'A small number of companies handle data for us because they run the machines: our hosting provider, our email delivery provider and our error-tracking tool. They are bound to use it only to provide that service.',
+      'Formkit staff can reach your account for support — to answer a ticket, look into a report, or investigate abuse. When they do, it is logged, and a support view is read-only: staff can see what you see and change nothing.'
+    ] },
+    { id: 'how-long', title: 'How long we keep it', bullets: [
+      'Responses stay until you delete them. Deleting a form moves it to Deleted, where it sits for 60 days before it goes for good.',
+      'Close your account and everything — forms, responses, uploads — is removed within 30 days. Backups age out within 90.',
+      'Technical records are kept for 12 months, then deleted.'
+    ] },
+    { id: 'your-choices', title: 'What you can do about it', paras: ['At any time, without asking us:'], bullets: [
+      'Export every response as CSV or Excel.',
+      'Delete a response, a form, or your whole account, from Settings.',
+      'Turn off any email we send you, including the weekly report.',
+      'Correct anything about you that is wrong, in Settings → Account.'
+    ] },
+    { id: 'cookies', title: 'Cookies', paras: [
+      'Formkit sets one cookie, to keep you signed in. There is no advertising cookie, no third-party tracker and no consent banner to dismiss, because there is nothing to consent to.'
+    ] },
+    { id: 'where-data-lives', title: 'Where the data lives', paras: [
+      'On servers in the United States and the European Union. If you are somewhere else, your data crosses a border to reach us, under the standard contractual clauses our providers sign.'
+    ] },
+    { id: 'children', title: 'Children', paras: [
+      'Formkit is not for people under 16. If you run a form aimed at children, that is your responsibility and you need the right consent to do it.'
+    ] },
+    { id: 'changes-and-contact', title: 'Changes, and how to reach us', paras: [
+      'If we change anything that affects you, we will tell you in the app and by email before it takes effect — not quietly, and not after the fact.',
+      'Questions, requests and complaints go to privacy@formkit.app. We answer within five working days.'
+    ] }
+  ];
+
+  renderVals() {
+    const sections = Component.PRIVACY;
+    return {
+      n19: 19, n22: 22,
+      docTitle: 'Privacy policy',
+      docIntro: 'What Formkit collects, how long it is kept, who can see it, and how to get rid of it. Your account is ours to look after; the answers in your forms are yours.',
+      docDate: '21 September 2026',
+      toc: sections.map(s => ({ title: s.title, href: '#' + s.id })),
+      sections: sections.map(s => ({ id: s.id, title: s.title, paras: s.paras || [], bullets: s.bullets || [] })),
+      docFoot: 'If you want a copy of everything we hold about you, ask at privacy@formkit.app and we will send it as a single file.'
+    };
+  }
+}
+</script>
+</body>
+</html>

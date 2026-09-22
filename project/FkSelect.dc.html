@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/radius.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/shadows.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/motion.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/layout.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/tokens/base.css">
+  <link rel="stylesheet" href="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/styles.css">
+  <script src="_ds/formkit-design-system-e346e922-3f90-435e-ac92-f39661fade4f/_ds_bundle.js"></script>
+</helmet>
+
+<div ref="{{ rootRef }}" style="position:relative;display:flex;width:100%;font-family:var(--font-sans)">
+  <button type="button" onClick="{{ toggle }}" aria-haspopup="listbox" aria-expanded="{{ open }}" style="{{ triggerStyle }}" style-hover="border-color:var(--color-border-strong)">
+    <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left">{{ label }}</span>
+    <span style="{{ chevronStyle }}">
+      <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Icon" name="chevron-down" size="{{ chevronSize }}" hint-size="16px,16px"></x-import>
+    </span>
+  </button>
+
+  <sc-if value="{{ open }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;z-index:70" onClick="{{ close }}"></div>
+  </sc-if>
+
+  <sc-if value="{{ open }}" hint-placeholder-val="{{ false }}">
+    <div role="listbox" style="{{ menuStyle }}">
+      <sc-if value="{{ searchable }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:8px 8px 4px;flex:0 0 auto">
+          <div style="display:flex;align-items:center;gap:8px;height:38px;padding:0 12px;border-radius:var(--radius-pill);background:var(--neutral-100)">
+            <span style="display:inline-flex;color:var(--color-text-tertiary);flex:0 0 auto">
+              <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Icon" name="search" size="{{ chevronSize }}" hint-size="15px,15px"></x-import>
+            </span>
+            <input value="{{ query }}" onChange="{{ onQuery }}" onClick="{{ stop }}" placeholder="{{ searchPlaceholder }}" aria-label="Filter options" style="flex:1;min-width:0;border:none;background:transparent;font:inherit;font-size:14px;color:var(--color-text-primary);outline:none">
+          </div>
+        </div>
+      </sc-if>
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:6px">
+        <sc-for list="{{ items }}" as="o" hint-placeholder-count="4">
+          <button type="button" role="option" aria-selected="{{ o.selected }}" onClick="{{ o.onPick }}" style="{{ o.style }}" style-hover="background:var(--neutral-100)">
+            <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left">{{ o.label }}</span>
+            <sc-if value="{{ o.hasNote }}" hint-placeholder-val="{{ false }}">
+              <span style="flex:0 0 auto;font-size:12.5px;color:var(--color-text-tertiary)">{{ o.note }}</span>
+            </sc-if>
+            <sc-if value="{{ o.selected }}" hint-placeholder-val="{{ false }}">
+              <x-import component-from-global-scope="FormkitDesignSystem_e346e9.Icon" name="check" size="{{ chevronSize }}" hint-size="15px,15px"></x-import>
+            </sc-if>
+          </button>
+        </sc-for>
+        <sc-if value="{{ noMatch }}" hint-placeholder-val="{{ false }}">
+          <p style="margin:0;padding:14px;font-size:14px;color:var(--color-text-tertiary);line-height:1.5">Nothing matches "{{ query }}".</p>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:260,&quot;height&quot;:260},&quot;options&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(string | {value: string, label: string})[]&quot;,&quot;default&quot;:[&quot;Newest first&quot;,&quot;Oldest first&quot;]},&quot;value&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Newest first&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;size&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;sm&quot;,&quot;md&quot;,&quot;lg&quot;],&quot;default&quot;:&quot;md&quot;,&quot;tsType&quot;:&quot;'sm' | 'md' | 'lg'&quot;},&quot;placeholder&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Select…&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;searchable&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;searchPlaceholder&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Search&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;preview&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;font&quot;],&quot;default&quot;:&quot;none&quot;,&quot;tsType&quot;:&quot;'none' | 'font'&quot;},&quot;onChange&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(e: {target: {value: string}}) =&gt; void&quot;}}">
+class Component extends DCLogic {
+  state = { open: false, query: '', place: null };
+
+  norm(o) { return typeof o === 'string' ? { value: o, label: o } : o; }
+
+  /* Measure where the trigger sits so the menu never opens off-screen:
+     flip above when there is no room below, and align to the right edge
+     when a left-aligned menu would overflow the viewport. */
+  measure() {
+    const el = this.root;
+    if (!el || !el.getBoundingClientRect) return null;
+    const r = el.getBoundingClientRect();
+    const vh = window.innerHeight || 0, vw = window.innerWidth || 0;
+    const pad = 12, gap = 6;
+    const below = vh - r.bottom - pad, above = r.top - pad;
+    const flipUp = below < 190 && above > below;
+    const space = Math.max(140, flipUp ? above : below) - gap;
+    const wide = Math.max(r.width, 240);
+    return {
+      up: flipUp,
+      maxHeight: Math.round(Math.min(300, space)),
+      right: r.left + wide > vw - pad && r.right - wide > pad
+    };
+  }
+
+  openMenu() {
+    this.setState({ open: true, query: '', place: this.measure() });
+    if (!this._watch) {
+      this._watch = () => { if (this.state.open) this.setState({ place: this.measure() }); };
+      window.addEventListener('resize', this._watch);
+      window.addEventListener('scroll', this._watch, true);
+    }
+  }
+
+  componentWillUnmount() {
+    if (this._watch) {
+      window.removeEventListener('resize', this._watch);
+      window.removeEventListener('scroll', this._watch, true);
+    }
+  }
+
+  renderVals() {
+    const p = this.props, open = this.state.open;
+    const opts = (p.options || []).map(o => this.norm(o));
+    const size = p.size || 'md';
+    const h = size === 'sm' ? 38 : size === 'lg' ? 56 : 48;
+    const current = opts.filter(o => o.value === p.value)[0];
+    const q = (this.state.query || '').trim().toLowerCase();
+    const hit = (o, s) => (s || '').toLowerCase().indexOf(q) >= 0;
+    const shown = q
+      ? opts.filter(o => hit(o, o.label)).concat(opts.filter(o => !hit(o, o.label) && hit(o, o.note)))
+      : opts;
+    const fontPreview = p.preview === 'font';
+    const pl = this.state.place || {};
+    return {
+      open,
+      rootRef: el => { this.root = el; },
+      menuStyle: {
+        position: 'absolute',
+        [pl.up ? 'bottom' : 'top']: 'calc(100% + 6px)',
+        [pl.right ? 'right' : 'left']: 0,
+        minWidth: opts.some(o => o.note) ? 'max(100%, 250px)' : '100%', maxWidth: 'min(320px, calc(100vw - 24px))',
+        maxHeight: (pl.maxHeight || 300) + 'px',
+        display: 'flex', flexDirection: 'column', zIndex: 80,
+        background: 'var(--color-surface-raised)', borderRadius: 'var(--radius-lg)',
+        boxShadow: 'var(--shadow-lg)',
+        animation: 'fk-pop var(--duration-fast) var(--ease-out)'
+      },
+      searchable: !!p.searchable,
+      searchPlaceholder: p.searchPlaceholder || 'Search',
+      query: this.state.query,
+      onQuery: e => this.setState({ query: e.target.value }),
+      stop: e => e.stopPropagation(),
+      noMatch: !!q && shown.length === 0,
+      chevronSize: 16,
+      label: current ? current.label : (p.placeholder || 'Select…'),
+      triggerStyle: {
+        display: 'flex', alignItems: 'center', gap: 10, width: '100%', height: h,
+        padding: size === 'sm' ? '0 14px 0 16px' : '0 16px 0 20px',
+        borderRadius: 'var(--radius-input)',
+        border: '1px solid ' + (open ? 'var(--color-border-focus)' : 'var(--color-border-default)'),
+        background: 'var(--color-surface-card)',
+        boxShadow: open ? '0 0 0 4px var(--blue-100)' : 'var(--shadow-xs)',
+        fontFamily: fontPreview && current ? ('"' + current.value + '", var(--font-sans)') : 'inherit',
+        fontSize: 'var(--text-input-size)',
+        color: current ? 'var(--color-text-primary)' : 'var(--color-text-placeholder)',
+        cursor: 'pointer', outline: 'none',
+        transition: 'var(--transition-control)'
+      },
+      chevronStyle: {
+        display: 'inline-flex', flex: '0 0 auto', color: 'var(--color-text-tertiary)',
+        transform: open ? 'rotate(180deg)' : 'none', transition: 'var(--transition-control)'
+      },
+      toggle: () => { if (this.state.open) this.setState({ open: false, query: '' }); else this.openMenu(); },
+      close: () => this.setState({ open: false, query: '' }),
+      items: shown.map(o => ({
+        label: o.label,
+        note: o.note || '',
+        hasNote: !!o.note,
+        selected: o.value === p.value,
+        style: {
+          fontFamily: fontPreview ? ('"' + o.value + '", var(--font-sans)') : 'inherit',
+          display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+          padding: '10px 14px', border: 'none', borderRadius: 'var(--radius-pill)',
+          background: o.value === p.value ? 'var(--blue-50)' : 'transparent',
+          fontSize: fontPreview ? '15.5px' : '14.5px', color: 'var(--color-text-primary)',
+          cursor: 'pointer', transition: 'var(--transition-control)'
+        },
+        onPick: () => {
+          this.setState({ open: false, query: '' });
+          if (p.onChange) p.onChange({ target: { value: o.value } });
+        }
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>
