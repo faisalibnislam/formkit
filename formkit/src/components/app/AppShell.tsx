@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import {
   Bell,
@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import { NightSky } from "@/components/brand/NightSky";
+import { AppSky, periodFor } from "@/components/brand/AppSky";
 import { Logo } from "@/components/brand/Logo";
 import { PillTabs } from "@/components/ui";
 import { CreateFormDialog } from "./CreateFormDialog";
@@ -32,6 +32,8 @@ import { NotificationsDrawer } from "./NotificationsDrawer";
 import { CommandPalette } from "./CommandPalette";
 import { EditorHeader } from "./EditorHeader";
 import { AvatarPill, ClientTab, TabSummary } from "./ds";
+import { SessionGate } from "./AccountGates";
+import { SETTINGS_TABS, settingsHref, settingsTabOf } from "./Settings";
 
 /**
  * The signed-in shell.
@@ -77,13 +79,74 @@ function greeting(hour: number) {
   return "Good evening";
 }
 
+/**
+ * What stands in front of the app: a session that still owes its two-factor
+ * code, or an account deleted inside its 30-day window, sees that screen and
+ * nothing else — every other query would refuse it anyway.
+ */
 export function AppShell({ children }: { children: ReactNode }) {
+  return (
+    <SessionGate>
+      <AppFrame>{children}</AppFrame>
+    </SessionGate>
+  );
+}
+
+/** The device a session is on, in the words the sessions list uses. */
+function deviceLabel() {
+  const ua = navigator.userAgent;
+  const browser = /Edg\//.test(ua)
+    ? "Edge"
+    : /Firefox\//.test(ua)
+      ? "Firefox"
+      : /Chrome\//.test(ua)
+        ? "Chrome"
+        : /Safari\//.test(ua)
+          ? "Safari"
+          : "A browser";
+  const os = /iPhone/.test(ua)
+    ? "iPhone"
+    : /iPad/.test(ua)
+      ? "iPad"
+      : /Android/.test(ua)
+        ? "Android"
+        : /Mac OS X/.test(ua)
+          ? "Mac"
+          : /Windows/.test(ua)
+            ? "Windows"
+            : /Linux/.test(ua)
+              ? "Linux"
+              : "";
+  return os ? `${browser} on ${os}` : browser;
+}
+
+function AppFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const search = useSearchParams();
   const router = useRouter();
   const { signOut } = useAuthActions();
 
   const viewer = useQuery(api.users.viewer, {});
+  const acceptPending = useMutation(api.collaborators.acceptPending);
+  const touch = useMutation(api.security.touch);
+
+  // The sessions list in Settings names each device; this is where it learns
+  // this one, and where a new sign-in alert is set off.
+  const touched = useRef(false);
+  useEffect(() => {
+    if (!viewer || touched.current) return;
+    touched.current = true;
+    void touch({ device: deviceLabel() }).catch(() => {});
+  }, [viewer, touch]);
+
+  // Invitations sent to this address before the account existed become live
+  // on the way in.
+  const accepted = useRef(false);
+  useEffect(() => {
+    if (!viewer || accepted.current) return;
+    accepted.current = true;
+    void acceptPending({}).catch(() => {});
+  }, [viewer, acceptPending]);
   const formsList = useQuery(api.forms.list, { filter: "all" });
   const notifications = useQuery(api.notifications.recent, {});
   const analytics = useQuery(api.analytics.overview, {});
@@ -97,6 +160,32 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [floating, setFloating] = useState(false);
 
   const headerRef = useRef<HTMLElement>(null);
+
+  /* The clock is the reader's, not the server's. Rendering the greeting or
+     today's date during SSR hydrates into a mismatch for everyone who is not
+     in the server's timezone — which is very nearly everyone — and React then
+     throws away the tree and rebuilds it. Both are read after mount instead. */
+  const [clock, setClock] = useState<{ hour: number; today: string } | null>(null);
+  useEffect(() => {
+    const read = () => {
+      const at = new Date();
+      setClock({
+        hour: at.getHours(),
+        today: at.toLocaleDateString("en-US", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+        }),
+      });
+    };
+    // Re-read each minute, so a morning greeting becomes an afternoon one.
+    const first = window.setTimeout(read, 0);
+    const every = window.setInterval(read, 60_000);
+    return () => {
+      window.clearTimeout(first);
+      window.clearInterval(every);
+    };
+  }, []);
 
   // The floating rail appears once the header has scrolled away.
   useEffect(() => {
@@ -132,7 +221,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [pathname]);
 
   const inSettings = pathname?.startsWith("/app/settings") ?? false;
-  const showDock = !editorId && !inSettings;
+  const showDock = !editorId;
+  const settingsTab = settingsTabOf(search.get("tab"));
+  const sharing = useQuery(api.collaborators.people, inSettings ? {} : "skip");
 
   const nav = useMemo(
     () => (viewer?.ai.allowed ? [...NAV, ASK_NAV] : NAV),
@@ -229,7 +320,25 @@ export function AppShell({ children }: { children: ReactNode }) {
     [counts, live, unread, completion, templateCount, askAllowed, askCreditsLeft],
   );
 
-  const hour = new Date().getHours();
+  /* In Settings the dock holds its sections instead of the pages, each with
+     the one fact worth seeing at a glance. */
+  const skyWord = { sync: "Sync with time", morning: "Morning", afternoon: "Afternoon", evening: "Evening" } as const;
+  const settingsDock = SETTINGS_TABS.map((t) => ({
+    key: t.value,
+    href: settingsHref(t.value),
+    name: t.label,
+    meta: t.meta,
+    icon: <t.icon size={15} strokeWidth={1.8} aria-hidden />,
+    ...{
+      account: { label: "Signed in as:", value: viewer?.name ?? "" },
+      company: { label: "Companies:", value: viewer?.companies.length ? String(viewer.companies.length) : "None" },
+      general: { label: "Sky:", value: viewer ? skyWord[viewer.skyPref] : "" },
+      members: { label: "Shared with:", value: String(sharing?.people.length ?? 0) },
+      notifications: { label: "Sent to:", value: viewer?.emailPrefs.to ?? "" },
+      exports: { label: "Responses:", value: (analytics?.lifetime?.responses ?? 0).toLocaleString("en-US") },
+    }[t.value],
+  }));
+
   const firstName = (viewer?.name ?? "").trim().split(/\s+/)[0] || "there";
 
   /**
@@ -244,12 +353,8 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const heroes: Record<string, { eyebrow: string; title: string; sub: string }> = {
     home: {
-      eyebrow: new Date().toLocaleDateString("en-US", {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-      }),
-      title: `${greeting(hour)}, ${firstName}`,
+      eyebrow: clock?.today ?? "",
+      title: clock ? `${greeting(clock.hour)}, ${firstName}` : `Hello, ${firstName}`,
       sub: counts?.all
         ? "Here's what's happening with your forms."
         : "Nothing here yet. One form is all it takes to start.",
@@ -301,7 +406,17 @@ export function AppShell({ children }: { children: ReactNode }) {
         data-dock={showDock || editorId ? "true" : undefined}
         style={{ paddingBottom: showDock || editorId ? undefined : BAND_PAD }}
       >
-        <NightSky />
+        {/* Evening until the clock is read, so the server and the first
+            client render agree. */}
+        <AppSky
+          period={
+            viewer && viewer.skyPref !== "sync"
+              ? viewer.skyPref
+              : clock
+                ? periodFor(clock.hour)
+                : "evening"
+          }
+        />
 
         <div className="fk-app-bar">
           <div className="fk-app-bar-left">
@@ -461,7 +576,23 @@ export function AppShell({ children }: { children: ReactNode }) {
               </div>
             </div>
 
-            {showDock && (
+            {showDock && inSettings && (
+              <div className="fk-dock">
+                {settingsDock.map((d) => (
+                  <ClientTab
+                    key={d.key}
+                    href={d.href}
+                    name={d.name}
+                    meta={d.meta}
+                    mark={d.icon}
+                    active={d.key === settingsTab}
+                  >
+                    {d.key === settingsTab && <TabSummary label={d.label} value={d.value} />}
+                  </ClientTab>
+                ))}
+              </div>
+            )}
+            {showDock && !inSettings && (
               <div className="fk-dock">
                 {dock.map((d) => (
                   <ClientTab
@@ -487,15 +618,28 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="fk-float">
           <div className="fk-float-inner">
             <div className="fk-float-rail">
-              <PillTabs
-                ariaLabel="Sections"
-                tabs={nav.map((n) => ({ value: n.value, label: n.label, icon: n.icon }))}
-                value={current}
-                onChange={(next) => {
-                  const target = nav.find((n) => n.value === next);
-                  if (target) router.push(target.href);
-                }}
-              />
+              {inSettings ? (
+                <PillTabs
+                  ariaLabel="Settings sections"
+                  tabs={SETTINGS_TABS.map((t) => ({
+                    value: t.value,
+                    label: t.label,
+                    icon: <t.icon size={16} strokeWidth={1.8} aria-hidden />,
+                  }))}
+                  value={settingsTab}
+                  onChange={(next) => router.replace(settingsHref(next), { scroll: false })}
+                />
+              ) : (
+                <PillTabs
+                  ariaLabel="Sections"
+                  tabs={nav.map((n) => ({ value: n.value, label: n.label, icon: n.icon }))}
+                  value={current}
+                  onChange={(next) => {
+                    const target = nav.find((n) => n.value === next);
+                    if (target) router.push(target.href);
+                  }}
+                />
+              )}
             </div>
           </div>
         </div>

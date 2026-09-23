@@ -100,6 +100,7 @@ export const remove = mutation({
     }
 
     if (company.handle) await releaseHandle(ctx, user._id, company.handle);
+    if (company.logoId) await ctx.storage.delete(company.logoId).catch(() => undefined);
     await ctx.db.delete(companyId);
     return null;
   },

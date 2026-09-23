@@ -3,6 +3,7 @@
 import {
   AlignLeft,
   AtSign,
+  Building2,
   Calendar,
   ChevronDown,
   CircleDot,
@@ -11,6 +12,8 @@ import {
   Hash,
   Link as LinkIcon,
   ListChecks,
+  Mail,
+  MapPin,
   Paperclip,
   PenLine,
   Phone,
@@ -18,6 +21,7 @@ import {
   Star,
   ToggleLeft,
   Type,
+  User,
 } from "lucide-react";
 import type { ComponentType } from "react";
 
@@ -46,6 +50,10 @@ const ICONS: Record<string, ComponentType<{ size?: number; strokeWidth?: number 
   clock: Clock,
   paperclip: Paperclip,
   "pen-line": PenLine,
+  mail: Mail,
+  user: User,
+  "building-2": Building2,
+  "map-pin": MapPin,
 };
 
 export function FieldIcon({ name, size = 15 }: { name: string; size?: number }) {

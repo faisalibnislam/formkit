@@ -1,18 +1,31 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import { Doc } from "./_generated/dataModel";
+import { internalMutation, mutation, query, type MutationCtx } from "./_generated/server";
+import { Doc, Id } from "./_generated/dataModel";
 import { requireUser } from "./model/identity";
 import {
   completionRate,
   formFor,
+  formIdentity,
   shouldAutoClose,
+  themeLogos,
   storedBlock,
   uniqueSlug,
+  purgeFormData,
 } from "./model/forms";
 import { builtinTemplate } from "./model/builtinTemplates";
 import { formUrl } from "./model/handles";
+import { hashPassword, newSalt, publicSecurity, securityOf } from "./model/security";
 
 const DELETED_WINDOW_DAYS = 60;
+
+/** Version numbers only ever go up, whatever restoring has inserted. */
+async function nextVersion(ctx: MutationCtx, formId: Id<"forms">) {
+  const rows = await ctx.db
+    .query("versions")
+    .withIndex("by_form", (q) => q.eq("formId", formId))
+    .collect();
+  return rows.reduce((n, r) => Math.max(n, r.number), 0) + 1;
+}
 
 async function decorate(ctx: Parameters<typeof formUrl>[0], form: Doc<"forms">) {
   const blocks = await ctx.db
@@ -60,6 +73,7 @@ export const list = query({
         v.literal("draft"),
         v.literal("published"),
         v.literal("closed"),
+        v.literal("archived"),
         v.literal("deleted"),
       ),
     ),
@@ -76,7 +90,9 @@ export const list = query({
     const rows = all
       .filter((f) => (filter === "deleted" ? !!f.deletedAt : !f.deletedAt))
       .filter((f) => (filter === "all" || filter === "deleted" ? true : f.status === filter))
-      .filter((f) => (term ? f.title.toLowerCase().includes(term) : true))
+      .filter((f) =>
+        term ? `${f.title} ${f.description ?? ""}`.toLowerCase().includes(term) : true,
+      )
       .sort((a, b) => b.updatedAt - a.updatedAt);
 
     const counts = {
@@ -84,6 +100,7 @@ export const list = query({
       draft: all.filter((f) => !f.deletedAt && f.status === "draft").length,
       published: all.filter((f) => !f.deletedAt && f.status === "published").length,
       closed: all.filter((f) => !f.deletedAt && f.status === "closed").length,
+      archived: all.filter((f) => !f.deletedAt && f.status === "archived").length,
       deleted: all.filter((f) => !!f.deletedAt).length,
     };
 
@@ -109,7 +126,10 @@ export const get = query({
       welcome: form.welcome ?? null,
       thanks: form.thanks ?? null,
       theme: form.theme ?? null,
+      logos: await themeLogos(ctx, form.theme),
+      identity: await formIdentity(ctx, form),
       notify: form.notify ?? null,
+      security: publicSecurity(form.security),
       closing: form.closing ?? null,
       blocks: blocks.sort((a, b) => a.order - b.order),
       rules: rules.sort((a, b) => a.order - b.order),
@@ -130,12 +150,16 @@ export const create = mutation({
 
     // A saved template is a row; the six Formkit ships with live in code, so
     // they exist on a brand-new deployment with nothing seeded.
-    const template = args.templateSlug
-      ? ((await ctx.db
-          .query("templates")
-          .withIndex("by_slug", (q) => q.eq("slug", args.templateSlug!))
-          .first()) ?? builtinTemplate(args.templateSlug))
-      : null;
+    // Only the person's own saved templates, or a built-in one.
+    const saved = args.templateSlug
+      ? (
+          await ctx.db
+            .query("templates")
+            .withIndex("by_slug", (q) => q.eq("slug", args.templateSlug!))
+            .collect()
+        ).find((t) => t.ownerId === user._id)
+      : undefined;
+    const template = args.templateSlug ? (saved ?? builtinTemplate(args.templateSlug)) : null;
 
     const title = args.title?.trim() || template?.name || "Untitled form";
 
@@ -176,14 +200,41 @@ export const create = mutation({
     });
 
     const blocks = (template?.blocks as unknown[] | undefined) ?? [];
+    const ids: Id<"blocks">[] = [];
     for (const [i, block] of blocks.entries()) {
-      await ctx.db.insert("blocks", { ...storedBlock(block), formId, order: i });
+      ids.push(await ctx.db.insert("blocks", { ...storedBlock(block), formId, order: i }));
+    }
+
+    // Logic travels by position, and is re-pointed at the new questions.
+    const rules = ((template && "rules" in template ? template.rules : undefined) ?? []) as {
+      name: string;
+      enabled: boolean;
+      join: "and" | "or";
+      action: "show" | "hide" | "require" | "jump";
+      targetIndex: number | null;
+      conditions: { index: number | null; operator: string; value?: string }[];
+    }[];
+    for (const [i, r] of rules.entries()) {
+      await ctx.db.insert("logicRules", {
+        formId,
+        name: r.name,
+        enabled: r.enabled,
+        join: r.join,
+        action: r.action,
+        targetId: r.targetIndex !== null ? ids[r.targetIndex] : undefined,
+        conditions: r.conditions.map((c) => ({
+          blockId: c.index !== null ? ids[c.index] : undefined,
+          operator: c.operator,
+          value: c.value,
+        })),
+        order: i,
+      });
     }
 
     await ctx.db.insert("activity", {
       formId,
       userId: user._id,
-      what: template ? `Created from the ${template.name} template` : "Created the form",
+      what: template ? `created the form from the ${template.name} template` : "created the form",
       at: now,
     });
 
@@ -214,6 +265,64 @@ export const update = mutation({
 });
 
 /**
+ * Merge keys into one of a form's settings objects — theme, notify, welcome,
+ * thanks — on the server, so two quick changes to different keys never
+ * overwrite each other the way two whole-object writes would.
+ */
+export const patchSettings = mutation({
+  args: {
+    formId: v.id("forms"),
+    key: v.union(
+      v.literal("theme"),
+      v.literal("notify"),
+      v.literal("welcome"),
+      v.literal("thanks"),
+      v.literal("security"),
+    ),
+    patch: v.any(),
+  },
+  returns: v.null(),
+  handler: async (ctx, { formId, key, patch }) => {
+    const form = await formFor(ctx, formId);
+    if (key === "security") {
+      // The password goes through setPassword, which hashes it.
+      const p = patch as Record<string, unknown>;
+      delete p.passwordHash;
+      delete p.passwordSalt;
+      delete p.password;
+    }
+    const current = ((form as Record<string, unknown>)[key] ?? {}) as Record<string, unknown>;
+    await ctx.db.patch(formId, {
+      [key]: { ...current, ...(patch as Record<string, unknown>) },
+      updatedAt: Date.now(),
+    });
+    return null;
+  },
+});
+
+/** Set, change or clear the password a form asks for. Only its hash is kept. */
+export const setPassword = mutation({
+  args: { formId: v.id("forms"), password: v.optional(v.string()) },
+  returns: v.null(),
+  handler: async (ctx, { formId, password }) => {
+    const form = await formFor(ctx, formId);
+    const current = securityOf(form.security);
+    const clean = password?.trim();
+    if (clean !== undefined && clean.length < 4) {
+      throw new Error("Use at least four characters, so it is not guessed on the first try.");
+    }
+    const salt = newSalt();
+    await ctx.db.patch(formId, {
+      security: clean
+        ? { ...current, password: true, passwordSalt: salt, passwordHash: await hashPassword(clean, salt) }
+        : { ...current, password: false, passwordHash: undefined, passwordSalt: undefined },
+      updatedAt: Date.now(),
+    });
+    return null;
+  },
+});
+
+/**
  * Publishing snapshots the questions. Closing is a separate thing: it stops new
  * answers but keeps the form live. Unpublishing takes it back to draft and
  * keeps every response.
@@ -231,13 +340,14 @@ export const publish = mutation({
       .withIndex("by_form_order", (q) => q.eq("formId", formId))
       .collect();
 
-    const number = (form.liveVersion ?? 0) + 1;
+    const number = await nextVersion(ctx, formId);
     await ctx.db.insert("versions", {
       formId,
       number,
       label: number === 1 ? "First published" : "Published changes",
       blocks: blocks.sort((a, b) => a.order - b.order),
       publishedAt: now,
+      publishedBy: user.name ?? user.email ?? "You",
     });
 
     await ctx.db.patch(formId, {
@@ -248,7 +358,7 @@ export const publish = mutation({
     await ctx.db.insert("activity", {
       formId,
       userId: user._id,
-      what: number === 1 ? "Published the form" : `Published version ${number}`,
+      what: number === 1 ? "published the form" : `published version ${number}`,
       at: now,
     });
     return null;
@@ -265,7 +375,7 @@ export const unpublish = mutation({
     await ctx.db.insert("activity", {
       formId,
       userId: user._id,
-      what: "Unpublished the form — responses kept",
+      what: "unpublished the form — responses kept",
       at: Date.now(),
     });
     return null;
@@ -280,8 +390,10 @@ export const setClosing = mutation({
     closing: v.optional(
       v.object({
         message: v.optional(v.string()),
-        closeAt: v.optional(v.number()),
-        closeAfter: v.optional(v.number()),
+        /** null switches the rule off. */
+        closeAt: v.optional(v.union(v.number(), v.null())),
+        closeAfter: v.optional(v.union(v.number(), v.null())),
+        timezone: v.optional(v.string()),
       }),
     ),
   },
@@ -291,7 +403,9 @@ export const setClosing = mutation({
     const user = await requireUser(ctx);
     const now = Date.now();
 
-    const next = { ...(form.closing ?? {}), ...(closing ?? {}) };
+    const merged: Record<string, unknown> = { ...(form.closing ?? {}), ...(closing ?? {}) };
+    for (const k of Object.keys(merged)) if (merged[k] === null) delete merged[k];
+    const next = merged as NonNullable<Doc<"forms">["closing"]>;
 
     if (closeNow) {
       await ctx.db.patch(formId, {
@@ -302,7 +416,7 @@ export const setClosing = mutation({
       await ctx.db.insert("activity", {
         formId,
         userId: user._id,
-        what: "Closed the form",
+        what: "closed the form",
         at: now,
       });
       return null;
@@ -327,7 +441,7 @@ export const setClosing = mutation({
       await ctx.db.insert("activity", {
         formId,
         userId: user._id,
-        what: "Reopened the form",
+        what: "reopened the form",
         at: now,
       });
       return null;
@@ -338,12 +452,33 @@ export const setClosing = mutation({
   },
 });
 
+/** Put a form away, or bring it back as a draft. Everything in it is kept. */
+export const archive = mutation({
+  args: { formId: v.id("forms"), archived: v.boolean() },
+  returns: v.null(),
+  handler: async (ctx, { formId, archived }) => {
+    await formFor(ctx, formId);
+    const user = await requireUser(ctx);
+    await ctx.db.patch(formId, { status: archived ? "archived" : "draft", updatedAt: Date.now() });
+    await ctx.db.insert("activity", {
+      formId,
+      userId: user._id,
+      what: archived ? "archived the form" : "restored the form from the archive",
+      icon: "archive",
+      at: Date.now(),
+    });
+    return null;
+  },
+});
+
 /** Deleting moves a form to the bin, where it sits for 60 days. */
 export const softDelete = mutation({
   args: { formId: v.id("forms") },
   returns: v.null(),
   handler: async (ctx, { formId }) => {
-    await formFor(ctx, formId);
+    const form = await formFor(ctx, formId);
+    const me = await requireUser(ctx);
+    if (form.ownerId !== me._id) throw new Error("Only the owner can delete or restore a form.");
     await ctx.db.patch(formId, { deletedAt: Date.now(), updatedAt: Date.now() });
     return null;
   },
@@ -353,7 +488,9 @@ export const restore = mutation({
   args: { formId: v.id("forms") },
   returns: v.null(),
   handler: async (ctx, { formId }) => {
-    await formFor(ctx, formId);
+    const form = await formFor(ctx, formId);
+    const me = await requireUser(ctx);
+    if (form.ownerId !== me._id) throw new Error("Only the owner can delete or restore a form.");
     await ctx.db.patch(formId, { deletedAt: undefined, updatedAt: Date.now() });
     return null;
   },
@@ -377,22 +514,12 @@ export const purge = mutation({
         : [];
 
     for (const form of targets) {
-      // `blocks` is indexed by form *and* order, so it is swept on its own.
-      const blocks = await ctx.db
-        .query("blocks")
-        .withIndex("by_form_order", (q) => q.eq("formId", form._id))
-        .collect();
-      for (const row of blocks) await ctx.db.delete(row._id);
-
-      for (const table of ["logicRules", "responses", "versions"] as const) {
-        const rows = await ctx.db
-          .query(table)
-          .withIndex("by_form", (q) => q.eq("formId", form._id))
-          .collect();
-        for (const row of rows) await ctx.db.delete(row._id);
-      }
-      await ctx.db.delete(form._id);
+      // Only the owner empties the bin, and only what is already in it.
+      if (form.ownerId !== user._id) throw new Error("Only the owner can delete a form forever.");
+      if (!form.deletedAt) throw new Error("Move the form to Deleted first.");
     }
+
+    for (const form of targets) await purgeFormData(ctx, form);
     return null;
   },
 });
@@ -453,6 +580,7 @@ export const versions = query({
         number: r.number,
         label: r.label,
         publishedAt: r.publishedAt,
+        publishedBy: r.publishedBy ?? null,
         questions: (r.blocks as { kind: string }[]).filter((b) => b.kind === "field").length,
         live: r.number === form.liveVersion,
       }));
@@ -474,12 +602,14 @@ export const restoreVersion = mutation({
       .withIndex("by_form_order", (q) => q.eq("formId", form._id))
       .collect();
 
+    const user = await requireUser(ctx);
     await ctx.db.insert("versions", {
       formId: form._id,
-      number: (form.liveVersion ?? 0) + 1,
+      number: await nextVersion(ctx, form._id),
       label: `Before restoring version ${version.number}`,
       blocks: current.sort((a, b) => a.order - b.order),
       publishedAt: now,
+      publishedBy: user.name ?? user.email ?? "You",
     });
 
     for (const block of current) await ctx.db.delete(block._id);
@@ -512,10 +642,28 @@ export const unpublishedChanges = query({
       .withIndex("by_form_order", (q) => q.eq("formId", formId))
       .collect();
 
-    const shape = (b: { title?: string; type?: string; required?: boolean }) =>
-      `${b.type ?? ""}|${b.title ?? ""}|${b.required ? "1" : "0"}`;
-    const before = new Set((live.blocks as typeof current).map(shape));
-    return current.filter((b) => !before.has(shape(b))).length;
+    // A question counts once whether it was added, edited or removed.
+    const shape = (b: {
+      kind?: string;
+      title?: string;
+      pageName?: string;
+      type?: string;
+      required?: boolean;
+      options?: string[];
+    }) =>
+      [b.kind, b.type ?? "", b.title ?? b.pageName ?? "", b.required ? 1 : 0, (b.options ?? []).join("|")].join("¦");
+    const before = (live.blocks as typeof current).map(shape);
+    const after = current.sort((a, b) => a.order - b.order).map(shape);
+    const pool = [...before];
+    let changed = 0;
+    for (const s of after) {
+      const i = pool.indexOf(s);
+      if (i >= 0) pool.splice(i, 1);
+      else changed++;
+    }
+    // What is left in the pool was removed or replaced; a replacement is
+    // already counted above.
+    return Math.max(changed, pool.length);
   },
 });
 
@@ -542,11 +690,58 @@ export const sweepClosing = mutation({
       await ctx.db.insert("activity", {
         formId: form._id,
         userId: user._id,
-        what: "Closed automatically",
+        what: "set a closing rule that has now closed the form",
         at: now,
       });
       closed++;
     }
     return closed;
+  },
+});
+
+/** Every few minutes: closing rules whose date or count has arrived take effect. */
+export const sweepAllClosing = internalMutation({
+  args: {},
+  returns: v.number(),
+  handler: async (ctx) => {
+    const now = Date.now();
+    const forms = await ctx.db
+      .query("forms")
+      .withIndex("by_status", (q) => q.eq("status", "published"))
+      .collect();
+    let closed = 0;
+    for (const form of forms) {
+      if (!shouldAutoClose(form, now)) continue;
+      await ctx.db.patch(form._id, {
+        status: "closed",
+        closing: { ...(form.closing ?? {}), closedBy: "automatically", closedAt: now },
+        updatedAt: now,
+      });
+      await ctx.db.insert("activity", {
+        formId: form._id,
+        userId: form.ownerId,
+        what: "set a closing rule that has now closed the form",
+        at: now,
+      });
+      closed++;
+    }
+    return closed;
+  },
+});
+
+const BIN_DAYS = 60;
+
+/** Daily: forms in Deleted for 60 days are erased, a few at a time. */
+export const purgeExpired = internalMutation({
+  args: {},
+  returns: v.number(),
+  handler: async (ctx) => {
+    const cutoff = Date.now() - BIN_DAYS * 24 * 60 * 60 * 1000;
+    const old = await ctx.db
+      .query("forms")
+      .withIndex("by_deleted", (q) => q.gt("deletedAt", 0).lt("deletedAt", cutoff))
+      .take(10);
+    for (const form of old) await purgeFormData(ctx, form);
+    return old.length;
   },
 });

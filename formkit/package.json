@@ -9,14 +9,19 @@
     "lint": "eslint",
     "preview": "FK_PREVIEW=1 next dev --port 3001",
     "shots": "node scripts/shots.mjs",
-    "drag-check": "node scripts/drag-check.mjs"
+    "drag-check": "node scripts/drag-check.mjs",
+    "menu-check": "node scripts/menu-check.mjs",
+    "hero-check": "node scripts/hero-check.mjs"
   },
   "dependencies": {
     "@auth/core": "^0.41.3",
     "@convex-dev/auth": "^0.0.95",
     "convex": "^1.46.0",
+    "fflate": "^0.8.3",
+    "jspdf": "^4.2.1",
     "lucide-react": "^1.47.0",
     "next": "16.3.5",
+    "qrcode": "^1.5.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "resend": "^6.28.1"
@@ -24,6 +29,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",

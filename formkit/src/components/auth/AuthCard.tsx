@@ -74,6 +74,10 @@ export function AuthCard({ initialView }: { initialView: View }) {
 
   /** Where to land after a successful sign-in. */
   const landing = useCallback(() => {
+    // Where the person was going before they were asked to sign in — only ever
+    // a path on this site.
+    const next = params.get("next");
+    if (next && next.startsWith("/") && !next.startsWith("//")) return next;
     const template = params.get("template");
     const question = params.get("q");
     if (template) return `/app?template=${encodeURIComponent(template)}`;
@@ -488,7 +492,7 @@ export function AuthCard({ initialView }: { initialView: View }) {
             href="/terms"
             target="_blank"
             rel="noopener"
-            style={{ color: "#ffffff", textDecoration: "underline" }}
+            style={{ color: "#ffffff", fontWeight: 600 }}
           >
             terms of service
           </Link>{" "}
@@ -497,7 +501,7 @@ export function AuthCard({ initialView }: { initialView: View }) {
             href="/privacy"
             target="_blank"
             rel="noopener"
-            style={{ color: "#ffffff", textDecoration: "underline" }}
+            style={{ color: "#ffffff", fontWeight: 600 }}
           >
             privacy policy
           </Link>

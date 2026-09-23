@@ -25,6 +25,9 @@ const QUESTION_TYPES = [
   "email",
   "phone",
   "url",
+  "name",
+  "company",
+  "address",
   "number",
   "single-choice",
   "multi-choice",
@@ -173,7 +176,7 @@ export const apply = internalMutation({
     await ctx.db.insert("activity", {
       formId: target as Id<"forms">,
       userId,
-      what: formId ? "Rewrote the questions with Ask Formkit" : "Created with Ask Formkit",
+      what: formId ? "rewrote the questions with Ask Formkit" : "created the form with Ask Formkit",
       at: now,
     });
 

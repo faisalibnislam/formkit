@@ -110,3 +110,69 @@ export function renderExport({
     body: `<p style="margin:0;font-size:14.5px;line-height:1.6;color:${INK};">The file is called ${escapeHtml(filename)}. It opens in Numbers, Excel, Google Sheets, or anything else that reads a spreadsheet.</p>`,
   });
 }
+
+/** "Maya added you to Client Onboarding" — an invitation to work on a form. */
+export function renderInvite({
+  inviter,
+  formTitle,
+  role,
+  note,
+  link,
+}: {
+  inviter: string;
+  formTitle: string;
+  role: string;
+  note?: string;
+  link: string;
+}) {
+  const can =
+    role === "editor"
+      ? "You can edit its questions and read its responses."
+      : role === "commenter"
+        ? "You can read it and leave comments."
+        : "You can read it and its responses.";
+  return renderEmailShell({
+    heading: `${inviter} added you to ${formTitle}`,
+    lede: `As ${role === "editor" ? "an Editor" : role === "commenter" ? "a Commenter" : "a Viewer"}. ${can}`,
+    body: `${
+      note
+        ? `<p style="margin:0 0 4px;padding:14px 18px;border-radius:18px;background:${PAPER};font-size:14.5px;line-height:1.6;color:${INK};">${escapeHtml(note)}</p>`
+        : ""
+    }<p style="margin:14px 0 0;font-size:14px;line-height:1.6;color:${MUTED};">Sign in — or make an account — with this email address, and the form is waiting in your list.</p>${button("Open the form", link)}`,
+  });
+}
+
+/** Settings → Security → Sign-in alerts. */
+export function renderSignInAlert({ device, when, link }: { device: string; when: string; link: string }) {
+  return renderEmailShell({
+    heading: "A new sign-in to your Formkit account",
+    lede: `${device}, ${when}.`,
+    body: `<p style="margin:0;font-size:14.5px;line-height:1.6;color:${INK};">If this was you, there is nothing to do. If it was not, change your password now and sign out every other device from Settings → Account.</p>${button("Review your sessions", link)}`,
+  });
+}
+
+/** The daily summary and the weekly report, from Settings → Notifications. */
+export function renderDigest({
+  heading,
+  lede,
+  rows,
+  link,
+}: {
+  heading: string;
+  lede: string;
+  rows: { form: string; line: string }[];
+  link: string;
+}) {
+  const table = rows
+    .map(
+      (r) => `
+      <tr><td style="padding:12px 0 0;font-size:14.5px;font-weight:500;color:${INK};">${escapeHtml(r.form)}</td></tr>
+      <tr><td style="padding:2px 0 12px;font-size:13.5px;line-height:1.6;color:${MUTED};box-shadow:inset 0 -1px 0 ${RING};">${escapeHtml(r.line)}</td></tr>`,
+    )
+    .join("");
+  return renderEmailShell({
+    heading,
+    lede,
+    body: `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">${table}</table>${button("Open your responses", link)}`,
+  });
+}

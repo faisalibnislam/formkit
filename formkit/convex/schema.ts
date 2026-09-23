@@ -18,6 +18,9 @@ export const questionType = v.union(
   v.literal("email"),
   v.literal("phone"),
   v.literal("url"),
+  v.literal("name"),
+  v.literal("company"),
+  v.literal("address"),
   v.literal("number"),
   v.literal("single-choice"),
   v.literal("multi-choice"),
@@ -52,7 +55,9 @@ export default defineSchema({
     handle: v.optional(v.string()), // the person's own formkit.app/<handle>
     timezone: v.optional(v.string()),
     onboardedAt: v.optional(v.number()),
-    deactivatedAt: v.optional(v.number()), // 30-day restore window
+    deactivatedAt: v.optional(v.number()), // suspended by staff, or deleted by the person
+    /** Set only when the person deleted their own account: the 30-day restore window. */
+    selfDeletedAt: v.optional(v.number()),
 
     // Staff access to the admin console. Absent for ordinary customers.
     staffRole: v.optional(
@@ -64,9 +69,48 @@ export default defineSchema({
     aiLive: v.optional(v.boolean()),
     aiLiveSet: v.optional(v.boolean()),
     aiPeriod: v.optional(v.string()), // YYYY-MM, resets aiUsed on rollover
+
+    // Settings → Preferences: the header sky follows the clock unless pinned.
+    skyPref: v.optional(
+      v.union(v.literal("sync"), v.literal("morning"), v.literal("afternoon"), v.literal("evening")),
+    ),
+
+    // Settings → Account → Security.
+    signInAlerts: v.optional(v.boolean()), // absent means on
+    twoFactor: v.optional(
+      v.object({
+        secret: v.string(),
+        enabledAt: v.number(),
+        lastStep: v.optional(v.number()),
+        /** SHA-256 of each unused recovery code. */
+        recovery: v.array(v.string()),
+      }),
+    ),
+    twoFactorPending: v.optional(v.object({ secret: v.string(), at: v.number() })),
+    emailChange: v.optional(
+      v.object({ email: v.string(), codeHash: v.string(), expiresAt: v.number(), tries: v.number() }),
+    ),
+
+    // Settings → Notifications: what the account emails about, and the
+    // default recipient and wording every form starts from.
+    emailPrefs: v.optional(
+      v.object({
+        newResponse: v.optional(v.boolean()),
+        daily: v.optional(v.boolean()),
+        weekly: v.optional(v.boolean()),
+        to: v.optional(v.string()),
+        subject: v.optional(v.string()),
+        body: v.optional(v.string()),
+      }),
+    ),
+    // Settings → Exports → Email a copy: every new response, in full.
+    emailCopy: v.optional(v.object({ on: v.boolean(), to: v.string() })),
+    lastDaily: v.optional(v.string()), // YYYY-MM-DD in the person's zone
+    lastWeekly: v.optional(v.string()),
   })
     .index("email", ["email"])
-    .index("by_handle", ["handle"]),
+    .index("by_handle", ["handle"])
+    .index("by_self_deleted", ["selfDeletedAt"]),
 
   companies: defineTable({
     ownerId: v.id("users"),
@@ -108,7 +152,13 @@ export default defineSchema({
     title: v.string(),
     slug: v.string(),
     description: v.optional(v.string()),
-    status: v.union(v.literal("draft"), v.literal("published"), v.literal("closed")),
+    /** Archived: put away, out of the lists and off the public link, kept whole. */
+    status: v.union(
+      v.literal("draft"),
+      v.literal("published"),
+      v.literal("closed"),
+      v.literal("archived"),
+    ),
 
     welcome: v.optional(
       v.object({
@@ -129,6 +179,8 @@ export default defineSchema({
 
     theme: v.optional(v.any()),
     notify: v.optional(v.any()),
+    /** Who may answer, and how often. See `model/security.ts`. */
+    security: v.optional(v.any()),
     closing: v.optional(
       v.object({
         message: v.optional(v.string()),
@@ -136,6 +188,8 @@ export default defineSchema({
         closeAfter: v.optional(v.number()),
         closedBy: v.optional(v.string()),
         closedAt: v.optional(v.number()),
+        /** The zone a closing date is written in, and timestamps are read in. */
+        timezone: v.optional(v.string()),
       }),
     ),
 
@@ -151,7 +205,9 @@ export default defineSchema({
   })
     .index("by_owner", ["ownerId"])
     .index("by_owner_status", ["ownerId", "status"])
-    .index("by_slug", ["slug"]),
+    .index("by_slug", ["slug"])
+    .index("by_status", ["status"])
+    .index("by_deleted", ["deletedAt"]),
 
   /** Questions and page breaks share one ordered list, as in the builder. */
   blocks: defineTable({
@@ -164,6 +220,7 @@ export default defineSchema({
     placeholder: v.optional(v.string()),
     required: v.optional(v.boolean()),
     options: v.optional(v.array(v.string())),
+    /** Accepted file extensions, like ".pdf". Empty or absent takes anything. */
     accept: v.optional(v.array(v.string())),
     scaleMin: v.optional(v.number()),
     scaleMax: v.optional(v.number()),
@@ -211,6 +268,8 @@ export default defineSchema({
     ),
     respondentName: v.optional(v.string()),
     respondentEmail: v.optional(v.string()),
+    respondentPhone: v.optional(v.string()),
+    respondentCompany: v.optional(v.string()),
     device: v.optional(v.string()),
     source: v.optional(v.string()),
     durationMs: v.optional(v.number()),
@@ -218,10 +277,63 @@ export default defineSchema({
     note: v.optional(v.string()),
     resumeToken: v.optional(v.string()),
     versionNumber: v.optional(v.number()),
+    /** A random id the respondent's browser keeps, for the per-device rules. */
+    deviceId: v.optional(v.string()),
+    /** Sent from the builder's preview rather than the public link. */
+    preview: v.optional(v.boolean()),
+    /** The owner's own labels, shown on the response and on the contact. */
+    tags: v.optional(v.array(v.string())),
   })
     .index("by_form", ["formId"])
+    .index("by_form_device", ["formId", "deviceId"])
     .index("by_owner", ["ownerId"])
     .index("by_resume", ["resumeToken"]),
+
+  /**
+   * Each time a published form is opened or started, so views and starts can
+   * be counted inside a date range and by where people came from.
+   */
+  formEvents: defineTable({
+    formId: v.id("forms"),
+    ownerId: v.id("users"),
+    kind: v.union(v.literal("view"), v.literal("start")),
+    at: v.number(),
+    source: v.optional(v.string()),
+  })
+    .index("by_form_at", ["formId", "at"])
+    .index("by_owner_at", ["ownerId", "at"]),
+
+  /**
+   * What Formkit knows about each signed-in session: the device it is on,
+   * when it was last seen, and whether its two-factor code has been given.
+   */
+  sessionInfo: defineTable({
+    sessionId: v.id("authSessions"),
+    userId: v.id("users"),
+    device: v.string(),
+    firstSeen: v.number(),
+    lastSeen: v.number(),
+    twoFactorAt: v.optional(v.number()),
+    failures: v.optional(v.number()),
+    lockedUntil: v.optional(v.number()),
+  })
+    .index("by_session", ["sessionId"])
+    .index("by_user", ["userId"]),
+
+  /** Exports someone downloaded or emailed, so Settings can list them again. */
+  exports: defineTable({
+    userId: v.id("users"),
+    formId: v.optional(v.id("forms")),
+    what: v.union(v.literal("responses"), v.literal("contacts"), v.literal("analytics")),
+    format: v.union(v.literal("csv"), v.literal("xlsx")),
+    filename: v.string(),
+    rows: v.number(),
+    from: v.optional(v.number()),
+    to: v.optional(v.number()),
+    ids: v.optional(v.array(v.id("responses"))),
+    emailedTo: v.optional(v.string()),
+    at: v.number(),
+  }).index("by_user_at", ["userId", "at"]),
 
   /** Every publish freezes the questions. Newest first when read. */
   versions: defineTable({
@@ -230,6 +342,7 @@ export default defineSchema({
     label: v.string(),
     blocks: v.array(v.any()),
     publishedAt: v.number(),
+    publishedBy: v.optional(v.string()),
   }).index("by_form", ["formId", "number"]),
 
   templates: defineTable({
@@ -244,6 +357,8 @@ export default defineSchema({
     welcome: v.optional(v.any()),
     thanks: v.optional(v.any()),
     theme: v.optional(v.any()),
+    /** Logic rules, pointing at questions by their position in `blocks`. */
+    rules: v.optional(v.array(v.any())),
     keepsTheme: v.optional(v.boolean()),
     keepsLogic: v.optional(v.boolean()),
     keepsCopy: v.optional(v.boolean()),
@@ -278,10 +393,36 @@ export default defineSchema({
     formId: v.optional(v.id("forms")),
     userId: v.id("users"),
     what: v.string(),
+    /** A lucide icon name for the mark beside the line. */
+    icon: v.optional(v.string()),
     at: v.number(),
   })
     .index("by_form", ["formId"])
     .index("by_user", ["userId"]),
+
+  /**
+   * "Copy invite link": anyone who opens it while signed in joins the form in
+   * the role it was made with. It lasts seven days.
+   */
+  joinLinks: defineTable({
+    formId: v.id("forms"),
+    token: v.string(),
+    role: v.union(v.literal("editor"), v.literal("commenter"), v.literal("viewer")),
+    createdBy: v.id("users"),
+    expiresAt: v.number(),
+  })
+    .index("by_token", ["token"])
+    .index("by_form", ["formId"]),
+
+  /** Who has a form open right now, and on which question. */
+  presence: defineTable({
+    formId: v.id("forms"),
+    userId: v.id("users"),
+    blockId: v.optional(v.string()),
+    at: v.number(),
+  })
+    .index("by_form", ["formId"])
+    .index("by_form_user", ["formId", "userId"]),
 
   /** The customer-side record of what Formkit sent on their behalf. */
   emailLog: defineTable({

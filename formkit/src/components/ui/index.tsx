@@ -9,10 +9,12 @@ import {
   type ButtonHTMLAttributes,
   type CSSProperties,
   type InputHTMLAttributes,
+  type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
   type TextareaHTMLAttributes,
 } from "react";
-import { Check, ChevronDown, X } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Check, ChevronDown, Pipette, X } from "lucide-react";
 
 /**
  * Formkit's control primitives.
@@ -56,9 +58,15 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
 export function IconButton({
   label,
   tone,
+  tip,
   children,
   ...rest
-}: ButtonHTMLAttributes<HTMLButtonElement> & { label: string; tone?: "danger" }) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & {
+  label: string;
+  tone?: "danger";
+  /** Show the label as a dark tip above the button, instead of the browser's own. */
+  tip?: boolean;
+}) {
   // Every icon-only control takes a required label.
   return (
     <button
@@ -66,8 +74,9 @@ export function IconButton({
       {...rest}
       className={`ui-iconbtn ${rest.className ?? ""}`}
       data-tone={tone}
+      data-tip={tip ? label : undefined}
       aria-label={label}
-      title={label}
+      title={tip ? undefined : label}
     >
       {children}
     </button>
@@ -248,17 +257,41 @@ export function Select({
   onChange,
   placeholder = "Select…",
   ariaLabel,
+  size = "md",
+  searchable,
+  searchPlaceholder = "Search",
+  optionStyle,
+  onOpen,
 }: {
   value: string | null;
   options: SelectOption[];
   onChange: (value: string) => void;
   placeholder?: string;
   ariaLabel: string;
+  size?: "sm" | "md";
+  /** A filter box at the top of the menu, for long lists. */
+  searchable?: boolean;
+  searchPlaceholder?: string;
+  /** Per-option styling — a font list shows each name in its own face. */
+  optionStyle?: (o: SelectOption) => CSSProperties | undefined;
+  onOpen?: () => void;
 }) {
   const root = useRef<HTMLDivElement | null>(null);
+  const menu = useRef<HTMLDivElement | null>(null);
+  const search = useRef<HTMLInputElement | null>(null);
   const [open, setOpen] = useState(false);
   const [placement, setPlacement] = useState<"below" | "above">("below");
+  const [alignRight, setAlignRight] = useState(false);
+  const [rect, setRect] = useState<{ top: number; bottom: number; left: number; right: number; width: number } | null>(null);
+  const [query, setQuery] = useState("");
+  const [cursor, setCursor] = useState(-1);
   const id = useId();
+
+  const q = query.trim().toLowerCase();
+  const shown = q
+    ? options.filter((o) => `${o.label} ${o.note ?? ""}`.toLowerCase().includes(q))
+    : options;
+  const wide = options.some((o) => o.note);
 
   useEffect(() => {
     if (!open) return;
@@ -267,42 +300,83 @@ export function Select({
       const el = root.current;
       if (!el) return;
       const r = el.getBoundingClientRect();
-      const needed = Math.min(280, options.length * 42 + 12);
+      const needed = Math.min(searchable ? 340 : 280, options.length * 42 + (searchable ? 60 : 12));
       const below = window.innerHeight - r.bottom;
       setPlacement(below < needed && r.top > needed ? "above" : "below");
+      const menuWidth = Math.max(r.width, wide ? 300 : 0, searchable ? 260 : 0);
+      setAlignRight(r.left + menuWidth > window.innerWidth - 8);
+      setRect({ top: r.top, bottom: r.bottom, left: r.left, right: r.right, width: r.width });
     };
     place();
 
     const onDown = (e: PointerEvent) => {
-      if (root.current && !root.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      const t = e.target as Node;
+      if (root.current?.contains(t) || menu.current?.contains(t)) return;
+      setOpen(false);
     };
     window.addEventListener("scroll", place, true);
     window.addEventListener("resize", place);
     document.addEventListener("pointerdown", onDown);
-    document.addEventListener("keydown", onKey);
     return () => {
       window.removeEventListener("scroll", place, true);
       window.removeEventListener("resize", place);
       document.removeEventListener("pointerdown", onDown);
-      document.removeEventListener("keydown", onKey);
     };
-  }, [open, options.length]);
+  }, [open, options.length, searchable, wide]);
+
+  useEffect(() => {
+    if (open && searchable) search.current?.focus();
+  }, [open, searchable]);
 
   const selected = options.find((o) => o.value === value) ?? null;
-  const wide = options.some((o) => o.note);
+
+  const toggle = (next: boolean) => {
+    setOpen(next);
+    setQuery("");
+    setCursor(next ? Math.max(0, options.findIndex((o) => o.value === value)) : -1);
+    if (next) onOpen?.();
+  };
+  const pick = (o: SelectOption) => {
+    onChange(o.value);
+    toggle(false);
+  };
+
+  const onKeyDown = (e: ReactKeyboardEvent) => {
+    if (e.key === "Escape" && open) {
+      // Close this, not the dialog it sits in.
+      e.stopPropagation();
+      e.nativeEvent.stopImmediatePropagation();
+      toggle(false);
+      return;
+    }
+    if (!open && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+      e.preventDefault();
+      toggle(true);
+      return;
+    }
+    if (!open) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setCursor((c) => Math.min(shown.length - 1, c + 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setCursor((c) => Math.max(0, c - 1));
+    } else if (e.key === "Enter" && shown[cursor]) {
+      e.preventDefault();
+      pick(shown[cursor]!);
+    }
+  };
 
   return (
-    <div className="ui-select" ref={root}>
+    <div className="ui-select" ref={root} onKeyDown={onKeyDown}>
       <button
         type="button"
         className="ui-select-trigger"
+        data-size={size}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={ariaLabel}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => toggle(!open)}
       >
         <span
           style={{
@@ -312,6 +386,7 @@ export function Select({
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
             color: selected ? undefined : "var(--color-text-placeholder)",
+            ...(selected ? optionStyle?.(selected) : undefined),
           }}
         >
           {selected?.label ?? placeholder}
@@ -329,51 +404,173 @@ export function Select({
         />
       </button>
 
-      {open && (
+      {open && rect && (
+        /* In a portal, placed from the trigger's own box: a menu that stays
+           in the page is trapped under whatever stacking context it is in —
+           the dock paints over one that opens upward beneath it. */
+        <Portal>
         <div
-          id={id}
-          role="listbox"
-          aria-label={ariaLabel}
+          ref={menu}
           className="ui-select-menu"
+          data-searchable={searchable ? "true" : undefined}
           style={{
-            top: placement === "below" ? "calc(100% + 6px)" : undefined,
-            bottom: placement === "above" ? "calc(100% + 6px)" : undefined,
+            position: "fixed",
+            top: placement === "below" ? rect.bottom + 6 : undefined,
+            bottom: placement === "above" ? window.innerHeight - rect.top + 6 : undefined,
+            left: alignRight ? undefined : rect.left,
+            right: alignRight ? window.innerWidth - rect.right : undefined,
+            width: wide || searchable ? undefined : rect.width,
             // A note beside the label needs room, or the label clips.
-            minWidth: wide ? 300 : undefined,
+            minWidth: Math.max(rect.width, wide ? 300 : 0, searchable ? 260 : 0),
+            maxWidth: "calc(100vw - 16px)",
           }}
         >
-          {options.map((o) => (
-            <button
-              key={o.value}
-              type="button"
-              role="option"
-              aria-selected={o.value === value}
-              className="ui-select-option"
-              onClick={() => {
-                onChange(o.value);
-                setOpen(false);
-              }}
-            >
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: "block" }}>{o.label}</span>
-                {o.note && (
-                  <span
-                    style={{
-                      display: "block",
-                      marginTop: 2,
-                      fontSize: 12.5,
-                      color: "var(--color-text-tertiary)",
-                    }}
-                  >
-                    {o.note}
-                  </span>
-                )}
-              </span>
-              {o.value === value && <Check size={15} strokeWidth={2} aria-hidden />}
-            </button>
-          ))}
+          {searchable && (
+            <div className="ui-select-search">
+              <input
+                ref={search}
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setCursor(0);
+                }}
+                placeholder={searchPlaceholder}
+                aria-label="Filter options"
+              />
+            </div>
+          )}
+          <div id={id} role="listbox" aria-label={ariaLabel} className="ui-select-list">
+            {shown.length === 0 && <div className="ui-select-empty">Nothing matches “{query}”.</div>}
+            {shown.map((o, k) => (
+              <button
+                key={o.value}
+                type="button"
+                role="option"
+                aria-selected={o.value === value}
+                data-active={k === cursor ? "true" : undefined}
+                className="ui-select-option"
+                onMouseEnter={() => setCursor(k)}
+                onClick={() => pick(o)}
+              >
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", ...optionStyle?.(o) }}>{o.label}</span>
+                  {o.note && (
+                    <span
+                      style={{
+                        display: "block",
+                        marginTop: 2,
+                        fontSize: 12.5,
+                        color: "var(--color-text-tertiary)",
+                      }}
+                    >
+                      {o.note}
+                    </span>
+                  )}
+                </span>
+                {o.value === value && <Check size={15} strokeWidth={2} aria-hidden />}
+              </button>
+            ))}
+          </div>
         </div>
+        </Portal>
       )}
+    </div>
+  );
+}
+
+/* ---------- colour ---------- */
+
+const HEX = /^[0-9a-fA-F]{6}$/;
+
+function isLight(hex: string) {
+  const h = hex.replace("#", "");
+  if (!HEX.test(h)) return false;
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return 0.299 * r + 0.587 * g + 0.114 * b > 150;
+}
+
+/**
+ * A colour: a row of swatches, the system picker behind an eyedropper, and a
+ * hex field that only commits six valid digits — anything else says so in
+ * red and changes nothing.
+ */
+export function ColorField({
+  value,
+  onChange,
+  presets,
+  label,
+}: {
+  value: string;
+  onChange: (hex: string) => void;
+  presets: string[];
+  label: string;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const clean = (v: string) => v.replace("#", "").trim().slice(0, 6);
+  const shown = draft ?? clean(value);
+  const invalid = draft !== null && draft.length > 0 && !HEX.test(draft);
+  const commit = (hex: string) => {
+    const c = clean(hex);
+    if (HEX.test(c)) onChange(`#${c.toLowerCase()}`);
+  };
+
+  return (
+    <div className="ui-color">
+      <div className="ui-color-swatches">
+        {presets.map((hex) => (
+          <button
+            key={hex}
+            type="button"
+            className="ui-color-swatch"
+            title={hex}
+            aria-label={`${label} ${hex}`}
+            aria-pressed={hex.toLowerCase() === value.toLowerCase()}
+            style={{ background: hex }}
+            onClick={() => {
+              setDraft(null);
+              commit(hex);
+            }}
+          />
+        ))}
+      </div>
+      <div className="ui-color-row">
+        <label className="ui-color-native" style={{ background: value }} title="Pick any colour">
+          <input
+            type="color"
+            value={HEX.test(clean(value)) ? `#${clean(value)}` : "#000000"}
+            aria-label={`${label}: pick any colour`}
+            onChange={(e) => {
+              setDraft(null);
+              commit(e.target.value);
+            }}
+          />
+          <Pipette
+            size={16}
+            strokeWidth={1.8}
+            aria-hidden
+            style={{ color: isLight(value) ? "var(--neutral-900)" : "var(--neutral-0)", opacity: 0.8 }}
+          />
+        </label>
+        <span className="ui-color-hex" data-invalid={invalid ? "true" : undefined}>
+          <span style={{ color: "var(--color-text-tertiary)" }}>#</span>
+          <input
+            value={shown}
+            spellCheck={false}
+            maxLength={7}
+            aria-label={`${label} hex code`}
+            aria-invalid={invalid}
+            onChange={(e) => {
+              const v = clean(e.target.value);
+              setDraft(v);
+              if (HEX.test(v)) commit(v);
+            }}
+            onBlur={() => setDraft(null)}
+          />
+          {invalid && <span className="ui-color-err">6 digits</span>}
+        </span>
+      </div>
     </div>
   );
 }
@@ -451,7 +648,54 @@ export function PillTabs<T extends string>({
   );
 }
 
+/** A small set of mutually exclusive choices; an option may be an icon alone. */
+export function Segmented<T extends string>({
+  options,
+  value,
+  onChange,
+  ariaLabel,
+  size = "md",
+}: {
+  options: { value: T; label?: string; icon?: ReactNode; title?: string }[];
+  value: T;
+  onChange: (next: T) => void;
+  ariaLabel: string;
+  size?: "sm" | "md";
+}) {
+  return (
+    <div className="ui-pilltabs fk-no-scrollbar" role="radiogroup" aria-label={ariaLabel} data-size={size}>
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          role="radio"
+          aria-checked={o.value === value}
+          aria-selected={o.value === value}
+          aria-label={o.label ? undefined : (o.title ?? o.value)}
+          title={o.title}
+          className="ui-pilltab"
+          data-icon-only={o.label ? undefined : "true"}
+          onClick={() => onChange(o.value)}
+        >
+          {o.icon}
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /* ---------- overlays ---------- */
+
+/**
+ * Every overlay renders at the end of <body>. Rendered where it is declared, a
+ * fixed overlay is trapped in whatever stacking context its ancestors make,
+ * and the sticky dock paints over it however high its own z-index is.
+ */
+export function Portal({ children }: { children: ReactNode }) {
+  if (typeof document === "undefined") return null;
+  return createPortal(children, document.body);
+}
 
 export function Modal({
   title,
@@ -477,6 +721,7 @@ export function Modal({
   }, [onClose]);
 
   return (
+    <Portal>
     <div
       className="ui-scrim"
       onPointerDown={(e) => {
@@ -520,10 +765,11 @@ export function Modal({
             <X size={18} strokeWidth={1.8} aria-hidden />
           </IconButton>
         </div>
-        <div className="ui-modal-body">{children}</div>
+        {children != null && <div className="ui-modal-body">{children}</div>}
         {footer && <div className="ui-modal-foot">{footer}</div>}
       </div>
     </div>
+    </Portal>
   );
 }
 
@@ -547,6 +793,7 @@ export function Drawer({
   }, [onClose]);
 
   return (
+    <Portal>
     <div
       className="ui-scrim"
       style={{ padding: 0, justifyContent: "flex-end" }}
@@ -598,5 +845,6 @@ export function Drawer({
         )}
       </aside>
     </div>
+    </Portal>
   );
 }

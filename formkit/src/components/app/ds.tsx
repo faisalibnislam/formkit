@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowDownRight, ArrowUpRight, FileText } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Check, FileText, X } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
 
 /**
@@ -18,10 +18,26 @@ import type { CSSProperties, ReactNode } from "react";
 /* ---------- StatDot ---------- */
 
 /** The small round arrow that annotates a figure. `up` is good, `down` is not. */
-export function StatDot({ tone = "up", size = 18 }: { tone?: "up" | "down"; size?: number }) {
-  const Icon = tone === "up" ? ArrowUpRight : ArrowDownRight;
+export function StatDot({
+  tone = "up",
+  size = 18,
+  label,
+}: {
+  tone?: "up" | "down" | "success" | "warning";
+  size?: number;
+  label?: string;
+}) {
+  const Icon = { up: ArrowUpRight, down: ArrowDownRight, success: Check, warning: X }[tone];
   return (
-    <span className="fk-statdot" data-tone={tone} style={{ width: size, height: size }} aria-hidden>
+    <span
+      className="fk-statdot"
+      data-tone={tone}
+      style={{ width: size, height: size }}
+      role={label ? "img" : undefined}
+      aria-label={label}
+      aria-hidden={label ? undefined : true}
+      title={label}
+    >
       <Icon size={Math.round(size * 0.62)} strokeWidth={2.1} />
     </span>
   );

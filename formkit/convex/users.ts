@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { aiAllowed, aiLimit, currentUser, requireUser } from "./model/identity";
+import { aiAllowed, aiLimit, currentUser, requireUser, twoFactorPassed } from "./model/identity";
 
 /**
  * Everything the chrome needs to render: the person, their companies, whether
@@ -21,8 +21,29 @@ export const viewer = query({
       image: v.union(v.string(), v.null()),
       handle: v.union(v.string(), v.null()),
       timezone: v.union(v.string(), v.null()),
+      role: v.union(v.string(), v.null()),
+      skyPref: v.union(
+        v.literal("sync"),
+        v.literal("morning"),
+        v.literal("afternoon"),
+        v.literal("evening"),
+      ),
+      /** Signed in with a password, but this session still owes its code. */
+      twoFactorNeeded: v.boolean(),
       onboarded: v.boolean(),
       deactivated: v.boolean(),
+      /** When a deleted account is erased for good, if it has been deleted. */
+      suspended: v.boolean(),
+      restoreUntil: v.union(v.number(), v.null()),
+      emailPrefs: v.object({
+        newResponse: v.boolean(),
+        daily: v.boolean(),
+        weekly: v.boolean(),
+        to: v.string(),
+        subject: v.string(),
+        body: v.string(),
+      }),
+      emailCopy: v.object({ on: v.boolean(), to: v.string() }),
       staffRole: v.union(v.string(), v.null()),
       ai: v.object({
         allowed: v.boolean(),
@@ -62,8 +83,23 @@ export const viewer = query({
         : (user.image ?? null),
       handle: user.handle ?? null,
       timezone: user.timezone ?? null,
+      role: user.role ?? null,
+      skyPref: user.skyPref ?? "sync",
+      twoFactorNeeded: !(await twoFactorPassed(ctx, user)),
       onboarded: user.onboardedAt !== undefined,
       deactivated: user.deactivatedAt !== undefined,
+      /** Suspended by staff, as against deleted by the person themselves. */
+      suspended: user.deactivatedAt !== undefined && user.selfDeletedAt === undefined,
+      restoreUntil: user.selfDeletedAt ? user.selfDeletedAt + 30 * 24 * 60 * 60 * 1000 : null,
+      emailPrefs: {
+        newResponse: user.emailPrefs?.newResponse ?? true,
+        daily: user.emailPrefs?.daily ?? false,
+        weekly: user.emailPrefs?.weekly ?? true,
+        to: user.emailPrefs?.to ?? user.email ?? "",
+        subject: user.emailPrefs?.subject ?? "New response to {{form_name}}",
+        body: user.emailPrefs?.body ?? "{{name}} ({{email}}) just submitted {{form_name}}.",
+      },
+      emailCopy: user.emailCopy ?? { on: false, to: user.email ?? "" },
       staffRole: user.staffRole ?? null,
       ai: {
         allowed,
@@ -100,6 +136,58 @@ export const updateProfile = mutation({
       ...(args.name !== undefined ? { name: args.name.trim() } : {}),
       ...(args.role !== undefined ? { role: args.role } : {}),
       ...(args.timezone !== undefined ? { timezone: args.timezone } : {}),
+    });
+    return null;
+  },
+});
+
+/**
+ * Settings → Preferences, Notifications and Exports. Each field is optional so
+ * one switch saves on its own.
+ */
+export const setPreferences = mutation({
+  args: {
+    skyPref: v.optional(
+      v.union(v.literal("sync"), v.literal("morning"), v.literal("afternoon"), v.literal("evening")),
+    ),
+    emailPrefs: v.optional(
+      v.object({
+        newResponse: v.optional(v.boolean()),
+        daily: v.optional(v.boolean()),
+        weekly: v.optional(v.boolean()),
+        to: v.optional(v.string()),
+        subject: v.optional(v.string()),
+        body: v.optional(v.string()),
+      }),
+    ),
+    emailCopy: v.optional(v.object({ on: v.optional(v.boolean()), to: v.optional(v.string()) })),
+  },
+  returns: v.null(),
+  handler: async (ctx, { skyPref, emailPrefs, emailCopy }) => {
+    const user = await requireUser(ctx);
+    const clean = (s?: string) => (s === undefined ? undefined : s.trim().slice(0, 2000));
+    await ctx.db.patch(user._id, {
+      ...(skyPref ? { skyPref } : {}),
+      ...(emailPrefs
+        ? {
+            emailPrefs: {
+              ...(user.emailPrefs ?? {}),
+              ...Object.fromEntries(
+                Object.entries(emailPrefs)
+                  .filter(([, val]) => val !== undefined)
+                  .map(([k, val]) => [k, typeof val === "string" ? clean(val) : val]),
+              ),
+            },
+          }
+        : {}),
+      ...(emailCopy
+        ? {
+            emailCopy: {
+              on: emailCopy.on ?? user.emailCopy?.on ?? false,
+              to: clean(emailCopy.to) ?? user.emailCopy?.to ?? user.email ?? "",
+            },
+          }
+        : {}),
     });
     return null;
   },

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SessionGate } from "@/components/app/AccountGates";
 import { AdminConsole } from "@/components/admin/AdminConsole";
 
 export const metadata: Metadata = {
@@ -7,5 +8,9 @@ export const metadata: Metadata = {
 };
 
 export default function AdminPage() {
-  return <AdminConsole />;
+  return (
+    <SessionGate>
+      <AdminConsole />
+    </SessionGate>
+  );
 }

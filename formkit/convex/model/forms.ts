@@ -94,3 +94,78 @@ export function storedBlock(value: unknown): StoredBlock {
   const { _id, _creationTime, formId, order, ...rest } = value as Doc<"blocks">;
   return { ...rest, kind: rest.kind ?? "field" };
 }
+
+/**
+ * The extra logos a form's theme carries, with somewhere to load each from.
+ * The theme stores storage ids; a URL is only ever handed out on read.
+ */
+export async function themeLogos(ctx: QueryCtx, theme: unknown) {
+  const list = ((theme as { logos?: { name?: string; storageId?: string }[] } | null)?.logos ??
+    []) as { name?: string; storageId?: string }[];
+  return Promise.all(
+    list.slice(0, 3).map(async (l) => ({
+      name: l.name ?? "",
+      url: l.storageId ? await ctx.storage.getUrl(l.storageId as Id<"_storage">) : null,
+    })),
+  );
+}
+
+/** Who a form is published under: its name and lead logo. */
+export async function formIdentity(ctx: QueryCtx, form: Doc<"forms">) {
+  if (form.brand === "me") {
+    const user = await ctx.db.get(form.ownerId);
+    return { kind: "me" as const, name: user?.name ?? "You", logoUrl: null, handle: user?.handle ?? null };
+  }
+  const co = await ctx.db.get(form.brand as Id<"companies">);
+  return {
+    kind: "company" as const,
+    name: co?.name ?? "Your company",
+    logoUrl: co?.logoId ? await ctx.storage.getUrl(co.logoId) : null,
+    handle: co?.handle ?? null,
+  };
+}
+
+/**
+ * Everything a form owns, gone: its questions, rules, responses and the files
+ * people uploaded to them, versions, comments, people, links, activity and
+ * view counts. Used by the bin, the 60-day sweep, and account deletion.
+ */
+export async function purgeFormData(ctx: MutationCtx, form: Doc<"forms">) {
+  // `blocks` is indexed by form *and* order, so it is swept on its own.
+  const blocks = await ctx.db
+    .query("blocks")
+    .withIndex("by_form_order", (q) => q.eq("formId", form._id))
+    .collect();
+  for (const row of blocks) await ctx.db.delete(row._id);
+
+  const responses = await ctx.db
+    .query("responses")
+    .withIndex("by_form", (q) => q.eq("formId", form._id))
+    .collect();
+  for (const r of responses) {
+    for (const a of r.answers) if (a.fileId) await ctx.storage.delete(a.fileId).catch(() => undefined);
+    await ctx.db.delete(r._id);
+  }
+
+  for (const table of [
+    "logicRules",
+    "versions",
+    "comments",
+    "collaborators",
+    "presence",
+    "joinLinks",
+    "activity",
+  ] as const) {
+    const rows = await ctx.db
+      .query(table)
+      .withIndex("by_form", (q) => q.eq("formId", form._id))
+      .collect();
+    for (const row of rows) await ctx.db.delete(row._id);
+  }
+  const events = await ctx.db
+    .query("formEvents")
+    .withIndex("by_form_at", (q) => q.eq("formId", form._id))
+    .collect();
+  for (const row of events) await ctx.db.delete(row._id);
+  await ctx.db.delete(form._id);
+}

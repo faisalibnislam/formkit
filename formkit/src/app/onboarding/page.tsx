@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SessionGate } from "@/components/app/AccountGates";
 import { Onboarding } from "@/components/auth/Onboarding";
 
 export const metadata: Metadata = {
@@ -7,5 +8,9 @@ export const metadata: Metadata = {
 };
 
 export default function OnboardingPage() {
-  return <Onboarding />;
+  return (
+    <SessionGate>
+      <Onboarding />
+    </SessionGate>
+  );
 }

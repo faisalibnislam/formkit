@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import {
   Bookmark,
@@ -14,6 +14,7 @@ import {
   Inbox,
   Layers,
   Lock,
+  MessageSquare,
   Palette,
   Rocket,
   Settings2,
@@ -27,9 +28,16 @@ import { useToast } from "@/components/ui/Toast";
 import { ClientTab, TabSummary } from "./ds";
 import { CloseFormDialog } from "./dialogs/CloseFormDialog";
 import { CollaboratorsDialog } from "./dialogs/CollaboratorsDialog";
+import { CommentsDrawer } from "./dialogs/CommentsDrawer";
+import { PreviewOverlay } from "./dialogs/PreviewOverlay";
+import { useCommentRequests, usePresence, usePresenceBeat } from "./editor/collab";
+import { usePreviewRequests, type PreviewRequest } from "./editor/previewBus";
 import { SaveTemplateDialog } from "./dialogs/SaveTemplateDialog";
+import { PublishDialog } from "./dialogs/PublishDialog";
 import { ShareDialog } from "./dialogs/ShareDialog";
 import { VersionsDialog } from "./dialogs/VersionsDialog";
+import { THEME_PRESETS, themeOf } from "./editor/themes";
+import { resetSaveStatus, tracked, useSaveStatus } from "./editor/saveStatus";
 
 /**
  * The editor's own header: the form's name, edited in place, what it is doing
@@ -55,14 +63,46 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
   const form = useQuery(api.forms.get, { formId });
   const pending = useQuery(api.forms.unpublishedChanges, { formId });
   const update = useMutation(api.forms.update);
-  const publish = useMutation(api.forms.publish);
 
   const [title, setTitle] = useState("");
   const [actionsOpen, setActionsOpen] = useState(false);
   const [dialog, setDialog] = useState<
-    null | "share" | "versions" | "people" | "template" | "close"
+    null | "share" | "versions" | "people" | "template" | "close" | "publish"
   >(null);
   const known = useRef<string | null>(null);
+  const saved = useSaveStatus(form?.updatedAt);
+  const counts = useQuery(api.comments.counts, { formId });
+  const others = usePresence(formId);
+  usePresenceBeat(formId);
+
+  const [preview, setPreview] = useState<PreviewRequest | null>(null);
+  const [comments, setComments] = useState<{ blockId: string | null } | null>(null);
+  usePreviewRequests(useCallback((r: PreviewRequest) => setPreview(r), []));
+
+  // The forms list can open a form straight into its preview or share panel.
+  const search = useSearchParams();
+  const pathname = usePathname();
+  const opened = useRef(false);
+  useEffect(() => {
+    if (opened.current) return;
+    const want = search.get("open");
+    // `open` also carries a response id for the inbox; only these three are ours.
+    if (want !== "preview" && want !== "share" && want !== "comments") return;
+    opened.current = true;
+    const t = window.setTimeout(() => {
+      if (want === "preview") setPreview({});
+      else if (want === "share") setDialog("share");
+      else if (want === "comments") setComments({ blockId: null });
+      const next = new URLSearchParams(search.toString());
+      next.delete("open");
+      router.replace(`${pathname}${next.size ? `?${next}` : ""}`, { scroll: false });
+    }, 0);
+    return () => window.clearTimeout(t);
+  }, [pathname, router, search]);
+  useCommentRequests(useCallback((r: { blockId: string | null }) => setComments(r), []));
+  const openThreads = Object.values(counts ?? {}).reduce((a, b) => a + b, 0);
+
+  useEffect(() => resetSaveStatus(), [formId]);
 
   // The input is uncontrolled by the server after the first load, so typing is
   // never yanked back by a round trip.
@@ -84,7 +124,13 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
   }
 
   const statusLabel =
-    form.status === "published" ? "Collecting" : form.status === "closed" ? "Closed" : "Draft";
+    form.status === "published"
+      ? "Collecting"
+      : form.status === "closed"
+        ? "Closed"
+        : form.status === "archived"
+          ? "Archived"
+          : "Draft";
 
   const publishLabel =
     form.status === "published"
@@ -98,24 +144,18 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
   async function commitTitle() {
     const next = title.trim();
     if (!next || !form || next === form.title) return;
-    await update({ formId, patch: { title: next } });
+    await tracked(update({ formId, patch: { title: next } }));
   }
 
-  async function onPublish() {
+  function onPublish() {
     if (!form) return;
-    if (form.status === "published" && (pending ?? 0) === 0) {
-      setDialog("share");
-      return;
-    }
-    await publish({ formId });
-    toast(form.status === "published" ? "Changes are live" : "Your form is collecting", {
-      detail: form.url,
-    });
+    setDialog(form.status === "closed" ? "close" : "publish");
   }
 
   const summaries: Record<string, string> = {
     build: String(form.questions),
-    design: "Set under Design",
+    design:
+      THEME_PRESETS.find((p) => p.id === themeOf(form.theme).preset)?.name ?? "Custom",
     logic: String(form.rules.length),
     responses: String(form.responses),
     analytics: `${form.completionRate}%`,
@@ -141,6 +181,11 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
               </Link>
               <span style={{ fontSize: 14.5, color: "var(--neutral-0)", opacity: 0.6 }}>/</span>
               <span style={{ fontSize: 14.5, color: "var(--neutral-0)" }}>{statusLabel}</span>
+              {saved.label && (
+                <span className="fk-savestatus" data-tone={saved.tone} role="status" aria-live="polite">
+                  {saved.label}
+                </span>
+              )}
             </div>
 
             <input
@@ -170,6 +215,33 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
+            {others.length > 0 && (
+              <span className="fk-presence" aria-label={`${others.length} other ${others.length === 1 ? "person" : "people"} here`}>
+                {others.slice(0, 4).map((p) => (
+                  <span key={p.userId} className="fk-presence-face" style={{ background: p.color }} title={`${p.name} is here`}>
+                    {p.image ? (
+                      <img src={p.image} alt="" />
+                    ) : (
+                      p.name.split(/\s+/).map((w) => w[0] ?? "").join("").slice(0, 2).toUpperCase()
+                    )}
+                  </span>
+                ))}
+                {others.length > 4 && <span className="fk-presence-face" data-more="true">+{others.length - 4}</span>}
+              </span>
+            )}
+            <span className="fk-bell">
+              <button
+                type="button"
+                className="fk-ring-btn"
+                data-on-sky="true"
+                aria-label={openThreads ? `Comments, ${openThreads} open` : "Comments"}
+                title="Comments"
+                onClick={() => setComments({ blockId: null })}
+              >
+                <MessageSquare size={18} strokeWidth={1.8} aria-hidden />
+              </button>
+              {openThreads > 0 && <span className="fk-bell-count">{openThreads}</span>}
+            </span>
             <span
               style={{
                 position: "relative",
@@ -185,11 +257,7 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
                 type="button"
                 onClick={onPublish}
                 className="fk-publish"
-                title={
-                  form.status === "published" && (pending ?? 0) === 0
-                    ? "Already live — this opens the share panel"
-                    : undefined
-                }
+                title={form.status === "published" ? "Publishing and status" : undefined}
               >
                 <Rocket size={16} strokeWidth={1.8} aria-hidden />
                 <span>{publishLabel}</span>
@@ -210,12 +278,19 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
                 <>
                   <span className="fk-menu-scrim" onClick={() => setActionsOpen(false)} aria-hidden />
                   <span className="fk-menu" data-align="right" role="menu" style={{ top: 56 }}>
+                    <button className="fk-menu-item" role="menuitem" onClick={() => { setActionsOpen(false); setDialog("publish"); }}>
+                      <Rocket size={16} strokeWidth={1.8} aria-hidden />{" "}
+                      {form.status === "draft" ? "Publish this form" : "Publishing and status"}
+                    </button>
                     <button className="fk-menu-item" role="menuitem" onClick={() => { setActionsOpen(false); setDialog("versions"); }}>
                       <History size={16} strokeWidth={1.8} aria-hidden /> Version history
                     </button>
-                    <Link className="fk-menu-item" role="menuitem" href={`/f/${form.slug}?preview=1`} target="_blank" onClick={() => setActionsOpen(false)}>
+                    <button className="fk-menu-item" role="menuitem" onClick={() => { setActionsOpen(false); setPreview({}); }}>
                       <Eye size={16} strokeWidth={1.8} aria-hidden /> Preview
-                    </Link>
+                    </button>
+                    <button className="fk-menu-item" role="menuitem" onClick={() => { setActionsOpen(false); setComments({ blockId: null }); }}>
+                      <MessageSquare size={16} strokeWidth={1.8} aria-hidden /> Comments
+                    </button>
                     <button className="fk-menu-item" role="menuitem" onClick={() => { setActionsOpen(false); setDialog("share"); }}>
                       <Share2 size={16} strokeWidth={1.8} aria-hidden /> Share
                     </button>
@@ -265,9 +340,33 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
 
       {dialog === "share" && <ShareDialog formId={formId} onClose={() => setDialog(null)} />}
       {dialog === "versions" && <VersionsDialog formId={formId} onClose={() => setDialog(null)} />}
+      {preview && (
+        <PreviewOverlay
+          formId={formId}
+          device={preview.device}
+          closed={preview.closed}
+          onClose={() => setPreview(null)}
+        />
+      )}
+      {comments && (
+        <CommentsDrawer
+          formId={formId}
+          blockId={comments.blockId}
+          onScope={(blockId) => setComments({ blockId })}
+          onClose={() => setComments(null)}
+        />
+      )}
+      {dialog === "publish" && (
+        <PublishDialog
+          formId={formId}
+          onClose={() => setDialog(null)}
+          onVersions={() => setDialog("versions")}
+          onPublished={() => setDialog("share")}
+        />
+      )}
       {dialog === "people" && <CollaboratorsDialog formId={formId} onClose={() => setDialog(null)} />}
       {dialog === "template" && (
-        <SaveTemplateDialog formId={formId} title={form.title} onClose={() => setDialog(null)} />
+        <SaveTemplateDialog formId={formId} title={form.title} description={form.description} onClose={() => setDialog(null)} />
       )}
       {dialog === "close" && (
         <CloseFormDialog

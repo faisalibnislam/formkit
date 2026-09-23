@@ -13,10 +13,23 @@ export type Theme = {
   text: string;
   primary: string;
   radius: number;
+  /** Body font. */
   font: string;
+  /** Heading font. */
+  heading: string;
   size: "Small" | "Medium" | "Large";
-  layout: "centered" | "wide" | "full";
+  weight: "Light" | "Regular" | "Medium" | "Bold";
+  layout: "centered" | "wide" | "full" | "split";
+  /** Classic: a page of questions at a time. Conversational: one at a time. */
+  flow: "classic" | "conversational";
   showLogo: boolean;
+  /**
+   * Up to three logos that sit beside the lead one — the logo of whoever the
+   * form is published under — separated by a ×.
+   */
+  logos: { name: string; storageId?: string }[];
+  logoAlign: "left" | "center" | "right";
+  logoSize: "Small" | "Medium" | "Large";
 };
 
 const INK = "#21282E";
@@ -42,14 +55,53 @@ export const DEFAULT_THEME: Theme = {
   primary: INK,
   radius: 12,
   font: "Outfit",
+  heading: "Outfit",
   size: "Medium",
+  weight: "Medium",
   layout: "centered",
+  flow: "classic",
   showLogo: true,
+  logos: [],
+  logoAlign: "center",
+  logoSize: "Medium",
 };
+
+export const MAX_EXTRA_LOGOS = 3;
+
+export const WEIGHTS: Record<Theme["weight"], number> = {
+  Light: 300,
+  Regular: 400,
+  Medium: 500,
+  Bold: 700,
+};
+
+/** The reading column each layout gives the questions, in pixels. */
+export const COLUMN: Record<Theme["layout"], number | "100%"> = {
+  centered: 620,
+  wide: 820,
+  full: "100%",
+  split: 700,
+};
+
+export const LOGO_PX: Record<Theme["logoSize"], number> = { Small: 26, Medium: 36, Large: 48 };
+
+/** Ink for text on the accent: dark on the light accents, white otherwise. */
+export function buttonInk(primary: string) {
+  const hex = primary.replace("#", "");
+  if (!/^[0-9a-f]{6}$/i.test(hex)) return "#ffffff";
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+  return 0.299 * r + 0.587 * g + 0.114 * b > 170 ? INK : "#ffffff";
+}
 
 /** A stored theme, with anything missing filled in. */
 export function themeOf(stored: unknown): Theme {
-  return { ...DEFAULT_THEME, ...((stored ?? {}) as Partial<Theme>) };
+  const t = { ...DEFAULT_THEME, ...((stored ?? {}) as Partial<Theme>) };
+  // A theme saved before headings had their own font reads its body font.
+  if (!(stored as Partial<Theme> | null)?.heading) t.heading = t.font;
+  if (!Array.isArray(t.logos)) t.logos = [];
+  return t;
 }
 
 /** The type scale, as a multiplier on the form's base size. */

@@ -7,7 +7,14 @@
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
-const now = Date.now();
+
+/* Anchored to the top of the hour, not to the moment this module loaded.
+   The server and the browser load it at different instants, and a relative
+   time computed from each ("2 hours ago" against "3 hours ago") is a
+   hydration mismatch that belongs to the harness rather than to the app —
+   which never server-renders this data, because a real `useQuery` has nothing
+   to give during SSR. */
+const now = Math.floor(Date.now() / HOUR) * HOUR;
 
 type Row = Record<string, unknown>;
 
@@ -153,27 +160,89 @@ const PEOPLE: [string, string, string, number, boolean, string][] = [
   ["Ben Carter", "ben@northstar.io", "f5", 11 * DAY, false, "read"],
 ];
 
-const RESPONSES: Row[] = PEOPLE.map(([name, email, formId, ago, partial, status], i) => ({
-  _id: `r${i + 1}`,
-  formId,
-  submittedAt: now - ago,
-  partial,
-  answeredCount: partial ? 4 : 11,
-  totalCount: 11,
-  answers: [
-    { question: "What are we making?", value: "A new marketing site and a small booking flow.", fileName: null },
-    { question: "When does it need to be live?", value: "Early March", fileName: null },
-    { question: "Budget range", value: "£20k–£35k", fileName: null },
-    { question: "Anything we should look at first?", value: "The current site, and two competitors.", fileName: null },
-  ],
-  files: [],
-  respondentName: name,
-  respondentEmail: email,
-  device: i % 3 === 0 ? "Mobile" : "Desktop",
-  source: i % 4 === 0 ? "Email" : "Direct",
-  status,
-  note: null,
-  resumeToken: partial ? `tok${i}` : null,
+const FORM_TITLES: Record<string, string> = {
+  f1: "Client Onboarding",
+  f2: "Website Project Questionnaire",
+  f3: "Customer Feedback",
+  f5: "Contact",
+};
+const COMPANY_OF = ["Smith & Co", "Fable Studio", "Grainhouse", "Merrow", "Northstar", "Velto", "Fieldnote", "Merrow", "Grainhouse", "Northstar"];
+
+const RESPONSES: Row[] = [
+  ...PEOPLE.map(([name, email, formId, ago, partial, status], i) => ({
+    _id: `r${i + 1}`,
+    formId,
+    formTitle: FORM_TITLES[formId] ?? "A form",
+    submittedAt: now - ago,
+    partial,
+    preview: false,
+    answeredCount: partial ? 3 : 5,
+    totalCount: 5,
+    answers: [
+      { blockId: "b1", question: "What should we call you?", value: name, fileName: null },
+      { blockId: "b2", question: "Where should we send the proposal?", value: email, fileName: null },
+      { blockId: "b4", question: "What are we making?", value: "A new marketing site and a small booking flow.", fileName: null },
+      ...(partial
+        ? []
+        : [
+            { blockId: "b5", question: "Budget range", value: "£20k–£35k", fileName: null },
+            { blockId: "b6", question: "When does it need to be live?", value: "Early March", fileName: null },
+          ]),
+    ],
+    files: [],
+    respondentName: name,
+    respondentEmail: email,
+    respondentPhone: i % 2 === 0 ? `+44 7700 900${String(100 + i * 7).slice(-3)}` : null,
+    respondentCompany: COMPANY_OF[i] ?? null,
+    device: i % 3 === 0 ? "Mobile · Safari" : "Desktop · Chrome",
+    source: ["Direct link", "Instagram", "Email", "Embedded on studionine.co"][i % 4],
+    durationMs: 120000 + i * 17000,
+    status,
+    note: null,
+    tags: i === 0 ? ["Hot lead", "Retainer"] : i === 3 ? ["Follow up"] : [],
+    versionNumber: 3,
+    resumeToken: partial ? `tok${i}` : null,
+  })),
+  {
+    _id: "r99",
+    formId: "f1",
+    formTitle: "Client Onboarding",
+    submittedAt: now - 30 * 60 * 1000,
+    partial: false,
+    preview: true,
+    answeredCount: 2,
+    totalCount: 5,
+    answers: [{ blockId: "b1", question: "What should we call you?", value: "Test", fileName: null }],
+    files: [],
+    respondentName: "Test",
+    respondentEmail: null,
+    respondentPhone: null,
+    respondentCompany: null,
+    device: "Desktop · Chrome",
+    source: "Preview",
+    durationMs: 9000,
+    status: "new",
+    note: null,
+    tags: [],
+    versionNumber: null,
+    resumeToken: null,
+  },
+];
+
+const CONTACTS = PEOPLE.map(([name, email, formId, ago, partial, status], i) => ({
+  key: email,
+  name,
+  email,
+  phone: i % 2 === 0 ? `+44 7700 900${String(100 + i * 7).slice(-3)}` : null,
+  company: COMPANY_OF[i] ?? null,
+  source: FORM_TITLES[formId] ?? "A form",
+  created: now - ago - 20 * DAY,
+  last: now - ago,
+  responses: i === 0 ? 3 : 1,
+  partialOnly: partial,
+  unread: status === "new",
+  tags: i === 0 ? ["Hot lead", "Retainer"] : i === 3 ? ["Follow up"] : [],
+  forms: i === 0 ? [FORM_TITLES[formId]!, "Contact"] : [FORM_TITLES[formId]!],
 }));
 
 const COMPANIES = [
@@ -187,6 +256,12 @@ const COMPANIES = [
   },
 ];
 
+/** Preview switches read from the page's own URL: ?fk_gate=2fa|deactivated, ?fk_sky=morning. */
+function flag(name: string) {
+  if (typeof window === "undefined") return null;
+  return new URLSearchParams(window.location.search).get(name);
+}
+
 export const VIEWER = {
   _id: "u1",
   name: "Maya Ortiz",
@@ -194,8 +269,30 @@ export const VIEWER = {
   image: null,
   handle: "maya",
   timezone: "Europe/London",
+  role: "Independent designer",
+  get skyPref() {
+    return flag("fk_sky") ?? "sync";
+  },
+  get twoFactorNeeded() {
+    return flag("fk_gate") === "2fa";
+  },
   onboarded: true,
-  deactivated: false,
+  get deactivated() {
+    return flag("fk_gate") === "deactivated" || flag("fk_gate") === "suspended";
+  },
+  get suspended() {
+    return flag("fk_gate") === "suspended";
+  },
+  restoreUntil: Date.now() + 23 * 24 * 60 * 60 * 1000,
+  emailPrefs: {
+    newResponse: true,
+    daily: false,
+    weekly: true,
+    to: "maya@studionine.co",
+    subject: "New response to {{form_name}}",
+    body: "{{name}} ({{email}}) just submitted {{form_name}}.",
+  },
+  emailCopy: { on: true, to: "inbox@studionine.co" },
   staffRole: "owner",
   ai: { allowed: true, used: 3, limit: 25, live: true },
   companies: COMPANIES,
@@ -210,13 +307,20 @@ const BUCKETS = [18, 24, 31, 27, 42, 38, 51, 46, 58, 63, 49, 72, 40, 35, 44, 52,
 );
 
 const TEMPLATES = [
-  ["client-onboarding", "Client onboarding", "Work", "Everything you need before the first call.", 11, 3],
-  ["project-brief", "Project brief", "Work", "Scope, budget and references.", 7, 2],
-  ["feedback", "Customer feedback", "Feedback", "Five questions, sent after handover.", 5, 1],
-  ["contact", "Contact", "Sales", "Four fields and a reply address.", 4, 1],
-  ["event-signup", "Event registration", "Events", "Names, numbers and dietary needs.", 6, 2],
-  ["survey", "Research survey", "Research", "Ask a group the same thing, cleanly.", 8, 2],
-].map(([slug, name, topic, blurb, questions, pages]) => ({
+  ["contact-form", "Contact Form", "Business", "Name, email, subject and message. The one every site needs.", 5, 1, "mail", "var(--blue-300)"],
+  ["client-onboarding", "Client Onboarding", "Agency", "Everything you need before a kickoff call, across three pages.", 11, 4, "briefcase", "var(--blue-300)"],
+  ["website-questionnaire", "Website Questionnaire", "Agency", "Scope, pages, references and budget for a site build.", 14, 4, "layout-template", "var(--blue-200)"],
+  ["branding-questionnaire", "Branding Questionnaire", "Agency", "Positioning, audience and taste, without the jargon.", 12, 4, "palette", "var(--mint-200)"],
+  ["customer-feedback", "Customer Feedback", "Business", "A rating, an NPS scale and room to say what went wrong.", 6, 1, "message-square", "var(--mint-200)"],
+  ["job-application", "Job Application", "HR", "Eligibility, role, availability, portfolio and resume upload.", 16, 4, "user-round", "var(--neutral-150)"],
+  ["event-registration", "Event Registration", "Events", "Days, sessions, guest count and dietary requirements.", 9, 3, "calendar", "var(--yellow-200)"],
+  ["rsvp", "RSVP", "Personal", "Coming or not, headcount, and a line for a message.", 5, 1, "party-popper", "var(--yellow-200)"],
+  ["lead-qualification", "Lead Generation", "Marketing", "Qualifies in seven questions people will actually finish.", 7, 1, "magnet", "var(--blue-200)"],
+  ["product-research", "Product Survey", "Marketing", "Usage, fit, satisfaction and what is missing.", 10, 3, "chart-pie", "var(--mint-200)"],
+  ["project-discovery", "Project Discovery", "Agency", "A longer intake for complex or multi-phase work.", 13, 4, "compass", "var(--blue-300)"],
+  ["support-request", "Support Request", "Business", "Triage by topic and urgency, with a screenshot upload.", 7, 1, "life-buoy", "var(--neutral-150)"],
+  ["order-form", "Order Form", "Business", "Product, quantity, specification, artwork and delivery.", 11, 3, "shopping-bag", "var(--yellow-200)"],
+].map(([slug, name, topic, blurb, questions, pages, icon, accent]) => ({
   slug,
   name,
   topic,
@@ -224,14 +328,34 @@ const TEMPLATES = [
   audience: null,
   questions,
   pages,
+  icon,
+  accent,
   mine: false,
   _id: null,
+  keeps: null,
+  createdAt: null,
 }));
+TEMPLATES.push({
+  slug: "studio-intake-x1",
+  name: "Studio intake",
+  topic: "Agency",
+  blurb: "Saved from Client Onboarding.",
+  audience: null,
+  questions: 9,
+  pages: 3,
+  icon: "bookmark",
+  accent: "var(--blue-100)",
+  mine: true,
+  _id: "t-mine" as never,
+  keeps: ["Questions & pages", "Theme", "Welcome & thanks"] as never,
+  createdAt: now - 3 * DAY as never,
+});
+
 
 const BLOCKS = [
   { _id: "b1", kind: "field", type: "short-text", order: 0, title: "What should we call you?", help: "", required: true, options: [] },
   { _id: "b2", kind: "field", type: "email", order: 1, title: "Where should we send the proposal?", help: "", required: true, options: [] },
-  { _id: "b3", kind: "pagebreak", order: 2, title: "The project" },
+  { _id: "b3", kind: "pagebreak", order: 2, pageName: "The project" },
   { _id: "b4", kind: "field", type: "long-text", order: 3, title: "What are we making?", help: "A sentence or two is plenty.", required: true, options: [] },
   { _id: "b5", kind: "field", type: "single-select", order: 4, title: "Budget range", help: "", required: false, options: ["Under £10k", "£10k–£20k", "£20k–£35k", "More than £35k"] },
   { _id: "b6", kind: "field", type: "date", order: 5, title: "When does it need to be live?", help: "", required: false, options: [] },
@@ -242,8 +366,11 @@ const FORM_DETAIL = {
   welcome: { title: "Let's start your project", message: "A few questions — it should take about two minutes.", button: "Start" },
   thanks: { title: "Thank you", message: "Your answers are in. We will be in touch." },
   theme: null,
+  logos: [],
+  identity: { kind: "company", name: "Studio Nine", logoUrl: null, handle: "studio-nine" },
   notify: null,
-  closing: null,
+  security: { multiple: true, editAfter: false, password: false, passwordSet: false, spam: true, rateLimit: true, requireEmail: false },
+  closing: { closeAfter: 400, timezone: "Pacific/Auckland" },
   blocks: BLOCKS,
   rules: [],
 };
@@ -273,22 +400,95 @@ const STAFF_USERS = PEOPLE.slice(0, 6).map(([name, email], i) => ({
   ai: { allowed: i < 2, limit: 25, used: i < 2 ? 3 : 0 },
 }));
 
+/** The form as the runner receives it — for the preview and the public link. */
+const RUNNER = {
+  state: "open",
+  formId: "f1",
+  title: "Client Onboarding",
+  brand: { name: "Studio Nine", logoUrl: null, color: null },
+  logos: [],
+  welcome: FORM_DETAIL.welcome,
+  thanks: FORM_DETAIL.thanks,
+  theme: null,
+  closedMessage: "This form is closed. Thank you to everyone who answered.",
+  uploadCapMb: 10,
+  rules: { spam: true, requireEmail: false, editAfter: true, multiple: true },
+  blocks: BLOCKS.map((b) => ({
+    _id: b._id,
+    kind: b.kind,
+    type: b.type ?? null,
+    title: b.title ?? null,
+    help: b.help || null,
+    placeholder: null,
+    required: !!b.required,
+    options: b.options?.length ? b.options : null,
+    accept: null,
+    scaleMin: null,
+    scaleMax: null,
+    pageName: b.pageName ?? null,
+  })),
+  logic: [],
+  status: "published",
+  url: "formkit.app/studio-nine/client-onboarding",
+};
+
 /** Every query the application reads, by its Convex function name. */
 export const QUERIES: Record<string, unknown> = {
   "users:viewer": VIEWER,
   "companies:list": COMPANIES.map((c) => ({ ...c, formCount: 4, logoId: null, ownerId: "u1" })),
   "forms:list": {
-    counts: { all: 6, draft: 1, published: 4, closed: 1, deleted: 0 },
+    counts: { all: 6, draft: 1, published: 4, closed: 1, archived: 0, deleted: 2 },
     forms: FORMS,
   },
   "forms:get": FORM_DETAIL,
   "responses:list": {
-    stats: { total: 1117, today: 2, week: 8, unread: 3, partial: 2, completed: 1115 },
+    stats: { total: 1117, today: 2, todayChange: 1, week: 8, weekChange: 14, unread: 3, partial: 2, completed: 1115, previews: 1 },
+    forms: Object.entries(FORM_TITLES).map(([_id, title]) => ({ _id, title })),
     responses: RESPONSES,
   },
   "responses:get": RESPONSES[0],
-  "responses:forExport": { rows: [], columns: [] },
+  "responses:contacts": CONTACTS,
+  "responses:tagsInUse": ["Hot lead", "Follow up", "Retainer", "Not a fit"],
+  "responses:forExport": { filename: "client-onboarding-responses", title: "Client Onboarding", rows: [["a"]], columns: ["A"] },
+  "responses:contactsForExport": { filename: "contacts", rows: [["a"]], columns: ["A"] },
+  "responses:count": 248,
+  "security:status": {
+    twoFactor: { on: true, enabledAt: now - 40 * DAY, recoveryLeft: 7 },
+    signInAlerts: true,
+    emailChange: null,
+    sessions: [
+      { _id: "s1", device: "Chrome on Mac", firstSeen: now - 9 * DAY, lastSeen: now, current: true },
+      { _id: "s2", device: "Safari on iPhone", firstSeen: now - 30 * DAY, lastSeen: now - 2 * HOUR, current: false },
+    ],
+  },
+  "collaborators:people": {
+    people: [
+      { key: "u2", name: "Ravi Menon", email: "ravi@studionine.co", color: "#4b9d6e", role: "editor", forms: [
+        { collaboratorId: "c1", formId: "f1", title: "Client Onboarding", role: "editor", status: "active" },
+        { collaboratorId: "c2", formId: "f2", title: "Website Project Questionnaire", role: "editor", status: "active" },
+      ] },
+      { key: "u4", name: "Ben Carter", email: "ben@northstar.co", color: "#c4614f", role: "mixed", forms: [
+        { collaboratorId: "c3", formId: "f1", title: "Client Onboarding", role: "commenter", status: "active" },
+        { collaboratorId: "c4", formId: "f3", title: "Customer Feedback", role: "viewer", status: "active" },
+      ] },
+    ],
+    pending: [
+      { _id: "c5", email: "freelance@grainhouse.com", role: "viewer", formId: "f1", formTitle: "Client Onboarding", invitedAt: now - 2 * DAY },
+    ],
+  },
+  "exports:recent": [
+    { _id: "x1", formId: "f1", formTitle: "Client Onboarding", what: "responses", format: "xlsx", filename: "client-onboarding-responses.xlsx", rows: 248, from: null, to: null, ids: null, emailedTo: null, at: now - 3 * HOUR },
+    { _id: "x2", formId: null, formTitle: "All forms", what: "contacts", format: "csv", filename: "contacts.csv", rows: 64, from: null, to: null, ids: null, emailedTo: "maya@studionine.co", at: now - 2 * DAY },
+  ],
   "templates:list": TEMPLATES,
+  "templates:get": {
+    slug: "client-onboarding",
+    name: "Client Onboarding",
+    topic: "Agency",
+    blurb: "Everything you need before a kickoff call, across three pages.",
+    welcome: { title: "Let's start your project", message: "Eleven questions, about four minutes." },
+    blocks: BLOCKS.map((b) => ({ kind: b.kind, type: b.type ?? null, title: b.title ?? b.pageName ?? "", help: null, required: !!b.required, options: b.options ?? null })),
+  },
   "notifications:recent": {
     items: RESPONSES.slice(0, 8).map((r) => ({
       _id: r._id,
@@ -301,8 +501,17 @@ export const QUERIES: Record<string, unknown> = {
     })),
     unread: 3,
   },
-  "notifications:log": [],
+  "notifications:log": [
+    { _id: "e1", subject: "New response to Client Onboarding", kind: "notification", to: "maya@studionine.co", form: "Client Onboarding", state: "sent", detail: null, at: now - 2 * HOUR },
+    { _id: "e2", subject: "We have your answers — Client Onboarding", kind: "confirmation", to: "john@email.com", form: "Client Onboarding", state: "sent", detail: null, at: now - 2 * HOUR },
+    { _id: "e3", subject: "Your week on Formkit: 38 responses", kind: "weekly report", to: "maya@studionine.co", form: null, state: "sent", detail: null, at: now - 3 * DAY },
+  ],
+  "collaborators:sharedWithMe": [
+    { _id: "sw1", formId: "f9", title: "Northstar Partner Intake", owner: "Ben Carter", role: "editor", status: "active" },
+  ],
   "analytics:overview": {
+    from: now - 30 * DAY,
+    to: now,
     days: 30,
     views: 12483,
     starts: 8291,
@@ -310,46 +519,104 @@ export const QUERIES: Record<string, unknown> = {
     completed: 5821,
     partial: 2470,
     completionRate: 70.2,
-    finishRate: 46.6,
     medianSeconds: 252,
-    buckets: BUCKETS,
-    change: { responses: 11.4, completed: 14.2, completionRate: 4 },
-    window: { responses: 8291, completed: 5821 },
+    change: { views: 8, starts: 11, completed: 14.2, completionRate: 4, medianSeconds: -31 },
+    daily: Array.from({ length: 30 }, (_, i) => ({
+      at: now - (29 - i) * DAY,
+      views: 300 + ((i * 37) % 140),
+      starts: 200 + ((i * 29) % 90),
+      responses: 140 + ((i * 53) % 120) + i * 3,
+      completed: 100 + ((i * 41) % 80),
+    })),
     dropOff: BLOCKS.filter((b) => b.kind === "field").map((b, i) => ({
       title: b.title,
-      reached: 1117 - i * 140,
-      share: Math.round((100 - i * 12) * 10) / 10,
+      left: [160, 410, 1490, 330, 910][i] ?? 0,
+      share: [2, 5, 18, 4, 11][i] ?? 0,
     })),
     devices: [
       { name: "Desktop", count: 742 },
       { name: "Mobile", count: 311 },
-      { name: "Tablet", count: 64 },
     ],
     sources: [
-      { name: "Direct", count: 508 },
-      { name: "Email", count: 402 },
-      { name: "Social", count: 207 },
+      { name: "Direct link", views: 5420, responses: 4100, completed: 3848, completion: 71 },
+      { name: "Email", views: 3860, responses: 2600, completed: 2470, completion: 64 },
+      { name: "Instagram", views: 2610, responses: 1500, completed: 1357, completion: 52 },
+      { name: "Embedded on studionine.co", views: 1320, responses: 1100, completed: 1016, completion: 77 },
     ],
+    lifetime: { views: 40210, starts: 30102, responses: 11020 },
+    formCount: 6,
     forms: FORMS.map((f) => ({
       _id: f._id,
       title: f.title,
+      status: f.status,
       responses: f.responses,
       completed: f.completed,
       views: (f.responses as number) * 3,
       completionRate: f.completionRate,
+      inRange: Math.round((f.responses as number) / 4),
     })),
   },
   "collaborators:list": {
-    members: [
-      { _id: "m1", name: "Maya Ortiz", email: "maya@studionine.co", role: "owner", status: "active" },
-      { _id: "m2", name: "Ravi Menon", email: "ravi@studionine.co", role: "editor", status: "active" },
-      { _id: "m3", name: null, email: "freelance@grainhouse.com", role: "commenter", status: "pending" },
+    myRole: "owner",
+    owner: { _id: "u1", name: "Maya Ortiz", email: "maya@studionine.co", image: null, color: "#2e78bb", you: true, online: true, seen: "Here now" },
+    people: [
+      { _id: "m2", userId: "u2", name: "Ravi Menon", email: "ravi@studionine.co", image: null, color: "#4b9d6e", role: "editor", status: "active", invitedAt: now - 9 * DAY, note: null, you: false, online: true, seen: "Editing a question now" },
+      { _id: "m4", userId: "u4", name: "Ben Carter", email: "ben@northstar.co", image: null, color: "#c4614f", role: "commenter", status: "active", invitedAt: now - 5 * DAY, note: null, you: false, online: false, seen: "Last here 2 hours ago" },
+      { _id: "m3", userId: null, name: null, email: "freelance@grainhouse.com", image: null, color: "#6b8f9c", role: "viewer", status: "pending", invitedAt: now - 2 * DAY, note: null, you: false, online: false, seen: "Has not opened it yet" },
     ],
-    activity: [],
   },
+  "collaborators:activity": [
+    { _id: "a1", who: "Ravi Menon", image: null, color: "#4b9d6e", what: "left a comment", icon: "message-square", at: now - 40 * 60 * 1000 },
+    { _id: "a2", who: "You", image: null, color: "#2e78bb", what: "published version 3", icon: "rocket", at: now - 5 * 60 * 60 * 1000 },
+    { _id: "a3", who: "You", image: null, color: "#2e78bb", what: "invited freelance@grainhouse.com as Viewer", icon: "user-plus", at: now - 2 * DAY },
+  ],
+  "publicForm:preview": RUNNER,
+  "publicForm:bySlug": RUNNER,
+  "comments:counts": { b2: 1 },
+  "comments:list": {
+    canComment: true,
+    threads: [
+      {
+        _id: "c1", blockId: "b2", author: "Ravi Menon", image: null, color: "#4b9d6e",
+        body: "Should this say where the proposal comes from? People will look for our name in their inbox.",
+        createdAt: now - 40 * 60 * 1000, mine: false, canDelete: true, resolved: false,
+        replies: [{ _id: "c2", blockId: "b2", author: "You", image: null, color: "#2e78bb", body: "Good call — adding a line of help text.", createdAt: now - 20 * 60 * 1000, mine: true, canDelete: true }],
+      },
+      { _id: "c3", blockId: null, author: "Ben Carter", image: null, color: "#c4614f", body: "Looks ready from my side.", createdAt: now - DAY, mine: false, canDelete: true, resolved: true, replies: [] },
+    ],
+  },
+  "presence:here": [
+    { userId: "u2", name: "Ravi Menon", image: null, color: "#4b9d6e", blockId: "b4" },
+  ],
   "handles:mine": { handle: "maya", available: null },
   "blocks:list": BLOCKS,
-  "logic:list": [],
+  "logic:list": [
+    {
+      _id: "r1",
+      formId: "f1",
+      name: "Website projects only",
+      enabled: true,
+      join: "and",
+      conditions: [{ blockId: "b4", operator: "contains", value: "website" }],
+      action: "show",
+      targetId: "b5",
+      order: 0,
+    },
+    {
+      _id: "r2",
+      formId: "f1",
+      name: "Budget before a date",
+      enabled: false,
+      join: "or",
+      conditions: [
+        { blockId: "b5", operator: "is-empty" },
+        { blockId: "b2", operator: "contains", value: "studio" },
+      ],
+      action: "require",
+      targetId: "b6",
+      order: 1,
+    },
+  ],
   "ai:usage": { used: 3, limit: 25, allowed: true },
   "admin:who": {
     signedIn: true,
