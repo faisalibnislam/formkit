@@ -7,6 +7,7 @@ import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { buttonInk, themeOf } from "@/components/app/editor/themes";
 import { FormRunner, Shell, type Answer, type OpenForm, type SubmitArgs } from "./FormRunner";
+import { sourceLabel } from "./source";
 
 /**
  * The public link. It fetches the form, asks for its password when it has one,
@@ -53,7 +54,7 @@ export function LiveForm({
   useEffect(() => {
     if (open && !viewed.current) {
       viewed.current = true;
-      void recordView({ formId: open.formId });
+      void recordView({ formId: open.formId, source: sourceLabel() });
     }
   }, [open, recordView]);
 
@@ -65,7 +66,7 @@ export function LiveForm({
         password,
         resumeToken: resume?.token,
         deviceId: deviceId(),
-        source: document.referrer || undefined,
+        source: sourceLabel(),
       }),
     [open, password, resume?.token, submit],
   );
@@ -176,7 +177,7 @@ export function LiveForm({
       mode="live"
       resume={resume}
       onSubmit={onSubmit}
-      onStart={() => void recordView({ formId: data.formId, started: true })}
+      onStart={() => void recordView({ formId: data.formId, started: true, source: sourceLabel() })}
       upload={upload}
     />
   );

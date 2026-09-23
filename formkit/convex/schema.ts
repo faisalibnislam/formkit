@@ -225,6 +225,8 @@ export default defineSchema({
     ),
     respondentName: v.optional(v.string()),
     respondentEmail: v.optional(v.string()),
+    respondentPhone: v.optional(v.string()),
+    respondentCompany: v.optional(v.string()),
     device: v.optional(v.string()),
     source: v.optional(v.string()),
     durationMs: v.optional(v.number()),
@@ -236,11 +238,42 @@ export default defineSchema({
     deviceId: v.optional(v.string()),
     /** Sent from the builder's preview rather than the public link. */
     preview: v.optional(v.boolean()),
+    /** The owner's own labels, shown on the response and on the contact. */
+    tags: v.optional(v.array(v.string())),
   })
     .index("by_form", ["formId"])
     .index("by_form_device", ["formId", "deviceId"])
     .index("by_owner", ["ownerId"])
     .index("by_resume", ["resumeToken"]),
+
+  /**
+   * Each time a published form is opened or started, so views and starts can
+   * be counted inside a date range and by where people came from.
+   */
+  formEvents: defineTable({
+    formId: v.id("forms"),
+    ownerId: v.id("users"),
+    kind: v.union(v.literal("view"), v.literal("start")),
+    at: v.number(),
+    source: v.optional(v.string()),
+  })
+    .index("by_form_at", ["formId", "at"])
+    .index("by_owner_at", ["ownerId", "at"]),
+
+  /** Exports someone downloaded or emailed, so Settings can list them again. */
+  exports: defineTable({
+    userId: v.id("users"),
+    formId: v.optional(v.id("forms")),
+    what: v.union(v.literal("responses"), v.literal("contacts"), v.literal("analytics")),
+    format: v.union(v.literal("csv"), v.literal("xlsx")),
+    filename: v.string(),
+    rows: v.number(),
+    from: v.optional(v.number()),
+    to: v.optional(v.number()),
+    ids: v.optional(v.array(v.id("responses"))),
+    emailedTo: v.optional(v.string()),
+    at: v.number(),
+  }).index("by_user_at", ["userId", "at"]),
 
   /** Every publish freezes the questions. Newest first when read. */
   versions: defineTable({

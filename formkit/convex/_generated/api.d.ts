@@ -19,6 +19,7 @@ import type * as companies from "../companies.js";
 import type * as email from "../email.js";
 import type * as emails_authCode from "../emails/authCode.js";
 import type * as emails_response from "../emails/response.js";
+import type * as exports from "../exports.js";
 import type * as forms from "../forms.js";
 import type * as handles from "../handles.js";
 import type * as http from "../http.js";
@@ -29,6 +30,7 @@ import type * as model_forms from "../model/forms.js";
 import type * as model_handles from "../model/handles.js";
 import type * as model_identity from "../model/identity.js";
 import type * as model_security from "../model/security.js";
+import type * as model_sheet from "../model/sheet.js";
 import type * as notifications from "../notifications.js";
 import type * as presence from "../presence.js";
 import type * as publicForm from "../publicForm.js";
@@ -56,6 +58,7 @@ declare const fullApi: ApiFromModules<{
   "email": typeof email,
   "emails/authCode": typeof emails_authCode,
   "emails/response": typeof emails_response,
+  "exports": typeof exports,
   "forms": typeof forms,
   "handles": typeof handles,
   "http": typeof http,
@@ -66,6 +69,7 @@ declare const fullApi: ApiFromModules<{
   "model/handles": typeof model_handles,
   "model/identity": typeof model_identity,
   "model/security": typeof model_security,
+  "model/sheet": typeof model_sheet,
   "notifications": typeof notifications,
   "presence": typeof presence,
   "publicForm": typeof publicForm,

@@ -40,11 +40,13 @@ export function ShareDialog({ formId, onClose }: { formId: Id<"forms">; onClose:
     return () => window.clearTimeout(t);
   }, []);
 
-  // Drawn here, from the live link, so nobody else is ever sent the URL.
+  // Drawn here, from the live link, so nobody else is ever sent the URL. The
+  // code carries ?src=qr so Analytics can tell scans from clicks.
+  const qrUrl = url ? `${url}${url.includes("?") ? "&" : "?"}src=qr` : url;
   useEffect(() => {
-    if (!url) return;
+    if (!qrUrl) return;
     let alive = true;
-    QRCode.toString(url, { type: "svg", margin: 1, color: { dark: "#21282E", light: "#ffffff" } })
+    QRCode.toString(qrUrl, { type: "svg", margin: 1, color: { dark: "#21282E", light: "#ffffff" } })
       .then((svg) => {
         if (alive) setQr(svg);
       })
@@ -54,7 +56,7 @@ export function ShareDialog({ formId, onClose }: { formId: Id<"forms">; onClose:
     return () => {
       alive = false;
     };
-  }, [url]);
+  }, [qrUrl]);
 
   const script = "scr" + "ipt";
   const embed = {
@@ -79,7 +81,7 @@ export function ShareDialog({ formId, onClose }: { formId: Id<"forms">; onClose:
 
   async function downloadQr() {
     if (!form) return;
-    const png = await QRCode.toDataURL(url, {
+    const png = await QRCode.toDataURL(qrUrl, {
       width: 1024,
       margin: 2,
       color: { dark: "#21282E", light: "#ffffff" },

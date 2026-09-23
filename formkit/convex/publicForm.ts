@@ -176,14 +176,21 @@ export const preview = query({
 
 /** A view, counted once per opened form. */
 export const recordView = mutation({
-  args: { formId: v.id("forms"), started: v.optional(v.boolean()) },
+  args: { formId: v.id("forms"), started: v.optional(v.boolean()), source: v.optional(v.string()) },
   returns: v.null(),
-  handler: async (ctx, { formId, started }) => {
+  handler: async (ctx, { formId, started, source }) => {
     const form = await ctx.db.get(formId);
     if (!form || form.status !== "published") return null;
     await ctx.db.patch(formId, {
       views: (form.views ?? 0) + (started ? 0 : 1),
       starts: (form.starts ?? 0) + (started ? 1 : 0),
+    });
+    await ctx.db.insert("formEvents", {
+      formId,
+      ownerId: form.ownerId,
+      kind: started ? "start" : "view",
+      at: Date.now(),
+      source: source?.slice(0, 80) || undefined,
     });
     return null;
   },
@@ -282,6 +289,8 @@ async function store(
   const typed = (t: string) => answers.find((a) => byId.get(a.blockId)!.type === t && a.value);
   const named = typed("name") ?? typed("short-text");
   const mailed = typed("email");
+  const phoned = typed("phone");
+  const firm = typed("company");
 
   const record = {
     formId: form._id,
@@ -293,6 +302,8 @@ async function store(
     answers,
     respondentName: named?.value,
     respondentEmail: mailed?.value?.trim().toLowerCase(),
+    respondentPhone: phoned?.value?.trim(),
+    respondentCompany: firm?.value?.trim(),
     device: args.device,
     source: preview ? "Preview" : args.source,
     durationMs: args.durationMs,
@@ -301,6 +312,9 @@ async function store(
     versionNumber: form.liveVersion,
     deviceId: args.deviceId,
     preview: preview || undefined,
+    // Editing an answer keeps what the owner already added to it.
+    note: existing?.note,
+    tags: existing?.tags,
   };
 
   const responseId = existing

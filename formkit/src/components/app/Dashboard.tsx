@@ -64,7 +64,7 @@ export function Dashboard() {
   const templates = useQuery(api.templates.list, {});
   const create = useMutation(api.forms.create);
   const forms = useQuery(api.forms.list, { filter: "all" });
-  const responses = useQuery(api.responses.list, { completeness: "all" });
+  const responses = useQuery(api.responses.list, {});
   const analytics = useQuery(api.analytics.overview, {});
   const sweep = useMutation(api.forms.sweepClosing);
 
@@ -77,7 +77,7 @@ export function Dashboard() {
   const list = forms?.forms ?? [];
   const counts = forms?.counts;
   const stats = responses?.stats;
-  const recentAnswers = (responses?.responses ?? []).slice(0, 6);
+  const recentAnswers = (responses?.responses ?? []).filter((r) => !r.preview).slice(0, 6);
 
   const empty = !!forms && list.length === 0;
 
@@ -184,7 +184,7 @@ export function Dashboard() {
           valueTone={stats?.week ? "up" : undefined}
           href="/app/responses"
           expandLabel="Open the inbox"
-          chart={<Sparkbars values={(analytics?.buckets ?? []).map((b) => b.count)} />}
+          chart={<Sparkbars values={(analytics?.daily ?? []).map((d) => d.responses)} />}
         />
 
         <MetricCard
