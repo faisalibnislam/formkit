@@ -113,7 +113,8 @@ await move(0, 1);
 // A page break reorders like anything else.
 {
   const { page, seen } = await open();
-  await page.locator(".fk-pagebreak").first().dragTo(page.locator(".fk-insert").nth(0));
+  // By its grip: the middle of a page break is its name, which is a text field.
+  await page.locator(".fk-pagebreak .fk-pagebreak-grip").first().dragTo(page.locator(".fk-insert").nth(0));
   await page.waitForTimeout(700);
   report("page break to slot 0", seen.reorder?.ids?.[0] === "b3", `first=${seen.reorder?.ids?.[0]}`);
   await page.close();
@@ -124,21 +125,53 @@ await move(0, 1);
   const { page, seen } = await open();
   const card = page.locator(".fk-qcard").first();
   await card.hover();
-  await card.locator("button").last().dragTo(page.locator(".fk-insert").nth(4));
+  await card.locator('button[aria-label="Delete this question"]').dragTo(page.locator(".fk-insert").nth(4));
   await page.waitForTimeout(700);
   report("a drag from the delete button is refused", seen.reorder === null);
   await page.close();
 }
 
-// Clicking still works, for anyone who does not drag.
+// Clicking still works, for anyone who does not drag: the insert point opens
+// the field picker, and what is picked lands at that point.
 {
   const { page, seen } = await open();
   const slot = page.locator(".fk-insert").nth(1);
+  await slot.evaluate((el) => el.scrollIntoView({ block: "center" }));
   await slot.hover();
   await page.waitForTimeout(350);
   await slot.locator(".fk-insert-pill").click();
+  await page.locator(".fk-picker").waitFor({ state: "visible", timeout: 3000 });
+  await page.locator(".fk-picker .fk-fieldtile").nth(1).click();
   await page.waitForTimeout(600);
-  report("the insert point's button adds a field", seen.add?.at === 1, `at=${seen.add?.at}`);
+  report("the insert point's picker adds a field", seen.add?.at === 1, `at=${seen.add?.at}`);
+  await page.close();
+}
+
+// A card's lower half drops after it; its upper half before it.
+for (const [target, half, slot] of [
+  [3, "lower", 5],
+  [3, "upper", 4],
+]) {
+  const { page, seen } = await open();
+  const dest = page.locator(".fk-qcard").nth(target);
+  const box = await dest.boundingBox();
+  const y = half === "lower" ? box.height * 0.8 : box.height * 0.2;
+  await page.locator(".fk-qcard").nth(0).dragTo(dest, { targetPosition: { x: box.width / 2, y } });
+  await page.waitForTimeout(700);
+  const want = expectedOrder("b1", slot);
+  const got = seen.reorder?.ids ?? null;
+  report(`drop on the ${half} half of card ${target}`, got?.join(",") === want.join(","), `got ${got?.join(",") ?? "nothing"}`);
+  await page.close();
+}
+
+// Move down swaps with the next block, for anyone who cannot drag at all.
+{
+  const { page, seen } = await open();
+  const card = page.locator(".fk-qcard").first();
+  await card.hover();
+  await card.locator('button[aria-label="Move down"]').click();
+  await page.waitForTimeout(600);
+  report("move down swaps with the next block", seen.reorder?.ids?.slice(0, 2).join(",") === "b2,b1", `got ${seen.reorder?.ids?.join(",") ?? "nothing"}`);
   await page.close();
 }
 

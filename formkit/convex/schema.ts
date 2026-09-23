@@ -18,6 +18,9 @@ export const questionType = v.union(
   v.literal("email"),
   v.literal("phone"),
   v.literal("url"),
+  v.literal("name"),
+  v.literal("company"),
+  v.literal("address"),
   v.literal("number"),
   v.literal("single-choice"),
   v.literal("multi-choice"),
@@ -164,6 +167,7 @@ export default defineSchema({
     placeholder: v.optional(v.string()),
     required: v.optional(v.boolean()),
     options: v.optional(v.array(v.string())),
+    /** Accepted file extensions, like ".pdf". Empty or absent takes anything. */
     accept: v.optional(v.array(v.string())),
     scaleMin: v.optional(v.number()),
     scaleMax: v.optional(v.number()),

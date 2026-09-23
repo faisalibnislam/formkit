@@ -98,6 +98,7 @@ export function LiveForm({
   const [page, setPage] = useState(0);
   const [answers, setAnswers] = useState<Record<string, Answer>>(resume?.answers ?? {});
   const [problem, setProblem] = useState<string | null>(null);
+  const [fileProblem, setFileProblem] = useState<Record<string, string>>({});
   const [done, setDone] = useState(false);
   const [busy, setBusy] = useState(false);
   const openedAt = useRef(0);
@@ -264,9 +265,23 @@ export function LiveForm({
 
   async function attach(block: Block, file: File) {
     if (file.size > 10 * 1024 * 1024) {
-      setProblem(block._id);
+      setFileProblem((p) => ({ ...p, [block._id]: "That file is over 10 MB. Try a smaller one." }));
       return;
     }
+    const allowed = block.accept ?? [];
+    const ext = `.${file.name.split(".").pop()?.toLowerCase() ?? ""}`;
+    if (allowed.length && !allowed.includes(ext)) {
+      setFileProblem((p) => ({
+        ...p,
+        [block._id]: `This question takes ${allowed.join(" ")} files. Try one of those.`,
+      }));
+      return;
+    }
+    setFileProblem((p) => {
+      const next = { ...p };
+      delete next[block._id];
+      return next;
+    });
     const url = await uploadUrl({});
     const res = await fetch(url, { method: "POST", headers: { "Content-Type": file.type }, body: file });
     const { storageId } = (await res.json()) as { storageId: Id<"_storage"> };
@@ -370,12 +385,12 @@ export function LiveForm({
               onFile={(file) => attach(b, file)}
             />
           </div>
-          {problem === b._id && (
-            <div className="fk-live-err">
-              {answers[b._id]?.fileName === undefined && b.type === "file"
-                ? "That file is over 10 MB. Try a smaller one."
-                : "This one is needed before you can go on."}
-            </div>
+          {fileProblem[b._id] ? (
+            <div className="fk-live-err">{fileProblem[b._id]}</div>
+          ) : (
+            problem === b._id && (
+              <div className="fk-live-err">This one is needed before you can go on.</div>
+            )
           )}
         </div>
       ))}
@@ -490,6 +505,19 @@ function Control({
   };
 
   switch (block.type) {
+    case "address":
+      return (
+        <textarea
+          rows={3}
+          style={{ ...box, resize: "vertical" }}
+          autoComplete="street-address"
+          placeholder={block.placeholder ?? ""}
+          value={value?.value ?? ""}
+          aria-label={block.title ?? "Address"}
+          onChange={(e) => onChange({ value: e.target.value })}
+        />
+      );
+
     case "long-text":
       return (
         <textarea
@@ -618,10 +646,14 @@ function Control({
         >
           <Paperclip size={16} strokeWidth={1.8} aria-hidden />
           <span style={{ flex: 1, minWidth: 0 }}>
-            {value?.fileName ?? "Choose a file — up to 10 MB"}
+            {value?.fileName ??
+              (block.accept?.length
+                ? `Choose a ${block.accept.join(" ")} file — up to 10 MB`
+                : "Choose a file — up to 10 MB")}
           </span>
           <input
             type="file"
+            accept={block.accept?.length ? block.accept.join(",") : undefined}
             style={{ display: "none" }}
             onChange={(e) => {
               const file = e.target.files?.[0];
@@ -660,6 +692,17 @@ function Control({
                       : block.type === "url"
                         ? "url"
                         : "text"
+          }
+          autoComplete={
+            block.type === "name"
+              ? "name"
+              : block.type === "company"
+                ? "organization"
+                : block.type === "email"
+                  ? "email"
+                  : block.type === "phone"
+                    ? "tel"
+                    : undefined
           }
           placeholder={block.placeholder ?? ""}
           value={value?.value ?? ""}

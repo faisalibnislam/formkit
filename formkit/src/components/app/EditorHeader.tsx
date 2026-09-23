@@ -30,6 +30,7 @@ import { CollaboratorsDialog } from "./dialogs/CollaboratorsDialog";
 import { SaveTemplateDialog } from "./dialogs/SaveTemplateDialog";
 import { ShareDialog } from "./dialogs/ShareDialog";
 import { VersionsDialog } from "./dialogs/VersionsDialog";
+import { resetSaveStatus, tracked, useSaveStatus } from "./editor/saveStatus";
 
 /**
  * The editor's own header: the form's name, edited in place, what it is doing
@@ -63,6 +64,9 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
     null | "share" | "versions" | "people" | "template" | "close"
   >(null);
   const known = useRef<string | null>(null);
+  const saved = useSaveStatus(form?.updatedAt);
+
+  useEffect(() => resetSaveStatus(), [formId]);
 
   // The input is uncontrolled by the server after the first load, so typing is
   // never yanked back by a round trip.
@@ -98,7 +102,7 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
   async function commitTitle() {
     const next = title.trim();
     if (!next || !form || next === form.title) return;
-    await update({ formId, patch: { title: next } });
+    await tracked(update({ formId, patch: { title: next } }));
   }
 
   async function onPublish() {
@@ -141,6 +145,11 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
               </Link>
               <span style={{ fontSize: 14.5, color: "var(--neutral-0)", opacity: 0.6 }}>/</span>
               <span style={{ fontSize: 14.5, color: "var(--neutral-0)" }}>{statusLabel}</span>
+              {saved.label && (
+                <span className="fk-savestatus" data-tone={saved.tone} role="status" aria-live="polite">
+                  {saved.label}
+                </span>
+              )}
             </div>
 
             <input

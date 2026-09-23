@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation } from "./_generated/server";
 import { questionType } from "./schema";
 import { formFor } from "./model/forms";
+import type { Id } from "./_generated/dataModel";
 
 /**
  * Questions and page breaks share one ordered list, exactly as the builder
@@ -166,5 +167,92 @@ export const reorder = mutation({
     }
     await ctx.db.patch(formId, { updatedAt: Date.now() });
     return null;
+  },
+});
+
+/**
+ * Deleting a page takes the page break and every question after it, up to the
+ * next page break, with the logic rules that point at any of them. Deleting
+ * only the break — to merge its questions into the page above — is `remove`.
+ */
+export const removePage = mutation({
+  args: { blockId: v.id("blocks") },
+  returns: v.number(),
+  handler: async (ctx, { blockId }) => {
+    const block = await ctx.db.get(blockId);
+    if (!block || block.kind !== "pagebreak") return 0;
+    await formFor(ctx, block.formId);
+
+    const blocks = (
+      await ctx.db
+        .query("blocks")
+        .withIndex("by_form_order", (q) => q.eq("formId", block.formId))
+        .collect()
+    ).sort((a, b) => a.order - b.order);
+
+    const start = blocks.findIndex((b) => b._id === blockId);
+    let end = start + 1;
+    while (end < blocks.length && blocks[end]!.kind !== "pagebreak") end++;
+    const gone = new Set(blocks.slice(start, end).map((b) => b._id as string));
+
+    const rules = await ctx.db
+      .query("logicRules")
+      .withIndex("by_form", (q) => q.eq("formId", block.formId))
+      .collect();
+    for (const rule of rules) {
+      const touches =
+        rule.conditions.some((c) => c.blockId && gone.has(c.blockId)) ||
+        (rule.targetId && gone.has(rule.targetId));
+      if (touches) await ctx.db.delete(rule._id);
+    }
+
+    for (const id of gone) await ctx.db.delete(id as never);
+
+    const rest = blocks.filter((b) => !gone.has(b._id));
+    for (const [i, b] of rest.entries()) {
+      if (b.order !== i) await ctx.db.patch(b._id, { order: i });
+    }
+
+    await ctx.db.patch(block.formId, { updatedAt: Date.now() });
+    return gone.size - 1;
+  },
+});
+
+/** A page is copied whole: the break and its questions, placed after the page. */
+export const duplicatePage = mutation({
+  args: { blockId: v.id("blocks") },
+  returns: v.id("blocks"),
+  handler: async (ctx, { blockId }) => {
+    const block = await ctx.db.get(blockId);
+    if (!block || block.kind !== "pagebreak") throw new Error("That page no longer exists.");
+    await formFor(ctx, block.formId);
+
+    const blocks = (
+      await ctx.db
+        .query("blocks")
+        .withIndex("by_form_order", (q) => q.eq("formId", block.formId))
+        .collect()
+    ).sort((a, b) => a.order - b.order);
+
+    const start = blocks.findIndex((b) => b._id === blockId);
+    let end = start + 1;
+    while (end < blocks.length && blocks[end]!.kind !== "pagebreak") end++;
+    const run = blocks.slice(start, end);
+
+    for (let i = end; i < blocks.length; i++) {
+      await ctx.db.patch(blocks[i]!._id, { order: i + run.length });
+    }
+    let first: Id<"blocks"> | null = null;
+    for (const [k, b] of run.entries()) {
+      const { _id, _creationTime, order, ...rest } = b;
+      const id = await ctx.db.insert("blocks", {
+        ...rest,
+        ...(k === 0 ? { pageName: `${b.pageName ?? "Page"} copy` } : {}),
+        order: end + k,
+      });
+      first ??= id;
+    }
+    await ctx.db.patch(block.formId, { updatedAt: Date.now() });
+    return first!;
   },
 });

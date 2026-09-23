@@ -852,7 +852,8 @@
   position: relative;
   display: flex;
   gap: 14px;
-  padding: 20px 22px 22px;
+  /* Room at the foot for the move and comment tools. */
+  padding: 20px 22px 54px;
   border-radius: var(--radius-card);
   background: var(--color-surface-card);
   box-shadow: var(--shadow-card);
@@ -987,44 +988,31 @@
   margin: 14px 0 18px;
 }
 
-.fk-pagebreak {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 18px;
-  border-radius: var(--radius-pill);
-  background: var(--blue-100);
-  color: var(--blue-700);
-  font-size: 13.5px;
-  cursor: pointer;
-  user-select: none;
-}
-.fk-pagebreak[data-dragging="true"] {
-  opacity: 0.4;
-}
-.fk-pagebreak-grip {
+/* "Saved just now", beside the form's state in the editor header. */
+.fk-savestatus {
   display: inline-flex;
-  color: currentColor;
-  opacity: 0;
-  cursor: grab;
-  transition: opacity var(--duration-fast) var(--ease-out);
+  align-items: center;
+  gap: 7px;
+  margin-left: 6px;
+  font-size: 13.5px;
+  color: var(--neutral-0);
+  opacity: 0.72;
 }
-.fk-pagebreak:hover .fk-pagebreak-grip {
-  opacity: 0.6;
+.fk-savestatus::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green-400, #4ade80);
 }
-.fk-pagebreak-name {
-  min-width: 120px;
-  border: none;
-  background: transparent;
-  font: inherit;
-  color: inherit;
-  outline: none;
+.fk-savestatus[data-tone="busy"]::before {
+  background: var(--yellow-300, #fcd34d);
 }
-.fk-pagebreak-rule {
-  flex: 1;
-  height: 1px;
-  background: currentColor;
-  opacity: 0.35;
+.fk-savestatus[data-tone="error"] {
+  opacity: 1;
+}
+.fk-savestatus[data-tone="error"]::before {
+  background: var(--red-400, #f87171);
 }
 
 .fk-inspector {
@@ -1032,6 +1020,532 @@
   flex-direction: column;
   gap: 16px;
 }
+
+/* A page break is a card of its own: the page's number, its name, and the
+   controls that move, copy or delete the whole page. */
+.fk-pagebreak {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 14px 16px 14px 20px;
+  border-radius: var(--radius-card);
+  background: var(--color-surface-card);
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+  user-select: none;
+  transition: var(--transition-surface);
+}
+.fk-pagebreak[data-selected="true"] {
+  box-shadow:
+    inset 0 0 0 1.5px var(--blue-500),
+    var(--shadow-md);
+}
+.fk-pagebreak[data-dragging="true"] {
+  opacity: 0.45;
+  transform: scale(0.985);
+}
+.fk-pagebreak-no {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--neutral-900);
+  color: var(--neutral-0);
+  font-size: 12.5px;
+}
+.fk-pagebreak-name {
+  flex: 1 1 160px;
+  min-width: 140px;
+  padding: 4px 8px;
+  margin-left: -4px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  font: inherit;
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.012em;
+  color: var(--color-text-primary);
+  outline: none;
+  transition: var(--transition-control);
+}
+.fk-pagebreak-name:hover {
+  background: var(--neutral-100);
+}
+.fk-pagebreak-name:focus {
+  background: var(--blue-50);
+  box-shadow: inset 0 0 0 1.5px var(--blue-500);
+}
+.fk-pagebreak-label {
+  font-size: 13.5px;
+  color: var(--color-text-tertiary);
+}
+.fk-pagebreak-grip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 30px;
+  flex: 0 0 auto;
+  color: var(--color-text-tertiary);
+  cursor: grab;
+}
+
+/* Where a drop will land: a line above or below the card under the pointer. */
+.fk-dropline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 4;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--blue-500);
+  box-shadow: 0 0 0 4px var(--blue-100);
+  pointer-events: none;
+}
+.fk-dropline[data-at="before"] {
+  top: -9px;
+}
+.fk-dropline[data-at="after"] {
+  bottom: -9px;
+}
+
+/* Move up, move down and comment: small, in the card's corner, half there
+   until the pointer reaches it. */
+.fk-qcard-tools {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-glass-strong, rgba(255, 255, 255, 0.86));
+  backdrop-filter: blur(8px);
+  box-shadow: var(--shadow-sm);
+  opacity: 0.5;
+  transition: var(--transition-control);
+}
+.fk-qcard-tools:hover,
+.fk-qcard-tools:focus-within {
+  opacity: 1;
+}
+.fk-qcard-tools .ui-iconbtn {
+  width: 28px;
+  height: 28px;
+}
+.fk-qcard-tools-grip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 28px;
+  color: var(--color-text-tertiary);
+  cursor: grab;
+}
+.fk-qcard-comments {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 9px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--yellow-200);
+  color: var(--neutral-900);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.fk-qcard-presence {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 9px 0 4px;
+  border-radius: var(--radius-pill);
+  color: #fff;
+  font-size: 12.5px;
+}
+.fk-qcard-presence > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.28);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.fk-enddrop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 64px;
+  margin-top: 6px;
+  border-radius: var(--radius-card);
+  background: var(--blue-50);
+  box-shadow: inset 0 0 0 1.5px var(--blue-200);
+  color: var(--blue-700);
+  font-size: 14px;
+  transition: var(--transition-control);
+}
+.fk-enddrop[data-on="true"] {
+  background: var(--blue-100);
+  box-shadow: inset 0 0 0 2px var(--blue-500);
+}
+
+/* Words edited where they sit: no box until the pointer or the caret is in
+   them. */
+.fk-inline-edit {
+  display: block;
+  width: calc(100% + 10px);
+  margin: 0 0 0 -10px;
+  padding: 2px 10px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  font-family: inherit;
+  color: var(--color-text-primary);
+  outline: none;
+  resize: none;
+  transition: var(--transition-control);
+}
+.fk-inline-edit:hover {
+  background: var(--neutral-100);
+}
+.fk-inline-edit:focus {
+  background: var(--blue-50);
+  box-shadow: inset 0 0 0 1.5px var(--blue-500);
+}
+.fk-inline-edit[data-size="h2"] {
+  font-size: var(--text-h2-size, 30px);
+  font-weight: var(--text-h2-weight, 600);
+  letter-spacing: var(--text-h2-tracking, -0.02em);
+  line-height: 1.14;
+}
+.fk-inline-edit[data-size="h3"] {
+  font-size: var(--text-h3-size, 22px);
+  font-weight: var(--text-h3-weight, 600);
+  letter-spacing: var(--text-h3-tracking, -0.015em);
+  line-height: 1.2;
+}
+.fk-inline-edit[data-size="lede"] {
+  margin-top: 8px;
+  padding: 6px 10px;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--color-text-tertiary);
+}
+.fk-inline-edit[data-size="body"] {
+  margin-top: 6px;
+  padding: 6px 10px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--color-text-tertiary);
+}
+.fk-welcome-cta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 22px;
+  padding-top: 20px;
+  box-shadow: inset 0 1px 0 var(--neutral-200);
+}
+.fk-welcome-button {
+  width: 16ch;
+  height: 44px;
+  padding: 0 22px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--neutral-900);
+  color: var(--neutral-0);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  text-align: center;
+  outline: none;
+  transition: var(--transition-control);
+}
+.fk-welcome-button:hover {
+  background: var(--neutral-800);
+}
+.fk-welcome-button:focus {
+  box-shadow: 0 0 0 3px var(--blue-200);
+}
+.fk-screen-thanks {
+  margin-top: 14px;
+  padding: 30px;
+  border-radius: var(--radius-card);
+  background: var(--gradient-glass, var(--mint-100));
+}
+
+/* The pages rail. */
+.fk-pagechip-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 12px;
+  transition: var(--transition-control);
+}
+.fk-pagechip-row[data-dragging="true"] {
+  opacity: 0.45;
+}
+.fk-pagechip-row[data-over="true"] {
+  box-shadow: inset 0 0 0 2px var(--blue-500);
+}
+.fk-pagechip-row .ui-iconbtn {
+  width: 30px;
+  height: 30px;
+}
+.fk-pagechip-lead {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 30px;
+  flex: 0 0 auto;
+  color: var(--color-text-tertiary);
+}
+.fk-pagechip-lead[data-grip="true"] {
+  cursor: grab;
+}
+.fk-pagechip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 12px;
+  background: var(--neutral-100);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: var(--transition-control);
+}
+.fk-pagechip:hover {
+  box-shadow: inset 0 0 0 1px var(--color-border-strong, var(--neutral-300));
+}
+.fk-pagechip[data-active="true"] {
+  background: var(--blue-50);
+  box-shadow: inset 0 0 0 1.5px var(--blue-500);
+}
+.fk-pagechip-no {
+  flex: 0 0 auto;
+  font-size: 12px;
+  opacity: 0.7;
+}
+.fk-pagechip-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fk-pagechip-count {
+  flex: 0 0 auto;
+  font-size: 12.5px;
+  opacity: 0.6;
+}
+
+/* The inspector's rows. */
+.fk-proprow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  box-shadow: inset 0 -1px 0 var(--neutral-150, var(--neutral-100));
+}
+.fk-proprow[data-stack="true"] {
+  display: block;
+}
+.fk-proprow-hint {
+  margin-top: 3px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-tertiary);
+}
+.fk-static-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  background: var(--neutral-100);
+  font-size: 13.5px;
+  white-space: nowrap;
+}
+.fk-option-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: var(--radius-pill);
+}
+.fk-option-row[data-dragging="true"] {
+  opacity: 0.45;
+}
+.fk-option-grip {
+  display: inline-flex;
+  color: var(--color-text-tertiary);
+  cursor: grab;
+}
+.fk-rulecard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: var(--radius-card-inner);
+  background: var(--neutral-50);
+  transition: var(--transition-surface);
+}
+.fk-rulecard-name {
+  overflow: hidden;
+  font-size: 13.5px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fk-rulecard-sentence {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 10px 12px;
+  border-radius: var(--radius-card-inner);
+  background: var(--color-surface-card);
+}
+.fk-rw {
+  font-size: 12.5px;
+  color: var(--color-text-tertiary);
+}
+.fk-rchip {
+  max-width: 100%;
+  padding: 3px 9px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--neutral-100);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fk-rchip[data-tone="ink"] {
+  background: var(--neutral-900);
+  color: var(--neutral-0);
+}
+.fk-rchip[data-tone="sky"] {
+  background: var(--blue-200);
+  color: var(--blue-700);
+}
+.fk-nothing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 26px 12px;
+  border-radius: var(--radius-card-inner);
+  background: var(--paper, var(--neutral-50));
+  text-align: center;
+}
+.fk-nothing-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 12px;
+  border-radius: 50%;
+  background: var(--neutral-0);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-text-secondary);
+}
+.fk-nothing h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+}
+.fk-nothing p {
+  margin: 6px 0 0;
+  max-width: 28ch;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--color-text-tertiary);
+}
+
+/* The field picker. */
+.fk-picker-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 340;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 10vh 20px 20px;
+  background: var(--color-surface-overlay, rgba(10, 20, 30, 0.35));
+  backdrop-filter: blur(4px);
+  animation: fk-pop var(--duration-base) var(--ease-out);
+}
+.fk-picker {
+  width: 100%;
+  max-width: 600px;
+  overflow: hidden;
+  border-radius: var(--radius-panel);
+  background: var(--color-surface-raised, var(--neutral-0));
+  box-shadow: var(--shadow-lg);
+}
+.fk-picker-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 22px;
+  box-shadow: inset 0 -1px 0 var(--color-border-subtle, var(--neutral-200));
+}
+.fk-picker-head input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 16px;
+  color: var(--color-text-primary);
+  outline: none;
+}
+.fk-picker-head input:focus,
+.fk-picker-head input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+.fk-kbd {
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--neutral-100);
+  font-size: 11.5px;
+  color: var(--color-text-tertiary);
+}
+.fk-picker-body {
+  max-height: 56vh;
+  overflow-y: auto;
+  padding: 14px;
+}
+.fk-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(176px, 100%), 1fr));
+  gap: 4px;
+}
+
 
 /* A faked control, drawn in the builder so a question looks like itself. */
 .fk-ghost {

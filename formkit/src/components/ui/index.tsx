@@ -12,6 +12,7 @@ import {
   type ReactNode,
   type TextareaHTMLAttributes,
 } from "react";
+import { createPortal } from "react-dom";
 import { Check, ChevronDown, X } from "lucide-react";
 
 /**
@@ -453,6 +454,16 @@ export function PillTabs<T extends string>({
 
 /* ---------- overlays ---------- */
 
+/**
+ * Every overlay renders at the end of <body>. Rendered where it is declared, a
+ * fixed overlay is trapped in whatever stacking context its ancestors make,
+ * and the sticky dock paints over it however high its own z-index is.
+ */
+export function Portal({ children }: { children: ReactNode }) {
+  if (typeof document === "undefined") return null;
+  return createPortal(children, document.body);
+}
+
 export function Modal({
   title,
   description,
@@ -477,6 +488,7 @@ export function Modal({
   }, [onClose]);
 
   return (
+    <Portal>
     <div
       className="ui-scrim"
       onPointerDown={(e) => {
@@ -520,10 +532,11 @@ export function Modal({
             <X size={18} strokeWidth={1.8} aria-hidden />
           </IconButton>
         </div>
-        <div className="ui-modal-body">{children}</div>
+        {children != null && <div className="ui-modal-body">{children}</div>}
         {footer && <div className="ui-modal-foot">{footer}</div>}
       </div>
     </div>
+    </Portal>
   );
 }
 
@@ -547,6 +560,7 @@ export function Drawer({
   }, [onClose]);
 
   return (
+    <Portal>
     <div
       className="ui-scrim"
       style={{ padding: 0, justifyContent: "flex-end" }}
@@ -598,5 +612,6 @@ export function Drawer({
         )}
       </aside>
     </div>
+    </Portal>
   );
 }

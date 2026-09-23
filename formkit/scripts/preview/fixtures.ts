@@ -238,7 +238,7 @@ const TEMPLATES = [
 const BLOCKS = [
   { _id: "b1", kind: "field", type: "short-text", order: 0, title: "What should we call you?", help: "", required: true, options: [] },
   { _id: "b2", kind: "field", type: "email", order: 1, title: "Where should we send the proposal?", help: "", required: true, options: [] },
-  { _id: "b3", kind: "pagebreak", order: 2, title: "The project" },
+  { _id: "b3", kind: "pagebreak", order: 2, pageName: "The project" },
   { _id: "b4", kind: "field", type: "long-text", order: 3, title: "What are we making?", help: "A sentence or two is plenty.", required: true, options: [] },
   { _id: "b5", kind: "field", type: "single-select", order: 4, title: "Budget range", help: "", required: false, options: ["Under £10k", "£10k–£20k", "£20k–£35k", "More than £35k"] },
   { _id: "b6", kind: "field", type: "date", order: 5, title: "When does it need to be live?", help: "", required: false, options: [] },

@@ -104,15 +104,24 @@ export function AppShell({ children }: { children: ReactNode }) {
      throws away the tree and rebuilds it. Both are read after mount instead. */
   const [clock, setClock] = useState<{ hour: number; today: string } | null>(null);
   useEffect(() => {
-    const at = new Date();
-    setClock({
-      hour: at.getHours(),
-      today: at.toLocaleDateString("en-US", {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-      }),
-    });
+    const read = () => {
+      const at = new Date();
+      setClock({
+        hour: at.getHours(),
+        today: at.toLocaleDateString("en-US", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+        }),
+      });
+    };
+    // Re-read each minute, so a morning greeting becomes an afternoon one.
+    const first = window.setTimeout(read, 0);
+    const every = window.setInterval(read, 60_000);
+    return () => {
+      window.clearTimeout(first);
+      window.clearInterval(every);
+    };
   }, []);
 
   // The floating rail appears once the header has scrolled away.
