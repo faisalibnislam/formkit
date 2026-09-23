@@ -61,6 +61,12 @@ const CASES = [
     },
     menu: ".ui-select-menu",
   },
+  {
+    name: "row actions, forms list",
+    route: "/app/forms",
+    open: async (p) => p.locator('button[aria-label="More actions"]').first().click(),
+    menu: ".fk-menu",
+  },
 ];
 
 const browser = await chromium.launch({

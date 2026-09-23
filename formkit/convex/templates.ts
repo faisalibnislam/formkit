@@ -6,8 +6,8 @@ import { BUILTIN_TEMPLATES } from "./model/builtinTemplates";
 import { logActivity } from "./model/access";
 
 /**
- * The template library: the six Formkit ships with, plus anything the person
- * has saved from one of their own forms.
+ * The template library: the thirteen Formkit ships with, plus anything the
+ * person has saved from one of their own forms.
  */
 
 export const list = query({
@@ -27,6 +27,8 @@ export const list = query({
       audience: t.audience,
       questions: t.blocks.filter((b) => b.kind === "field").length,
       pages: t.blocks.filter((b) => b.kind === "pagebreak").length + 1,
+      icon: t.icon,
+      accent: t.accent,
       mine: false,
       _id: null,
       keeps: null,
@@ -44,6 +46,8 @@ export const list = query({
         questions: (t.blocks as { kind?: string }[]).filter((b) => b.kind === "field").length,
         pages:
           (t.blocks as { kind?: string }[]).filter((b) => b.kind === "pagebreak").length + 1,
+        icon: "bookmark",
+        accent: "var(--blue-100)",
         mine: true,
         _id: t._id,
         keeps: [
@@ -55,6 +59,38 @@ export const list = query({
         createdAt: t.createdAt,
       })),
     ];
+  },
+});
+
+/** One template, question by question, for the library's preview. */
+export const get = query({
+  args: { slug: v.string() },
+  handler: async (ctx, { slug }) => {
+    const user = await requireUser(ctx);
+    const saved = (
+      await ctx.db
+        .query("templates")
+        .withIndex("by_slug", (q) => q.eq("slug", slug))
+        .collect()
+    ).find((t) => t.ownerId === user._id);
+    const t = saved ?? BUILTIN_TEMPLATES.find((b) => b.slug === slug);
+    if (!t) return null;
+    const blocks = t.blocks as { kind?: string; type?: string; title?: string; pageName?: string; required?: boolean; options?: string[]; help?: string }[];
+    return {
+      slug: t.slug,
+      name: t.name,
+      topic: t.topic,
+      blurb: t.blurb,
+      welcome: (t.welcome ?? null) as { title: string; message: string } | null,
+      blocks: blocks.map((b) => ({
+        kind: b.kind ?? "field",
+        type: b.type ?? null,
+        title: b.title ?? b.pageName ?? "",
+        help: b.help ?? null,
+        required: !!b.required,
+        options: b.options ?? null,
+      })),
+    };
   },
 });
 
@@ -150,6 +186,23 @@ export const update = mutation({
       ...(topic?.trim() ? { topic: topic.trim() } : {}),
     });
     return null;
+  },
+});
+
+export const duplicate = mutation({
+  args: { templateId: v.id("templates") },
+  returns: v.id("templates"),
+  handler: async (ctx, { templateId }) => {
+    const user = await requireUser(ctx);
+    const row = await ctx.db.get(templateId);
+    if (!row || row.ownerId !== user._id) throw new Error("That template is not yours to copy.");
+    const { _id, _creationTime, ...rest } = row;
+    return ctx.db.insert("templates", {
+      ...rest,
+      name: `${row.name} (copy)`,
+      slug: `${row.slug.replace(/-[a-z0-9]+$/, "")}-${Date.now().toString(36)}`,
+      createdAt: Date.now(),
+    });
   },
 });
 

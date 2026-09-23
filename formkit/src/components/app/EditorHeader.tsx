@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import {
   Bookmark,
@@ -78,6 +78,27 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
   const [preview, setPreview] = useState<PreviewRequest | null>(null);
   const [comments, setComments] = useState<{ blockId: string | null } | null>(null);
   usePreviewRequests(useCallback((r: PreviewRequest) => setPreview(r), []));
+
+  // The forms list can open a form straight into its preview or share panel.
+  const search = useSearchParams();
+  const pathname = usePathname();
+  const opened = useRef(false);
+  useEffect(() => {
+    if (opened.current) return;
+    const want = search.get("open");
+    // `open` also carries a response id for the inbox; only these three are ours.
+    if (want !== "preview" && want !== "share" && want !== "comments") return;
+    opened.current = true;
+    const t = window.setTimeout(() => {
+      if (want === "preview") setPreview({});
+      else if (want === "share") setDialog("share");
+      else if (want === "comments") setComments({ blockId: null });
+      const next = new URLSearchParams(search.toString());
+      next.delete("open");
+      router.replace(`${pathname}${next.size ? `?${next}` : ""}`, { scroll: false });
+    }, 0);
+    return () => window.clearTimeout(t);
+  }, [pathname, router, search]);
   useCommentRequests(useCallback((r: { blockId: string | null }) => setComments(r), []));
   const openThreads = Object.values(counts ?? {}).reduce((a, b) => a + b, 0);
 
@@ -103,7 +124,13 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
   }
 
   const statusLabel =
-    form.status === "published" ? "Collecting" : form.status === "closed" ? "Closed" : "Draft";
+    form.status === "published"
+      ? "Collecting"
+      : form.status === "closed"
+        ? "Closed"
+        : form.status === "archived"
+          ? "Archived"
+          : "Draft";
 
   const publishLabel =
     form.status === "published"

@@ -129,7 +129,7 @@ export const bySlug = query({
   handler: async (ctx, { slug, handle, password }) => {
     const form = await resolve(ctx, slug, handle);
     if (!form) return null;
-    if (form.status === "draft") return { state: "draft" as const };
+    if (form.status === "draft" || form.status === "archived") return { state: "draft" as const };
 
     const closed = form.status === "closed" || shouldAutoClose(form, Date.now());
     if (closed) {

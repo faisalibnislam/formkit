@@ -28,7 +28,7 @@ export function CloseFormDialog({
   onDone,
 }: {
   formId: Id<"forms">;
-  status: "draft" | "published" | "closed";
+  status: "draft" | "published" | "closed" | "archived";
   onClose: () => void;
   onDone?: () => void;
 }) {

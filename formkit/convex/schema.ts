@@ -111,7 +111,13 @@ export default defineSchema({
     title: v.string(),
     slug: v.string(),
     description: v.optional(v.string()),
-    status: v.union(v.literal("draft"), v.literal("published"), v.literal("closed")),
+    /** Archived: put away, out of the lists and off the public link, kept whole. */
+    status: v.union(
+      v.literal("draft"),
+      v.literal("published"),
+      v.literal("closed"),
+      v.literal("archived"),
+    ),
 
     welcome: v.optional(
       v.object({

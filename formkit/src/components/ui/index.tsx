@@ -58,9 +58,15 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
 export function IconButton({
   label,
   tone,
+  tip,
   children,
   ...rest
-}: ButtonHTMLAttributes<HTMLButtonElement> & { label: string; tone?: "danger" }) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & {
+  label: string;
+  tone?: "danger";
+  /** Show the label as a dark tip above the button, instead of the browser's own. */
+  tip?: boolean;
+}) {
   // Every icon-only control takes a required label.
   return (
     <button
@@ -68,8 +74,9 @@ export function IconButton({
       {...rest}
       className={`ui-iconbtn ${rest.className ?? ""}`}
       data-tone={tone}
+      data-tip={tip ? label : undefined}
       aria-label={label}
-      title={label}
+      title={tip ? undefined : label}
     >
       {children}
     </button>

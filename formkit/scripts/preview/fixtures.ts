@@ -217,13 +217,20 @@ const BUCKETS = [18, 24, 31, 27, 42, 38, 51, 46, 58, 63, 49, 72, 40, 35, 44, 52,
 );
 
 const TEMPLATES = [
-  ["client-onboarding", "Client onboarding", "Work", "Everything you need before the first call.", 11, 3],
-  ["project-brief", "Project brief", "Work", "Scope, budget and references.", 7, 2],
-  ["feedback", "Customer feedback", "Feedback", "Five questions, sent after handover.", 5, 1],
-  ["contact", "Contact", "Sales", "Four fields and a reply address.", 4, 1],
-  ["event-signup", "Event registration", "Events", "Names, numbers and dietary needs.", 6, 2],
-  ["survey", "Research survey", "Research", "Ask a group the same thing, cleanly.", 8, 2],
-].map(([slug, name, topic, blurb, questions, pages]) => ({
+  ["contact-form", "Contact Form", "Business", "Name, email, subject and message. The one every site needs.", 5, 1, "mail", "var(--blue-300)"],
+  ["client-onboarding", "Client Onboarding", "Agency", "Everything you need before a kickoff call, across three pages.", 11, 4, "briefcase", "var(--blue-300)"],
+  ["website-questionnaire", "Website Questionnaire", "Agency", "Scope, pages, references and budget for a site build.", 14, 4, "layout-template", "var(--blue-200)"],
+  ["branding-questionnaire", "Branding Questionnaire", "Agency", "Positioning, audience and taste, without the jargon.", 12, 4, "palette", "var(--mint-200)"],
+  ["customer-feedback", "Customer Feedback", "Business", "A rating, an NPS scale and room to say what went wrong.", 6, 1, "message-square", "var(--mint-200)"],
+  ["job-application", "Job Application", "HR", "Eligibility, role, availability, portfolio and resume upload.", 16, 4, "user-round", "var(--neutral-150)"],
+  ["event-registration", "Event Registration", "Events", "Days, sessions, guest count and dietary requirements.", 9, 3, "calendar", "var(--yellow-200)"],
+  ["rsvp", "RSVP", "Personal", "Coming or not, headcount, and a line for a message.", 5, 1, "party-popper", "var(--yellow-200)"],
+  ["lead-qualification", "Lead Generation", "Marketing", "Qualifies in seven questions people will actually finish.", 7, 1, "magnet", "var(--blue-200)"],
+  ["product-research", "Product Survey", "Marketing", "Usage, fit, satisfaction and what is missing.", 10, 3, "chart-pie", "var(--mint-200)"],
+  ["project-discovery", "Project Discovery", "Agency", "A longer intake for complex or multi-phase work.", 13, 4, "compass", "var(--blue-300)"],
+  ["support-request", "Support Request", "Business", "Triage by topic and urgency, with a screenshot upload.", 7, 1, "life-buoy", "var(--neutral-150)"],
+  ["order-form", "Order Form", "Business", "Product, quantity, specification, artwork and delivery.", 11, 3, "shopping-bag", "var(--yellow-200)"],
+].map(([slug, name, topic, blurb, questions, pages, icon, accent]) => ({
   slug,
   name,
   topic,
@@ -231,9 +238,29 @@ const TEMPLATES = [
   audience: null,
   questions,
   pages,
+  icon,
+  accent,
   mine: false,
   _id: null,
+  keeps: null,
+  createdAt: null,
 }));
+TEMPLATES.push({
+  slug: "studio-intake-x1",
+  name: "Studio intake",
+  topic: "Agency",
+  blurb: "Saved from Client Onboarding.",
+  audience: null,
+  questions: 9,
+  pages: 3,
+  icon: "bookmark",
+  accent: "var(--blue-100)",
+  mine: true,
+  _id: "t-mine" as never,
+  keeps: ["Questions & pages", "Theme", "Welcome & thanks"] as never,
+  createdAt: now - 3 * DAY as never,
+});
+
 
 const BLOCKS = [
   { _id: "b1", kind: "field", type: "short-text", order: 0, title: "What should we call you?", help: "", required: true, options: [] },
@@ -320,7 +347,7 @@ export const QUERIES: Record<string, unknown> = {
   "users:viewer": VIEWER,
   "companies:list": COMPANIES.map((c) => ({ ...c, formCount: 4, logoId: null, ownerId: "u1" })),
   "forms:list": {
-    counts: { all: 6, draft: 1, published: 4, closed: 1, deleted: 0 },
+    counts: { all: 6, draft: 1, published: 4, closed: 1, archived: 0, deleted: 2 },
     forms: FORMS,
   },
   "forms:get": FORM_DETAIL,
@@ -331,6 +358,14 @@ export const QUERIES: Record<string, unknown> = {
   "responses:get": RESPONSES[0],
   "responses:forExport": { rows: [], columns: [] },
   "templates:list": TEMPLATES,
+  "templates:get": {
+    slug: "client-onboarding",
+    name: "Client Onboarding",
+    topic: "Agency",
+    blurb: "Everything you need before a kickoff call, across three pages.",
+    welcome: { title: "Let's start your project", message: "Eleven questions, about four minutes." },
+    blocks: BLOCKS.map((b) => ({ kind: b.kind, type: b.type ?? null, title: b.title ?? b.pageName ?? "", help: null, required: !!b.required, options: b.options ?? null })),
+  },
   "notifications:recent": {
     items: RESPONSES.slice(0, 8).map((r) => ({
       _id: r._id,

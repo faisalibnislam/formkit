@@ -72,6 +72,7 @@ export const list = query({
         v.literal("draft"),
         v.literal("published"),
         v.literal("closed"),
+        v.literal("archived"),
         v.literal("deleted"),
       ),
     ),
@@ -88,7 +89,9 @@ export const list = query({
     const rows = all
       .filter((f) => (filter === "deleted" ? !!f.deletedAt : !f.deletedAt))
       .filter((f) => (filter === "all" || filter === "deleted" ? true : f.status === filter))
-      .filter((f) => (term ? f.title.toLowerCase().includes(term) : true))
+      .filter((f) =>
+        term ? `${f.title} ${f.description ?? ""}`.toLowerCase().includes(term) : true,
+      )
       .sort((a, b) => b.updatedAt - a.updatedAt);
 
     const counts = {
@@ -96,6 +99,7 @@ export const list = query({
       draft: all.filter((f) => !f.deletedAt && f.status === "draft").length,
       published: all.filter((f) => !f.deletedAt && f.status === "published").length,
       closed: all.filter((f) => !f.deletedAt && f.status === "closed").length,
+      archived: all.filter((f) => !f.deletedAt && f.status === "archived").length,
       deleted: all.filter((f) => !!f.deletedAt).length,
     };
 
@@ -447,12 +451,33 @@ export const setClosing = mutation({
   },
 });
 
+/** Put a form away, or bring it back as a draft. Everything in it is kept. */
+export const archive = mutation({
+  args: { formId: v.id("forms"), archived: v.boolean() },
+  returns: v.null(),
+  handler: async (ctx, { formId, archived }) => {
+    await formFor(ctx, formId);
+    const user = await requireUser(ctx);
+    await ctx.db.patch(formId, { status: archived ? "archived" : "draft", updatedAt: Date.now() });
+    await ctx.db.insert("activity", {
+      formId,
+      userId: user._id,
+      what: archived ? "archived the form" : "restored the form from the archive",
+      icon: "archive",
+      at: Date.now(),
+    });
+    return null;
+  },
+});
+
 /** Deleting moves a form to the bin, where it sits for 60 days. */
 export const softDelete = mutation({
   args: { formId: v.id("forms") },
   returns: v.null(),
   handler: async (ctx, { formId }) => {
-    await formFor(ctx, formId);
+    const form = await formFor(ctx, formId);
+    const me = await requireUser(ctx);
+    if (form.ownerId !== me._id) throw new Error("Only the owner can delete or restore a form.");
     await ctx.db.patch(formId, { deletedAt: Date.now(), updatedAt: Date.now() });
     return null;
   },
@@ -462,7 +487,9 @@ export const restore = mutation({
   args: { formId: v.id("forms") },
   returns: v.null(),
   handler: async (ctx, { formId }) => {
-    await formFor(ctx, formId);
+    const form = await formFor(ctx, formId);
+    const me = await requireUser(ctx);
+    if (form.ownerId !== me._id) throw new Error("Only the owner can delete or restore a form.");
     await ctx.db.patch(formId, { deletedAt: undefined, updatedAt: Date.now() });
     return null;
   },
@@ -486,6 +513,12 @@ export const purge = mutation({
         : [];
 
     for (const form of targets) {
+      // Only the owner empties the bin, and only what is already in it.
+      if (form.ownerId !== user._id) throw new Error("Only the owner can delete a form forever.");
+      if (!form.deletedAt) throw new Error("Move the form to Deleted first.");
+    }
+
+    for (const form of targets) {
       // `blocks` is indexed by form *and* order, so it is swept on its own.
       const blocks = await ctx.db
         .query("blocks")
@@ -493,7 +526,16 @@ export const purge = mutation({
         .collect();
       for (const row of blocks) await ctx.db.delete(row._id);
 
-      for (const table of ["logicRules", "responses", "versions"] as const) {
+      for (const table of [
+        "logicRules",
+        "responses",
+        "versions",
+        "comments",
+        "collaborators",
+        "presence",
+        "joinLinks",
+        "activity",
+      ] as const) {
         const rows = await ctx.db
           .query(table)
           .withIndex("by_form", (q) => q.eq("formId", form._id))

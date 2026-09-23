@@ -1553,6 +1553,231 @@
   color: var(--red-600) !important;
 }
 
+/* ---------- creating a form, and the template library ---------- */
+
+.fk-create-top {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(232px, 100%), 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.fk-create-cats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.fk-create-count {
+  margin-left: auto;
+  padding-left: 8px;
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+.fk-create-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(168px, 100%), 1fr));
+  gap: 12px;
+}
+.fk-create-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  border: none;
+  border-radius: var(--radius-card-inner);
+  background: var(--neutral-0);
+  box-shadow: inset 0 0 0 1px var(--neutral-200);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: var(--transition-surface);
+}
+.fk-create-tile:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 0 0 1px var(--neutral-300),
+    var(--shadow-sm);
+}
+.fk-create-tile[aria-checked="true"] {
+  box-shadow: inset 0 0 0 2px var(--blue-500);
+}
+.fk-create-plate {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 84px;
+  border-radius: 12px;
+  color: var(--neutral-900);
+}
+.fk-create-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--blue-600);
+  color: var(--neutral-0);
+}
+.fk-mytemplates {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+  gap: 14px;
+}
+.fk-mytemplate {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: var(--radius-card-inner);
+  background: var(--neutral-50);
+  transition: var(--transition-surface);
+}
+.fk-mytemplate:hover {
+  box-shadow: var(--shadow-md);
+}
+.fk-mytemplate-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--blue-100);
+  color: var(--blue-700);
+}
+.fk-keep {
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--neutral-100);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+.fk-tplpreview-page {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--blue-50);
+  color: var(--blue-700);
+  font-size: 13.5px;
+}
+.fk-tplpreview-q {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-card-inner);
+  background: var(--neutral-50);
+}
+.fk-tplpreview-no {
+  flex: 0 0 auto;
+  padding-top: 2px;
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+}
+
+/* ---------- the dashboard ---------- */
+
+.fk-firstrun {
+  padding: clamp(30px, 5vw, 56px);
+  text-align: center;
+}
+.fk-firstrun h2 {
+  margin: 22px 0 0;
+  font-size: var(--text-h2-size, 30px);
+  font-weight: var(--text-h2-weight, 600);
+  letter-spacing: var(--text-h2-tracking, -0.02em);
+}
+.fk-firstrun p {
+  max-width: 420px;
+  margin: 10px auto 0;
+  font-size: 16.5px;
+  line-height: 1.6;
+  color: var(--color-text-tertiary);
+}
+.fk-firstrun-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--blue-300);
+  color: var(--neutral-900);
+}
+.fk-startstep h3 {
+  margin: 16px 0 0;
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.012em;
+}
+.fk-startstep p {
+  margin: 7px 0 0;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--color-text-tertiary);
+}
+.fk-startstep-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--neutral-100);
+  color: var(--color-text-secondary);
+}
+.fk-emptycard {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  min-height: 200px;
+}
+.fk-grid[data-cols="three"] {
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+}
+.fk-grid[data-cols="split"] {
+  grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
+  align-items: start;
+}
+.fk-quicktpl {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 12px 14px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: var(--transition-control);
+}
+.fk-quicktpl:hover {
+  background: var(--neutral-100);
+}
+.fk-quicktpl-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  color: var(--neutral-900);
+}
+
 /* ---------- the preview ---------- */
 
 .fk-preview {
@@ -3381,9 +3606,10 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  /* It scrolls rather than wrapping, so the run can grow without pushing the
-     rest of the toolbar around — and never wider than the page. */
-  flex: 1 1 260px;
+  /* Its own width first: when the toolbar runs out of room the controls after
+     it drop to a second line rather than the chips being cut off. On a phone
+     it scrolls, never wider than the page. */
+  flex: 0 1 auto;
   min-width: 0;
   max-width: 100%;
   overflow-x: auto;

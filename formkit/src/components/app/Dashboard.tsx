@@ -1,15 +1,21 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import {
   ArrowRight,
   CircleCheck,
+  FilePlus2,
   FileText,
   Inbox,
+  Layers,
   LayoutTemplate,
+  Palette,
+  Plus,
   Radio,
+  Send,
 } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import { Badge, Button, EmptyState } from "@/components/ui";
@@ -21,6 +27,15 @@ import {
   TickBars,
 } from "./ds";
 import { relativeTime } from "./bits";
+import { CreateFormDialog } from "./CreateFormDialog";
+import { TemplateIcon } from "./TemplateIcon";
+import { useToast } from "@/components/ui/Toast";
+
+const START_STEPS = [
+  { icon: Layers, title: "Build it", body: "Drag questions in, split them across pages, set what is required." },
+  { icon: Palette, title: "Brand it", body: "Your colours, type and logo, applied to every page." },
+  { icon: Send, title: "Send it", body: "Publish to a link, embed it, or hand over a QR code." },
+];
 
 /**
  * The dashboard answers one question: what is happening with my forms.
@@ -43,6 +58,11 @@ function statusBadge(status: string) {
 }
 
 export function Dashboard() {
+  const router = useRouter();
+  const toast = useToast();
+  const [creating, setCreating] = useState(false);
+  const templates = useQuery(api.templates.list, {});
+  const create = useMutation(api.forms.create);
   const forms = useQuery(api.forms.list, { filter: "all" });
   const responses = useQuery(api.responses.list, { completeness: "all" });
   const analytics = useQuery(api.analytics.overview, {});
@@ -59,22 +79,19 @@ export function Dashboard() {
   const stats = responses?.stats;
   const recentAnswers = (responses?.responses ?? []).slice(0, 6);
 
-  if (forms && list.length === 0) {
-    return (
-      <div className="fk-panel">
-        <EmptyState
-          title="No forms yet"
-          description="Create one from scratch, or start from a template and change what you like."
-          action={
-            <Link href="/app/templates">
-              <Button iconLeft={<LayoutTemplate size={16} strokeWidth={1.8} aria-hidden />}>
-                Browse templates
-              </Button>
-            </Link>
-          }
-        />
-      </div>
-    );
+  const empty = !!forms && list.length === 0;
+
+  async function startFrom(slug: string, name: string) {
+    try {
+      const formId = await create({ templateSlug: slug });
+      toast("Form created", { detail: `From ${name}` });
+      router.push(`/app/forms/${formId}`);
+    } catch (e) {
+      toast("Formkit could not create the form", {
+        detail: e instanceof Error ? e.message : undefined,
+        tone: "error",
+      });
+    }
   }
 
   const total = counts?.all ?? 0;
@@ -88,6 +105,39 @@ export function Dashboard() {
 
   return (
     <>
+      {empty && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          <section className="fk-panel fk-firstrun">
+            <span className="fk-firstrun-mark">
+              <FilePlus2 size={30} strokeWidth={1.7} aria-hidden />
+            </span>
+            <h2>No forms yet.</h2>
+            <p>Let&rsquo;s make something people actually want to fill out.</p>
+            <div style={{ display: "flex", justifyContent: "center", gap: 10, marginTop: 26, flexWrap: "wrap" }}>
+              <Button iconLeft={<Plus size={16} strokeWidth={1.8} aria-hidden />} onClick={() => setCreating(true)}>
+                Create your first form
+              </Button>
+              <Link href="/app/templates">
+                <Button variant="secondary" iconLeft={<LayoutTemplate size={16} strokeWidth={1.8} aria-hidden />}>
+                  Start from a template
+                </Button>
+              </Link>
+            </div>
+          </section>
+          <div className="fk-grid" data-cols="three">
+            {START_STEPS.map((st) => (
+              <section key={st.title} className="fk-panel fk-startstep">
+                <span className="fk-startstep-mark">
+                  <st.icon size={18} strokeWidth={1.8} aria-hidden />
+                </span>
+                <h3>{st.title}</h3>
+                <p>{st.body}</p>
+              </section>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="fk-grid" data-cols="stats">
         <MetricCard
           icon={<FileText size={19} strokeWidth={1.9} aria-hidden />}
@@ -170,7 +220,23 @@ export function Dashboard() {
           }
         />
         <div className="fk-grid" data-cols="cards">
-          {list.slice(0, 4).map((f) => (
+          {empty && (
+            <div className="fk-panel fk-emptycard">
+              <span className="fk-startstep-mark">
+                <FileText size={18} strokeWidth={1.8} aria-hidden />
+              </span>
+              <span style={{ fontSize: 15.5, fontWeight: 500 }}>Nothing here yet</span>
+              <span className="fk-proprow-hint" style={{ fontSize: 14, margin: 0 }}>
+                Your forms will appear here. Create one, or start from a template.
+              </span>
+              <div>
+                <Button size="sm" iconLeft={<Plus size={15} strokeWidth={1.8} aria-hidden />} onClick={() => setCreating(true)}>
+                  Create form
+                </Button>
+              </div>
+            </div>
+          )}
+          {list.slice(0, 3).map((f) => (
             <FormCard
               key={f._id}
               href={`/app/forms/${f._id}`}
@@ -186,9 +252,10 @@ export function Dashboard() {
         </div>
       </section>
 
+      <div className="fk-grid" data-cols="split">
       <section className="fk-panel" data-pad="none">
         <div className="fk-panel-head">
-          <h2>Latest answers</h2>
+          <h2>Recent responses</h2>
           <span className="fk-section-spacer" />
           <Link href="/app/responses">
             <Button variant="ghost" size="sm" iconRight={<ArrowRight size={15} strokeWidth={1.8} aria-hidden />}>
@@ -199,8 +266,8 @@ export function Dashboard() {
         {recentAnswers.length === 0 ? (
           <div style={{ padding: "0 24px 24px" }}>
             <EmptyState
-              title="Nothing in yet"
-              description="Answers land here the moment someone submits."
+              title="No responses yet"
+              description="Responses show up here the moment someone submits your first form."
             />
           </div>
         ) : (
@@ -232,6 +299,40 @@ export function Dashboard() {
           </div>
         )}
       </section>
+
+      <section className="fk-panel" data-pad="none">
+        <div className="fk-panel-head">
+          <h2>Quick templates</h2>
+          <span className="fk-section-spacer" />
+          <Link href="/app/templates">
+            <Button variant="ghost" size="sm" iconRight={<ArrowRight size={15} strokeWidth={1.8} aria-hidden />}>
+              Library
+            </Button>
+          </Link>
+        </div>
+        <div style={{ padding: "0 14px 14px" }}>
+          {(templates ?? [])
+            .filter((t) => !t.mine)
+            .slice(0, 5)
+            .map((t) => (
+              <button key={t.slug} type="button" className="fk-quicktpl" onClick={() => startFrom(t.slug, t.name)}>
+                <span className="fk-quicktpl-mark" style={{ background: t.accent }}>
+                  <TemplateIcon name={t.icon} size={17} />
+                </span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 15, fontWeight: 500 }}>{t.name}</span>
+                  <span className="fk-proprow-hint" style={{ display: "block", fontSize: 13.5, margin: "2px 0 0" }}>
+                    {t.questions} questions · {t.topic}
+                  </span>
+                </span>
+                <Plus size={17} strokeWidth={1.8} aria-hidden />
+              </button>
+            ))}
+        </div>
+      </section>
+      </div>
+
+      {creating && <CreateFormDialog onClose={() => setCreating(false)} />}
     </>
   );
 }

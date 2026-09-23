@@ -4,69 +4,108 @@ import { useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery } from "convex/react";
 import {
+  Archive,
+  ArchiveRestore,
+  Bookmark,
   Clock,
   Copy,
   Eye,
-  Inbox,
   LayoutGrid,
   List,
+  Lock,
   Pencil,
   Plus,
   RotateCcw,
   Search,
   Share2,
   Trash2,
+  Unlock,
 } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import { Badge, Button, EmptyState, IconButton, Input, Select } from "@/components/ui";
+import { Badge, Button, EmptyState, IconButton, Input, Modal, Select } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
+import { ActionMenu } from "./ActionMenu";
+import { CloseFormDialog } from "./dialogs/CloseFormDialog";
+import { SaveTemplateDialog } from "./dialogs/SaveTemplateDialog";
 import { ShareDialog } from "./dialogs/ShareDialog";
 import { CreateFormDialog } from "./CreateFormDialog";
 import { FormCard, FormMark } from "./ds";
 import { relativeTime } from "./bits";
 
 /**
- * The forms list, and the bin.
+ * The forms list, the archive, and the bin.
  *
  * Deleting is never immediate: a form sits in Deleted for sixty days with its
  * responses, and the row says how long is left. "Delete forever" is the only
- * thing here that cannot be undone, and it says so.
+ * thing here that cannot be undone, and it asks first.
  */
-type Filter = "all" | "draft" | "published" | "closed" | "deleted";
-type Sort = "updated" | "created" | "responses" | "title";
+type Filter = "all" | "draft" | "published" | "closed" | "archived" | "deleted";
+type Sort = "updated" | "responses" | "title" | "completion";
+type Row = NonNullable<ReturnType<typeof useFormsList>>["forms"][number];
 
 const FILTERS: { value: Filter; label: string }[] = [
   { value: "all", label: "All" },
   { value: "draft", label: "Drafts" },
   { value: "published", label: "Published" },
   { value: "closed", label: "Closed" },
+  { value: "archived", label: "Archived" },
   { value: "deleted", label: "Deleted" },
 ];
 
 const SORTS = [
   { value: "updated", label: "Last updated" },
-  { value: "created", label: "Newest first" },
   { value: "responses", label: "Most responses" },
-  { value: "title", label: "Name, A to Z" },
+  { value: "title", label: "Name A–Z" },
+  { value: "completion", label: "Completion rate" },
 ];
 
-function accentFor(status: string) {
-  if (status === "published") return "var(--blue-300)";
-  if (status === "draft") return "var(--yellow-200)";
-  return "var(--mint-200)";
+const EMPTY: Record<Filter, { title: string; description: string }> = {
+  all: { title: "No forms yet", description: "Your first form is waiting to be created." },
+  draft: { title: "No drafts", description: "Everything you have started is published or closed." },
+  published: { title: "Nothing is collecting", description: "Publish a draft and it shows up here." },
+  closed: { title: "Nothing is closed", description: "Close a form to stop answers and keep what came in." },
+  archived: { title: "The archive is empty", description: "Archive a form to put it away without deleting it." },
+  deleted: { title: "Nothing deleted", description: "Deleted forms wait here for 60 days before they go for good." },
+};
+
+function useFormsList(filter: Filter, term: string) {
+  return useQuery(api.forms.list, { filter, search: term || undefined });
 }
 
 function markFor(status: string) {
   if (status === "published") return "var(--blue-200)";
   if (status === "draft") return "var(--yellow-200)";
+  if (status === "archived") return "var(--neutral-150)";
   return "var(--mint-200)";
 }
 
 function statusBadge(status: string) {
   if (status === "published") return <Badge tone="success">Published</Badge>;
   if (status === "closed") return <Badge tone="neutral">Closed</Badge>;
+  if (status === "archived") return <Badge tone="neutral">Archived</Badge>;
   return <Badge tone="draft">Draft</Badge>;
+}
+
+/** "Closes 3 Oct" on the chip; the tip says the whole of it. */
+function schedule(f: Row) {
+  if (f.status !== "published" || (!f.closesAt && !f.closesAfter)) return null;
+  const bits: string[] = [];
+  if (f.closesAt) {
+    bits.push(
+      `Closes ${new Date(f.closesAt).toLocaleString("en-US", { weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit" })}`,
+    );
+  }
+  if (f.closesAfter) {
+    const left = Math.max(0, f.closesAfter - f.responses);
+    bits.push(`${f.closesAt ? "or" : "Closes"} after ${f.closesAfter.toLocaleString()} responses — ${left.toLocaleString()} to go`);
+  }
+  return {
+    chip: f.closesAt
+      ? `Closes ${new Date(f.closesAt).toLocaleDateString("en-US", { day: "numeric", month: "short" })}`
+      : `Closes at ${f.closesAfter!.toLocaleString()}`,
+    tip: bits.join(", "),
+  };
 }
 
 export function FormsList() {
@@ -76,27 +115,119 @@ export function FormsList() {
   const [sort, setSort] = useState<Sort>("updated");
   const [view, setView] = useState<"list" | "grid">("list");
   const [share, setShare] = useState<Id<"forms"> | null>(null);
+  const [template, setTemplate] = useState<Row | null>(null);
+  const [closing, setClosing] = useState<Row | null>(null);
+  const [trash, setTrash] = useState<Row | null>(null);
+  const [purgeOne, setPurgeOne] = useState<Row | null>(null);
+  const [purgeAll, setPurgeAll] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
 
-  const data = useQuery(api.forms.list, { filter, search: term || undefined });
+  const data = useFormsList(filter, term);
   const softDelete = useMutation(api.forms.softDelete);
   const restore = useMutation(api.forms.restore);
   const purge = useMutation(api.forms.purge);
   const duplicate = useMutation(api.forms.duplicate);
+  const archive = useMutation(api.forms.archive);
 
   const counts = data?.counts;
   const inBin = filter === "deleted";
 
-  // The query returns newest-edited first; the rest of the orders are the
-  // same rows read differently, so they do not need a round trip.
+  // The query returns newest-edited first; the other orders are the same rows
+  // read differently, so they do not need a round trip.
   const forms = [...(data?.forms ?? [])].sort((a, b) => {
-    if (sort === "created") return b.createdAt - a.createdAt;
     if (sort === "responses") return b.responses - a.responses;
     if (sort === "title") return a.title.localeCompare(b.title);
+    if (sort === "completion") return b.completionRate - a.completionRate;
     return b.updatedAt - a.updatedAt;
   });
 
-  const countFor = (value: Filter) => (counts ? counts[value] : undefined);
+  async function dup(f: Row) {
+    await duplicate({ formId: f._id });
+    toast("Duplicated", { detail: `${f.title} (copy) is a draft` });
+  }
+
+  async function toggleArchive(f: Row) {
+    const putAway = f.status !== "archived";
+    await archive({ formId: f._id, archived: putAway });
+    toast(putAway ? "Archived" : "Restored to drafts", { detail: f.title });
+  }
+
+  const actionsFor = (f: Row) =>
+    inBin ? (
+      <>
+        <IconButton
+          tip
+          label="Restore"
+          onClick={async () => {
+            await restore({ formId: f._id });
+            toast("Restored", { detail: `${f.title} is back in your drafts` });
+          }}
+        >
+          <RotateCcw size={16} strokeWidth={1.8} aria-hidden />
+        </IconButton>
+        <IconButton tip label="Delete forever" tone="danger" onClick={() => setPurgeOne(f)}>
+          <Trash2 size={16} strokeWidth={1.8} aria-hidden />
+        </IconButton>
+      </>
+    ) : (
+      <>
+        <Link href={`/app/forms/${f._id}`} tabIndex={-1}>
+          <IconButton tip label="Edit">
+            <Pencil size={16} strokeWidth={1.8} aria-hidden />
+          </IconButton>
+        </Link>
+        <Link href={`/app/forms/${f._id}?open=preview`} tabIndex={-1}>
+          <IconButton tip label="Preview">
+            <Eye size={16} strokeWidth={1.8} aria-hidden />
+          </IconButton>
+        </Link>
+        <IconButton tip label="Share" onClick={() => setShare(f._id)}>
+          <Share2 size={16} strokeWidth={1.8} aria-hidden />
+        </IconButton>
+        <ActionMenu
+          label="More actions"
+          actions={[
+            { label: "Duplicate", icon: <Copy size={16} strokeWidth={1.8} aria-hidden />, onSelect: () => dup(f) },
+            {
+              label: "Save as template",
+              icon: <Bookmark size={16} strokeWidth={1.8} aria-hidden />,
+              onSelect: () => setTemplate(f),
+            },
+            ...(f.status === "published" || f.status === "closed"
+              ? [
+                  {
+                    label: f.status === "closed" ? "Reopen" : "Close",
+                    icon:
+                      f.status === "closed" ? (
+                        <Unlock size={16} strokeWidth={1.8} aria-hidden />
+                      ) : (
+                        <Lock size={16} strokeWidth={1.8} aria-hidden />
+                      ),
+                    onSelect: () => setClosing(f),
+                  },
+                ]
+              : []),
+            {
+              label: f.status === "archived" ? "Restore from archive" : "Archive",
+              icon:
+                f.status === "archived" ? (
+                  <ArchiveRestore size={16} strokeWidth={1.8} aria-hidden />
+                ) : (
+                  <Archive size={16} strokeWidth={1.8} aria-hidden />
+                ),
+              onSelect: () => toggleArchive(f),
+            },
+            {
+              label: "Move to Deleted",
+              icon: <Trash2 size={16} strokeWidth={1.8} aria-hidden />,
+              tone: "danger",
+              divide: true,
+              onSelect: () => setTrash(f),
+            },
+          ]}
+        />
+      </>
+    );
 
   return (
     <>
@@ -111,9 +242,7 @@ export function FormsList() {
               onClick={() => setFilter(f.value)}
             >
               {f.label}
-              {countFor(f.value) !== undefined && (
-                <span className="fk-filter-count">{countFor(f.value)}</span>
-              )}
+              {counts && counts[f.value] > 0 && <span className="fk-filter-count">{counts[f.value]}</span>}
             </button>
           ))}
         </div>
@@ -126,16 +255,12 @@ export function FormsList() {
           placeholder="Search forms"
           aria-label="Search forms"
           icon={<Search size={17} strokeWidth={1.8} aria-hidden />}
-          trailing={<span className="fk-kbd">⌘K</span>}
-          wrapStyle={{ width: 260 }}
+          wrapStyle={{ width: 240 }}
         />
 
-        <Select
-          value={sort}
-          onChange={(next) => setSort(next as Sort)}
-          options={SORTS}
-          ariaLabel="Sort forms"
-        />
+        <div style={{ width: 190 }}>
+          <Select value={sort} onChange={(next) => setSort(next as Sort)} options={SORTS} ariaLabel="Sort forms" />
+        </div>
 
         <div className="fk-viewtoggle" role="group" aria-label="How to show the forms">
           <button type="button" aria-pressed={view === "list"} aria-label="As a list" onClick={() => setView("list")}>
@@ -158,32 +283,23 @@ export function FormsList() {
             <span style={{ flex: 1, minWidth: 220 }}>
               <span style={{ display: "block", fontSize: 15, fontWeight: 500 }}>
                 {counts?.deleted
-                  ? `${counts.deleted} ${counts.deleted === 1 ? "form" : "forms"} in the bin`
-                  : "The bin is empty"}
+                  ? counts.deleted === 1
+                    ? "1 deleted form"
+                    : `${counts.deleted} deleted forms`
+                  : "Nothing deleted"}
               </span>
-              <span
-                style={{
-                  display: "block",
-                  marginTop: 3,
-                  fontSize: 13.5,
-                  lineHeight: 1.5,
-                  color: "var(--color-text-tertiary)",
-                }}
-              >
-                Forms here are kept for 60 days, then deleted automatically. Restoring puts a form
-                back in your drafts with its responses.
+              <span className="fk-proprow-hint" style={{ display: "block", fontSize: 13.5 }}>
+                Forms here are kept for 60 days with their responses, then deleted automatically.
+                Restoring puts a form back in your drafts.
               </span>
             </span>
             {!!counts?.deleted && (
               <Button
                 variant="destructive"
                 iconLeft={<Trash2 size={16} strokeWidth={1.8} aria-hidden />}
-                onClick={async () => {
-                  await purge({});
-                  toast("The bin is empty", { detail: "Those forms and their responses are gone." });
-                }}
+                onClick={() => setPurgeAll(true)}
               >
-                Delete all forever
+                Empty the bin
               </Button>
             )}
           </div>
@@ -193,24 +309,18 @@ export function FormsList() {
       {data && forms.length === 0 ? (
         <div className="fk-panel">
           <EmptyState
-            title={term ? `Nothing matches “${term}”` : "Nothing here yet"}
-            description={
-              term
-                ? "Try a shorter search, or another filter."
-                : inBin
-                  ? "Deleted forms appear here for sixty days."
-                  : "Your first form is waiting to be created."
-            }
+            title={term ? `Nothing matches “${term}”` : EMPTY[filter].title}
+            description={term ? "Try a shorter search, or another filter." : EMPTY[filter].description}
             action={
-              !term && !inBin ? (
+              !term && (filter === "all" || filter === "draft") ? (
                 <Button onClick={() => setCreateOpen(true)} iconLeft={<Plus size={16} strokeWidth={1.8} aria-hidden />}>
-                  Create form
+                  Create a form
                 </Button>
               ) : undefined
             }
           />
         </div>
-      ) : view === "grid" && !inBin ? (
+      ) : view === "grid" ? (
         <div className="fk-grid" data-cols="cards">
           {forms.map((f) => (
             <FormCard
@@ -221,149 +331,152 @@ export function FormsList() {
               status={statusBadge(f.status)}
               responses={f.responses}
               fields={f.questions}
-              updated={`edited ${relativeTime(f.updatedAt)}`}
-              accent={accentFor(f.status)}
-              actions={
-                <>
-                  <IconButton label={`Share ${f.title}`} onClick={() => setShare(f._id)}>
-                    <Share2 size={16} strokeWidth={1.8} aria-hidden />
-                  </IconButton>
-                  <IconButton
-                    label={`Duplicate ${f.title}`}
-                    onClick={async () => {
-                      await duplicate({ formId: f._id });
-                      toast(`Copied “${f.title}”`, { detail: "The copy is a draft." });
-                    }}
-                  >
-                    <Copy size={16} strokeWidth={1.8} aria-hidden />
-                  </IconButton>
-                </>
-              }
+              updated={inBin ? `${f.daysLeft} days left` : `edited ${relativeTime(f.updatedAt)}`}
+              accent={markFor(f.status)}
+              actions={actionsFor(f)}
             />
           ))}
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {forms.map((f) => (
-            <div key={f._id} className="fk-formrow">
-              <FormMark accent={markFor(f.status)} />
+          {forms.map((f) => {
+            const sched = schedule(f);
+            return (
+              <div key={f._id} className="fk-formrow">
+                <FormMark accent={markFor(f.status)} />
 
-              <Link href={`/app/forms/${f._id}`} className="fk-formrow-main">
-                <span className="fk-formrow-title">{f.title}</span>
-                <span className="fk-formrow-sub">{f.description || f.url}</span>
-              </Link>
+                <Link href={inBin ? "#" : `/app/forms/${f._id}`} className="fk-formrow-main" aria-disabled={inBin}>
+                  <span className="fk-formrow-title">{f.title}</span>
+                  <span className="fk-formrow-sub">{f.description || f.url}</span>
+                </Link>
 
-              <div className="fk-formrow-figures">
-                <span className="fk-formrow-figure">
-                  {f.questions}
-                  <span>{f.questions === 1 ? "question" : "questions"}</span>
-                </span>
-                <span className="fk-formrow-figure">
-                  {f.responses.toLocaleString()}
-                  <span>{f.responses === 1 ? "response" : "responses"}</span>
-                </span>
-                <span className="fk-formrow-figure">
-                  {f.completionRate}%<span>completion</span>
-                </span>
-                <span className="fk-formrow-figure" style={{ minWidth: 120 }}>
-                  {relativeTime(f.updatedAt)}
-                  <span>last updated</span>
-                </span>
-                {f.daysLeft !== null && (
-                  <span className="fk-chip" style={{ background: "var(--red-100)" }}>
-                    <Clock size={13} strokeWidth={1.8} aria-hidden style={{ marginRight: 6, verticalAlign: -2 }} />
-                    {f.daysLeft} {f.daysLeft === 1 ? "day" : "days"} left
+                <div className="fk-formrow-figures">
+                  <span className="fk-formrow-figure">
+                    {f.questions}
+                    <span>{f.questions === 1 ? "question" : "questions"}</span>
                   </span>
-                )}
-                {f.closesAt && (
-                  <span className="fk-chip" style={{ background: "var(--yellow-100)" }}>
-                    closes {new Date(f.closesAt).toLocaleDateString("en-US", { day: "numeric", month: "short" })}
+                  <span className="fk-formrow-figure">
+                    {f.responses.toLocaleString()}
+                    <span>{f.responses === 1 ? "response" : "responses"}</span>
                   </span>
-                )}
-              </div>
+                  <span className="fk-formrow-figure">
+                    {f.completionRate}%<span>completion</span>
+                  </span>
+                  <span className="fk-formrow-figure" style={{ minWidth: 120 }}>
+                    {relativeTime(f.updatedAt)}
+                    <span>last updated</span>
+                  </span>
+                  {inBin && f.daysLeft !== null && (
+                    <span className="fk-chip" style={{ background: "var(--red-100)" }}>
+                      <Clock size={13} strokeWidth={1.8} aria-hidden style={{ marginRight: 6, verticalAlign: -2 }} />
+                      Deleted {relativeTime(f.deletedAt ?? f.updatedAt)} · {f.daysLeft} {f.daysLeft === 1 ? "day" : "days"} left
+                    </span>
+                  )}
+                  {sched && (
+                    <span className="fk-chip" style={{ background: "var(--yellow-100)" }} data-tip={sched.tip} tabIndex={0}>
+                      <Clock size={13} strokeWidth={1.8} aria-hidden style={{ marginRight: 6, verticalAlign: -2 }} />
+                      {sched.chip}
+                    </span>
+                  )}
+                </div>
 
-              {statusBadge(f.status)}
+                {statusBadge(f.status)}
 
-              <div className="fk-formrow-actions">
-                {inBin ? (
-                  <>
-                    <IconButton
-                      label={`Restore ${f.title}`}
-                      onClick={async () => {
-                        await restore({ formId: f._id });
-                        toast(`“${f.title}” is back in your drafts`);
-                      }}
-                    >
-                      <RotateCcw size={16} strokeWidth={1.8} aria-hidden />
-                    </IconButton>
-                    <IconButton
-                      label={`Delete ${f.title} forever`}
-                      tone="danger"
-                      onClick={async () => {
-                        await purge({ formId: f._id });
-                        toast(`“${f.title}” is gone`, { detail: "Its responses went with it." });
-                      }}
-                    >
-                      <Trash2 size={16} strokeWidth={1.8} aria-hidden />
-                    </IconButton>
-                  </>
-                ) : (
-                  <>
-                    <Link href={`/app/forms/${f._id}`}>
-                      <IconButton label={`Edit ${f.title}`}>
-                        <Pencil size={16} strokeWidth={1.8} aria-hidden />
-                      </IconButton>
-                    </Link>
-                    {f.status === "published" ? (
-                      <a href={`https://${f.url}`} target="_blank" rel="noreferrer">
-                        <IconButton label={`Open ${f.title} as a respondent sees it`}>
-                          <Eye size={16} strokeWidth={1.8} aria-hidden />
-                        </IconButton>
-                      </a>
-                    ) : (
-                      <Link href={`/app/forms/${f._id}?tab=design`}>
-                        <IconButton label={`Preview ${f.title}`}>
-                          <Eye size={16} strokeWidth={1.8} aria-hidden />
-                        </IconButton>
-                      </Link>
-                    )}
-                    <IconButton label={`Share ${f.title}`} onClick={() => setShare(f._id)}>
-                      <Share2 size={16} strokeWidth={1.8} aria-hidden />
-                    </IconButton>
-                    <IconButton
-                      label={`Duplicate ${f.title}`}
-                      onClick={async () => {
-                        await duplicate({ formId: f._id });
-                        toast(`Copied “${f.title}”`, { detail: "The copy is a draft." });
-                      }}
-                    >
-                      <Copy size={16} strokeWidth={1.8} aria-hidden />
-                    </IconButton>
-                    <Link href={`/app/forms/${f._id}?tab=responses`}>
-                      <IconButton label={`Responses to ${f.title}`}>
-                        <Inbox size={16} strokeWidth={1.8} aria-hidden />
-                      </IconButton>
-                    </Link>
-                    <IconButton
-                      label={`Move ${f.title} to the bin`}
-                      tone="danger"
-                      onClick={async () => {
-                        await softDelete({ formId: f._id });
-                        toast(`“${f.title}” is in the bin`, { detail: "It stays there for 60 days." });
-                      }}
-                    >
-                      <Trash2 size={16} strokeWidth={1.8} aria-hidden />
-                    </IconButton>
-                  </>
-                )}
+                <div className="fk-formrow-actions">{actionsFor(f)}</div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
       {share && <ShareDialog formId={share} onClose={() => setShare(null)} />}
       {createOpen && <CreateFormDialog onClose={() => setCreateOpen(false)} />}
+      {template && (
+        <SaveTemplateDialog
+          formId={template._id}
+          title={template.title}
+          description={template.description}
+          onClose={() => setTemplate(null)}
+        />
+      )}
+      {closing && (
+        <CloseFormDialog formId={closing._id} status={closing.status} onClose={() => setClosing(null)} />
+      )}
+
+      {trash && (
+        <Modal
+          title={`Delete ${trash.title}?`}
+          description="It moves to Deleted with its responses, and is removed for good after 60 days. You can restore it any time before then."
+          onClose={() => setTrash(null)}
+          width={460}
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setTrash(null)}>
+                Keep it
+              </Button>
+              <Button
+                iconLeft={<Trash2 size={16} strokeWidth={1.8} aria-hidden />}
+                onClick={async () => {
+                  const f = trash;
+                  setTrash(null);
+                  await softDelete({ formId: f._id });
+                  toast("Moved to Deleted", { detail: `${f.title} stays there for 60 days` });
+                }}
+              >
+                Move to Deleted
+              </Button>
+            </>
+          }
+        >
+          {null}
+        </Modal>
+      )}
+
+      {(purgeOne || purgeAll) && (
+        <Modal
+          title={purgeAll ? "Delete every deleted form forever?" : `Delete ${purgeOne!.title} forever?`}
+          description={
+            purgeAll
+              ? `${counts?.deleted ?? 0} ${counts?.deleted === 1 ? "form goes" : "forms go"}, with every response. This cannot be undone.`
+              : `${purgeOne!.responses.toLocaleString()} ${purgeOne!.responses === 1 ? "response goes" : "responses go"} with it. This cannot be undone.`
+          }
+          onClose={() => {
+            setPurgeOne(null);
+            setPurgeAll(false);
+          }}
+          width={460}
+          footer={
+            <>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setPurgeOne(null);
+                  setPurgeAll(false);
+                }}
+              >
+                Keep it
+              </Button>
+              <Button
+                variant="destructive"
+                iconLeft={<Trash2 size={16} strokeWidth={1.8} aria-hidden />}
+                onClick={async () => {
+                  const one = purgeOne;
+                  setPurgeOne(null);
+                  setPurgeAll(false);
+                  await purge(one ? { formId: one._id } : { all: true });
+                  toast(one ? `${one.title} is gone` : "The bin is empty", {
+                    detail: "The responses went with it.",
+                  });
+                }}
+              >
+                {purgeAll ? "Delete them forever" : "Delete forever"}
+              </Button>
+            </>
+          }
+        >
+          {null}
+        </Modal>
+      )}
     </>
   );
 }
