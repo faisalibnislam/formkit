@@ -8,7 +8,7 @@
  * mutations log and resolve, so a click does not throw.
  */
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { getFunctionName } from "convex/server";
 import { fixtureFor } from "./fixtures";
 
@@ -20,9 +20,20 @@ function nameOf(reference: unknown) {
   }
 }
 
+/**
+ * Undefined until after mount, exactly like the real thing.
+ *
+ * A Convex query resolves over a socket in the browser, so it has nothing to
+ * give during SSR and nothing on the first client render either. Handing the
+ * fixtures over any sooner would make the harness server-render data the
+ * product never server-renders — which hides real hydration bugs and invents
+ * fake ones.
+ */
 export function useQuery(reference: unknown, ..._args: unknown[]) {
   void _args;
-  return fixtureFor(nameOf(reference)) as never;
+  const [ready, setReady] = useState(false);
+  useEffect(() => setReady(true), []);
+  return (ready ? fixtureFor(nameOf(reference)) : undefined) as never;
 }
 
 export function useMutation(reference: unknown) {

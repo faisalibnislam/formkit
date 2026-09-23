@@ -126,13 +126,20 @@ npm run shots -- --width 430    # the narrow layout
 
 ```bash
 npm run drag-check    # the builder's drag and drop, in a real browser
+npm run menu-check    # every menu and dropdown paints on top
+npm run hero-check    # the landing hero bobs and leans toward the pointer
 ```
 
 `shots` reports console errors and horizontal overflow beside each screen,
 because neither shows up in a screenshot and both are fatal in the product.
-`drag-check` drives real drags and asserts the order that comes out: it exists
-because "the handlers are wired" is not the same as "it drags", and the
-difference shipped once already.
+The other three check what a screenshot cannot. `drag-check` drives real drags
+and asserts the order that comes out, because "the handlers are wired" is not
+the same as "it drags". `menu-check` opens each menu and asks the browser what
+is actually at that point, because a menu with the highest z-index in the
+stylesheet is still buried if an ancestor made a stacking context around it.
+`hero-check` moves the pointer and watches the transforms change, because the
+floating parts look perfectly correct while standing completely still. Each of
+those three shipped broken once.
 `next.config.ts` installs the aliases only when `FK_PREVIEW=1`, so a normal
 build resolves the real modules. The renders the screens are measured against
 are in `../project/shots/`.
@@ -165,6 +172,14 @@ are in `../project/shots/`.
   they replace rather than orphaning it.
 - **The nav hide guard reads resting geometry, not the live rect.** Computing it
   from `getBoundingClientRect()` makes the bar flicker as it hides itself.
+- **The landing hero leans toward the pointer.** The floating form parts, and
+  the pill in the headline, bob on a clock of their own and tilt in 3D toward
+  the cursor — `floaties()` in `scrollEngine.ts`, on its own rAF loop because
+  the scroll loop parks itself once everything has settled. The stage needs its
+  `perspective`, and everything stops under `prefers-reduced-motion`.
+- **Nothing between a menu and `.fk-app-head` may carry a `z-index`.** Any that
+  does becomes a stacking context and traps the menu inside it, under the record
+  dock, however high the menu's own z-index goes.
 - **The landing page does not use React state.** One rAF loop writes to refs
   through a write guard; adding state to the scroll path drops frames.
 - **Blocks are one ordered list.** Questions and page breaks share `order`,

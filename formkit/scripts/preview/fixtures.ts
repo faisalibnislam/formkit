@@ -7,7 +7,14 @@
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
-const now = Date.now();
+
+/* Anchored to the top of the hour, not to the moment this module loaded.
+   The server and the browser load it at different instants, and a relative
+   time computed from each ("2 hours ago" against "3 hours ago") is a
+   hydration mismatch that belongs to the harness rather than to the app —
+   which never server-renders this data, because a real `useQuery` has nothing
+   to give during SSR. */
+const now = Math.floor(Date.now() / HOUR) * HOUR;
 
 type Row = Record<string, unknown>;
 

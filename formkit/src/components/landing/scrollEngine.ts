@@ -233,6 +233,57 @@ export function createEngine(root: HTMLElement) {
     });
   }
 
+  /**
+   * The floating form parts bob in place and lean toward the pointer.
+   *
+   * Its own loop, on its own clock: the scroll loop parks itself when
+   * everything has settled, and this has to keep running when it does. The
+   * hero's own pill carries a `data-float` too, so the word in the headline
+   * leans with everything else.
+   */
+  function floaties() {
+    const els = q<HTMLElement>("[data-float]");
+    const stage = one(".fk-hero-stage");
+    if (!els.length || !stage) return () => {};
+
+    let mx = 0;
+    let my = 0;
+    const onMove = (event: PointerEvent) => {
+      const r = stage.getBoundingClientRect();
+      if (r.bottom < 0 || r.top > window.innerHeight) return;
+      mx = (event.clientX - (r.left + r.width / 2)) / Math.max(1, r.width / 2);
+      my = (event.clientY - (r.top + r.height / 2)) / Math.max(1, r.height / 2);
+    };
+    window.addEventListener("pointermove", onMove, { passive: true });
+
+    const t0 = performance.now();
+    let raf = requestAnimationFrame(function tick(now: number) {
+      const r = stage.getBoundingClientRect();
+      // Off screen the loop keeps its clock but writes nothing.
+      if (r.bottom > -100 && r.top < window.innerHeight + 100) {
+        const t = (now - t0) / 1000;
+        els.forEach((el, i) => {
+          const depth = parseFloat(el.getAttribute("data-float") ?? "") || 20;
+          const bobY = Math.sin(t * 0.7 + i * 1.3) * (depth * 0.18);
+          const bobX = Math.cos(t * 0.5 + i * 0.9) * (depth * 0.1);
+          const leanX = -mx * depth * 0.5;
+          const leanY = -my * depth * 0.35;
+          // Written straight, not through `set`: it changes every frame, so
+          // the dedupe would only cost a map lookup.
+          el.style.transform =
+            `translate3d(${(bobX + leanX).toFixed(2)}px,${(bobY + leanY).toFixed(2)}px,0)` +
+            ` rotateX(${(-my * 7).toFixed(2)}deg) rotateY(${(mx * 9).toFixed(2)}deg)`;
+        });
+      }
+      raf = requestAnimationFrame(tick);
+    });
+
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      cancelAnimationFrame(raf);
+    };
+  }
+
   /** Reduced motion, or a viewport too short to pin: every scene resolved. */
   function resolveAll(keepHeroScale: boolean) {
     if (!keepHeroScale) applyHero(1);
@@ -253,7 +304,19 @@ export function createEngine(root: HTMLElement) {
     });
   }
 
-  return { measure, progress, applyHero, applyShape, applyFeatures, applyCounters, resolveAll, one, q, DAMPING };
+  return {
+    measure,
+    progress,
+    applyHero,
+    applyShape,
+    applyFeatures,
+    applyCounters,
+    floaties,
+    resolveAll,
+    one,
+    q,
+    DAMPING,
+  };
 }
 
 export type Engine = ReturnType<typeof createEngine>;

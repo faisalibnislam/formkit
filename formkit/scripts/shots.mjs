@@ -39,6 +39,10 @@ const out = flag("out", "preview-shots");
 const width = Number(flag("width", 1600));
 const height = Number(flag("height", 1000));
 const only = flag("only", null);
+/* The sandbox is UTC and nearly no reader is. A screen that server-renders
+   anything from a clock hydrates into a mismatch that only shows in another
+   timezone, so the sweep runs somewhere else by default. */
+const timezoneId = flag("tz", "Pacific/Auckland");
 
 const SCREENS = [
   ["dashboard", "/app"],
@@ -65,7 +69,7 @@ const browser = await chromium.launch({
   executablePath,
   args: ["--no-sandbox", "--ignore-certificate-errors", "--disable-http2"],
 });
-const context = await browser.newContext({ viewport: { width, height } });
+const context = await browser.newContext({ viewport: { width, height }, timezoneId });
 
 let bad = 0;
 for (const [name, route] of SCREENS) {
@@ -102,4 +106,8 @@ for (const [name, route] of SCREENS) {
 }
 
 await browser.close();
-console.log(bad ? `\n${bad} screen(s) need attention.` : "\nAll screens clean.");
+console.log(
+  bad
+    ? `\n${bad} screen(s) need attention.`
+    : `\nAll screens clean (in ${timezoneId}).`,
+);

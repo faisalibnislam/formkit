@@ -36,7 +36,8 @@
 
 .fk-app-bar {
   position: relative;
-  z-index: 4;
+  /* Above the dock, so the account menu clears the tabs. */
+  z-index: 30;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
@@ -51,7 +52,6 @@
 }
 .fk-app-bar-right {
   position: relative;
-  z-index: 6;
   justify-content: flex-end;
 }
 /* The record dock below is the navigation — there is deliberately no second
@@ -263,9 +263,13 @@
 
 /* ---------- hero ---------- */
 
+/* No z-index here, deliberately. A menu opened from the hero — the publish
+   caret's, for one — has to paint over the record dock below it, and any
+   z-index on this element makes it a stacking context that traps the menu
+   underneath the dock however high the menu's own z-index goes. Nothing
+   between a menu and .fk-app-head may create a stacking context. */
 .fk-app-hero {
   position: relative;
-  z-index: 1;
   display: flex;
   align-items: flex-end;
   gap: 28px;

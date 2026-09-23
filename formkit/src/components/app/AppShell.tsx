@@ -98,6 +98,23 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const headerRef = useRef<HTMLElement>(null);
 
+  /* The clock is the reader's, not the server's. Rendering the greeting or
+     today's date during SSR hydrates into a mismatch for everyone who is not
+     in the server's timezone — which is very nearly everyone — and React then
+     throws away the tree and rebuilds it. Both are read after mount instead. */
+  const [clock, setClock] = useState<{ hour: number; today: string } | null>(null);
+  useEffect(() => {
+    const at = new Date();
+    setClock({
+      hour: at.getHours(),
+      today: at.toLocaleDateString("en-US", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+      }),
+    });
+  }, []);
+
   // The floating rail appears once the header has scrolled away.
   useEffect(() => {
     const onScroll = () => {
@@ -229,7 +246,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     [counts, live, unread, completion, templateCount, askAllowed, askCreditsLeft],
   );
 
-  const hour = new Date().getHours();
   const firstName = (viewer?.name ?? "").trim().split(/\s+/)[0] || "there";
 
   /**
@@ -244,12 +260,8 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const heroes: Record<string, { eyebrow: string; title: string; sub: string }> = {
     home: {
-      eyebrow: new Date().toLocaleDateString("en-US", {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-      }),
-      title: `${greeting(hour)}, ${firstName}`,
+      eyebrow: clock?.today ?? "",
+      title: clock ? `${greeting(clock.hour)}, ${firstName}` : `Hello, ${firstName}`,
       sub: counts?.all
         ? "Here's what's happening with your forms."
         : "Nothing here yet. One form is all it takes to start.",

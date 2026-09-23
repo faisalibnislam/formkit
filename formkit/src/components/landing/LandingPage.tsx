@@ -45,6 +45,10 @@ export function LandingPage() {
       return;
     }
 
+    // The floaters run on their own clock, so they keep moving after the
+    // scroll loop has parked itself.
+    const stopFloaties = e.floaties();
+
     const eased = { hero: 0, features: 0 };
     let raf: number | null = null;
     let mobileResolved = false;
@@ -104,6 +108,7 @@ export function LandingPage() {
       window.removeEventListener("scroll", kick);
       window.removeEventListener("resize", onResize);
       window.clearTimeout(settle);
+      stopFloaties();
       if (raf !== null) cancelAnimationFrame(raf);
       engine.current = null;
     };
