@@ -284,8 +284,10 @@ export const VIEWER = {
     return flag("fk_gate") === "suspended";
   },
   restoreUntil: Date.now() + 23 * 24 * 60 * 60 * 1000,
+  inAppPrefs: { responses: true, sharedResponses: false, comments: true, sharing: true, forms: true, security: true },
   emailPrefs: {
     newResponse: true,
+    comments: true,
     daily: false,
     weekly: true,
     to: "maya@studionine.co",
@@ -437,8 +439,8 @@ export const QUERIES: Record<string, unknown> = {
   "users:viewer": VIEWER,
   "companies:list": COMPANIES.map((c) => ({ ...c, formCount: 4, logoId: null, ownerId: "u1" })),
   "forms:list": {
-    counts: { all: 6, draft: 1, published: 4, closed: 1, archived: 0, deleted: 2 },
-    forms: FORMS,
+    counts: { all: 6, draft: 1, published: 4, closed: 1, archived: 0, deleted: 2, shared: 1 },
+    forms: FORMS.map((f) => ({ ...f, sharedAs: null })),
   },
   "forms:get": FORM_DETAIL,
   "responses:list": {
@@ -452,6 +454,25 @@ export const QUERIES: Record<string, unknown> = {
   "responses:forExport": { filename: "client-onboarding-responses", title: "Client Onboarding", rows: [["a"]], columns: ["A"] },
   "responses:contactsForExport": { filename: "contacts", rows: [["a"]], columns: ["A"] },
   "responses:count": 248,
+  "responses:unreadCount": 3,
+  "comments:mentionable": [
+    { _id: "u2", name: "Ravi Menon", email: "ravi@studionine.co", color: "#4b9d6e" },
+    { _id: "u4", name: "Ben Carter", email: "ben@northstar.co", color: "#c4614f" },
+  ],
+  "inbox:list": {
+    unread: 4,
+    announcements: [
+      { _id: "a1", title: "Conversational forms are out of beta", body: "One question at a time, for everyone. Existing forms are untouched until you switch them over.", at: now - 3 * DAY, read: false },
+    ],
+    items: [
+      { _id: "i1", kind: "invited", title: "Ben Carter added you to Northstar Partner Intake", body: "As an Editor. You can edit its questions and read its responses.", href: "/app/forms/f9", action: "Open the form", icon: "user-plus", at: now - 20 * 60 * 1000, read: false, actor: { name: "Ben Carter", image: null, color: "#c4614f" } },
+      { _id: "i2", kind: "mention", title: "Ravi Menon mentioned you on “Budget range” in Client Onboarding", body: "@Maya Ortiz should we add a “not sure yet” option here?", href: "/app/forms/f1?open=comments", action: "Open the comment", icon: "at-sign", at: now - 2 * HOUR, read: false, actor: { name: "Ravi Menon", image: null, color: "#4b9d6e" } },
+      { _id: "i3", kind: "response", title: "3 new responses to Client Onboarding", body: "The latest from John Smith.", href: "/app/forms/f1?tab=responses", action: "View responses", icon: "inbox", at: now - 2 * HOUR - 5 * 60 * 1000, read: false, actor: null },
+      { _id: "i4", kind: "closed", title: "Customer Feedback closed itself", body: "It reached its limit of 400 responses.", href: "/app/forms/f3", action: "Open the form", icon: "lock", at: now - 27 * HOUR, read: true, actor: null },
+      { _id: "i5", kind: "joined", title: "Ravi Menon joined Website Project Questionnaire", body: "As an Editor, from your invitation.", href: "/app/forms/f2?open=share", action: "See who has access", icon: "user-check", at: now - 3 * DAY, read: true, actor: { name: "Ravi Menon", image: null, color: "#4b9d6e" } },
+      { _id: "i6", kind: "security", title: "New sign-in: Safari on iPhone", body: "If this was not you, change your password and sign out everywhere.", href: "/app/settings", action: "Review security", icon: "shield", at: now - 4 * DAY, read: true, actor: null },
+    ],
+  },
   "security:status": {
     twoFactor: { on: true, enabledAt: now - 40 * DAY, recoveryLeft: 7 },
     signInAlerts: true,
@@ -578,11 +599,11 @@ export const QUERIES: Record<string, unknown> = {
     threads: [
       {
         _id: "c1", blockId: "b2", author: "Ravi Menon", image: null, color: "#4b9d6e",
-        body: "Should this say where the proposal comes from? People will look for our name in their inbox.",
-        createdAt: now - 40 * 60 * 1000, mine: false, canDelete: true, resolved: false,
-        replies: [{ _id: "c2", blockId: "b2", author: "You", image: null, color: "#2e78bb", body: "Good call — adding a line of help text.", createdAt: now - 20 * 60 * 1000, mine: true, canDelete: true }],
+        body: "@Maya Ortiz should this say where the proposal comes from? People will look for our name in their inbox.",
+        createdAt: now - 40 * 60 * 1000, mine: false, canDelete: true, resolved: false, mentions: ["Maya Ortiz"],
+        replies: [{ _id: "c2", blockId: "b2", author: "You", image: null, color: "#2e78bb", body: "Good call @Ravi Menon — adding a line of help text.", createdAt: now - 20 * 60 * 1000, mine: true, canDelete: true, mentions: ["Ravi Menon"] }],
       },
-      { _id: "c3", blockId: null, author: "Ben Carter", image: null, color: "#c4614f", body: "Looks ready from my side.", createdAt: now - DAY, mine: false, canDelete: true, resolved: true, replies: [] },
+      { _id: "c3", blockId: null, author: "Ben Carter", image: null, color: "#c4614f", body: "Looks ready from my side.", createdAt: now - DAY, mine: false, canDelete: true, resolved: true, mentions: [], replies: [] },
     ],
   },
   "presence:here": [

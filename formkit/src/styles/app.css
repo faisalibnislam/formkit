@@ -491,13 +491,20 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
   font-size: 14.5px;
 }
 .fk-tab-sum > span {
+  flex: 0 0 auto;
   color: var(--color-text-tertiary);
+  white-space: nowrap;
 }
 .fk-tab-sum strong {
+  min-width: 0;
+  overflow: hidden;
   font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 
@@ -4986,4 +4993,215 @@
   margin-top: 18px;
   padding-top: 18px;
   box-shadow: inset 0 1px 0 var(--neutral-150);
+}
+
+/* ---------- the bell ---------- */
+
+.fk-bell-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.fk-bell-group + .fk-bell-group {
+  margin-top: 8px;
+}
+.fk-bell-day {
+  margin: 8px 0 4px;
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+}
+.fk-bell-row {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 0;
+  box-shadow: inset 0 -1px 0 var(--neutral-150);
+}
+.fk-bell-row:last-child {
+  box-shadow: none;
+}
+.fk-bell-row > .ui-iconbtn {
+  opacity: 0;
+  transition: opacity var(--duration-fast, 120ms);
+}
+.fk-bell-row:hover > .ui-iconbtn,
+.fk-bell-row:focus-within > .ui-iconbtn {
+  opacity: 1;
+}
+@media (hover: none) {
+  .fk-bell-row > .ui-iconbtn {
+    opacity: 1;
+  }
+}
+.fk-bell-dot {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-top: -2px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+}
+.fk-bell-dot:hover {
+  background: var(--neutral-100);
+}
+.fk-bell-pip {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px var(--neutral-300);
+}
+.fk-bell-pip[data-on="true"] {
+  background: var(--blue-500);
+  box-shadow: 0 0 0 4px var(--blue-100);
+}
+.fk-bell-open {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+.fk-bell-open:disabled {
+  cursor: default;
+}
+.fk-bell-title {
+  display: block;
+  font-size: 14.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.fk-bell-row[data-read="true"] .fk-bell-title {
+  font-weight: 400;
+  color: var(--color-text-secondary);
+}
+.fk-bell-body {
+  display: block;
+  margin-top: 3px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+.fk-bell-when,
+.fk-bell-kicker {
+  display: block;
+  margin-top: 4px;
+  font-size: 12.5px;
+  color: var(--color-text-tertiary);
+}
+.fk-bell-kicker {
+  margin: 0 0 3px;
+}
+.fk-bell-row .ui-btn[data-size="sm"] {
+  margin: 6px 0 0 -10px;
+}
+.fk-bell-news {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 14px 14px 14px 16px;
+  border-radius: var(--radius-card-inner);
+  background: var(--blue-50);
+}
+.fk-bell-news[data-read="true"] {
+  background: var(--neutral-50);
+}
+.fk-bell-news-mark {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--neutral-0);
+  color: var(--blue-700);
+}
+
+/* ---------- @mentions ---------- */
+
+.fk-mentionfield {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+.fk-mentionfield > .ui-textarea {
+  width: 100%;
+}
+.fk-mention-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  max-height: 260px;
+  padding: 6px;
+  overflow-y: auto;
+  border-radius: var(--radius-card-inner);
+  background: var(--color-surface-card);
+  box-shadow: var(--shadow-lg);
+}
+.fk-mention-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 12px;
+  background: none;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+.fk-mention-option[aria-selected="true"] {
+  background: var(--neutral-100);
+}
+.fk-mention-avatar {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: var(--neutral-0);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+.fk-mention-name {
+  display: block;
+  font-size: 14px;
+}
+.fk-mention-mail {
+  display: block;
+  overflow: hidden;
+  font-size: 12.5px;
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fk-mention {
+  padding: 0 3px;
+  border-radius: 6px;
+  background: var(--blue-100);
+  color: var(--blue-700);
+  font-weight: 500;
 }

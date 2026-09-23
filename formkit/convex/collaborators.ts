@@ -5,6 +5,8 @@ import { requireUser } from "./model/identity";
 import { formFor } from "./model/forms";
 import { accessOf, colourFor, logActivity, token } from "./model/access";
 import { renderInvite } from "./emails/response";
+import { nameOf, notify } from "./model/inbox";
+import type { Doc } from "./_generated/dataModel";
 import { send } from "./notifications";
 
 /**
@@ -25,6 +27,57 @@ const ONLINE_MS = 45_000;
 const JOIN_DAYS = 7;
 
 const ROLE_WORD = { editor: "Editor", commenter: "Commenter", viewer: "Viewer" } as const;
+const AS_ROLE = { editor: "an Editor", commenter: "a Commenter", viewer: "a Viewer" } as const;
+const ROLE_CAN = {
+  editor: "You can edit its questions and read its responses.",
+  commenter: "You can read it and leave comments.",
+  viewer: "You can read it and its responses.",
+} as const;
+
+/** The invited person hears in the app, not only by email. */
+async function tellInvited(
+  ctx: Parameters<typeof notify>[0],
+  userId: Doc<"users">["_id"],
+  form: Doc<"forms">,
+  role: keyof typeof ROLE_WORD,
+  actor: Doc<"users"> | null,
+  note?: string,
+) {
+  await notify(ctx, userId, {
+    kind: "invited",
+    title: `${nameOf(actor)} added you to ${form.title}`,
+    body: `As ${AS_ROLE[role]}. ${ROLE_CAN[role]}${note ? ` “${note}”` : ""}`,
+    href: `/app/forms/${form._id}`,
+    action: "Open the form",
+    icon: "user-plus",
+    formId: form._id,
+    actorId: actor?._id,
+  });
+}
+
+/** The owner, and whoever sent the invitation, hear that someone joined. */
+async function tellJoined(
+  ctx: Parameters<typeof notify>[0],
+  form: Doc<"forms">,
+  person: Doc<"users">,
+  role: keyof typeof ROLE_WORD,
+  invitedBy: Doc<"users">["_id"] | undefined,
+  how: string,
+) {
+  const to = new Set([form.ownerId, ...(invitedBy ? [invitedBy] : [])]);
+  for (const userId of to) {
+    await notify(ctx, userId, {
+      kind: "joined",
+      title: `${nameOf(person)} joined ${form.title}`,
+      body: `As ${AS_ROLE[role]}, ${how}.`,
+      href: `/app/forms/${form._id}?open=share`,
+      action: "See who has access",
+      icon: "user-check",
+      formId: form._id,
+      actorId: person._id,
+    });
+  }
+}
 
 export const list = query({
   args: { formId: v.id("forms") },
@@ -141,8 +194,10 @@ export const invite = mutation({
       status: person ? "active" : "pending",
       invitedAt: Date.now(),
       note: note?.trim() || undefined,
+      invitedBy: me._id,
     });
     await logActivity(ctx, formId, me._id, `invited ${address} as ${ROLE_WORD[theirRole]}`, "user-plus");
+    if (person) await tellInvited(ctx, person._id, form, theirRole, me, note?.trim() || undefined);
     await ctx.scheduler.runAfter(0, internal.collaborators.sendInvite, { collaboratorId: id });
     return id;
   },
@@ -221,7 +276,20 @@ export const setRole = mutation({
     if (!row) throw new Error("That person is no longer on this form.");
     await formFor(ctx, row.formId);
     const me = await requireUser(ctx);
+    const form = await ctx.db.get(row.formId);
     await ctx.db.patch(collaboratorId, { role: theirRole });
+    if (row.userId && row.status === "active" && row.role !== theirRole && form) {
+      await notify(ctx, row.userId, {
+        kind: "role",
+        title: `${nameOf(me)} made you ${AS_ROLE[theirRole]} on ${form.title}`,
+        body: ROLE_CAN[theirRole],
+        href: `/app/forms/${form._id}`,
+        action: "Open the form",
+        icon: "shield",
+        formId: form._id,
+        actorId: me._id,
+      });
+    }
     await logActivity(ctx, row.formId, me._id, `made ${row.email} ${ROLE_WORD[theirRole] === "Editor" ? "an Editor" : `a ${ROLE_WORD[theirRole]}`}`, "shield");
     return null;
   },
@@ -236,7 +304,17 @@ export const remove = mutation({
     if (!row) return null;
     await formFor(ctx, row.formId);
     const me = await requireUser(ctx);
+    const form = await ctx.db.get(row.formId);
     await ctx.db.delete(collaboratorId);
+    if (row.userId && row.status === "active" && form) {
+      await notify(ctx, row.userId, {
+        kind: "removed",
+        title: `${nameOf(me)} removed you from ${form.title}`,
+        body: "You no longer have access to it. Its owner can add you again.",
+        icon: "user-minus",
+        actorId: me._id,
+      });
+    }
     await logActivity(
       ctx,
       row.formId,
@@ -319,8 +397,10 @@ export const join = mutation({
       role: link.role,
       status: "active",
       invitedAt: Date.now(),
+      invitedBy: link.createdBy,
     });
     await logActivity(ctx, form._id, me._id, `joined with an invite link as ${ROLE_WORD[link.role]}`, "log-in");
+    await tellJoined(ctx, form, me, link.role, link.createdBy, "with an invite link");
     return form._id;
   },
 });
@@ -344,6 +424,12 @@ export const acceptPending = mutation({
       if (r.status === "pending" || !r.userId) {
         await ctx.db.patch(r._id, { status: "active", userId: me._id });
         await logActivity(ctx, r.formId, me._id, "accepted the invitation", "check");
+        const form = await ctx.db.get(r.formId);
+        if (form && !form.deletedAt) {
+          const inviter = r.invitedBy ? await ctx.db.get(r.invitedBy) : await ctx.db.get(form.ownerId);
+          await tellInvited(ctx, me._id, form, r.role, inviter, r.note);
+          await tellJoined(ctx, form, me, r.role, r.invitedBy, "from your invitation");
+        }
         n++;
       }
     }
@@ -504,6 +590,18 @@ export const setRoleEverywhere = mutation({
       if (personKey(row) !== key || row.role === theirRole) continue;
       await ctx.db.patch(row._id, { role: theirRole });
       await logActivity(ctx, form._id, me._id, `made ${row.email} ${ROLE_WORD[theirRole]}`, "user-cog");
+      if (row.userId && row.status === "active") {
+        await notify(ctx, row.userId, {
+          kind: "role",
+          title: `${nameOf(me)} made you ${AS_ROLE[theirRole]} on ${form.title}`,
+          body: ROLE_CAN[theirRole],
+          href: `/app/forms/${form._id}`,
+          action: "Open the form",
+          icon: "shield",
+          formId: form._id,
+          actorId: me._id,
+        });
+      }
       n++;
     }
     return n;
@@ -520,6 +618,15 @@ export const removeEverywhere = mutation({
       if (personKey(row) !== key) continue;
       await ctx.db.delete(row._id);
       await logActivity(ctx, form._id, me._id, `removed ${row.email}`, "user-minus");
+      if (row.userId && row.status === "active") {
+        await notify(ctx, row.userId, {
+          kind: "removed",
+          title: `${nameOf(me)} removed you from ${form.title}`,
+          body: "You no longer have access to it. Its owner can add you again.",
+          icon: "user-minus",
+          actorId: me._id,
+        });
+      }
       n++;
     }
     return n;

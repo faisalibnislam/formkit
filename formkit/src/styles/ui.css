@@ -606,6 +606,42 @@
   box-shadow: var(--shadow-lg);
 }
 
+.ui-toast-action {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 0 14px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--neutral-0);
+  font: inherit;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.ui-toast-action:hover {
+  background: rgba(255, 255, 255, 0.26);
+}
+.ui-toast-close {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  margin-right: -8px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: rgba(255, 255, 255, 0.7);
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.ui-toast-close:hover {
+  color: var(--neutral-0);
+}
+.ui-toast-action:focus-visible,
+.ui-toast-close:focus-visible {
+  box-shadow: var(--focus-ring-inverse);
+}
 .ui-toast-stack {
   position: fixed;
   left: 50%;

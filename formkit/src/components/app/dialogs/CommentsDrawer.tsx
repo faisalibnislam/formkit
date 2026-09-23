@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { ArrowLeft, Check, Send, Trash2 } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
-import { Badge, Button, Drawer, IconButton, Input, Switch, Textarea } from "@/components/ui";
+import { Badge, Button, Drawer, IconButton, Switch } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 import { relativeTime as ago } from "../bits";
+import { MentionField, mentionsIn, withMentions } from "./MentionField";
 
 /**
  * Comments, in a drawer: every thread on the form, or only those on one
@@ -31,6 +32,17 @@ export function CommentsDrawer({
   const add = useMutation(api.comments.add);
   const resolve = useMutation(api.comments.resolve);
   const remove = useMutation(api.comments.remove);
+  const people = useQuery(api.comments.mentionable, { formId }) ?? [];
+  const readFor = useMutation(api.inbox.readFor);
+
+  // Opening the comments counts as reading their notices.
+  const readForRef = useRef(readFor);
+  useEffect(() => {
+    readForRef.current = readFor;
+  });
+  useEffect(() => {
+    void readForRef.current({ formId, kinds: ["comment", "reply", "mention", "resolved"] }).catch(() => {});
+  }, [formId]);
 
   const [draft, setDraft] = useState("");
   const [replies, setReplies] = useState<Record<string, string>>({});
@@ -110,7 +122,9 @@ export function CommentsDrawer({
                 </Badge>
               )}
             </div>
-            <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{c.body}</p>
+            <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+              {withMentions(c.body, c.mentions)}
+            </p>
 
             {c.replies.length > 0 && (
               <div className="fk-thread-replies">
@@ -132,7 +146,9 @@ export function CommentsDrawer({
                         </IconButton>
                       )}
                     </div>
-                    <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{r.body}</p>
+                    <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+                      {withMentions(r.body, r.mentions)}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -146,19 +162,23 @@ export function CommentsDrawer({
                   const body = (replies[c._id] ?? "").trim();
                   if (!body) return;
                   const ok = await run(
-                    add({ formId, body, parentId: c._id as Id<"comments"> }),
+                    add({
+                      formId,
+                      body,
+                      parentId: c._id as Id<"comments">,
+                      mentions: mentionsIn(body, people) as Id<"users">[],
+                    }),
                     "That reply did not go",
                   );
                   if (ok) setReplies((r) => ({ ...r, [c._id]: "" }));
                 }}
               >
-                <Input
-                  inputSize="sm"
-                  placeholder="Reply"
-                  aria-label="Reply"
+                <MentionField
+                  placeholder="Reply — type @ to mention someone"
+                  label="Reply"
+                  people={people}
                   value={replies[c._id] ?? ""}
-                  onChange={(e) => setReplies((r) => ({ ...r, [c._id]: e.target.value }))}
-                  wrapStyle={{ flex: 1 }}
+                  onChange={(next) => setReplies((r) => ({ ...r, [c._id]: next }))}
                 />
                 <IconButton label="Send reply" type="submit">
                   <Send size={15} strokeWidth={1.8} aria-hidden />
@@ -215,26 +235,34 @@ export function CommentsDrawer({
             e.preventDefault();
             const body = draft.trim();
             if (!body) return;
+            const mentioned = mentionsIn(body, people);
             const ok = await run(
-              add({ formId, body, blockId: (blockId ?? undefined) as Id<"blocks"> | undefined }),
+              add({
+                formId,
+                body,
+                blockId: (blockId ?? undefined) as Id<"blocks"> | undefined,
+                mentions: mentioned as Id<"users">[],
+              }),
               "That comment did not go",
             );
             if (ok) {
               setDraft("");
-              toast("Comment added", { detail: `On ${label(blockId)}` });
+              const names = people.filter((p) => mentioned.includes(p._id)).map((p) => p.name);
+              toast("Comment added", {
+                detail: names.length ? `${names.join(", ")} will be told` : `On ${label(blockId)}`,
+              });
             }
           }}
         >
           <div style={{ fontSize: 13, color: "var(--color-text-tertiary)" }}>Commenting on {label(blockId)}</div>
-          <Textarea
-            rows={3}
-            placeholder="Add a comment"
-            aria-label="Add a comment"
+          <MentionField
+            multiline
+            placeholder="Add a comment — type @ to mention someone"
+            label="Add a comment"
+            people={people}
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) e.currentTarget.form?.requestSubmit();
-            }}
+            onChange={setDraft}
+            onSubmitShortcut={() => document.querySelector<HTMLFormElement>(".fk-comment-compose")?.requestSubmit()}
           />
           <div>
             <Button type="submit" size="sm" disabled={!draft.trim()} iconLeft={<Send size={15} strokeWidth={1.8} aria-hidden />}>

@@ -465,3 +465,16 @@ export const count = query({
     ).length;
   },
 });
+
+/** For the Responses tab in the header dock: complete answers nobody has opened. */
+export const unreadCount = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireUser(ctx);
+    const rows = await ctx.db
+      .query("responses")
+      .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
+      .collect();
+    return rows.filter((r) => r.status === "new" && !r.partial && !r.preview).length;
+  },
+});

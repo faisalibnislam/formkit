@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
@@ -141,6 +141,16 @@ function Responses({
   const data = useQuery(api.responses.list, { formId });
   const setStatus = useMutation(api.responses.setStatus);
   const remove = useMutation(api.responses.remove);
+  const readFor = useMutation(api.inbox.readFor);
+
+  // Looking at the responses counts as reading their notices.
+  const readForRef = useRef(readFor);
+  useEffect(() => {
+    readForRef.current = readFor;
+  });
+  useEffect(() => {
+    void readForRef.current({ formId, kinds: ["response"] }).catch(() => {});
+  }, [formId]);
 
   const [chosenKind, setKind] = useState<Kind>("all");
   const [pickedForm, setPickedForm] = useState<string>("all");

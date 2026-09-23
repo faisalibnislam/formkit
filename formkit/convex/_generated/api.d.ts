@@ -25,12 +25,14 @@ import type * as exports from "../exports.js";
 import type * as forms from "../forms.js";
 import type * as handles from "../handles.js";
 import type * as http from "../http.js";
+import type * as inbox from "../inbox.js";
 import type * as logic from "../logic.js";
 import type * as model_access from "../model/access.js";
 import type * as model_builtinTemplates from "../model/builtinTemplates.js";
 import type * as model_forms from "../model/forms.js";
 import type * as model_handles from "../model/handles.js";
 import type * as model_identity from "../model/identity.js";
+import type * as model_inbox from "../model/inbox.js";
 import type * as model_security from "../model/security.js";
 import type * as model_sheet from "../model/sheet.js";
 import type * as model_totp from "../model/totp.js";
@@ -68,12 +70,14 @@ declare const fullApi: ApiFromModules<{
   "forms": typeof forms,
   "handles": typeof handles,
   "http": typeof http,
+  "inbox": typeof inbox,
   "logic": typeof logic,
   "model/access": typeof model_access,
   "model/builtinTemplates": typeof model_builtinTemplates,
   "model/forms": typeof model_forms,
   "model/handles": typeof model_handles,
   "model/identity": typeof model_identity,
+  "model/inbox": typeof model_inbox,
   "model/security": typeof model_security,
   "model/sheet": typeof model_sheet,
   "model/totp": typeof model_totp,

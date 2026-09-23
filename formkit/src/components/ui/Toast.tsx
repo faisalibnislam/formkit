@@ -14,10 +14,12 @@ import {
  * fix when something failed.
  */
 type Tone = "default" | "error";
-type Toast = { id: number; message: string; detail?: string; tone: Tone };
+type Action = { label: string; onClick: () => void };
+type Options = { detail?: string; tone?: Tone; action?: Action };
+type Toast = { id: number; message: string; detail?: string; tone: Tone; action?: Action };
 
 const ToastContext = createContext<{
-  toast: (message: string, options?: { detail?: string; tone?: Tone }) => void;
+  toast: (message: string, options?: Options) => void;
 } | null>(null);
 
 let nextId = 1;
@@ -26,12 +28,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const toast = useCallback(
-    (message: string, options?: { detail?: string; tone?: Tone }) => {
+    (message: string, options?: Options) => {
       const id = nextId++;
-      setToasts((list) => [...list, { id, message, detail: options?.detail, tone: options?.tone ?? "default" }]);
+      setToasts((list) => [
+        ...list,
+        { id, message, detail: options?.detail, tone: options?.tone ?? "default", action: options?.action },
+      ]);
       window.setTimeout(
         () => setToasts((list) => list.filter((t) => t.id !== id)),
-        options?.tone === "error" ? 6000 : 4000,
+        options?.tone === "error" || options?.action ? 7000 : 4000,
       );
     },
     [],
@@ -60,6 +65,28 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 </span>
               )}
             </span>
+            {t.action && (
+              <button
+                type="button"
+                className="ui-toast-action"
+                onClick={() => {
+                  t.action!.onClick();
+                  setToasts((list) => list.filter((x) => x.id !== t.id));
+                }}
+              >
+                {t.action.label}
+              </button>
+            )}
+            {t.action && (
+              <button
+                type="button"
+                className="ui-toast-close"
+                aria-label="Dismiss"
+                onClick={() => setToasts((list) => list.filter((x) => x.id !== t.id))}
+              >
+                ×
+              </button>
+            )}
           </div>
         ))}
       </div>

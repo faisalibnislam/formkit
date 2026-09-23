@@ -96,11 +96,24 @@ export default defineSchema({
     emailPrefs: v.optional(
       v.object({
         newResponse: v.optional(v.boolean()),
+        /** Email a reply or mention still unread after ten minutes. Absent means on. */
+        comments: v.optional(v.boolean()),
         daily: v.optional(v.boolean()),
         weekly: v.optional(v.boolean()),
         to: v.optional(v.string()),
         subject: v.optional(v.string()),
         body: v.optional(v.string()),
+      }),
+    ),
+    // Settings → Notifications → In the app: which kinds reach the bell.
+    inAppPrefs: v.optional(
+      v.object({
+        responses: v.optional(v.boolean()), // on forms I own; absent means on
+        sharedResponses: v.optional(v.boolean()), // on forms shared with me; absent means off
+        comments: v.optional(v.boolean()),
+        sharing: v.optional(v.boolean()),
+        forms: v.optional(v.boolean()),
+        security: v.optional(v.boolean()),
       }),
     ),
     // Settings → Exports → Email a copy: every new response, in full.
@@ -375,6 +388,8 @@ export default defineSchema({
     status: v.union(v.literal("active"), v.literal("pending")),
     invitedAt: v.number(),
     note: v.optional(v.string()),
+    /** Who sent the invitation, so they hear when it is taken up. */
+    invitedBy: v.optional(v.id("users")),
   })
     .index("by_form", ["formId"])
     .index("by_email", ["email"]),
@@ -387,7 +402,43 @@ export default defineSchema({
     body: v.string(),
     resolved: v.boolean(),
     createdAt: v.number(),
+    /** People @mentioned in the body. */
+    mentions: v.optional(v.array(v.id("users"))),
   }).index("by_form", ["formId"]),
+
+  /**
+   * The bell: one row per thing a person should know about. Responses to the
+   * same form coalesce into one unread row with a count, so a busy form does
+   * not bury everything else.
+   */
+  inbox: defineTable({
+    userId: v.id("users"),
+    kind: v.string(),
+    title: v.string(),
+    body: v.optional(v.string()),
+    href: v.optional(v.string()),
+    /** What the action button says, next to the link. */
+    action: v.optional(v.string()),
+    icon: v.optional(v.string()),
+    formId: v.optional(v.id("forms")),
+    commentId: v.optional(v.id("comments")),
+    responseId: v.optional(v.id("responses")),
+    actorId: v.optional(v.id("users")),
+    count: v.optional(v.number()),
+    at: v.number(),
+    readAt: v.optional(v.number()),
+    emailedAt: v.optional(v.number()),
+  })
+    .index("by_user_at", ["userId", "at"])
+    .index("by_user_read", ["userId", "readAt"])
+    .index("by_user_form_kind", ["userId", "formId", "kind"]),
+
+  /** Which live announcements a person has already seen in the bell. */
+  announcementReads: defineTable({
+    userId: v.id("users"),
+    announcementId: v.id("announcements"),
+    at: v.number(),
+  }).index("by_user", ["userId"]),
 
   activity: defineTable({
     formId: v.optional(v.id("forms")),

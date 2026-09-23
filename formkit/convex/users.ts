@@ -35,8 +35,17 @@ export const viewer = query({
       /** When a deleted account is erased for good, if it has been deleted. */
       suspended: v.boolean(),
       restoreUntil: v.union(v.number(), v.null()),
+      inAppPrefs: v.object({
+        responses: v.boolean(),
+        sharedResponses: v.boolean(),
+        comments: v.boolean(),
+        sharing: v.boolean(),
+        forms: v.boolean(),
+        security: v.boolean(),
+      }),
       emailPrefs: v.object({
         newResponse: v.boolean(),
+        comments: v.boolean(),
         daily: v.boolean(),
         weekly: v.boolean(),
         to: v.string(),
@@ -91,8 +100,17 @@ export const viewer = query({
       /** Suspended by staff, as against deleted by the person themselves. */
       suspended: user.deactivatedAt !== undefined && user.selfDeletedAt === undefined,
       restoreUntil: user.selfDeletedAt ? user.selfDeletedAt + 30 * 24 * 60 * 60 * 1000 : null,
+      inAppPrefs: {
+        responses: user.inAppPrefs?.responses !== false,
+        sharedResponses: user.inAppPrefs?.sharedResponses === true,
+        comments: user.inAppPrefs?.comments !== false,
+        sharing: user.inAppPrefs?.sharing !== false,
+        forms: user.inAppPrefs?.forms !== false,
+        security: user.inAppPrefs?.security !== false,
+      },
       emailPrefs: {
         newResponse: user.emailPrefs?.newResponse ?? true,
+        comments: user.emailPrefs?.comments !== false,
         daily: user.emailPrefs?.daily ?? false,
         weekly: user.emailPrefs?.weekly ?? true,
         to: user.emailPrefs?.to ?? user.email ?? "",
@@ -150,9 +168,20 @@ export const setPreferences = mutation({
     skyPref: v.optional(
       v.union(v.literal("sync"), v.literal("morning"), v.literal("afternoon"), v.literal("evening")),
     ),
+    inAppPrefs: v.optional(
+      v.object({
+        responses: v.optional(v.boolean()),
+        sharedResponses: v.optional(v.boolean()),
+        comments: v.optional(v.boolean()),
+        sharing: v.optional(v.boolean()),
+        forms: v.optional(v.boolean()),
+        security: v.optional(v.boolean()),
+      }),
+    ),
     emailPrefs: v.optional(
       v.object({
         newResponse: v.optional(v.boolean()),
+        comments: v.optional(v.boolean()),
         daily: v.optional(v.boolean()),
         weekly: v.optional(v.boolean()),
         to: v.optional(v.string()),
@@ -163,11 +192,19 @@ export const setPreferences = mutation({
     emailCopy: v.optional(v.object({ on: v.optional(v.boolean()), to: v.optional(v.string()) })),
   },
   returns: v.null(),
-  handler: async (ctx, { skyPref, emailPrefs, emailCopy }) => {
+  handler: async (ctx, { skyPref, inAppPrefs, emailPrefs, emailCopy }) => {
     const user = await requireUser(ctx);
     const clean = (s?: string) => (s === undefined ? undefined : s.trim().slice(0, 2000));
     await ctx.db.patch(user._id, {
       ...(skyPref ? { skyPref } : {}),
+      ...(inAppPrefs
+        ? {
+            inAppPrefs: {
+              ...(user.inAppPrefs ?? {}),
+              ...Object.fromEntries(Object.entries(inAppPrefs).filter(([, val]) => val !== undefined)),
+            },
+          }
+        : {}),
       ...(emailPrefs
         ? {
             emailPrefs: {

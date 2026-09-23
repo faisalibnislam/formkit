@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { notify } from "./model/inbox";
 import { mutation, query } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
@@ -271,6 +272,27 @@ export const setAiAccess = mutation({
     };
     if (row) await ctx.db.patch(row._id, next);
     else await ctx.db.insert("aiAccess", next);
+    // Only a grant is announced. Taking access away is silent: an account
+    // without it sees no mention of the AI anywhere.
+    if (enabled === true && !row?.enabled) {
+      await notify(ctx, userId, {
+        kind: "ai",
+        title: "Ask Formkit is on for your account",
+        body: "Describe a form in a sentence and Formkit writes it.",
+        href: "/app/ask",
+        action: "Open Ask Formkit",
+        icon: "sparkles",
+      });
+    } else if (grant && (row?.enabled ?? false)) {
+      await notify(ctx, userId, {
+        kind: "ai",
+        title: `${grant} more Ask Formkit credits`,
+        body: "Formkit added them to this month.",
+        href: "/app/ask",
+        action: "Open Ask Formkit",
+        icon: "sparkles",
+      });
+    }
 
     if (resetUsage) await ctx.db.patch(userId, { aiUsed: 0 });
 
@@ -333,6 +355,18 @@ export const resolveReport = mutation({
 
     // Locking a form stops it collecting; it is not deleted, and its responses stay.
     if (state === "locked" && report.formId) {
+      const locked = await ctx.db.get(report.formId);
+      if (locked) {
+        await notify(ctx, locked.ownerId, {
+          kind: "locked",
+          title: `Formkit closed ${locked.title}`,
+          body: "It was reported, and it stays closed while Formkit reviews the report. Its responses are kept.",
+          href: `/app/forms/${locked._id}`,
+          action: "Open the form",
+          icon: "shield-alert",
+          formId: locked._id,
+        });
+      }
       await ctx.db.patch(report.formId, {
         status: "closed",
         closing: {
@@ -379,6 +413,14 @@ export const replyToTicket = mutation({
       ],
       state: close ? "closed" : "answered",
     });
+    if (ticket.userId) {
+      await notify(ctx, ticket.userId, {
+        kind: "support",
+        title: `Formkit replied: ${ticket.subject}`,
+        body: body.trim().length > 160 ? `${body.trim().slice(0, 157)}…` : body.trim(),
+        icon: "life-buoy",
+      });
+    }
     await writeAudit(ctx, staff, close ? "Answered and closed a ticket" : "Answered a ticket", ticket.subject);
     return null;
   },

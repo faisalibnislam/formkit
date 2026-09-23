@@ -40,7 +40,7 @@ import { relativeTime } from "./bits";
  * responses, and the row says how long is left. "Delete forever" is the only
  * thing here that cannot be undone, and it asks first.
  */
-type Filter = "all" | "draft" | "published" | "closed" | "archived" | "deleted";
+type Filter = "all" | "draft" | "published" | "closed" | "archived" | "deleted" | "shared";
 type Sort = "updated" | "responses" | "title" | "completion";
 type Row = NonNullable<ReturnType<typeof useFormsList>>["forms"][number];
 
@@ -51,7 +51,10 @@ const FILTERS: { value: Filter; label: string }[] = [
   { value: "closed", label: "Closed" },
   { value: "archived", label: "Archived" },
   { value: "deleted", label: "Deleted" },
+  { value: "shared", label: "Shared with you" },
 ];
+
+const ROLE_WORD: Record<string, string> = { editor: "Editor", commenter: "Commenter", viewer: "Viewer" };
 
 const SORTS = [
   { value: "updated", label: "Last updated" },
@@ -67,6 +70,7 @@ const EMPTY: Record<Filter, { title: string; description: string }> = {
   closed: { title: "Nothing is closed", description: "Close a form to stop answers and keep what came in." },
   archived: { title: "The archive is empty", description: "Archive a form to put it away without deleting it." },
   deleted: { title: "Nothing deleted", description: "Deleted forms wait here for 60 days before they go for good." },
+  shared: { title: "Nothing shared with you", description: "Forms other people add you to appear here." },
 };
 
 function useFormsList(filter: Filter, term: string) {
@@ -153,7 +157,22 @@ export function FormsList() {
   }
 
   const actionsFor = (f: Row) =>
-    inBin ? (
+    f.sharedAs ? (
+      // Someone else's form: open it, or preview it. Sharing, closing and
+      // deleting are its owner's.
+      <>
+        <Link href={`/app/forms/${f._id}`} tabIndex={-1}>
+          <IconButton tip label={f.sharedAs.role === "editor" ? "Edit" : "Open"}>
+            <Pencil size={16} strokeWidth={1.8} aria-hidden />
+          </IconButton>
+        </Link>
+        <Link href={`/app/forms/${f._id}?open=preview`} tabIndex={-1}>
+          <IconButton tip label="Preview">
+            <Eye size={16} strokeWidth={1.8} aria-hidden />
+          </IconButton>
+        </Link>
+      </>
+    ) : inBin ? (
       <>
         <IconButton
           tip
@@ -233,7 +252,7 @@ export function FormsList() {
     <>
       <div className="fk-toolbar-panel">
         <div className="fk-filters" role="group" aria-label="Which forms">
-          {FILTERS.map((f) => (
+          {FILTERS.filter((f) => f.value !== "shared" || filter === "shared" || (counts?.shared ?? 0) > 0).map((f) => (
             <button
               key={f.value}
               type="button"
@@ -331,7 +350,13 @@ export function FormsList() {
               status={statusBadge(f.status)}
               responses={f.responses}
               fields={f.questions}
-              updated={inBin ? `${f.daysLeft} days left` : `edited ${relativeTime(f.updatedAt)}`}
+              updated={
+                inBin
+                  ? `${f.daysLeft} days left`
+                  : f.sharedAs
+                    ? `${ROLE_WORD[f.sharedAs.role] ?? "Shared"} · ${f.sharedAs.owner}’s form`
+                    : `edited ${relativeTime(f.updatedAt)}`
+              }
               accent={markFor(f.status)}
               actions={actionsFor(f)}
             />
@@ -347,7 +372,11 @@ export function FormsList() {
 
                 <Link href={inBin ? "#" : `/app/forms/${f._id}`} className="fk-formrow-main" aria-disabled={inBin}>
                   <span className="fk-formrow-title">{f.title}</span>
-                  <span className="fk-formrow-sub">{f.description || f.url}</span>
+                  <span className="fk-formrow-sub">
+                    {f.sharedAs
+                      ? `${ROLE_WORD[f.sharedAs.role] ?? "Shared"} · ${f.sharedAs.owner}’s form`
+                      : f.description || f.url}
+                  </span>
                 </Link>
 
                 <div className="fk-formrow-figures">

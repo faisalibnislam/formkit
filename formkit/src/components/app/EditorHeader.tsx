@@ -82,13 +82,12 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
   // The forms list can open a form straight into its preview or share panel.
   const search = useSearchParams();
   const pathname = usePathname();
-  const opened = useRef(false);
+  // The parameter is removed once handled, so it cannot fire twice; a later
+  // link to the same form (a notification, say) sets it again and is obeyed.
   useEffect(() => {
-    if (opened.current) return;
     const want = search.get("open");
     // `open` also carries a response id for the inbox; only these three are ours.
     if (want !== "preview" && want !== "share" && want !== "comments") return;
-    opened.current = true;
     const t = window.setTimeout(() => {
       if (want === "preview") setPreview({});
       else if (want === "share") setDialog("share");

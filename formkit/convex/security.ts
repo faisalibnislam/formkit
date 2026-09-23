@@ -24,6 +24,12 @@ import { normaliseEmail } from "./email";
 import { send } from "./notifications";
 import { renderAuthCodeEmail } from "./emails/authCode";
 import { renderSignInAlert } from "./emails/response";
+import { notify } from "./model/inbox";
+
+/** A security notice in the person's own bell, beside any email. */
+async function securityNotice(ctx: MutationCtx, userId: Id<"users">, title: string, body: string) {
+  await notify(ctx, userId, { kind: "security", title, body, href: "/app/settings", action: "Review security", icon: "shield" });
+}
 
 /**
  * Settings → Account → Password and Security.
@@ -156,6 +162,14 @@ export const touch = mutation({
       firstSeen: now,
       lastSeen: now,
     });
+    if (before && user.signInAlerts !== false) {
+      await securityNotice(
+        ctx,
+        user._id,
+        `New sign-in: ${label}`,
+        "If this was not you, change your password and sign out everywhere.",
+      );
+    }
     if (before && user.signInAlerts !== false && user.email) {
       await ctx.scheduler.runAfter(0, internal.security.sendSignInAlert, {
         userId: user._id,
@@ -257,6 +271,7 @@ export const enableTwoFactor = mutation({
           twoFactorAt: Date.now(),
         });
     }
+    await securityNotice(ctx, user._id, "Two-factor is on", "Signing in now asks for a code from your authenticator app.");
     return { ok: true as const, recovery: codes };
   },
 });
@@ -288,6 +303,7 @@ export const disableTwoFactor = mutation({
       return { ok: false, message: "That code did not match. Use the newest one from your app, or a recovery code." };
     }
     await ctx.db.patch(user._id, { twoFactor: undefined });
+    await securityNotice(ctx, user._id, "Two-factor is off", "Signing in now asks only for your password.");
     return { ok: true };
   },
 });
@@ -400,7 +416,16 @@ export const me = internalQuery({
 export const endOtherSessions = internalMutation({
   args: { userId: v.id("users"), keep: v.optional(v.id("authSessions")) },
   returns: v.number(),
-  handler: (ctx, { userId, keep }) => endSessions(ctx, userId, [keep ?? null]),
+  handler: async (ctx, { userId, keep }) => {
+    const n = await endSessions(ctx, userId, [keep ?? null]);
+    await securityNotice(
+      ctx,
+      userId,
+      "Your password was changed",
+      n ? `${n} other ${n === 1 ? "device was" : "devices were"} signed out.` : "If this was not you, reset it now.",
+    );
+    return n;
+  },
 });
 
 /**
@@ -517,6 +542,7 @@ export const confirmEmailChange = mutation({
       emailVerificationTime: Date.now(),
       emailChange: undefined,
     });
+    await securityNotice(ctx, user._id, "Your sign-in email changed", `You sign in with ${pending.email} from now on.`);
     return { ok: true };
   },
 });

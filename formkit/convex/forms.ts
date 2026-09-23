@@ -13,6 +13,7 @@ import {
   purgeFormData,
 } from "./model/forms";
 import { builtinTemplate } from "./model/builtinTemplates";
+import { closedReason, nameOf, tellFormTeam } from "./model/inbox";
 import { formUrl } from "./model/handles";
 import { hashPassword, newSalt, publicSecurity, securityOf } from "./model/security";
 
@@ -65,6 +66,18 @@ async function decorate(ctx: Parameters<typeof formUrl>[0], form: Doc<"forms">) 
   };
 }
 
+function countsOf(all: Doc<"forms">[], shared: number) {
+  return {
+    all: all.filter((f) => !f.deletedAt).length,
+    draft: all.filter((f) => !f.deletedAt && f.status === "draft").length,
+    published: all.filter((f) => !f.deletedAt && f.status === "published").length,
+    closed: all.filter((f) => !f.deletedAt && f.status === "closed").length,
+    archived: all.filter((f) => !f.deletedAt && f.status === "archived").length,
+    deleted: all.filter((f) => !!f.deletedAt).length,
+    shared,
+  };
+}
+
 export const list = query({
   args: {
     filter: v.optional(
@@ -75,6 +88,7 @@ export const list = query({
         v.literal("closed"),
         v.literal("archived"),
         v.literal("deleted"),
+        v.literal("shared"),
       ),
     ),
     search: v.optional(v.string()),
@@ -86,7 +100,35 @@ export const list = query({
       .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
       .collect();
 
+    // Forms other people put this person on, live ones only.
+    const shares = (
+      await ctx.db
+        .query("collaborators")
+        .withIndex("by_email", (q) => q.eq("email", (user.email ?? "").toLowerCase()))
+        .collect()
+    ).filter((r) => r.status === "active" && r.userId === user._id);
+    const sharedForms: { form: Doc<"forms">; role: string; owner: string }[] = [];
+    for (const r of shares) {
+      const f = await ctx.db.get(r.formId);
+      if (!f || f.deletedAt || f.ownerId === user._id) continue;
+      const owner = await ctx.db.get(f.ownerId);
+      sharedForms.push({ form: f, role: r.role, owner: owner?.name ?? owner?.email ?? "Someone" });
+    }
+
     const term = search?.trim().toLowerCase();
+    if (filter === "shared") {
+      const picked = sharedForms
+        .filter((s) =>
+          term ? `${s.form.title} ${s.form.description ?? ""} ${s.owner}`.toLowerCase().includes(term) : true,
+        )
+        .sort((a, b) => b.form.updatedAt - a.form.updatedAt);
+      return {
+        counts: countsOf(all, sharedForms.length),
+        forms: await Promise.all(
+          picked.map(async (s) => ({ ...(await decorate(ctx, s.form)), sharedAs: { role: s.role, owner: s.owner } })),
+        ),
+      };
+    }
     const rows = all
       .filter((f) => (filter === "deleted" ? !!f.deletedAt : !f.deletedAt))
       .filter((f) => (filter === "all" || filter === "deleted" ? true : f.status === filter))
@@ -95,16 +137,12 @@ export const list = query({
       )
       .sort((a, b) => b.updatedAt - a.updatedAt);
 
-    const counts = {
-      all: all.filter((f) => !f.deletedAt).length,
-      draft: all.filter((f) => !f.deletedAt && f.status === "draft").length,
-      published: all.filter((f) => !f.deletedAt && f.status === "published").length,
-      closed: all.filter((f) => !f.deletedAt && f.status === "closed").length,
-      archived: all.filter((f) => !f.deletedAt && f.status === "archived").length,
-      deleted: all.filter((f) => !!f.deletedAt).length,
+    return {
+      counts: countsOf(all, sharedForms.length),
+      forms: await Promise.all(
+        rows.map(async (f) => ({ ...(await decorate(ctx, f)), sharedAs: null as { role: string; owner: string } | null })),
+      ),
     };
-
-    return { counts, forms: await Promise.all(rows.map((f) => decorate(ctx, f))) };
   },
 });
 
@@ -361,6 +399,15 @@ export const publish = mutation({
       what: number === 1 ? "published the form" : `published version ${number}`,
       at: now,
     });
+    await tellFormTeam(ctx, form, {
+      kind: "published",
+      title: `${nameOf(user)} published ${form.title}`,
+      body: number === 1 ? "It is live and taking answers." : `Version ${number} is live.`,
+      href: `/app/forms/${formId}`,
+      action: "Open the form",
+      icon: "globe",
+      actorId: user._id,
+    });
     return null;
   },
 });
@@ -369,9 +416,18 @@ export const unpublish = mutation({
   args: { formId: v.id("forms") },
   returns: v.null(),
   handler: async (ctx, { formId }) => {
-    await formFor(ctx, formId);
+    const form = await formFor(ctx, formId);
     const user = await requireUser(ctx);
     await ctx.db.patch(formId, { status: "draft", updatedAt: Date.now() });
+    await tellFormTeam(ctx, form, {
+      kind: "unpublished",
+      title: `${nameOf(user)} unpublished ${form.title}`,
+      body: "It is a draft again. Its responses are kept.",
+      href: `/app/forms/${formId}`,
+      action: "Open the form",
+      icon: "eye-off",
+      actorId: user._id,
+    });
     await ctx.db.insert("activity", {
       formId,
       userId: user._id,
@@ -419,6 +475,15 @@ export const setClosing = mutation({
         what: "closed the form",
         at: now,
       });
+      await tellFormTeam(ctx, form, {
+        kind: "closed",
+        title: `${nameOf(user)} closed ${form.title}`,
+        body: "It has stopped taking answers. Everything collected is kept.",
+        href: `/app/forms/${formId}`,
+        action: "Open the form",
+        icon: "lock",
+        actorId: user._id,
+      });
       return null;
     }
 
@@ -443,6 +508,15 @@ export const setClosing = mutation({
         userId: user._id,
         what: "reopened the form",
         at: now,
+      });
+      await tellFormTeam(ctx, form, {
+        kind: "published",
+        title: `${nameOf(user)} reopened ${form.title}`,
+        body: "It is taking answers again at the same link.",
+        href: `/app/forms/${formId}`,
+        action: "Open the form",
+        icon: "lock-open",
+        actorId: user._id,
       });
       return null;
     }
@@ -693,6 +767,14 @@ export const sweepClosing = mutation({
         what: "set a closing rule that has now closed the form",
         at: now,
       });
+      await tellFormTeam(ctx, form, {
+        kind: "closed",
+        title: `${form.title} closed itself`,
+        body: closedReason(form, now),
+        href: `/app/forms/${form._id}`,
+        action: "Open the form",
+        icon: "lock",
+      });
       closed++;
     }
     return closed;
@@ -722,6 +804,14 @@ export const sweepAllClosing = internalMutation({
         userId: form.ownerId,
         what: "set a closing rule that has now closed the form",
         at: now,
+      });
+      await tellFormTeam(ctx, form, {
+        kind: "closed",
+        title: `${form.title} closed itself`,
+        body: closedReason(form, now),
+        href: `/app/forms/${form._id}`,
+        action: "Open the form",
+        icon: "lock",
       });
       closed++;
     }

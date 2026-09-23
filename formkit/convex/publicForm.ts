@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query, type MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { closedReason, notifyResponse, tellFormTeam } from "./model/inbox";
 import { Doc, Id } from "./_generated/dataModel";
 import { QueryCtx } from "./_generated/server";
 import { shouldAutoClose, themeLogos } from "./model/forms";
@@ -333,9 +334,19 @@ async function store(
       status: "closed",
       closing: { ...(after.closing ?? {}), closedBy: "automatically", closedAt: Date.now() },
     });
+    await tellFormTeam(ctx, after, {
+      kind: "closed",
+      title: `${after.title} closed itself`,
+      body: closedReason(after, Date.now()),
+      href: `/app/forms/${after._id}`,
+      action: "Open the form",
+      icon: "lock",
+    });
   }
 
   if (!args.partial && !preview) {
+    const saved = await ctx.db.get(responseId);
+    if (saved && after) await notifyResponse(ctx, after, saved);
     await ctx.scheduler.runAfter(0, internal.notifications.onResponse, { responseId });
   }
   return { responseId, resumeToken: record.resumeToken };

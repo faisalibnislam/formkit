@@ -29,6 +29,7 @@ import { Logo } from "@/components/brand/Logo";
 import { PillTabs } from "@/components/ui";
 import { CreateFormDialog } from "./CreateFormDialog";
 import { NotificationsDrawer } from "./NotificationsDrawer";
+import { useInboxAlerts } from "./useInboxAlerts";
 import { CommandPalette } from "./CommandPalette";
 import { EditorHeader } from "./EditorHeader";
 import { AvatarPill, ClientTab, TabSummary } from "./ds";
@@ -148,12 +149,20 @@ function AppFrame({ children }: { children: ReactNode }) {
     void acceptPending({}).catch(() => {});
   }, [viewer, acceptPending]);
   const formsList = useQuery(api.forms.list, { filter: "all" });
-  const notifications = useQuery(api.notifications.recent, {});
+  const inbox = useQuery(api.inbox.list, {});
+  const newResponses = useQuery(api.responses.unreadCount, {});
+  useInboxAlerts(inbox);
   const analytics = useQuery(api.analytics.overview, {});
   const templates = useQuery(api.templates.list, {});
 
   const [createOpen, setCreateOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
+  // A toast about several new notifications opens the bell.
+  useEffect(() => {
+    const open = () => setBellOpen(true);
+    window.addEventListener("fk:open-bell", open);
+    return () => window.removeEventListener("fk:open-bell", open);
+  }, []);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -248,7 +257,7 @@ function AppFrame({ children }: { children: ReactNode }) {
 
   const counts = formsList?.counts;
   const live = counts?.published ?? 0;
-  const unread = notifications?.unread ?? 0;
+  const unread = inbox?.unread ?? 0;
   const templateCount = templates?.length ?? 0;
   const completion = analytics?.completionRate ?? 0;
 
@@ -282,7 +291,7 @@ function AppFrame({ children }: { children: ReactNode }) {
         meta: "All submissions",
         icon: <Inbox size={15} strokeWidth={1.8} aria-hidden />,
         label: "New:",
-        value: String(unread),
+        value: String(newResponses ?? 0),
       },
       {
         key: "analytics" as NavKey,
@@ -317,7 +326,7 @@ function AppFrame({ children }: { children: ReactNode }) {
           ]
         : []),
     ],
-    [counts, live, unread, completion, templateCount, askAllowed, askCreditsLeft],
+    [counts, live, newResponses, completion, templateCount, askAllowed, askCreditsLeft],
   );
 
   /* In Settings the dock holds its sections instead of the pages, each with
@@ -493,7 +502,7 @@ function AppFrame({ children }: { children: ReactNode }) {
               >
                 <Bell size={18} strokeWidth={1.8} aria-hidden />
               </button>
-              {unread > 0 && <span className="fk-bell-count">{unread}</span>}
+              {unread > 0 && <span className="fk-bell-count">{unread > 99 ? "99+" : unread}</span>}
             </span>
 
             <span className="fk-account">

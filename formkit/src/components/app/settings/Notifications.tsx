@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { Mail } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
@@ -8,6 +8,7 @@ import type { Id } from "../../../../convex/_generated/dataModel";
 import { Field, Input, Select, Switch, Textarea } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 import { Panel, Row } from "./bits";
+import { browserAlertsOn, browserAlertsSupported, setBrowserAlerts } from "../useInboxAlerts";
 
 /**
  * Settings → Notifications. "Every form" sets the account's defaults — what
@@ -35,6 +36,8 @@ export function NotificationsSection() {
   if (!viewer) return null;
 
   return (
+    <>
+      <InApp prefs={viewer.inAppPrefs} emailComments={viewer.emailPrefs.comments} />
     <Panel
       title="Email me about"
       lede="For every form, or for one of them. A form's own choices win over these."
@@ -57,6 +60,112 @@ export function NotificationsSection() {
       ) : (
         <FormNotify key={scope} formId={scope as Id<"forms">} account={viewer.emailPrefs} ownerEmail={viewer.email} />
       )}
+    </Panel>
+    </>
+  );
+}
+
+type InAppPrefs = {
+  responses: boolean;
+  sharedResponses: boolean;
+  comments: boolean;
+  sharing: boolean;
+  forms: boolean;
+  security: boolean;
+};
+
+const IN_APP: { key: keyof InAppPrefs; label: string; hint: string }[] = [
+  { key: "sharing", label: "Sharing", hint: "Someone adds you to a form, changes your role or removes you, or joins a form you shared" },
+  { key: "comments", label: "Comments", hint: "New comments on your forms, replies to you, and when someone @mentions you" },
+  { key: "responses", label: "Responses to my forms", hint: "New answers, gathered into one notice per form until you look" },
+  { key: "sharedResponses", label: "Responses to forms shared with me", hint: "The same, for forms other people own and let you read" },
+  { key: "forms", label: "Form changes", hint: "A form is published, unpublished, closed or closes itself" },
+  { key: "security", label: "Security", hint: "New sign-ins, and changes to your password, email or two-factor" },
+];
+
+/** Whether this browser's alerts are on, kept in step with the switch. */
+function useBrowserAlerts() {
+  return useSyncExternalStore(
+    (on) => {
+      window.addEventListener("storage", on);
+      window.addEventListener("fk:browser-alerts", on);
+      return () => {
+        window.removeEventListener("storage", on);
+        window.removeEventListener("fk:browser-alerts", on);
+      };
+    },
+    () => browserAlertsOn(),
+    () => false,
+  );
+}
+
+function InApp({ prefs, emailComments }: { prefs: InAppPrefs; emailComments: boolean }) {
+  const toast = useToast();
+  const save = useMutation(api.users.setPreferences);
+  const browser = useBrowserAlerts();
+  // Read after mount, so the server and the first client render agree.
+  const supported = useSyncExternalStore(
+    () => () => {},
+    () => browserAlertsSupported(),
+    () => true,
+  );
+  return (
+    <Panel
+      title="In the app"
+      lede="What reaches the bell. Formkit announcements and anything about your account's standing always do."
+    >
+      {IN_APP.map((row) => (
+        <Row key={row.key} label={row.label} hint={row.hint}>
+          <Switch
+            checked={prefs[row.key]}
+            label={row.label}
+            onChange={async (on) => {
+              await save({ inAppPrefs: { [row.key]: on } });
+              toast(on ? "Turned on" : "Turned off", { detail: `${row.label} · in the app` });
+            }}
+          />
+        </Row>
+      ))}
+      <Row
+        label="Email replies and mentions I have not seen"
+        hint="If a reply or @mention is still unread ten minutes later, it comes by email once"
+      >
+        <Switch
+          checked={emailComments}
+          label="Email replies and mentions I have not seen"
+          onChange={async (on) => {
+            await save({ emailPrefs: { comments: on } });
+            toast(on ? "Turned on" : "Turned off", { detail: "Emails for unseen replies and mentions" });
+          }}
+        />
+      </Row>
+      <Row
+        label="Browser alerts on this device"
+        hint={
+          supported
+            ? "A system notification when something arrives while Formkit is open in the background"
+            : "This browser does not offer notifications"
+        }
+      >
+        <Switch
+          checked={browser}
+          label="Browser alerts on this device"
+          onChange={async (on) => {
+            const result = await setBrowserAlerts(on);
+            window.dispatchEvent(new Event("fk:browser-alerts"));
+            if (result === "denied") {
+              toast("The browser said no", {
+                detail: "Allow notifications for this site in the browser's settings, then try again.",
+                tone: "error",
+              });
+            } else if (result === "unsupported") {
+              toast("This browser does not offer notifications", { tone: "error" });
+            } else {
+              toast(result === "on" ? "Browser alerts on" : "Browser alerts off", { detail: "On this device" });
+            }
+          }}
+        />
+      </Row>
     </Panel>
   );
 }

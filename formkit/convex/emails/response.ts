@@ -176,3 +176,16 @@ export function renderDigest({
     body: `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">${table}</table>${button("Open your responses", link)}`,
   });
 }
+
+/** A reply or @mention nobody opened in the app within ten minutes. */
+export function renderCommentEmail({ heading, quote, link }: { heading: string; quote: string; link: string }) {
+  return renderEmailShell({
+    heading,
+    lede: "You have not seen this in Formkit yet.",
+    body: `${
+      quote
+        ? `<p style="margin:0;padding:14px 18px;border-radius:18px;background:${PAPER};font-size:14.5px;line-height:1.6;color:${INK};white-space:pre-wrap;">${escapeHtml(quote.slice(0, 1200))}</p>`
+        : ""
+    }${button("Open the comment", link)}<p style="margin:16px 0 0;font-size:13px;line-height:1.6;color:${MUTED};">Turn these emails off under Settings → Notifications.</p>`,
+  });
+}
