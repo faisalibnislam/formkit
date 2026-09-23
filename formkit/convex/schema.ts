@@ -55,7 +55,9 @@ export default defineSchema({
     handle: v.optional(v.string()), // the person's own formkit.app/<handle>
     timezone: v.optional(v.string()),
     onboardedAt: v.optional(v.number()),
-    deactivatedAt: v.optional(v.number()), // 30-day restore window
+    deactivatedAt: v.optional(v.number()), // suspended by staff, or deleted by the person
+    /** Set only when the person deleted their own account: the 30-day restore window. */
+    selfDeletedAt: v.optional(v.number()),
 
     // Staff access to the admin console. Absent for ordinary customers.
     staffRole: v.optional(
@@ -108,7 +110,7 @@ export default defineSchema({
   })
     .index("email", ["email"])
     .index("by_handle", ["handle"])
-    .index("by_deactivated", ["deactivatedAt"]),
+    .index("by_self_deleted", ["selfDeletedAt"]),
 
   companies: defineTable({
     ownerId: v.id("users"),

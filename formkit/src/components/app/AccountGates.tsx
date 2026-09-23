@@ -157,6 +157,21 @@ export function DeactivatedGate({ restoreUntil, onSignOut }: { restoreUntil: num
   );
 }
 
+/** Suspended by Formkit staff: nothing to restore from here. */
+export function SuspendedGate({ onSignOut }: { onSignOut: () => void }) {
+  return (
+    <Frame>
+      <Head icon={<ShieldCheck size={20} strokeWidth={1.8} />} title="This account is suspended">
+        Formkit has paused this account. If you think this is a mistake, write to support@formkit.app from
+        the address you sign in with.
+      </Head>
+      <Button variant="secondary" fullWidth onClick={onSignOut}>
+        Sign out
+      </Button>
+    </Frame>
+  );
+}
+
 /**
  * Put in front of anything a signed-in person uses — the app, the admin
  * console, onboarding, join links. A session that owes its two-factor code,
@@ -170,6 +185,7 @@ export function SessionGate({ children }: { children: ReactNode }) {
   const leave = () => {
     void signOut().then(() => router.push("/signin"));
   };
+  if (viewer?.suspended) return <SuspendedGate onSignOut={leave} />;
   if (viewer?.deactivated) return <DeactivatedGate restoreUntil={viewer.restoreUntil} onSignOut={leave} />;
   if (viewer?.twoFactorNeeded) return <TwoFactorGate email={viewer.email} onSignOut={leave} />;
   return <>{children}</>;

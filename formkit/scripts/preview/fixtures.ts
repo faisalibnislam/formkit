@@ -278,7 +278,10 @@ export const VIEWER = {
   },
   onboarded: true,
   get deactivated() {
-    return flag("fk_gate") === "deactivated";
+    return flag("fk_gate") === "deactivated" || flag("fk_gate") === "suspended";
+  },
+  get suspended() {
+    return flag("fk_gate") === "suspended";
   },
   restoreUntil: Date.now() + 23 * 24 * 60 * 60 * 1000,
   emailPrefs: {

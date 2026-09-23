@@ -557,7 +557,7 @@ export const deleteAccount = mutation({
         closing: { ...(f.closing ?? {}), closedBy: "account", closedAt: now },
       });
     }
-    await ctx.db.patch(user._id, { deactivatedAt: now });
+    await ctx.db.patch(user._id, { deactivatedAt: now, selfDeletedAt: now });
     await endSessions(ctx, user._id, []);
     return { purgeAt: now + RESTORE_DAYS * DAY };
   },
@@ -569,11 +569,13 @@ export const reactivate = mutation({
   returns: v.null(),
   handler: async (ctx) => {
     const user = await currentUser(ctx);
-    if (!user?.deactivatedAt) return null;
-    if (Date.now() - user.deactivatedAt > RESTORE_DAYS * DAY) {
+    // Only a person who deleted their own account can bring it back; a
+    // suspension is lifted by staff, never from here.
+    if (!user?.selfDeletedAt) return null;
+    if (Date.now() - user.selfDeletedAt > RESTORE_DAYS * DAY) {
       throw new ConvexError("The 30 days have passed, so this account can no longer be restored.");
     }
-    await ctx.db.patch(user._id, { deactivatedAt: undefined });
+    await ctx.db.patch(user._id, { deactivatedAt: undefined, selfDeletedAt: undefined });
     const forms = await ctx.db
       .query("forms")
       .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
@@ -590,7 +592,10 @@ export const reactivate = mutation({
   },
 });
 
-/** Daily: accounts deleted more than 30 days ago are erased for good. */
+/**
+ * Accounts their owners deleted more than 30 days ago are erased for good. A
+ * suspension by staff is never erased by this.
+ */
 export const purgeDeactivated = internalMutation({
   args: {},
   returns: v.number(),
@@ -599,9 +604,9 @@ export const purgeDeactivated = internalMutation({
     const users = (
       await ctx.db
         .query("users")
-        .withIndex("by_deactivated", (q) => q.gt("deactivatedAt", 0).lt("deactivatedAt", cutoff))
+        .withIndex("by_self_deleted", (q) => q.gt("selfDeletedAt", 0).lt("selfDeletedAt", cutoff))
         .take(20)
-    ).filter((u) => !u.staffRole);
+    ).filter((u) => !u.staffRole && u.deactivatedAt !== undefined);
     // One account per run keeps each transaction small; the cron comes back.
     const user = users[0];
     if (!user) return 0;

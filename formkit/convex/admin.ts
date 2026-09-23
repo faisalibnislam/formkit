@@ -166,7 +166,11 @@ export const setStanding = mutation({
     if (!target) throw new Error("That account no longer exists.");
     if (target.staffRole === "owner") throw new Error("An owner cannot be suspended.");
 
-    await ctx.db.patch(userId, { deactivatedAt: deactivated ? Date.now() : undefined });
+    await ctx.db.patch(
+      userId,
+      // Reactivating from the console also ends a pending self-deletion.
+      deactivated ? { deactivatedAt: Date.now() } : { deactivatedAt: undefined, selfDeletedAt: undefined },
+    );
     await writeAudit(
       ctx,
       staff,

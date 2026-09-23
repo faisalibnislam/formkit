@@ -33,6 +33,7 @@ export const viewer = query({
       onboarded: v.boolean(),
       deactivated: v.boolean(),
       /** When a deleted account is erased for good, if it has been deleted. */
+      suspended: v.boolean(),
       restoreUntil: v.union(v.number(), v.null()),
       emailPrefs: v.object({
         newResponse: v.boolean(),
@@ -87,7 +88,9 @@ export const viewer = query({
       twoFactorNeeded: !(await twoFactorPassed(ctx, user)),
       onboarded: user.onboardedAt !== undefined,
       deactivated: user.deactivatedAt !== undefined,
-      restoreUntil: user.deactivatedAt ? user.deactivatedAt + 30 * 24 * 60 * 60 * 1000 : null,
+      /** Suspended by staff, as against deleted by the person themselves. */
+      suspended: user.deactivatedAt !== undefined && user.selfDeletedAt === undefined,
+      restoreUntil: user.selfDeletedAt ? user.selfDeletedAt + 30 * 24 * 60 * 60 * 1000 : null,
       emailPrefs: {
         newResponse: user.emailPrefs?.newResponse ?? true,
         daily: user.emailPrefs?.daily ?? false,
