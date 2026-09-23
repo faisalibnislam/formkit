@@ -28,6 +28,7 @@ import { ClientTab, TabSummary } from "./ds";
 import { CloseFormDialog } from "./dialogs/CloseFormDialog";
 import { CollaboratorsDialog } from "./dialogs/CollaboratorsDialog";
 import { SaveTemplateDialog } from "./dialogs/SaveTemplateDialog";
+import { PublishDialog } from "./dialogs/PublishDialog";
 import { ShareDialog } from "./dialogs/ShareDialog";
 import { VersionsDialog } from "./dialogs/VersionsDialog";
 import { THEME_PRESETS, themeOf } from "./editor/themes";
@@ -57,12 +58,11 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
   const form = useQuery(api.forms.get, { formId });
   const pending = useQuery(api.forms.unpublishedChanges, { formId });
   const update = useMutation(api.forms.update);
-  const publish = useMutation(api.forms.publish);
 
   const [title, setTitle] = useState("");
   const [actionsOpen, setActionsOpen] = useState(false);
   const [dialog, setDialog] = useState<
-    null | "share" | "versions" | "people" | "template" | "close"
+    null | "share" | "versions" | "people" | "template" | "close" | "publish"
   >(null);
   const known = useRef<string | null>(null);
   const saved = useSaveStatus(form?.updatedAt);
@@ -106,16 +106,9 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
     await tracked(update({ formId, patch: { title: next } }));
   }
 
-  async function onPublish() {
+  function onPublish() {
     if (!form) return;
-    if (form.status === "published" && (pending ?? 0) === 0) {
-      setDialog("share");
-      return;
-    }
-    await publish({ formId });
-    toast(form.status === "published" ? "Changes are live" : "Your form is collecting", {
-      detail: form.url,
-    });
+    setDialog(form.status === "closed" ? "close" : "publish");
   }
 
   const summaries: Record<string, string> = {
@@ -196,11 +189,7 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
                 type="button"
                 onClick={onPublish}
                 className="fk-publish"
-                title={
-                  form.status === "published" && (pending ?? 0) === 0
-                    ? "Already live — this opens the share panel"
-                    : undefined
-                }
+                title={form.status === "published" ? "Publishing and status" : undefined}
               >
                 <Rocket size={16} strokeWidth={1.8} aria-hidden />
                 <span>{publishLabel}</span>
@@ -221,6 +210,10 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
                 <>
                   <span className="fk-menu-scrim" onClick={() => setActionsOpen(false)} aria-hidden />
                   <span className="fk-menu" data-align="right" role="menu" style={{ top: 56 }}>
+                    <button className="fk-menu-item" role="menuitem" onClick={() => { setActionsOpen(false); setDialog("publish"); }}>
+                      <Rocket size={16} strokeWidth={1.8} aria-hidden />{" "}
+                      {form.status === "draft" ? "Publish this form" : "Publishing and status"}
+                    </button>
                     <button className="fk-menu-item" role="menuitem" onClick={() => { setActionsOpen(false); setDialog("versions"); }}>
                       <History size={16} strokeWidth={1.8} aria-hidden /> Version history
                     </button>
@@ -276,6 +269,14 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
 
       {dialog === "share" && <ShareDialog formId={formId} onClose={() => setDialog(null)} />}
       {dialog === "versions" && <VersionsDialog formId={formId} onClose={() => setDialog(null)} />}
+      {dialog === "publish" && (
+        <PublishDialog
+          formId={formId}
+          onClose={() => setDialog(null)}
+          onVersions={() => setDialog("versions")}
+          onPublished={() => setDialog("share")}
+        />
+      )}
       {dialog === "people" && <CollaboratorsDialog formId={formId} onClose={() => setDialog(null)} />}
       {dialog === "template" && (
         <SaveTemplateDialog formId={formId} title={form.title} onClose={() => setDialog(null)} />

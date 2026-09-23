@@ -1,6 +1,6 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import { Doc } from "./_generated/dataModel";
+import { mutation, query, type MutationCtx } from "./_generated/server";
+import { Doc, Id } from "./_generated/dataModel";
 import { requireUser } from "./model/identity";
 import {
   completionRate,
@@ -13,8 +13,18 @@ import {
 } from "./model/forms";
 import { builtinTemplate } from "./model/builtinTemplates";
 import { formUrl } from "./model/handles";
+import { hashPassword, newSalt, publicSecurity, securityOf } from "./model/security";
 
 const DELETED_WINDOW_DAYS = 60;
+
+/** Version numbers only ever go up, whatever restoring has inserted. */
+async function nextVersion(ctx: MutationCtx, formId: Id<"forms">) {
+  const rows = await ctx.db
+    .query("versions")
+    .withIndex("by_form", (q) => q.eq("formId", formId))
+    .collect();
+  return rows.reduce((n, r) => Math.max(n, r.number), 0) + 1;
+}
 
 async function decorate(ctx: Parameters<typeof formUrl>[0], form: Doc<"forms">) {
   const blocks = await ctx.db
@@ -114,6 +124,7 @@ export const get = query({
       logos: await themeLogos(ctx, form.theme),
       identity: await formIdentity(ctx, form),
       notify: form.notify ?? null,
+      security: publicSecurity(form.security),
       closing: form.closing ?? null,
       blocks: blocks.sort((a, b) => a.order - b.order),
       rules: rules.sort((a, b) => a.order - b.order),
@@ -237,9 +248,38 @@ export const patchSettings = mutation({
   returns: v.null(),
   handler: async (ctx, { formId, key, patch }) => {
     const form = await formFor(ctx, formId);
+    if (key === "security") {
+      // The password goes through setPassword, which hashes it.
+      const p = patch as Record<string, unknown>;
+      delete p.passwordHash;
+      delete p.passwordSalt;
+      delete p.password;
+    }
     const current = ((form as Record<string, unknown>)[key] ?? {}) as Record<string, unknown>;
     await ctx.db.patch(formId, {
       [key]: { ...current, ...(patch as Record<string, unknown>) },
+      updatedAt: Date.now(),
+    });
+    return null;
+  },
+});
+
+/** Set, change or clear the password a form asks for. Only its hash is kept. */
+export const setPassword = mutation({
+  args: { formId: v.id("forms"), password: v.optional(v.string()) },
+  returns: v.null(),
+  handler: async (ctx, { formId, password }) => {
+    const form = await formFor(ctx, formId);
+    const current = securityOf(form.security);
+    const clean = password?.trim();
+    if (clean !== undefined && clean.length < 4) {
+      throw new Error("Use at least four characters, so it is not guessed on the first try.");
+    }
+    const salt = newSalt();
+    await ctx.db.patch(formId, {
+      security: clean
+        ? { ...current, password: true, passwordSalt: salt, passwordHash: await hashPassword(clean, salt) }
+        : { ...current, password: false, passwordHash: undefined, passwordSalt: undefined },
       updatedAt: Date.now(),
     });
     return null;
@@ -264,13 +304,14 @@ export const publish = mutation({
       .withIndex("by_form_order", (q) => q.eq("formId", formId))
       .collect();
 
-    const number = (form.liveVersion ?? 0) + 1;
+    const number = await nextVersion(ctx, formId);
     await ctx.db.insert("versions", {
       formId,
       number,
       label: number === 1 ? "First published" : "Published changes",
       blocks: blocks.sort((a, b) => a.order - b.order),
       publishedAt: now,
+      publishedBy: user.name ?? user.email ?? "You",
     });
 
     await ctx.db.patch(formId, {
@@ -313,8 +354,10 @@ export const setClosing = mutation({
     closing: v.optional(
       v.object({
         message: v.optional(v.string()),
-        closeAt: v.optional(v.number()),
-        closeAfter: v.optional(v.number()),
+        /** null switches the rule off. */
+        closeAt: v.optional(v.union(v.number(), v.null())),
+        closeAfter: v.optional(v.union(v.number(), v.null())),
+        timezone: v.optional(v.string()),
       }),
     ),
   },
@@ -324,7 +367,9 @@ export const setClosing = mutation({
     const user = await requireUser(ctx);
     const now = Date.now();
 
-    const next = { ...(form.closing ?? {}), ...(closing ?? {}) };
+    const merged: Record<string, unknown> = { ...(form.closing ?? {}), ...(closing ?? {}) };
+    for (const k of Object.keys(merged)) if (merged[k] === null) delete merged[k];
+    const next = merged as NonNullable<Doc<"forms">["closing"]>;
 
     if (closeNow) {
       await ctx.db.patch(formId, {
@@ -486,6 +531,7 @@ export const versions = query({
         number: r.number,
         label: r.label,
         publishedAt: r.publishedAt,
+        publishedBy: r.publishedBy ?? null,
         questions: (r.blocks as { kind: string }[]).filter((b) => b.kind === "field").length,
         live: r.number === form.liveVersion,
       }));
@@ -507,12 +553,14 @@ export const restoreVersion = mutation({
       .withIndex("by_form_order", (q) => q.eq("formId", form._id))
       .collect();
 
+    const user = await requireUser(ctx);
     await ctx.db.insert("versions", {
       formId: form._id,
-      number: (form.liveVersion ?? 0) + 1,
+      number: await nextVersion(ctx, form._id),
       label: `Before restoring version ${version.number}`,
       blocks: current.sort((a, b) => a.order - b.order),
       publishedAt: now,
+      publishedBy: user.name ?? user.email ?? "You",
     });
 
     for (const block of current) await ctx.db.delete(block._id);
@@ -545,10 +593,28 @@ export const unpublishedChanges = query({
       .withIndex("by_form_order", (q) => q.eq("formId", formId))
       .collect();
 
-    const shape = (b: { title?: string; type?: string; required?: boolean }) =>
-      `${b.type ?? ""}|${b.title ?? ""}|${b.required ? "1" : "0"}`;
-    const before = new Set((live.blocks as typeof current).map(shape));
-    return current.filter((b) => !before.has(shape(b))).length;
+    // A question counts once whether it was added, edited or removed.
+    const shape = (b: {
+      kind?: string;
+      title?: string;
+      pageName?: string;
+      type?: string;
+      required?: boolean;
+      options?: string[];
+    }) =>
+      [b.kind, b.type ?? "", b.title ?? b.pageName ?? "", b.required ? 1 : 0, (b.options ?? []).join("|")].join("¦");
+    const before = (live.blocks as typeof current).map(shape);
+    const after = current.sort((a, b) => a.order - b.order).map(shape);
+    const pool = [...before];
+    let changed = 0;
+    for (const s of after) {
+      const i = pool.indexOf(s);
+      if (i >= 0) pool.splice(i, 1);
+      else changed++;
+    }
+    // What is left in the pool was removed or replaced; a replacement is
+    // already counted above.
+    return Math.max(changed, pool.length);
   },
 });
 

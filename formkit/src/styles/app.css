@@ -1015,6 +1015,284 @@
   background: var(--red-400, #f87171);
 }
 
+/* ---------- the Logic tab ---------- */
+
+.fk-logic {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 980px;
+  margin: 0 auto;
+}
+.fk-logic-head {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.fk-rule {
+  transition: var(--transition-surface);
+}
+.fk-rule[data-off="true"] {
+  opacity: 0.58;
+}
+.fk-rule-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.fk-rule-no {
+  flex: 0 0 auto;
+  font-size: 12.5px;
+  color: var(--color-text-tertiary);
+}
+.fk-rule-name {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 10px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
+  outline: none;
+  transition: var(--transition-control);
+}
+.fk-rule-name:hover {
+  background: var(--neutral-100);
+}
+.fk-rule-name:focus {
+  background: var(--blue-50);
+  box-shadow: inset 0 0 0 1.5px var(--blue-500);
+}
+.fk-rule-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.fk-rule-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  background: var(--neutral-900);
+  color: var(--neutral-0);
+  font-size: 13px;
+}
+.fk-rule-chip[data-tone="sky"] {
+  background: var(--blue-200);
+  color: var(--blue-700);
+}
+.fk-rule-note {
+  margin: -4px 0 14px;
+  padding-left: 54px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-tertiary);
+}
+.fk-rule-note[data-bad="true"] {
+  color: var(--color-text-error, var(--red-600));
+}
+
+/* ---------- form settings, publishing, closing ---------- */
+
+.fk-formsettings {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 920px;
+  margin: 0 auto;
+}
+.fk-closestate {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border-radius: var(--radius-card-inner);
+  background: var(--green-100);
+}
+.fk-closestate[data-state="closed"] {
+  background: var(--neutral-100);
+}
+.fk-closestate[data-state="scheduled"] {
+  background: var(--yellow-100);
+}
+.fk-closestate-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--neutral-0);
+  color: var(--neutral-900);
+}
+.fk-closing-when {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 4px 0 16px;
+}
+.fk-closing-when label,
+.fk-closing-when > div {
+  display: flex;
+  flex-direction: column;
+}
+.fk-closing-when span:first-child {
+  margin-bottom: 7px;
+  font-size: 13.5px;
+  color: var(--color-text-tertiary);
+}
+.fk-closing-when input {
+  height: 48px;
+  padding: 0 14px;
+  border: none;
+  border-radius: var(--radius-control);
+  background: var(--neutral-100);
+  font: inherit;
+  font-size: 15px;
+  color: var(--color-text-primary);
+  outline: none;
+}
+.fk-closing-when input:focus {
+  box-shadow: inset 0 0 0 1.5px var(--blue-500);
+}
+.fk-closing-zone {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 14px;
+  border-radius: var(--radius-control);
+  background: var(--neutral-50);
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+.fk-closing-zone span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fk-closing-countdown {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 0 18px;
+  font-size: 13.5px;
+  color: var(--color-text-tertiary);
+}
+.fk-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: var(--radius-card-inner);
+  background: var(--neutral-50);
+}
+.fk-facts > span {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.fk-facts svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+.fk-closenow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  border-radius: var(--radius-card-inner);
+  box-shadow: inset 0 0 0 1.5px var(--neutral-200);
+}
+.fk-route {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  border-radius: var(--radius-card-inner);
+  background: var(--neutral-50);
+}
+.fk-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 20px;
+  box-shadow: inset 0 1px 0 var(--neutral-200);
+}
+.fk-password {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 2px 0 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius-card-inner);
+  background: var(--neutral-50);
+}
+.fk-danger {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.fk-amber {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px 18px;
+  border-radius: var(--radius-card-inner);
+  background: var(--yellow-100);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.fk-check {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: var(--radius-card-inner);
+  background: var(--neutral-50);
+}
+.fk-version {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 16px 18px;
+  border-radius: var(--radius-card-inner);
+  background: var(--neutral-50);
+}
+.fk-livechip {
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--green-300);
+  color: var(--neutral-900);
+  font-size: 12px;
+}
+
 /* ---------- the Design tab ---------- */
 
 .fk-design {
@@ -2125,6 +2403,10 @@
 }
 .fk-statdot[data-tone="down"] {
   background: var(--red-300);
+}
+.fk-statdot[data-tone="warning"] {
+  background: var(--yellow-300);
+  color: var(--neutral-900);
 }
 
 /* ---------- TickBars ---------- */

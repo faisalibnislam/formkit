@@ -141,6 +141,8 @@ export default defineSchema({
         closeAfter: v.optional(v.number()),
         closedBy: v.optional(v.string()),
         closedAt: v.optional(v.number()),
+        /** The zone a closing date is written in, and timestamps are read in. */
+        timezone: v.optional(v.string()),
       }),
     ),
 
@@ -236,6 +238,7 @@ export default defineSchema({
     label: v.string(),
     blocks: v.array(v.any()),
     publishedAt: v.number(),
+    publishedBy: v.optional(v.string()),
   }).index("by_form", ["formId", "number"]),
 
   templates: defineTable({

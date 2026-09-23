@@ -60,11 +60,14 @@ function matches(rule: Rule, answers: Record<string, Answer>) {
     const a = answers[c.blockId];
     const given = a?.values?.join(", ") ?? a?.value ?? "";
     const want = c.value ?? "";
+    const same = (x: string) => x.trim().toLowerCase() === want.trim().toLowerCase();
+    // A multiple-choice answer "is" an option when that option is among those picked.
+    const is = a?.values ? a.values.some(same) : same(given);
     switch (c.operator) {
       case "is":
-        return given.trim().toLowerCase() === want.trim().toLowerCase();
+        return is;
       case "is-not":
-        return given.trim().toLowerCase() !== want.trim().toLowerCase();
+        return !is;
       case "contains":
         return given.toLowerCase().includes(want.toLowerCase());
       case "is-empty":

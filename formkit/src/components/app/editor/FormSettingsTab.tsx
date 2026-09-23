@@ -1,22 +1,21 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAction, useMutation, useQuery } from "convex/react";
-import { Mail, Plus, Reply, Trash2, TriangleAlert } from "lucide-react";
+import { Eye, KeyRound, Lock, Mail, Plus, Reply, Send, Trash2, TriangleAlert, Unlock, Clock } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
-import {
-  Button,
-  Field,
-  IconButton,
-  Input,
-  PillTabs,
-  Select,
-  Switch,
-  Textarea,
-} from "@/components/ui";
+import { Button, Field, IconButton, Input, Modal, PillTabs, Select, Switch } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 import { fullTime } from "../bits";
+import { CloseFormDialog } from "../dialogs/CloseFormDialog";
+import { localZone, zoneOptions } from "../time";
+import { ClosingRules, closeWhenLabel } from "./ClosingRules";
+import { DraftArea, DraftPill } from "./Draft";
+import { openPreview } from "./previewBus";
+import { tracked } from "./saveStatus";
+import { useSettingsDraft } from "./useSettingsDraft";
 
 /**
  * A form's own settings.
@@ -38,9 +37,22 @@ type Notify = {
   confirmAttach: boolean;
 };
 
-const VARIABLES = ["{{name}}", "{{email}}", "{{form_name}}", "{{submitted_at}}"];
+type Security = {
+  multiple: boolean;
+  editAfter: boolean;
+  password: boolean;
+  passwordSet: boolean;
+  spam: boolean;
+  rateLimit: boolean;
+  requireEmail: boolean;
+};
 
-function defaults(stored: unknown, email: string): Notify {
+type Section = "general" | "responses" | "notifications" | "security" | "submission" | "emails";
+
+const VARIABLES = ["{{name}}", "{{email}}", "{{form_name}}", "{{submitted_at}}"];
+const DEFAULT_NOTE = "This form is closed. Thank you to everyone who answered.";
+
+function notifyDefaults(stored: unknown, email: string): Notify {
   const n = (stored ?? {}) as Partial<Notify>;
   return {
     to: n.to ?? email,
@@ -51,163 +63,277 @@ function defaults(stored: unknown, email: string): Notify {
     replyTo: n.replyTo ?? email,
     confirmSubject: n.confirmSubject ?? "We have your answers — {{form_name}}",
     confirmBody:
-      n.confirmBody ??
-      "Thank you {{name}}. We have your answers and will come back to you shortly.",
+      n.confirmBody ?? "Thank you {{name}}. We have your answers and will come back to you shortly.",
     confirmAttach: n.confirmAttach !== false,
   };
 }
 
+function Card({ title, lede, children }: { title?: string; lede?: string; children: React.ReactNode }) {
+  return (
+    <section className="fk-panel">
+      {title && <h3 style={{ margin: lede ? "0 0 6px" : "0 0 14px" }}>{title}</h3>}
+      {lede && <p className="fk-panel-lede">{lede}</p>}
+      {children}
+    </section>
+  );
+}
+
+function Row({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <div className="fk-proprow">
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 14 }}>{label}</div>
+        {hint && <div className="fk-proprow-hint">{hint}</div>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
 export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
   const toast = useToast();
+  const router = useRouter();
   const form = useQuery(api.forms.get, { formId });
   const viewer = useQuery(api.users.viewer, {});
   const log = useQuery(api.notifications.log, { formId });
   const update = useMutation(api.forms.update);
   const setClosing = useMutation(api.forms.setClosing);
+  const setPassword = useMutation(api.forms.setPassword);
+  const softDelete = useMutation(api.forms.softDelete);
   const sendTest = useAction(api.notifications.sendTest);
 
-  const [section, setSection] = useState<"general" | "closing" | "notifications" | "emails">(
-    "general",
+  const [section, setSection] = useState<Section>("general");
+  const [closing, setClosingOpen] = useState<null | "close" | "reopen">(null);
+  const [trash, setTrash] = useState(false);
+  const [pw, setPw] = useState<string | null>(null);
+
+  const [notify, patchNotify] = useSettingsDraft<Notify>(
+    formId,
+    "notify",
+    notifyDefaults(form?.notify, viewer?.email ?? ""),
+  );
+  const [security, patchSecurity] = useSettingsDraft<Security>(
+    formId,
+    "security",
+    (form?.security ?? {
+      multiple: true,
+      editAfter: false,
+      password: false,
+      passwordSet: false,
+      spam: true,
+      rateLimit: true,
+      requireEmail: false,
+    }) as Security,
   );
 
   if (!form) return null;
-  const notify = defaults(form.notify, viewer?.email ?? "");
-  const hasEmailQuestion = form.blocks.some((b) => b.type === "email");
 
-  const patchNotify = (patch: Partial<Notify>) =>
-    update({ formId, patch: { notify: { ...notify, ...patch } } });
+  const zone = form.closing?.timezone ?? viewer?.timezone ?? localZone();
+  const fields = form.blocks.filter((b) => b.kind === "field");
+  const hasEmailQuestion = fields.some((b) => b.type === "email");
+  const scheduled = !!(form.closing?.closeAt || form.closing?.closeAfter);
+  const patchThanks = (p: Record<string, string>) =>
+    tracked(
+      update({
+        formId,
+        patch: { thanks: { title: "Thank you", message: "", ...(form.thanks ?? {}), ...p } },
+      }),
+    );
+
+  async function test(which: "notification" | "confirmation") {
+    const r = await sendTest({ formId, which });
+    if (r.state === "sent") toast(`Test sent to ${r.to}`);
+    else toast("That test did not go out", { detail: r.detail, tone: "error" });
+  }
 
   return (
-    <>
-      <div className="fk-panel" data-pad="tight">
+    <div className="fk-formsettings">
+      <div style={{ display: "flex", overflowX: "auto" }} className="fk-no-scrollbar">
         <PillTabs
           ariaLabel="Settings section"
           value={section}
           onChange={setSection}
           tabs={[
             { value: "general", label: "General" },
-            { value: "closing", label: "Closing" },
+            { value: "responses", label: "Responses" },
             { value: "notifications", label: "Notifications" },
+            { value: "security", label: "Security" },
+            { value: "submission", label: "Submission" },
             { value: "emails", label: "Email log" },
           ]}
         />
       </div>
 
       {section === "general" && (
-        <section className="fk-panel">
-          <h3>About this form</h3>
-          <p className="fk-panel-lede">
-            Only you see the description. It helps when a list of forms gets long.
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <Field label="Name">
-              <Input
+        <Card title="General">
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <Field label="Form name">
+              <DraftPill
+                size="md"
                 value={form.title}
-                onChange={(e) => update({ formId, patch: { title: e.target.value } })}
+                wrapStyle={{ maxWidth: 420 }}
+                onCommit={(title) => title.trim() && tracked(update({ formId, patch: { title: title.trim() } }))}
               />
             </Field>
-            <Field label="Description">
-              <Textarea
+            <Field label="Description" help="Only you see it. It helps when a list of forms gets long.">
+              <DraftArea
                 rows={2}
                 value={form.description ?? ""}
                 placeholder="What this form is for, in a line."
-                onChange={(e) => update({ formId, patch: { description: e.target.value } })}
+                onCommit={(description) => tracked(update({ formId, patch: { description } }))}
               />
             </Field>
-            <Field label="Public link" help="Claim a name under Share to shorten this.">
+            <Field label="Public link">
               <Input readOnly value={`https://${form.url}`} onFocus={(e) => e.currentTarget.select()} />
             </Field>
+            <Row label="Language" hint="English (US) for now">
+              <span className="fk-static-pill">English (US)</span>
+            </Row>
+            <Row label="Time zone" hint="Used for closing dates and timestamps">
+              <div style={{ width: 250 }}>
+                <Select
+                  size="sm"
+                  ariaLabel="Time zone"
+                  searchable
+                  searchPlaceholder="Search time zones"
+                  value={zone}
+                  options={zoneOptions()}
+                  onChange={(timezone) => tracked(setClosing({ formId, closing: { timezone } }))}
+                />
+              </div>
+            </Row>
           </div>
-        </section>
+        </Card>
       )}
 
-      {section === "closing" && (
-        <section className="fk-panel">
-          <h3>When this form stops</h3>
-          <p className="fk-panel-lede">
-            Either rule closes the form on its own. Reopening it switches off a rule that has
-            already passed, so it does not close again straight away.
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <Field label="Close on a date">
-              <Input
-                type="datetime-local"
-                value={
-                  form.closing?.closeAt
-                    ? new Date(form.closing.closeAt - new Date().getTimezoneOffset() * 60000)
-                        .toISOString()
-                        .slice(0, 16)
-                    : ""
-                }
-                onChange={(e) =>
-                  setClosing({
-                    formId,
-                    closing: {
-                      closeAt: e.target.value ? new Date(e.target.value).getTime() : undefined,
-                    },
-                  })
-                }
+      {section === "responses" && (
+        <>
+          <Card title="Responses">
+            <Row label="Allow multiple submissions" hint="One person can answer more than once">
+              <Switch
+                checked={security.multiple}
+                label="Allow multiple submissions"
+                onChange={(multiple) => patchSecurity({ multiple })}
               />
-            </Field>
-            <Field
-              label="Close after this many responses"
-              help={`${form.responses} so far.`}
-            >
-              <Input
-                type="number"
-                min={1}
-                value={form.closesAfter ?? ""}
-                placeholder="No limit"
-                onChange={(e) =>
-                  setClosing({
-                    formId,
-                    closing: { closeAfter: e.target.value ? Number(e.target.value) : undefined },
-                  })
-                }
+            </Row>
+            <Row label="Allow editing after submit" hint="Respondents get an edit link">
+              <Switch
+                checked={security.editAfter}
+                label="Allow editing after submit"
+                onChange={(editAfter) => patchSecurity({ editAfter })}
               />
-            </Field>
-            <Field label="What visitors see when it is closed">
-              <Textarea
-                rows={2}
-                value={form.closing?.message ?? ""}
-                placeholder="This form is closed. Thank you to everyone who answered."
-                onChange={(e) => setClosing({ formId, closing: { message: e.target.value } })}
-              />
-            </Field>
-          </div>
-        </section>
+            </Row>
+          </Card>
+
+          <Card
+            title="Closing"
+            lede="A closed form keeps every response and stops accepting new ones. The link and embed still work — visitors see your message instead of the questions."
+          >
+            <div className="fk-closestate" data-state={form.status === "closed" ? "closed" : scheduled ? "scheduled" : "open"}>
+              <span className="fk-closestate-mark">
+                {form.status === "closed" ? (
+                  <Lock size={16} strokeWidth={1.8} aria-hidden />
+                ) : scheduled ? (
+                  <Clock size={16} strokeWidth={1.8} aria-hidden />
+                ) : (
+                  <Unlock size={16} strokeWidth={1.8} aria-hidden />
+                )}
+              </span>
+              <span style={{ flex: 1, minWidth: 200 }}>
+                <span style={{ display: "block", fontSize: 15, fontWeight: 500 }}>
+                  {form.status === "closed"
+                    ? "Closed"
+                    : scheduled
+                      ? "Open — closing is scheduled"
+                      : form.status === "draft"
+                        ? "A draft — not collecting yet"
+                        : "Open and collecting"}
+                </span>
+                <span className="fk-proprow-hint" style={{ display: "block", fontSize: 13.5 }}>
+                  {form.status === "closed"
+                    ? `Closed ${form.closing?.closedBy === "automatically" ? "automatically" : "by you"}${
+                        form.closing?.closedAt ? ` ${fullTime(form.closing.closedAt)}` : ""
+                      }. ${form.responses.toLocaleString("en-US")} responses are safe in your inbox.`
+                    : scheduled
+                      ? closeWhenLabel(form.closing, form.responses, zone)
+                      : "New answers are accepted. Schedule a closing time below, or close it by hand."}
+                </span>
+              </span>
+              {form.status === "closed" ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  iconLeft={<Unlock size={15} strokeWidth={1.8} aria-hidden />}
+                  onClick={() => setClosingOpen("reopen")}
+                >
+                  Reopen now
+                </Button>
+              ) : (
+                form.status === "published" && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    iconLeft={<Lock size={15} strokeWidth={1.8} aria-hidden />}
+                    onClick={() => setClosingOpen("close")}
+                  >
+                    Close now
+                  </Button>
+                )
+              )}
+            </div>
+
+            <ClosingRules formId={formId} closing={form.closing} responses={form.responses} zone={zone} />
+
+            <div style={{ paddingTop: 6 }}>
+              <Field label="Message visitors see when it is closed">
+                <DraftArea
+                  rows={2}
+                  value={form.closing?.message ?? DEFAULT_NOTE}
+                  placeholder={DEFAULT_NOTE}
+                  onCommit={(message) => tracked(setClosing({ formId, closing: { message } }))}
+                />
+              </Field>
+              <Button
+                variant="ghost"
+                size="sm"
+                style={{ marginTop: 10, paddingLeft: 6 }}
+                iconLeft={<Eye size={15} strokeWidth={1.8} aria-hidden />}
+                onClick={() => openPreview({ closed: true })}
+              >
+                Preview closed screen
+              </Button>
+            </div>
+          </Card>
+        </>
       )}
 
       {section === "notifications" && (
         <>
-          <section className="fk-panel">
-            <h3>Tell me about a response</h3>
-            <p className="fk-panel-lede">
-              Sent every time someone answers this form. Variables are replaced with the response.
-            </p>
+          <Card
+            title="Tell me about a response"
+            lede="Sent every time someone answers this form. Variables are replaced with the response."
+          >
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <Field label="Send to" help="Separate several addresses with a comma.">
-                <Input
+                <DraftPill
+                  size="md"
                   icon={<Mail size={17} strokeWidth={1.8} aria-hidden />}
                   value={notify.to}
-                  onChange={(e) => patchNotify({ to: e.target.value })}
                   placeholder="you@example.com"
-                  style={{ maxWidth: 420 }}
+                  wrapStyle={{ maxWidth: 420 }}
+                  onCommit={(to) => patchNotify({ to })}
                 />
               </Field>
               <Field label="Subject">
-                <Input
+                <DraftPill
+                  size="md"
                   value={notify.subject}
-                  onChange={(e) => patchNotify({ subject: e.target.value })}
-                  style={{ maxWidth: 520 }}
+                  wrapStyle={{ maxWidth: 520 }}
+                  onCommit={(subject) => patchNotify({ subject })}
                 />
               </Field>
               <Field label="Message">
-                <Textarea
-                  rows={3}
-                  value={notify.body}
-                  onChange={(e) => patchNotify({ body: e.target.value })}
-                />
+                <DraftArea rows={3} value={notify.body} onCommit={(body) => patchNotify({ body })} />
               </Field>
               <div className="fk-chiprow">
                 <span style={{ fontSize: 13.5, color: "var(--color-text-tertiary)" }}>Variables</span>
@@ -221,90 +347,67 @@ export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={async () => {
-                    const r = await sendTest({ formId, which: "notification" });
-                    if (r.state === "sent") toast(`Test sent to ${r.to}`);
-                    else toast("That test did not go out", { detail: r.detail, tone: "error" });
-                  }}
+                  iconLeft={<Send size={15} strokeWidth={1.8} aria-hidden />}
+                  onClick={() => test("notification")}
                 >
                   Send me a test
                 </Button>
               </div>
             </div>
-          </section>
+          </Card>
 
-          <section className="fk-panel">
-            <h3>Send some responses elsewhere</h3>
-            <p className="fk-panel-lede">
-              A rule sends the notification to someone else when an answer matches. The first rule
-              that matches wins; anything that matches nothing goes to the address above.
-            </p>
+          <Card
+            title="Send some responses elsewhere"
+            lede="A rule sends the notification to someone else when an answer matches. The first rule that matches wins; anything that matches nothing goes to the address above."
+          >
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {notify.routes.map((r, i) => (
-                <div key={i} className="fk-subrow">
-                  <div style={{ flex: 1, minWidth: 170 }}>
-                    <div className="fk-sublabel">When</div>
-                    <Select
-                      value={r.when ?? null}
-                      ariaLabel="Which question"
-                      placeholder="Pick a question"
-                      options={form.blocks
-                        .filter((b) => b.kind === "field")
-                        .map((b) => ({ value: b._id as string, label: b.title ?? "Question" }))}
-                      onChange={(v) =>
-                        patchNotify({
-                          routes: notify.routes.map((x, j) => (j === i ? { ...x, when: v } : x)),
-                        })
-                      }
-                    />
+              {notify.routes.map((r, i) => {
+                const setRoute = (p: Partial<Notify["routes"][number]>) =>
+                  patchNotify({ routes: notify.routes.map((x, j) => (j === i ? { ...x, ...p } : x)) });
+                return (
+                  <div key={i} className="fk-route">
+                    <div style={{ flex: 1, minWidth: 170 }}>
+                      <div className="fk-sublabel">When</div>
+                      <Select
+                        size="sm"
+                        value={r.when || null}
+                        ariaLabel="Which question"
+                        placeholder="Pick a question"
+                        options={fields.map((b) => ({ value: b._id as string, label: b.title || "Untitled question" }))}
+                        onChange={(when) => setRoute({ when })}
+                      />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 140 }}>
+                      <div className="fk-sublabel">is</div>
+                      <DraftPill
+                        value={r.value ?? ""}
+                        placeholder="An answer"
+                        aria-label="Which answer"
+                        onCommit={(value) => setRoute({ value })}
+                      />
+                    </div>
+                    <div style={{ flex: 1.4, minWidth: 190 }}>
+                      <div className="fk-sublabel">send to</div>
+                      <DraftPill
+                        icon={<Mail size={15} strokeWidth={1.8} aria-hidden />}
+                        value={r.to ?? ""}
+                        placeholder="name@example.com"
+                        aria-label="Send to"
+                        onCommit={(to) => setRoute({ to })}
+                      />
+                    </div>
+                    <IconButton
+                      label={`Remove rule ${i + 1}`}
+                      onClick={() => patchNotify({ routes: notify.routes.filter((_, j) => j !== i) })}
+                    >
+                      <Trash2 size={15} strokeWidth={1.8} aria-hidden />
+                    </IconButton>
                   </div>
-                  <div style={{ flex: 1, minWidth: 140 }}>
-                    <div className="fk-sublabel">is</div>
-                    <Input
-                      inputSize="sm"
-                      value={r.value ?? ""}
-                      placeholder="An answer"
-                      aria-label="Which answer"
-                      onChange={(e) =>
-                        patchNotify({
-                          routes: notify.routes.map((x, j) =>
-                            j === i ? { ...x, value: e.target.value } : x,
-                          ),
-                        })
-                      }
-                    />
-                  </div>
-                  <div style={{ flex: 1.4, minWidth: 190 }}>
-                    <div className="fk-sublabel">send to</div>
-                    <Input
-                      inputSize="sm"
-                      icon={<Mail size={15} strokeWidth={1.8} aria-hidden />}
-                      value={r.to ?? ""}
-                      placeholder="name@example.com"
-                      aria-label="Send to"
-                      onChange={(e) =>
-                        patchNotify({
-                          routes: notify.routes.map((x, j) =>
-                            j === i ? { ...x, to: e.target.value } : x,
-                          ),
-                        })
-                      }
-                    />
-                  </div>
-                  <IconButton
-                    label="Delete this rule"
-                    tone="danger"
-                    onClick={() =>
-                      patchNotify({ routes: notify.routes.filter((_, j) => j !== i) })
-                    }
-                  >
-                    <Trash2 size={15} strokeWidth={1.8} aria-hidden />
-                  </IconButton>
-                </div>
-              ))}
+                );
+              })}
 
               {notify.routes.length === 0 && (
-                <p style={{ margin: 0, fontSize: 14, color: "var(--color-text-tertiary)" }}>
+                <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: "var(--color-text-tertiary)" }}>
                   No rules yet. Every response goes to {notify.to || "you"}.
                 </p>
               )}
@@ -314,20 +417,18 @@ export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
                   variant="secondary"
                   size="sm"
                   iconLeft={<Plus size={15} strokeWidth={1.8} aria-hidden />}
-                  onClick={() =>
-                    patchNotify({ routes: [...notify.routes, { when: "", value: "", to: "" }] })
-                  }
+                  onClick={() => patchNotify({ routes: [...notify.routes, { when: "", value: "", to: "" }] })}
                 >
                   Add a rule
                 </Button>
               </div>
             </div>
-          </section>
+          </Card>
 
           <section className="fk-panel">
             <div style={{ display: "flex", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
               <div style={{ flex: 1, minWidth: 240 }}>
-                <h3>Reply to the person who answered</h3>
+                <h3 style={{ margin: "0 0 6px" }}>Reply to the person who answered</h3>
                 <p className="fk-panel-lede" style={{ marginBottom: 0 }}>
                   A short confirmation, sent to the email address they gave you. It needs an email
                   question on the form.
@@ -339,9 +440,7 @@ export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
                 onChange={(on) => {
                   patchNotify({ confirm: on });
                   toast(on ? "Confirmation on" : "Confirmation off", {
-                    detail: on
-                      ? "Everyone who answers gets a short reply"
-                      : "Nobody gets a reply from Formkit",
+                    detail: on ? "Everyone who answers gets a short reply" : "Nobody gets a reply from Formkit",
                   });
                 }}
               />
@@ -358,46 +457,47 @@ export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
             )}
 
             {notify.confirm && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 20 }}>
+              <div className="fk-confirm">
                 <Field label="Replies go to">
-                  <Input
+                  <DraftPill
+                    size="md"
                     icon={<Reply size={17} strokeWidth={1.8} aria-hidden />}
                     value={notify.replyTo}
-                    onChange={(e) => patchNotify({ replyTo: e.target.value })}
-                    style={{ maxWidth: 420 }}
+                    placeholder="you@example.com"
+                    wrapStyle={{ maxWidth: 420 }}
+                    onCommit={(replyTo) => patchNotify({ replyTo })}
                   />
                 </Field>
                 <Field label="Subject">
-                  <Input
+                  <DraftPill
+                    size="md"
                     value={notify.confirmSubject}
-                    onChange={(e) => patchNotify({ confirmSubject: e.target.value })}
-                    style={{ maxWidth: 520 }}
+                    wrapStyle={{ maxWidth: 520 }}
+                    onCommit={(confirmSubject) => patchNotify({ confirmSubject })}
                   />
                 </Field>
                 <Field label="Message">
-                  <Textarea
+                  <DraftArea
                     rows={3}
                     value={notify.confirmBody}
-                    onChange={(e) => patchNotify({ confirmBody: e.target.value })}
+                    onCommit={(confirmBody) => patchNotify({ confirmBody })}
                   />
                 </Field>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <span style={{ flex: 1, fontSize: 14.5 }}>Include a copy of their answers</span>
+                <Row label="Include their answers" hint="A plain summary of what they sent">
                   <Switch
                     checked={notify.confirmAttach}
-                    label="Include a copy of their answers"
-                    onChange={(on) => patchNotify({ confirmAttach: on })}
+                    label="Include their answers"
+                    onChange={(confirmAttach) => patchNotify({ confirmAttach })}
                   />
-                </div>
+                </Row>
                 <div>
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={async () => {
-                      const r = await sendTest({ formId, which: "confirmation" });
-                      if (r.state === "sent") toast(`Test sent to ${r.to}`);
-                      else toast("That test did not go out", { detail: r.detail, tone: "error" });
-                    }}
+                    iconLeft={<Send size={15} strokeWidth={1.8} aria-hidden />}
+                    disabled={!hasEmailQuestion}
+                    title={hasEmailQuestion ? undefined : "Add an email question first"}
+                    onClick={() => test("confirmation")}
                   >
                     Send me a test
                   </Button>
@@ -406,6 +506,145 @@ export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
             )}
           </section>
         </>
+      )}
+
+      {section === "security" && (
+        <Card title="Security">
+          <Row label="Password protection" hint="Respondents need a password to open the form">
+            <Switch
+              checked={security.password || pw !== null}
+              label="Password protection"
+              onChange={async (on) => {
+                if (on) {
+                  setPw("");
+                  return;
+                }
+                setPw(null);
+                if (security.passwordSet) {
+                  await tracked(setPassword({ formId }));
+                  toast("Password removed", { detail: "Anyone with the link can open the form" });
+                }
+              }}
+            />
+          </Row>
+          {(pw !== null || security.password) && (
+            <div className="fk-password">
+              {security.passwordSet && pw === null ? (
+                <>
+                  <KeyRound size={16} strokeWidth={1.8} aria-hidden />
+                  <span style={{ flex: 1, fontSize: 14 }}>A password is set. Share it with the people who should answer.</span>
+                  <Button variant="secondary" size="sm" onClick={() => setPw("")}>
+                    Change it
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Input
+                    inputSize="sm"
+                    type="password"
+                    autoComplete="new-password"
+                    placeholder="A password for this form"
+                    aria-label="Form password"
+                    value={pw ?? ""}
+                    onChange={(e) => setPw(e.target.value)}
+                    wrapStyle={{ flex: 1, minWidth: 200 }}
+                  />
+                  <Button
+                    size="sm"
+                    disabled={(pw ?? "").trim().length < 4}
+                    onClick={async () => {
+                      try {
+                        await tracked(setPassword({ formId, password: pw ?? "" }));
+                        setPw(null);
+                        toast("Password set", { detail: "People are asked for it before the first question" });
+                      } catch (e) {
+                        toast("That password was not set", {
+                          detail: e instanceof Error ? e.message : undefined,
+                          tone: "error",
+                        });
+                      }
+                    }}
+                  >
+                    Set password
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
+          <Row label="Spam check" hint="A quiet check on every submit. Only suspicious ones are asked to prove it.">
+            <Switch checked={security.spam} label="Spam check" onChange={(spam) => patchSecurity({ spam })} />
+          </Row>
+          <Row label="One submission a minute per device" hint="Stops a script hammering the form">
+            <Switch
+              checked={security.rateLimit}
+              label="One submission a minute per device"
+              onChange={(rateLimit) => patchSecurity({ rateLimit })}
+            />
+          </Row>
+          <Row label="Require email" hint="No anonymous responses">
+            <Switch
+              checked={security.requireEmail}
+              label="Require email"
+              onChange={(requireEmail) => patchSecurity({ requireEmail })}
+            />
+          </Row>
+          {security.requireEmail && !hasEmailQuestion && (
+            <div className="fk-note" style={{ marginTop: 12 }}>
+              <TriangleAlert size={16} strokeWidth={1.8} aria-hidden />
+              <span>This form has no email question yet, so nobody could submit it. Add one under Build.</span>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {section === "submission" && (
+        <Card title="After submitting">
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <Field label="Thank-you headline">
+              <DraftPill
+                size="md"
+                value={form.thanks?.title ?? "Thank you"}
+                wrapStyle={{ maxWidth: 420 }}
+                onCommit={(title) => patchThanks({ title })}
+              />
+            </Field>
+            <Field label="Message">
+              <DraftArea
+                rows={2}
+                value={form.thanks?.message ?? ""}
+                placeholder="Your answers are in. We will be in touch."
+                onCommit={(message) => patchThanks({ message })}
+              />
+            </Field>
+            <Field label="Button label" help="Leave it blank for no button.">
+              <DraftPill
+                size="md"
+                value={form.thanks?.buttonLabel ?? ""}
+                placeholder="Visit our website"
+                wrapStyle={{ maxWidth: 320 }}
+                onCommit={(buttonLabel) => patchThanks({ buttonLabel })}
+              />
+            </Field>
+            <Field label="Button link">
+              <DraftPill
+                size="md"
+                value={form.thanks?.buttonUrl ?? ""}
+                placeholder="https://studionine.co"
+                wrapStyle={{ maxWidth: 420 }}
+                onCommit={(buttonUrl) => patchThanks({ buttonUrl })}
+              />
+            </Field>
+            <Field label="Redirect URL" help="Sends people straight here after they submit, instead of the thank-you screen.">
+              <DraftPill
+                size="md"
+                value={form.thanks?.redirect ?? ""}
+                placeholder="https://studionine.co/thanks"
+                wrapStyle={{ maxWidth: 420 }}
+                onCommit={(redirect) => patchThanks({ redirect })}
+              />
+            </Field>
+          </div>
+        </Card>
       )}
 
       {section === "emails" && (
@@ -434,9 +673,7 @@ export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
                   <span className="fk-row-side">
                     <span
                       className="fk-chip"
-                      style={{
-                        background: e.state === "sent" ? "var(--green-100)" : "var(--red-100)",
-                      }}
+                      style={{ background: e.state === "sent" ? "var(--green-100)" : "var(--red-100)" }}
                     >
                       {e.state === "sent" ? "Sent" : "Failed"}
                     </span>
@@ -447,6 +684,58 @@ export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
           )}
         </section>
       )}
-    </>
+
+      <section className="fk-panel fk-danger">
+        <div style={{ flex: 1, minWidth: 240 }}>
+          <div style={{ fontSize: 15.5, fontWeight: 500 }}>Delete this form</div>
+          <div className="fk-proprow-hint" style={{ fontSize: 14, marginTop: 4 }}>
+            It moves to the Deleted tab with its responses for 60 days, then goes for good.
+          </div>
+        </div>
+        <Button
+          variant="destructive"
+          iconLeft={<Trash2 size={16} strokeWidth={1.8} aria-hidden />}
+          onClick={() => setTrash(true)}
+        >
+          Delete form
+        </Button>
+      </section>
+
+      {closing && (
+        <CloseFormDialog
+          formId={formId}
+          status={closing === "reopen" ? "closed" : "published"}
+          onClose={() => setClosingOpen(null)}
+        />
+      )}
+
+      {trash && (
+        <Modal
+          title={`Delete ${form.title}?`}
+          description="It moves to Deleted with its responses, and is removed for good after 60 days. You can restore it any time before then."
+          onClose={() => setTrash(false)}
+          width={460}
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setTrash(false)}>
+                Cancel
+              </Button>
+              <Button
+                iconLeft={<Trash2 size={16} strokeWidth={1.8} aria-hidden />}
+                onClick={async () => {
+                  await tracked(softDelete({ formId }));
+                  toast("Moved to Deleted", { detail: "Restore it from the Deleted tab within 60 days" });
+                  router.push("/app/forms");
+                }}
+              >
+                Move to Deleted
+              </Button>
+            </>
+          }
+        >
+          {null}
+        </Modal>
+      )}
+    </div>
   );
 }

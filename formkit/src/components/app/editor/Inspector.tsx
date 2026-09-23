@@ -29,7 +29,7 @@ import {
   hasScale,
   parseAccept,
 } from "./fieldTypes";
-import { OPERATORS, VALUELESS, operatorGroup } from "./operators";
+import { VALUELESS, firstValue, opLabel } from "./operators";
 import { tracked } from "./saveStatus";
 
 type Block = Doc<"blocks">;
@@ -53,15 +53,6 @@ const ACTION_ICON: Record<Rule["action"], typeof Eye> = {
   require: Asterisk,
   jump: CornerDownRight,
 };
-
-/** The first value a condition on this question can take. */
-function firstValue(b: Block | undefined) {
-  if (!b) return undefined;
-  if (b.options?.length) return b.options[0];
-  if (b.type === "yes-no") return "Yes";
-  if (b.type === "rating" || b.type === "scale") return String(b.scaleMin ?? 1);
-  return undefined;
-}
 
 function PropertyRow({
   label,
@@ -371,9 +362,6 @@ export function FieldSettings({
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {mine.map((r) => {
             const c = r.conditions[0];
-            const trigger = fields.find((f) => f._id === c?.blockId);
-            const ops = OPERATORS[operatorGroup(trigger?.type, trigger?.title)] ?? [];
-            const opLabel = ops.find((o) => o.value === c?.operator)?.label ?? c?.operator ?? "is";
             const extra = r.conditions.length - 1;
             return (
               <div
@@ -385,7 +373,7 @@ export function FieldSettings({
                 <div className="fk-rulecard-sentence">
                   <span className="fk-rw">If</span>
                   <span className="fk-rchip">{title(c?.blockId)}</span>
-                  <span className="fk-rw">{opLabel}</span>
+                  <span className="fk-rw">{opLabel(c?.operator)}</span>
                   {!VALUELESS.has(c?.operator ?? "") && (
                     <span className="fk-rchip" data-tone="ink">
                       {c?.value || "—"}

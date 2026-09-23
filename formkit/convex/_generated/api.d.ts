@@ -26,6 +26,7 @@ import type * as model_builtinTemplates from "../model/builtinTemplates.js";
 import type * as model_forms from "../model/forms.js";
 import type * as model_handles from "../model/handles.js";
 import type * as model_identity from "../model/identity.js";
+import type * as model_security from "../model/security.js";
 import type * as notifications from "../notifications.js";
 import type * as publicForm from "../publicForm.js";
 import type * as responses from "../responses.js";
@@ -59,6 +60,7 @@ declare const fullApi: ApiFromModules<{
   "model/forms": typeof model_forms,
   "model/handles": typeof model_handles,
   "model/identity": typeof model_identity,
+  "model/security": typeof model_security,
   "notifications": typeof notifications,
   "publicForm": typeof publicForm,
   "responses": typeof responses,
