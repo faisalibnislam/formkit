@@ -124,8 +124,15 @@ npm run shots       # drives a browser over every screen into preview-shots/
 npm run shots -- --width 430    # the narrow layout
 ```
 
+```bash
+npm run drag-check    # the builder's drag and drop, in a real browser
+```
+
 `shots` reports console errors and horizontal overflow beside each screen,
 because neither shows up in a screenshot and both are fatal in the product.
+`drag-check` drives real drags and asserts the order that comes out: it exists
+because "the handlers are wired" is not the same as "it drags", and the
+difference shipped once already.
 `next.config.ts` installs the aliases only when `FK_PREVIEW=1`, so a normal
 build resolves the real modules. The renders the screens are measured against
 are in `../project/shots/`.
@@ -143,8 +150,15 @@ are in `../project/shots/`.
   the press may start a drag — it arms `gripArm` unless the pointer landed on a
   control, and `onDragStart` cancels the drag when the flag is unset. Setting
   `draggable` from state on mousedown does not work: the browser reads the
-  attribute before that state lands. The card being dragged is held in a ref as
-  well, because `drop` runs from a browser event and cannot wait for a render.
+  attribute before that state lands. What is being dragged is held in a ref as
+  well, because the drop runs from a browser event and cannot wait for a render.
+- **Every drag writes to `dataTransfer`.** Firefox refuses to begin a drag that
+  carries no data at all, so `setData` is not optional.
+- **A drop lands on the gap between two blocks, never on a block.** The insert
+  point that opens under the pointer is the thing being aimed at, so where a
+  block will end up is shown rather than inferred. While a drag is in flight the
+  gap's *catcher* grows, not the gap: growing the gap reflows the canvas out
+  from under the pointer and every drop misses.
 - **Pictures never pass through a mutation.** `users.generateUploadUrl` hands
   out a one-use URL, the browser posts the file straight to it, and only the
   storage id is written down. `setAvatar` and `companies.setLogo` delete what

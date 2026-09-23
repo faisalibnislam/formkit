@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "preview": "FK_PREVIEW=1 next dev --port 3001",
-    "shots": "node scripts/shots.mjs"
+    "shots": "node scripts/shots.mjs",
+    "drag-check": "node scripts/drag-check.mjs"
   },
   "dependencies": {
     "@auth/core": "^0.41.3",

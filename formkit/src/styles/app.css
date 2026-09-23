@@ -667,8 +667,8 @@
 
 .fk-build {
   display: grid;
-  gap: clamp(14px, 1.8vw, 20px);
-  grid-template-columns: 240px minmax(0, 1fr) 320px;
+  gap: clamp(14px, 1.8vw, 18px);
+  grid-template-columns: 264px minmax(0, 1fr) 328px;
   align-items: start;
 }
 @media (max-width: 1180px) {
@@ -677,107 +677,310 @@
   }
 }
 
+/* ---------- the field library ---------- */
+
+.fk-library-lede {
+  margin: 10px 2px 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--color-text-tertiary);
+}
 .fk-library {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
+  margin-top: 10px;
 }
 .fk-library-group {
-  margin: 12px 0 4px;
-  font-size: 12.5px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  padding: 0 12px 8px;
+  margin-top: 14px;
+  font-size: 13.5px;
   color: var(--color-text-tertiary);
 }
-.fk-library-item {
+
+/* A field type, waiting to be dragged onto the form. The grip and the tinted
+   mark are the whole affordance — it has to look liftable. */
+.fk-fieldtile {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 11px;
   width: 100%;
-  padding: 9px 12px;
+  padding: 7px 10px 7px 7px;
   border: none;
-  border-radius: 14px;
+  border-radius: var(--radius-pill);
   background: transparent;
   color: inherit;
   font: inherit;
-  font-size: 14.5px;
+  font-size: 14px;
   text-align: left;
-  cursor: pointer;
+  cursor: grab;
   transition: var(--transition-control);
 }
-.fk-library-item:hover {
-  background: var(--neutral-100);
+.fk-fieldtile:hover {
+  background: var(--neutral-0);
+  box-shadow: var(--shadow-sm);
 }
+.fk-fieldtile:active {
+  cursor: grabbing;
+}
+.fk-fieldtile-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--neutral-100);
+  color: var(--color-text-secondary);
+  transition: background var(--duration-fast) var(--ease-out);
+}
+.fk-fieldtile:hover .fk-fieldtile-mark {
+  background: var(--blue-200);
+  color: var(--blue-700);
+}
+.fk-fieldtile-label {
+  flex: 1;
+  min-width: 0;
+}
+.fk-fieldtile-grip {
+  display: inline-flex;
+  color: var(--neutral-300);
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+.fk-fieldtile:hover .fk-fieldtile-grip {
+  opacity: 1;
+}
+
+/* ---------- the canvas ---------- */
 
 .fk-canvas {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  width: 100%;
+  max-width: 700px;
+  margin: 0 auto;
 }
+
+/* The welcome and thank-you screens bracket the questions. */
+.fk-screen {
+  padding: 26px 28px;
+}
+.fk-screen[data-tone="mint"] {
+  background: var(--mint-100);
+}
+.fk-screen-label {
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: var(--color-text-tertiary);
+}
+
+/* The gap between two blocks IS the way to add one. Collapsed it is only
+   breathing room; under the pointer — or under something being dragged — it
+   opens into a rule and a button, so where a drop will land is shown rather
+   than guessed. */
+.fk-insert {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 16px;
+  transition: height var(--duration-base) var(--ease-soft);
+}
+.fk-insert:hover,
+.fk-insert[data-on="true"] {
+  height: 40px;
+}
+/* While something is being dragged the gap has to be easy to hit, but growing
+   it would reflow the canvas out from under the pointer and every drop would
+   miss. So the catcher grows instead of the gap: an invisible band over the
+   edges of the blocks either side, which changes no layout at all. */
+.fk-insert[data-armed="true"]::before {
+  content: "";
+  position: absolute;
+  inset: -16px 0;
+  z-index: 2;
+}
+.fk-insert-rule {
+  flex: 1;
+  height: 0;
+  border-radius: 2px;
+  background: transparent;
+  transition: var(--transition-control);
+}
+.fk-insert:hover .fk-insert-rule,
+.fk-insert[data-on="true"] .fk-insert-rule {
+  height: 2px;
+  background: var(--blue-400);
+}
+.fk-insert-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  flex: 0 0 auto;
+  padding: 0 14px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--neutral-900);
+  color: var(--neutral-0);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  opacity: 0;
+  transform: scale(0.9);
+  pointer-events: none;
+  transition: var(--transition-control);
+}
+.fk-insert:hover .fk-insert-pill,
+.fk-insert[data-on="true"] .fk-insert-pill {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+/* ---------- a question on the canvas ---------- */
+
 .fk-qcard {
   position: relative;
   display: flex;
   gap: 14px;
-  padding: 18px 20px;
-  border-radius: var(--radius-panel);
+  padding: 20px 22px 22px;
+  border-radius: var(--radius-card);
   background: var(--color-surface-card);
   box-shadow: var(--shadow-card);
   cursor: pointer;
+  /* Without this, pressing on the question text starts a text selection and
+     the card never lifts. */
+  user-select: none;
   transition: var(--transition-surface);
 }
+.fk-qcard:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
 .fk-qcard[data-selected="true"] {
+  background: var(--blue-50);
   box-shadow:
-    var(--shadow-card),
-    0 0 0 2px var(--blue-300);
+    inset 0 0 0 1.5px var(--blue-500),
+    var(--shadow-md);
+  transform: none;
 }
 .fk-qcard[data-dragging="true"] {
-  opacity: 0.45;
+  opacity: 0.4;
+  box-shadow: var(--shadow-card);
+  transform: none;
 }
-.fk-qcard[data-over="true"] {
-  box-shadow:
-    var(--shadow-card),
-    0 -3px 0 -1px var(--neutral-900);
+
+.fk-qcard-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding-top: 2px;
+  flex: 0 0 auto;
 }
 .fk-qcard-grip {
   display: inline-flex;
-  align-items: flex-start;
-  padding-top: 2px;
-  color: var(--color-text-tertiary);
+  color: var(--neutral-300);
   cursor: grab;
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
 }
+.fk-qcard:hover .fk-qcard-grip,
+.fk-qcard[data-selected="true"] .fk-qcard-grip {
+  opacity: 1;
+}
+.fk-qcard-grip:active {
+  cursor: grabbing;
+}
+.fk-qcard-index {
+  font-size: 11.5px;
+  color: var(--color-text-tertiary);
+}
+
 .fk-qcard-body {
   flex: 1;
   min-width: 0;
 }
 .fk-qcard-type {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+}
+.fk-qcard-logic {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  font-size: 12.5px;
-  color: var(--color-text-tertiary);
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--blue-100);
+  color: var(--blue-700);
+  font-size: 12px;
 }
 .fk-qcard-title {
-  margin-top: 5px;
-  font-size: 16.5px;
+  margin: 0;
+  font-size: 19px;
   font-weight: 500;
   letter-spacing: -0.012em;
+  line-height: 1.3;
+}
+.fk-qcard-required {
+  margin-left: 3px;
+  color: var(--red-500);
 }
 .fk-qcard-help {
-  margin-top: 4px;
-  font-size: 13.5px;
+  margin: 5px 0 0;
+  font-size: 14px;
+  line-height: 1.55;
   color: var(--color-text-tertiary);
 }
+/* The preview is a picture of the question, not the question: a press on it
+   belongs to the card, so the card can be dragged by its middle. */
 .fk-qcard-preview {
-  margin-top: 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-top: 16px;
+  pointer-events: none;
 }
+
+/* The actions float over the card's corner and appear with it. */
 .fk-qcard-actions {
+  position: absolute;
+  top: 14px;
+  right: 14px;
   display: flex;
-  align-items: flex-start;
-  gap: 2px;
-  flex: 0 0 auto;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--neutral-0);
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+.fk-qcard:hover .fk-qcard-actions,
+.fk-qcard[data-selected="true"] .fk-qcard-actions {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.fk-canvas-foot {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 14px 0 18px;
 }
 
 .fk-pagebreak {
@@ -790,6 +993,28 @@
   color: var(--blue-700);
   font-size: 13.5px;
   cursor: pointer;
+  user-select: none;
+}
+.fk-pagebreak[data-dragging="true"] {
+  opacity: 0.4;
+}
+.fk-pagebreak-grip {
+  display: inline-flex;
+  color: currentColor;
+  opacity: 0;
+  cursor: grab;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+.fk-pagebreak:hover .fk-pagebreak-grip {
+  opacity: 0.6;
+}
+.fk-pagebreak-name {
+  min-width: 120px;
+  border: none;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  outline: none;
 }
 .fk-pagebreak-rule {
   flex: 1;

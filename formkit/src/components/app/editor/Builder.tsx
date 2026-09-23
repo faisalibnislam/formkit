@@ -1,14 +1,16 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { Fragment, useMemo, useRef, useState } from "react";
 import type { DragEvent, PointerEvent } from "react";
 import { useMutation, useQuery } from "convex/react";
 import {
   Copy,
+  GitBranch,
   GripVertical,
   Plus,
   Rows3,
   Search,
+  Settings2,
   Trash2,
 } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
@@ -25,6 +27,7 @@ import {
 } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 import { FIELD_GROUPS, FIELD_TYPES, fieldType, hasOptions, hasScale } from "./fieldTypes";
+import { FieldIcon } from "./FieldIcon";
 import { QuestionPreview } from "./QuestionPreview";
 
 /**
@@ -34,15 +37,25 @@ import { QuestionPreview } from "./QuestionPreview";
  * canvas shows. Reordering sends the whole new order in one mutation rather
  * than a pair of swaps, so a dropped card never lands twice.
  *
- * Drag to reorder: a card is ALWAYS `draggable`, and `onCardPointerDown`
- * decides whether the press that began may start a drag. Do not go back to
- * setting `draggable` from state on mousedown — the browser reads the attribute
- * before that state lands, and the drag never starts.
+ * Dragging, of which there are two kinds: a field type dragged in from the
+ * library, and a block dragged to a new place. Both land on an insert point
+ * between two blocks rather than on a block, so where the thing will end up is
+ * shown rather than inferred.
+ *
+ * A card is ALWAYS `draggable`, and `onCardPointerDown` decides whether the
+ * press that began may start a drag. Do not go back to setting `draggable`
+ * from state on mousedown — the browser reads the attribute before that state
+ * lands, and the drag never starts. Every drag also writes something into
+ * `dataTransfer`, because Firefox refuses to begin one that carries nothing.
  */
 
 /* A press that lands on one of these is that control's, not the card's:
    without this, selecting the text in a page name starts a drag instead. */
 const CONTROLS = "input, textarea, select, button, a, [contenteditable], [role='button']";
+
+/** What a drag is carrying. */
+type Payload = { kind: "block"; id: string } | { kind: "new"; type: string };
+
 export function Builder({ formId }: { formId: Id<"forms"> }) {
   const toast = useToast();
   const form = useQuery(api.forms.get, { formId });
@@ -58,17 +71,24 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
 
   const [libTerm, setLibTerm] = useState("");
   const [selected, setSelected] = useState<Id<"blocks"> | null>(null);
+
+  const blocks = useMemo(() => form?.blocks ?? [], [form]);
+  const active = blocks.find((b) => b._id === selected) ?? null;
+
+  const library = FIELD_TYPES.filter((t) =>
+    libTerm ? t.label.toLowerCase().includes(libTerm.trim().toLowerCase()) : true,
+  );
+
+  /* What is in flight: a block being moved, or a field type from the library.
+     A ref, because the drop handler runs from a browser event and cannot wait
+     for a render to commit. */
+  const payload = useRef<Payload | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
-  const [over, setOver] = useState<string | null>(null);
+  const [overSlot, setOverSlot] = useState<number | null>(null);
 
   /* Armed by a press that may start a drag, and read synchronously inside
-     onDragStart — a ref rather than state, because a state update would not
-     have landed by the time the browser asks. */
+     onDragStart — state would not have landed by the time the browser asks. */
   const gripArm = useRef(false);
-
-  /* The card being dragged, kept beside the state that styles it: `drop` runs
-     from a browser event and cannot wait for a render to commit. */
-  const dragId = useRef<string | null>(null);
 
   function onCardPointerDown(e: PointerEvent<HTMLElement>) {
     gripArm.current = !(e.target as HTMLElement).closest(CONTROLS);
@@ -79,32 +99,35 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
       e.preventDefault();
       return;
     }
+    payload.current = { kind: "block", id };
+    // Firefox refuses to begin a drag that carries no data at all.
+    e.dataTransfer.setData("text/plain", id);
     e.dataTransfer.effectAllowed = "move";
-    dragId.current = id;
     setDragging(id);
   }
 
-  function onCardDragEnd() {
-    gripArm.current = false;
-    dragId.current = null;
-    setDragging(null);
-    setOver(null);
+  function onTileDragStart(e: DragEvent<HTMLElement>, type: string) {
+    payload.current = { kind: "new", type };
+    e.dataTransfer.setData("text/plain", type);
+    e.dataTransfer.effectAllowed = "copy";
+    setDragging("new");
   }
 
-  const blocks = useMemo(() => form?.blocks ?? [], [form]);
-  const active = blocks.find((b) => b._id === selected) ?? null;
+  function onDragFinished() {
+    payload.current = null;
+    gripArm.current = false;
+    setDragging(null);
+    setOverSlot(null);
+  }
 
-  const library = FIELD_TYPES.filter((t) =>
-    libTerm ? t.label.toLowerCase().includes(libTerm.trim().toLowerCase()) : true,
-  );
-
-  async function add(type: string) {
+  async function add(type: string, at?: number) {
     const meta = FIELD_TYPES.find((t) => t.type === type)!;
-    const at = selected ? blocks.findIndex((b) => b._id === selected) + 1 : undefined;
+    const index =
+      at ?? (selected ? blocks.findIndex((b) => b._id === selected) + 1 : undefined);
     const id = await addBlock({
       formId,
       kind: "field",
-      at,
+      at: index,
       type: type as Doc<"blocks">["type"],
       title: `${meta.label} question`,
       options: meta.defaultOptions,
@@ -114,19 +137,28 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
     setSelected(id);
   }
 
-  async function drop(targetId: string) {
-    const source = dragId.current;
-    if (!source || source === targetId) return;
+  /* Every drop lands on a slot between two blocks, never on a block itself:
+     the insert point that opens under the pointer is the thing being aimed at,
+     so where the block will land is never a guess. */
+  async function dropAtSlot(slot: number) {
+    const inFlight = payload.current;
+    onDragFinished();
+    if (!inFlight) return;
+
+    if (inFlight.kind === "new") {
+      await add(inFlight.type, slot);
+      return;
+    }
+
     const order = blocks.map((b) => b._id as string);
-    const from = order.indexOf(source);
-    const to = order.indexOf(targetId);
-    if (from < 0 || to < 0) return;
-    order.splice(to, 0, ...order.splice(from, 1));
-    gripArm.current = false;
-    dragId.current = null;
-    setDragging(null);
-    setOver(null);
-    await reorder({ formId, ids: order as Id<"blocks">[] });
+    const from = order.indexOf(inFlight.id);
+    if (from < 0) return;
+    const rest = order.filter((id) => id !== inFlight.id);
+    // Removing the block first shifts every slot after it left by one.
+    const to = from < slot ? slot - 1 : slot;
+    if (to === from) return;
+    rest.splice(to, 0, inFlight.id);
+    await reorder({ formId, ids: rest as Id<"blocks">[] });
   }
 
   if (!form) return null;
@@ -139,6 +171,44 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
     }
     return out;
   })();
+
+  /* Questions are numbered; page breaks are not, so a number always names the
+     question a respondent would count. */
+  const numbers = new Map<string, number>();
+  let counted = 0;
+  for (const b of blocks) if (b.kind !== "pagebreak") numbers.set(b._id, ++counted);
+
+  /* A plain function rather than a component: it holds no state of its own, and
+     a component declared here would remount on every render. */
+  const renderSlot = (index: number) => (
+    <div
+      key={`slot-${index}`}
+      className="fk-insert"
+      data-armed={dragging ? "true" : undefined}
+      data-on={overSlot === index ? "true" : undefined}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = payload.current?.kind === "new" ? "copy" : "move";
+        setOverSlot(index);
+      }}
+      onDragLeave={() => setOverSlot((v) => (v === index ? null : v))}
+      onDrop={(e) => {
+        e.preventDefault();
+        void dropAtSlot(index);
+      }}
+    >
+      <span className="fk-insert-rule" />
+      <button
+        type="button"
+        className="fk-insert-pill"
+        onClick={() => add("short-text", index)}
+      >
+        <Plus size={15} strokeWidth={2.2} aria-hidden />
+        Add field
+      </button>
+      <span className="fk-insert-rule" />
+    </div>
+  );
 
   const appliedRules = (rules ?? []).filter(
     (r) => r.targetId === selected || r.conditions.some((c) => c.blockId === selected),
@@ -156,9 +226,7 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
           aria-label="Search field types"
           icon={<Search size={16} strokeWidth={1.8} aria-hidden />}
         />
-        <p style={{ margin: "10px 2px 0", fontSize: 13.5, color: "var(--color-text-tertiary)" }}>
-          Click a field to add it after whatever is selected.
-        </p>
+        <p className="fk-library-lede">Drag one onto the form, or click to add it.</p>
 
         <div className="fk-library">
           {FIELD_GROUPS.map((group) => {
@@ -168,27 +236,37 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
               <div key={group}>
                 <div className="fk-library-group">{group}</div>
                 {items.map((t) => (
-                  <button key={t.type} type="button" className="fk-library-item" onClick={() => add(t.type)}>
-                    {t.label}
+                  <button
+                    key={t.type}
+                    type="button"
+                    className="fk-fieldtile"
+                    draggable
+                    onDragStart={(e) => onTileDragStart(e, t.type)}
+                    onDragEnd={onDragFinished}
+                    onClick={() => add(t.type)}
+                  >
+                    <span className="fk-fieldtile-mark">
+                      <FieldIcon name={t.icon} />
+                    </span>
+                    <span className="fk-fieldtile-label">{t.label}</span>
+                    <span className="fk-fieldtile-grip" aria-hidden>
+                      <GripVertical size={15} strokeWidth={1.8} />
+                    </span>
                   </button>
                 ))}
               </div>
             );
           })}
           {library.length === 0 && (
-            <p style={{ fontSize: 13.5, color: "var(--color-text-tertiary)", padding: "10px 12px" }}>
-              Nothing matches “{libTerm}”.
-            </p>
+            <p className="fk-library-lede">Nothing matches “{libTerm}”.</p>
           )}
         </div>
       </aside>
 
       {/* ---------- canvas ---------- */}
       <div className="fk-canvas">
-        <section className="fk-panel">
-          <div style={{ fontSize: 14, color: "var(--color-text-tertiary)", marginBottom: 12 }}>
-            Welcome screen · what people see first
-          </div>
+        <section className="fk-panel fk-screen">
+          <div className="fk-screen-label">Welcome screen · what people see first</div>
           <Input
             value={form.welcome?.title ?? ""}
             aria-label="Welcome title"
@@ -220,134 +298,160 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
           </div>
         </section>
 
-        {blocks.map((b) =>
-          b.kind === "pagebreak" ? (
-            <div
-              key={b._id}
-              className="fk-pagebreak"
-              data-dragging={b._id === dragging ? "true" : undefined}
-              data-over={b._id === over && dragging !== b._id ? "true" : undefined}
-              draggable
-              onPointerDown={onCardPointerDown}
-              onDragStart={(e) => onCardDragStart(e, b._id)}
-              onDragOver={(e) => {
-                e.preventDefault();
-                setOver(b._id);
-              }}
-              onDragLeave={() => setOver((v) => (v === b._id ? null : v))}
-              onDrop={() => drop(b._id)}
-              onDragEnd={onCardDragEnd}
-            >
-              <Rows3 size={15} strokeWidth={1.8} aria-hidden />
-              <input
-                value={b.pageName ?? ""}
-                aria-label="Page name"
-                onChange={(e) => updateBlock({ blockId: b._id, patch: { pageName: e.target.value } })}
-                style={{
-                  border: "none",
-                  background: "transparent",
-                  font: "inherit",
-                  color: "inherit",
-                  outline: "none",
-                  minWidth: 120,
-                }}
-              />
-              <span className="fk-pagebreak-rule" />
-              <span>Page break</span>
-              <IconButton label="Delete this page break" onClick={() => removeBlock({ blockId: b._id })}>
-                <Trash2 size={15} strokeWidth={1.8} aria-hidden />
-              </IconButton>
-            </div>
-          ) : (
-            <article
-              key={b._id}
-              className="fk-qcard"
-              data-selected={b._id === selected ? "true" : undefined}
-              data-dragging={b._id === dragging ? "true" : undefined}
-              data-over={b._id === over && dragging !== b._id ? "true" : undefined}
-              onClick={() => setSelected(b._id)}
-              draggable
-              onPointerDown={onCardPointerDown}
-              onDragStart={(e) => onCardDragStart(e, b._id)}
-              onDragOver={(e) => {
-                e.preventDefault();
-                setOver(b._id);
-              }}
-              onDragLeave={() => setOver((v) => (v === b._id ? null : v))}
-              onDrop={() => drop(b._id)}
-              onDragEnd={onCardDragEnd}
-            >
-              {/* The grip arms on hover too, so a press that starts there is a
-                  drag even when it lands on something the guard would refuse. */}
-              <span
-                className="fk-qcard-grip"
-                aria-hidden
-                title="Drag to reorder"
-                onMouseEnter={() => {
-                  gripArm.current = true;
-                }}
+        {blocks.map((b, i) => (
+          <Fragment key={b._id}>
+            {renderSlot(i)}
+            {b.kind === "pagebreak" ? (
+              <div
+                className="fk-pagebreak"
+                data-dragging={b._id === dragging ? "true" : undefined}
+                draggable
+                onPointerDown={onCardPointerDown}
+                onDragStart={(e) => onCardDragStart(e, b._id)}
+                onDragEnd={onDragFinished}
               >
-                <GripVertical size={16} strokeWidth={1.8} />
-              </span>
-              <div className="fk-qcard-body">
-                <div className="fk-qcard-type">
-                  {fieldType(b.type).label}
-                  {b.required && <span style={{ color: "var(--red-500)" }}>· required</span>}
-                </div>
-                <div className="fk-qcard-title">{b.title || "Untitled question"}</div>
-                {b.help && <div className="fk-qcard-help">{b.help}</div>}
-                <div className="fk-qcard-preview">
-                  <QuestionPreview
-                    type={b.type ?? null}
-                    options={b.options}
-                    scaleMin={b.scaleMin}
-                    scaleMax={b.scaleMax}
-                  />
-                </div>
-              </div>
-              <div className="fk-qcard-actions">
-                <IconButton
-                  label="Duplicate this question"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void duplicateBlock({ blockId: b._id });
+                <span
+                  className="fk-pagebreak-grip"
+                  aria-hidden
+                  title="Drag to reorder"
+                  onMouseEnter={() => {
+                    gripArm.current = true;
                   }}
                 >
-                  <Copy size={15} strokeWidth={1.8} aria-hidden />
-                </IconButton>
+                  <GripVertical size={15} strokeWidth={1.8} />
+                </span>
+                <Rows3 size={15} strokeWidth={1.8} aria-hidden />
+                <input
+                  className="fk-pagebreak-name"
+                  value={b.pageName ?? ""}
+                  aria-label="Page name"
+                  onChange={(e) =>
+                    updateBlock({ blockId: b._id, patch: { pageName: e.target.value } })
+                  }
+                />
+                <span className="fk-pagebreak-rule" />
+                <span>Page break</span>
                 <IconButton
-                  label="Delete this question"
-                  tone="danger"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (selected === b._id) setSelected(null);
-                    void removeBlock({ blockId: b._id });
-                  }}
+                  label="Delete this page break"
+                  onClick={() => removeBlock({ blockId: b._id })}
                 >
                   <Trash2 size={15} strokeWidth={1.8} aria-hidden />
                 </IconButton>
               </div>
-            </article>
-          ),
-        )}
+            ) : (
+              <article
+                className="fk-qcard"
+                data-selected={b._id === selected ? "true" : undefined}
+                data-dragging={b._id === dragging ? "true" : undefined}
+                onClick={() => setSelected(b._id)}
+                draggable
+                onPointerDown={onCardPointerDown}
+                onDragStart={(e) => onCardDragStart(e, b._id)}
+                onDragEnd={onDragFinished}
+              >
+                <span className="fk-qcard-rail">
+                  {/* The grip arms on hover too, so a press that starts there is
+                      a drag even when it lands on something the guard refuses. */}
+                  <span
+                    className="fk-qcard-grip"
+                    aria-hidden
+                    title="Drag to reorder"
+                    onMouseEnter={() => {
+                      gripArm.current = true;
+                    }}
+                  >
+                    <GripVertical size={17} strokeWidth={1.8} />
+                  </span>
+                  <span className="fk-qcard-index">
+                    {String(numbers.get(b._id) ?? 0).padStart(2, "0")}
+                  </span>
+                </span>
 
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", margin: "8px 0 4px" }}>
-          <Button iconLeft={<Plus size={16} strokeWidth={1.8} aria-hidden />} onClick={() => add("short-text")}>
-            Add question
-          </Button>
+                <div className="fk-qcard-body">
+                  <div className="fk-qcard-type">
+                    <FieldIcon name={fieldType(b.type).icon} size={14} />
+                    <span>{fieldType(b.type).label}</span>
+                    {(rules ?? []).some(
+                      (r) =>
+                        r.targetId === b._id || r.conditions.some((c) => c.blockId === b._id),
+                    ) && (
+                      <span className="fk-qcard-logic">
+                        <GitBranch size={12} strokeWidth={1.9} aria-hidden />
+                        Logic
+                      </span>
+                    )}
+                  </div>
+                  <h4 className="fk-qcard-title">
+                    {b.title || "Untitled question"}
+                    {b.required && (
+                      <span className="fk-qcard-required" title="Required">
+                        *
+                      </span>
+                    )}
+                  </h4>
+                  {b.help && <p className="fk-qcard-help">{b.help}</p>}
+                  <div className="fk-qcard-preview">
+                    <QuestionPreview
+                      type={b.type ?? null}
+                      options={b.options}
+                      scaleMin={b.scaleMin}
+                      scaleMax={b.scaleMax}
+                    />
+                  </div>
+                </div>
+
+                <div className="fk-qcard-actions">
+                  <IconButton
+                    label="Settings for this question"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelected(b._id);
+                    }}
+                  >
+                    <Settings2 size={15} strokeWidth={1.8} aria-hidden />
+                  </IconButton>
+                  <IconButton
+                    label="Duplicate this question"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void duplicateBlock({ blockId: b._id });
+                    }}
+                  >
+                    <Copy size={15} strokeWidth={1.8} aria-hidden />
+                  </IconButton>
+                  <IconButton
+                    label="Delete this question"
+                    tone="danger"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (selected === b._id) setSelected(null);
+                      void removeBlock({ blockId: b._id });
+                    }}
+                  >
+                    <Trash2 size={15} strokeWidth={1.8} aria-hidden />
+                  </IconButton>
+                </div>
+              </article>
+            )}
+          </Fragment>
+        ))}
+
+        {renderSlot(blocks.length)}
+
+        <div className="fk-canvas-foot">
           <Button
             variant="secondary"
             iconLeft={<Rows3 size={16} strokeWidth={1.8} aria-hidden />}
-            onClick={() => addBlock({ formId, kind: "pagebreak", pageName: `Page ${pages.length + 1}` })}
+            onClick={() =>
+              addBlock({ formId, kind: "pagebreak", pageName: `Page ${pages.length + 1}` })
+            }
           >
-            Add page
+            Add a page break
           </Button>
         </div>
 
-        <section className="fk-panel">
-          <div style={{ fontSize: 14, color: "var(--color-text-tertiary)", marginBottom: 12 }}>
-            Thank-you screen
-          </div>
+        <section className="fk-panel fk-screen" data-tone="mint">
+          <div className="fk-screen-label">Thank-you screen</div>
           <Input
             value={form.thanks?.title ?? ""}
             aria-label="Thank-you title"
