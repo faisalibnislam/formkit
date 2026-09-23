@@ -5,7 +5,14 @@ import { useMutation, useQuery } from "convex/react";
 import { Paperclip } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import { themeOf, SIZE_SCALE } from "@/components/app/editor/themes";
+import {
+  LOGO_PX,
+  SIZE_SCALE,
+  WEIGHTS,
+  themeOf,
+} from "@/components/app/editor/themes";
+import { fontStack, loadFont } from "@/components/app/editor/fonts";
+import { LogoLockup } from "./LogoLockup";
 
 /**
  * The published form, as somebody answering it sees it.
@@ -291,7 +298,7 @@ export function LiveForm({
   /* ---------- screens ---------- */
   if (done) {
     return (
-      <Shell theme={theme} brand={open!.brand}>
+      <Shell theme={theme} brand={open!.brand} logos={open!.logos}>
         <h1>{open!.thanks?.title ?? "Thank you"}</h1>
         <p style={{ marginTop: 12, opacity: 0.72, fontSize: 16 * scale, lineHeight: 1.6 }}>
           {open!.thanks?.message ?? "Your answers are in."}
@@ -319,7 +326,7 @@ export function LiveForm({
 
   if (!started && open!.welcome) {
     return (
-      <Shell theme={theme} brand={open!.brand}>
+      <Shell theme={theme} brand={open!.brand} logos={open!.logos}>
         <h1>{open!.welcome.title || open!.title}</h1>
         <p style={{ marginTop: 12, opacity: 0.72, fontSize: 16 * scale, lineHeight: 1.6 }}>
           {open!.welcome.message}
@@ -354,7 +361,7 @@ export function LiveForm({
   }
 
   return (
-    <Shell theme={theme} brand={open!.brand}>
+    <Shell theme={theme} brand={open!.brand} logos={open!.logos}>
       {live.length > 1 && (
         <div style={{ marginBottom: 20, fontSize: 13.5, opacity: 0.6 }}>
           {current?.name || `Page ${page + 1}`} · {page + 1} of {live.length}
@@ -450,23 +457,44 @@ export function LiveForm({
 function Shell({
   theme,
   brand,
+  logos,
   children,
 }: {
   theme: ReturnType<typeof themeOf> | null;
   brand?: { name: string; logoUrl: string | null; color: string | null };
+  logos?: { name: string; url: string | null }[];
   children: React.ReactNode;
 }) {
   const t = theme ?? themeOf(null);
+  useEffect(() => {
+    loadFont(t.font);
+    loadFont(t.heading);
+  }, [t.font, t.heading]);
+  const split = t.layout === "split";
   return (
     <div
       className="fk-live"
       data-layout={t.layout}
-      style={{ background: t.bg, color: t.text, fontSize: 16 * SIZE_SCALE[t.size] }}
+      style={
+        {
+          background: t.bg,
+          color: t.text,
+          fontSize: 16 * SIZE_SCALE[t.size],
+          fontFamily: fontStack(t.font),
+          "--fk-live-heading": fontStack(t.heading),
+          "--fk-live-weight": WEIGHTS[t.weight],
+        } as React.CSSProperties
+      }
     >
       <div className="fk-live-inner">
         {brand && t.showLogo && (
           <div className="fk-live-brand">
-            {brand.logoUrl ? <img src={brand.logoUrl} alt={brand.name} /> : <span>{brand.name}</span>}
+            <LogoLockup
+              lead={{ name: brand.name, logoUrl: brand.logoUrl }}
+              extras={logos ?? []}
+              align={split ? "left" : t.logoAlign}
+              size={LOGO_PX[t.logoSize]}
+            />
           </div>
         )}
         {children}

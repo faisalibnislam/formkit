@@ -249,6 +249,8 @@ const FORM_DETAIL = {
   welcome: { title: "Let's start your project", message: "A few questions — it should take about two minutes.", button: "Start" },
   thanks: { title: "Thank you", message: "Your answers are in. We will be in touch." },
   theme: null,
+  logos: [],
+  identity: { kind: "company", name: "Studio Nine", logoUrl: null, handle: "studio-nine" },
   notify: null,
   closing: null,
   blocks: BLOCKS,

@@ -132,6 +132,8 @@ export default defineSchema({
 
     theme: v.optional(v.any()),
     notify: v.optional(v.any()),
+    /** Who may answer, and how often. See `model/security.ts`. */
+    security: v.optional(v.any()),
     closing: v.optional(
       v.object({
         message: v.optional(v.string()),

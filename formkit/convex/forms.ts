@@ -5,7 +5,9 @@ import { requireUser } from "./model/identity";
 import {
   completionRate,
   formFor,
+  formIdentity,
   shouldAutoClose,
+  themeLogos,
   storedBlock,
   uniqueSlug,
 } from "./model/forms";
@@ -109,6 +111,8 @@ export const get = query({
       welcome: form.welcome ?? null,
       thanks: form.thanks ?? null,
       theme: form.theme ?? null,
+      logos: await themeLogos(ctx, form.theme),
+      identity: await formIdentity(ctx, form),
       notify: form.notify ?? null,
       closing: form.closing ?? null,
       blocks: blocks.sort((a, b) => a.order - b.order),
@@ -209,6 +213,35 @@ export const update = mutation({
   handler: async (ctx, { formId, patch }) => {
     await formFor(ctx, formId);
     await ctx.db.patch(formId, { ...patch, updatedAt: Date.now() });
+    return null;
+  },
+});
+
+/**
+ * Merge keys into one of a form's settings objects — theme, notify, welcome,
+ * thanks — on the server, so two quick changes to different keys never
+ * overwrite each other the way two whole-object writes would.
+ */
+export const patchSettings = mutation({
+  args: {
+    formId: v.id("forms"),
+    key: v.union(
+      v.literal("theme"),
+      v.literal("notify"),
+      v.literal("welcome"),
+      v.literal("thanks"),
+      v.literal("security"),
+    ),
+    patch: v.any(),
+  },
+  returns: v.null(),
+  handler: async (ctx, { formId, key, patch }) => {
+    const form = await formFor(ctx, formId);
+    const current = ((form as Record<string, unknown>)[key] ?? {}) as Record<string, unknown>;
+    await ctx.db.patch(formId, {
+      [key]: { ...current, ...(patch as Record<string, unknown>) },
+      updatedAt: Date.now(),
+    });
     return null;
   },
 });

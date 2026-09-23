@@ -51,6 +51,16 @@ const CASES = [
     },
     menu: ".ui-select-menu",
   },
+  {
+    name: "font menu, opening upward under the dock",
+    route: "/app/forms/f1?tab=design",
+    open: async (p) => {
+      await p.getByRole("tab", { name: "Type" }).click();
+      await p.waitForTimeout(300);
+      await p.getByRole("button", { name: "Heading font" }).click();
+    },
+    menu: ".ui-select-menu",
+  },
 ];
 
 const browser = await chromium.launch({

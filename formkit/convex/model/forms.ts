@@ -94,3 +94,33 @@ export function storedBlock(value: unknown): StoredBlock {
   const { _id, _creationTime, formId, order, ...rest } = value as Doc<"blocks">;
   return { ...rest, kind: rest.kind ?? "field" };
 }
+
+/**
+ * The extra logos a form's theme carries, with somewhere to load each from.
+ * The theme stores storage ids; a URL is only ever handed out on read.
+ */
+export async function themeLogos(ctx: QueryCtx, theme: unknown) {
+  const list = ((theme as { logos?: { name?: string; storageId?: string }[] } | null)?.logos ??
+    []) as { name?: string; storageId?: string }[];
+  return Promise.all(
+    list.slice(0, 3).map(async (l) => ({
+      name: l.name ?? "",
+      url: l.storageId ? await ctx.storage.getUrl(l.storageId as Id<"_storage">) : null,
+    })),
+  );
+}
+
+/** Who a form is published under: its name and lead logo. */
+export async function formIdentity(ctx: QueryCtx, form: Doc<"forms">) {
+  if (form.brand === "me") {
+    const user = await ctx.db.get(form.ownerId);
+    return { kind: "me" as const, name: user?.name ?? "You", logoUrl: null, handle: user?.handle ?? null };
+  }
+  const co = await ctx.db.get(form.brand as Id<"companies">);
+  return {
+    kind: "company" as const,
+    name: co?.name ?? "Your company",
+    logoUrl: co?.logoId ? await ctx.storage.getUrl(co.logoId) : null,
+    handle: co?.handle ?? null,
+  };
+}

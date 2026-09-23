@@ -3,7 +3,7 @@ import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Doc, Id } from "./_generated/dataModel";
 import { QueryCtx } from "./_generated/server";
-import { shouldAutoClose } from "./model/forms";
+import { shouldAutoClose, themeLogos } from "./model/forms";
 
 /**
  * The published form, as a respondent sees it.
@@ -94,6 +94,7 @@ export const bySlug = query({
       welcome: form.welcome ?? null,
       thanks: form.thanks ?? null,
       theme: form.theme ?? null,
+      logos: await themeLogos(ctx, form.theme),
       uploadCapMb: MAX_UPLOAD_BYTES / 1024 / 1024,
       blocks: blocks.map((b) => ({
         _id: b._id,

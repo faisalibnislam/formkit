@@ -30,6 +30,7 @@ import { CollaboratorsDialog } from "./dialogs/CollaboratorsDialog";
 import { SaveTemplateDialog } from "./dialogs/SaveTemplateDialog";
 import { ShareDialog } from "./dialogs/ShareDialog";
 import { VersionsDialog } from "./dialogs/VersionsDialog";
+import { THEME_PRESETS, themeOf } from "./editor/themes";
 import { resetSaveStatus, tracked, useSaveStatus } from "./editor/saveStatus";
 
 /**
@@ -119,7 +120,8 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
 
   const summaries: Record<string, string> = {
     build: String(form.questions),
-    design: "Set under Design",
+    design:
+      THEME_PRESETS.find((p) => p.id === themeOf(form.theme).preset)?.name ?? "Custom",
     logic: String(form.rules.length),
     responses: String(form.responses),
     analytics: `${form.completionRate}%`,
