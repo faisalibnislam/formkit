@@ -1,4 +1,5 @@
-import { getAuthUserId } from "@convex-dev/auth/server";
+import { getAuthSessionId, getAuthUserId } from "@convex-dev/auth/server";
+import { ConvexError } from "convex/values";
 import { Doc, Id } from "../_generated/dataModel";
 import { MutationCtx, QueryCtx } from "../_generated/server";
 
@@ -9,11 +10,30 @@ export async function currentUser(ctx: QueryCtx | MutationCtx): Promise<Doc<"use
   return await ctx.db.get(userId);
 }
 
+/**
+ * Whether this session has given its two-factor code. Always true for an
+ * account without two-factor. Checked in `requireUser`, which every signed-in
+ * function goes through, so a session holding only a password reads nothing.
+ */
+export async function twoFactorPassed(ctx: QueryCtx | MutationCtx, user: Doc<"users">) {
+  if (!user.twoFactor) return true;
+  const sessionId = await getAuthSessionId(ctx);
+  if (!sessionId) return false;
+  const info = await ctx.db
+    .query("sessionInfo")
+    .withIndex("by_session", (q) => q.eq("sessionId", sessionId))
+    .first();
+  return !!info?.twoFactorAt;
+}
+
 /** The signed-in person, or a refusal. Use wherever a guest has no business. */
 export async function requireUser(ctx: QueryCtx | MutationCtx): Promise<Doc<"users">> {
   const user = await currentUser(ctx);
   if (!user) throw new Error("Sign in to do that.");
   if (user.deactivatedAt) throw new Error("This account is deactivated. Reactivate it to continue.");
+  if (!(await twoFactorPassed(ctx, user))) {
+    throw new ConvexError({ code: "2fa", message: "Enter the code from your authenticator app to continue." });
+  }
   return user;
 }
 

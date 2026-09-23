@@ -16,6 +16,8 @@ import type * as blocks from "../blocks.js";
 import type * as collaborators from "../collaborators.js";
 import type * as comments from "../comments.js";
 import type * as companies from "../companies.js";
+import type * as crons from "../crons.js";
+import type * as digests from "../digests.js";
 import type * as email from "../email.js";
 import type * as emails_authCode from "../emails/authCode.js";
 import type * as emails_response from "../emails/response.js";
@@ -31,10 +33,12 @@ import type * as model_handles from "../model/handles.js";
 import type * as model_identity from "../model/identity.js";
 import type * as model_security from "../model/security.js";
 import type * as model_sheet from "../model/sheet.js";
+import type * as model_totp from "../model/totp.js";
 import type * as notifications from "../notifications.js";
 import type * as presence from "../presence.js";
 import type * as publicForm from "../publicForm.js";
 import type * as responses from "../responses.js";
+import type * as security from "../security.js";
 import type * as templates from "../templates.js";
 import type * as users from "../users.js";
 
@@ -55,6 +59,8 @@ declare const fullApi: ApiFromModules<{
   "collaborators": typeof collaborators,
   "comments": typeof comments,
   "companies": typeof companies,
+  "crons": typeof crons,
+  "digests": typeof digests,
   "email": typeof email,
   "emails/authCode": typeof emails_authCode,
   "emails/response": typeof emails_response,
@@ -70,10 +76,12 @@ declare const fullApi: ApiFromModules<{
   "model/identity": typeof model_identity,
   "model/security": typeof model_security,
   "model/sheet": typeof model_sheet,
+  "model/totp": typeof model_totp,
   "notifications": typeof notifications,
   "presence": typeof presence,
   "publicForm": typeof publicForm,
   "responses": typeof responses,
+  "security": typeof security,
   "templates": typeof templates,
   "users": typeof users,
 }>;

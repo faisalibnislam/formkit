@@ -18,7 +18,7 @@ import type { Id } from "../../../convex/_generated/dataModel";
 import { Button, EmptyState, Input, Segmented, Select } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 import { BarChart, StatCard, TickBars } from "./ds";
-import { downloadSheets } from "./exporting";
+import { downloadAnalytics, duration, signed, ymd } from "./analyticsExport";
 
 /**
  * Analytics. Every number is counted from stored data inside the range picked
@@ -37,27 +37,12 @@ function midnight(at: number) {
   return d.getTime();
 }
 
-/** yyyy-mm-dd in local time, for a date input. */
-function ymd(at: number) {
-  const d = new Date(at);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
 function parseYmd(s: string) {
   const [y, m, d] = s.split("-").map(Number);
   return y && m && d ? new Date(y, m - 1, d).getTime() : NaN;
 }
 
-function signed(value: number | null | undefined, suffix = "%") {
-  if (value === null || value === undefined || value === 0) return undefined;
-  return `${value > 0 ? "+" : "−"}${Math.abs(value)}${suffix}`;
-}
 
-function duration(seconds: number | null) {
-  if (seconds === null) return "—";
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return m ? `${m}m ${String(s).padStart(2, "0")}s` : `${s}s`;
-}
 
 function rangeLabel(from: number, to: number) {
   const a = new Date(from);
@@ -130,51 +115,7 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
     if (!data) return;
     const title =
       scope && forms?.forms ? (forms.forms.find((f) => f._id === scope)?.title ?? "Form") : formId ? "This form" : "All forms";
-    const overTime = {
-      name: "Over time",
-      columns: ["Date", "Views", "Started", "Responses", "Completed"],
-      rows: data.daily.map((d) => [ymd(d.at), String(d.views), String(d.starts), String(d.responses), String(d.completed)]),
-    };
-    const sheets = [
-      {
-        name: "Summary",
-        columns: ["Measure", "Value", "Change against the period before"],
-        rows: [
-          ["Range", `${ymd(data.from)} to ${ymd(data.to - 1)}`, ""],
-          ["Forms", title, ""],
-          ["Views", String(data.views), signed(data.change.views) ?? ""],
-          ["Started", String(data.starts), signed(data.change.starts) ?? ""],
-          ["Completed", String(data.completed), signed(data.change.completed) ?? ""],
-          ["Partial", String(data.partial), ""],
-          ["Completion rate", data.completionRate === null ? "" : `${data.completionRate}%`, signed(data.change.completionRate, " pts") ?? ""],
-          ["Average time", duration(data.medianSeconds), signed(data.change.medianSeconds, "s") ?? ""],
-        ],
-      },
-      overTime,
-      ...(data.dropOff.length
-        ? [
-            {
-              name: "Drop-off",
-              columns: ["Question", "Left here", "Share of starts"],
-              rows: data.dropOff.map((q, i) => [`${i + 1}. ${q.title}`, String(q.left), `${q.share}%`]),
-            },
-          ]
-        : []),
-      {
-        name: "Sources",
-        columns: ["Source", "Views", "Responses", "Completed", "Completion"],
-        rows: data.sources.map((s) => [
-          s.name,
-          String(s.views),
-          String(s.responses),
-          String(s.completed),
-          s.completion === null ? "" : `${s.completion}%`,
-        ]),
-      },
-    ];
-    const base = `analytics-${range === "custom" ? `${ymd(data.from)}-to-${ymd(data.to - 1)}` : `${range}d`}`;
-    // A CSV holds one table; the day-by-day figures are the one worth having.
-    const filename = downloadSheets(format === "xlsx" ? sheets : [overTime], base, format);
+    const filename = downloadAnalytics(data, title, format);
     void record({
       formId: scope,
       what: "analytics",

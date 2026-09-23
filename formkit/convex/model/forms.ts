@@ -124,3 +124,48 @@ export async function formIdentity(ctx: QueryCtx, form: Doc<"forms">) {
     handle: co?.handle ?? null,
   };
 }
+
+/**
+ * Everything a form owns, gone: its questions, rules, responses and the files
+ * people uploaded to them, versions, comments, people, links, activity and
+ * view counts. Used by the bin, the 60-day sweep, and account deletion.
+ */
+export async function purgeFormData(ctx: MutationCtx, form: Doc<"forms">) {
+  // `blocks` is indexed by form *and* order, so it is swept on its own.
+  const blocks = await ctx.db
+    .query("blocks")
+    .withIndex("by_form_order", (q) => q.eq("formId", form._id))
+    .collect();
+  for (const row of blocks) await ctx.db.delete(row._id);
+
+  const responses = await ctx.db
+    .query("responses")
+    .withIndex("by_form", (q) => q.eq("formId", form._id))
+    .collect();
+  for (const r of responses) {
+    for (const a of r.answers) if (a.fileId) await ctx.storage.delete(a.fileId).catch(() => undefined);
+    await ctx.db.delete(r._id);
+  }
+
+  for (const table of [
+    "logicRules",
+    "versions",
+    "comments",
+    "collaborators",
+    "presence",
+    "joinLinks",
+    "activity",
+  ] as const) {
+    const rows = await ctx.db
+      .query(table)
+      .withIndex("by_form", (q) => q.eq("formId", form._id))
+      .collect();
+    for (const row of rows) await ctx.db.delete(row._id);
+  }
+  const events = await ctx.db
+    .query("formEvents")
+    .withIndex("by_form_at", (q) => q.eq("formId", form._id))
+    .collect();
+  for (const row of events) await ctx.db.delete(row._id);
+  await ctx.db.delete(form._id);
+}

@@ -55,7 +55,7 @@ export type Answer = { value?: string; values?: string[]; fileId?: Id<"_storage"
 export type OpenForm = {
   formId: Id<"forms">;
   title: string;
-  brand: { name: string; logoUrl: string | null; color: string | null };
+  brand: { name: string; logoUrl: string | null; color: string | null; badge?: boolean };
   logos: { name: string; url: string | null }[];
   welcome: { title: string; message: string; button?: string } | null;
   thanks: {
@@ -356,7 +356,7 @@ export function FormRunner({
     cursor: busy ? "progress" : "pointer",
   });
 
-  const credit = <div className="fk-live-credit">Made with Formkit</div>;
+  const credit = data.brand.badge === false ? null : <div className="fk-live-credit">Made with Formkit</div>;
   const split = theme.layout === "split";
 
   /* ---------- closed ---------- */

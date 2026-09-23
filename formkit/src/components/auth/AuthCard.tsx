@@ -492,7 +492,7 @@ export function AuthCard({ initialView }: { initialView: View }) {
             href="/terms"
             target="_blank"
             rel="noopener"
-            style={{ color: "#ffffff", textDecoration: "underline" }}
+            style={{ color: "#ffffff", fontWeight: 600 }}
           >
             terms of service
           </Link>{" "}
@@ -501,7 +501,7 @@ export function AuthCard({ initialView }: { initialView: View }) {
             href="/privacy"
             target="_blank"
             rel="noopener"
-            style={{ color: "#ffffff", textDecoration: "underline" }}
+            style={{ color: "#ffffff", fontWeight: 600 }}
           >
             privacy policy
           </Link>

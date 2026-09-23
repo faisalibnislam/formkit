@@ -79,6 +79,16 @@
   background: var(--color-action-destructive-hover);
 }
 
+/* Disabled wins over every variant, which are declared after the base rule. */
+.ui-btn[data-variant]:disabled {
+  background: var(--color-action-disabled);
+  color: var(--color-action-disabled-text);
+  box-shadow: none;
+}
+.ui-btn[data-variant="ghost"]:disabled {
+  background: transparent;
+}
+
 /* Icon buttons are circles. */
 .ui-iconbtn {
   display: inline-flex;

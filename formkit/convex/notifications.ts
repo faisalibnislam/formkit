@@ -36,6 +36,11 @@ const FROM = process.env.AUTH_EMAIL_FROM ?? "Formkit <onboarding@resend.dev>";
 const SITE = process.env.SITE_URL ?? "https://formkit.app";
 
 export type NotifySettings = {
+  /** Email the owner about each new response. */
+  newResponse: boolean;
+  /** Include this form in the daily summary and the weekly report. */
+  daily: boolean;
+  weekly: boolean;
   to: string;
   subject: string;
   body: string;
@@ -47,13 +52,21 @@ export type NotifySettings = {
   confirmAttach: boolean;
 };
 
-/** The settings a form has, with the account's address standing in for blanks. */
-export function notifyDefaults(stored: unknown, ownerEmail: string): NotifySettings {
+export type AccountPrefs = Doc<"users">["emailPrefs"];
+
+/**
+ * The settings a form has. Anything the form leaves blank comes from the
+ * account's Settings → Notifications, and then from Formkit's own wording.
+ */
+export function notifyDefaults(stored: unknown, ownerEmail: string, prefs?: AccountPrefs): NotifySettings {
   const n = (stored ?? {}) as Partial<NotifySettings>;
   return {
-    to: n.to ?? ownerEmail,
-    subject: n.subject ?? "New response to {{form_name}}",
-    body: n.body ?? "{{name}} ({{email}}) just submitted {{form_name}}.",
+    newResponse: n.newResponse ?? prefs?.newResponse ?? true,
+    daily: n.daily ?? prefs?.daily ?? false,
+    weekly: n.weekly ?? prefs?.weekly ?? true,
+    to: n.to || prefs?.to || ownerEmail,
+    subject: n.subject || prefs?.subject || "New response to {{form_name}}",
+    body: n.body || prefs?.body || "{{name}} ({{email}}) just submitted {{form_name}}.",
     routes: n.routes ?? [],
     confirm: !!n.confirm,
     replyTo: n.replyTo ?? ownerEmail,
@@ -119,7 +132,7 @@ export const forResponse = internalQuery({
     const owner = await ctx.db.get(form.ownerId);
     if (!owner?.email) return null;
 
-    const settings = notifyDefaults(form.notify, owner.email);
+    const settings = notifyDefaults(form.notify, owner.email, owner.emailPrefs);
     const vars = variables(response, form.title);
     const rows = rowsOf(response);
 
@@ -136,12 +149,23 @@ export const forResponse = internalQuery({
       partial: response.partial,
       respondentEmail: response.respondentEmail ?? null,
       notification: {
-        to: addresses(route(settings, response)),
+        to: settings.newResponse ? addresses(route(settings, response)) : [],
         subject: fill(settings.subject, vars),
         message: fill(settings.body, vars),
         rows,
-        link: `${SITE}/app/forms/${form._id}/responses?open=${response._id}`,
+        link: `${SITE}/app/forms/${form._id}?tab=responses&open=${response._id}`,
       },
+      // Settings → Exports → Email a copy: the whole response, to one inbox.
+      copy:
+        owner.emailCopy?.on && addresses(owner.emailCopy.to).length
+          ? {
+              to: addresses(owner.emailCopy.to),
+              subject: `${form.title}: ${vars.name}`,
+              message: `A copy of ${vars.name}’s answers to ${form.title}, sent ${vars.submitted_at}.`,
+              rows,
+              link: `${SITE}/app/forms/${form._id}?tab=responses&open=${response._id}`,
+            }
+          : null,
       confirmation: settings.confirm
         ? {
             subject: fill(settings.confirmSubject, vars),
@@ -225,6 +249,22 @@ export const onResponse = internalAction({
       });
     }
 
+    if (job.copy) {
+      const result = await send({
+        to: job.copy.to,
+        subject: job.copy.subject,
+        html: renderNotification({ ...job.copy, partial: job.partial }),
+      });
+      await ctx.runMutation(internal.notifications.record, {
+        userId: job.userId,
+        formId: job.formId,
+        kind: "copy",
+        to: job.copy.to.join(", "),
+        subject: job.copy.subject,
+        ...result,
+      });
+    }
+
     // The confirmation needs an address, which only an email question supplies.
     if (job.confirmation && job.respondentEmail) {
       const result = await send({
@@ -304,7 +344,7 @@ export const testFor = internalQuery({
   handler: async (ctx, { formId, which }): Promise<TestJob> => {
     const user = await requireUser(ctx);
     const form = await formFor(ctx, formId, "read");
-    const settings = notifyDefaults(form.notify, user.email ?? "");
+    const settings = notifyDefaults(form.notify, user.email ?? "", user.emailPrefs);
 
     const blocks = (
       await ctx.db
@@ -344,7 +384,7 @@ export const testFor = internalQuery({
               subject: fill(settings.subject, vars),
               message: fill(settings.body, vars),
               rows,
-              link: `${SITE}/app/forms/${formId}/responses`,
+              link: `${SITE}/app/forms/${formId}?tab=responses`,
             })
           : renderConfirmation({
               subject: fill(settings.confirmSubject, vars),

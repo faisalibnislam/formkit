@@ -256,6 +256,12 @@ const COMPANIES = [
   },
 ];
 
+/** Preview switches read from the page's own URL: ?fk_gate=2fa|deactivated, ?fk_sky=morning. */
+function flag(name: string) {
+  if (typeof window === "undefined") return null;
+  return new URLSearchParams(window.location.search).get(name);
+}
+
 export const VIEWER = {
   _id: "u1",
   name: "Maya Ortiz",
@@ -263,8 +269,27 @@ export const VIEWER = {
   image: null,
   handle: "maya",
   timezone: "Europe/London",
+  role: "Independent designer",
+  get skyPref() {
+    return flag("fk_sky") ?? "sync";
+  },
+  get twoFactorNeeded() {
+    return flag("fk_gate") === "2fa";
+  },
   onboarded: true,
-  deactivated: false,
+  get deactivated() {
+    return flag("fk_gate") === "deactivated";
+  },
+  restoreUntil: Date.now() + 23 * 24 * 60 * 60 * 1000,
+  emailPrefs: {
+    newResponse: true,
+    daily: false,
+    weekly: true,
+    to: "maya@studionine.co",
+    subject: "New response to {{form_name}}",
+    body: "{{name}} ({{email}}) just submitted {{form_name}}.",
+  },
+  emailCopy: { on: true, to: "inbox@studionine.co" },
   staffRole: "owner",
   ai: { allowed: true, used: 3, limit: 25, live: true },
   companies: COMPANIES,
@@ -423,6 +448,31 @@ export const QUERIES: Record<string, unknown> = {
   "responses:tagsInUse": ["Hot lead", "Follow up", "Retainer", "Not a fit"],
   "responses:forExport": { filename: "client-onboarding-responses", title: "Client Onboarding", rows: [["a"]], columns: ["A"] },
   "responses:contactsForExport": { filename: "contacts", rows: [["a"]], columns: ["A"] },
+  "responses:count": 248,
+  "security:status": {
+    twoFactor: { on: true, enabledAt: now - 40 * DAY, recoveryLeft: 7 },
+    signInAlerts: true,
+    emailChange: null,
+    sessions: [
+      { _id: "s1", device: "Chrome on Mac", firstSeen: now - 9 * DAY, lastSeen: now, current: true },
+      { _id: "s2", device: "Safari on iPhone", firstSeen: now - 30 * DAY, lastSeen: now - 2 * HOUR, current: false },
+    ],
+  },
+  "collaborators:people": {
+    people: [
+      { key: "u2", name: "Ravi Menon", email: "ravi@studionine.co", color: "#4b9d6e", role: "editor", forms: [
+        { collaboratorId: "c1", formId: "f1", title: "Client Onboarding", role: "editor", status: "active" },
+        { collaboratorId: "c2", formId: "f2", title: "Website Project Questionnaire", role: "editor", status: "active" },
+      ] },
+      { key: "u4", name: "Ben Carter", email: "ben@northstar.co", color: "#c4614f", role: "mixed", forms: [
+        { collaboratorId: "c3", formId: "f1", title: "Client Onboarding", role: "commenter", status: "active" },
+        { collaboratorId: "c4", formId: "f3", title: "Customer Feedback", role: "viewer", status: "active" },
+      ] },
+    ],
+    pending: [
+      { _id: "c5", email: "freelance@grainhouse.com", role: "viewer", formId: "f1", formTitle: "Client Onboarding", invitedAt: now - 2 * DAY },
+    ],
+  },
   "exports:recent": [
     { _id: "x1", formId: "f1", formTitle: "Client Onboarding", what: "responses", format: "xlsx", filename: "client-onboarding-responses.xlsx", rows: 248, from: null, to: null, ids: null, emailedTo: null, at: now - 3 * HOUR },
     { _id: "x2", formId: null, formTitle: "All forms", what: "contacts", format: "csv", filename: "contacts.csv", rows: 64, from: null, to: null, ids: null, emailedTo: "maya@studionine.co", at: now - 2 * DAY },
@@ -448,7 +498,14 @@ export const QUERIES: Record<string, unknown> = {
     })),
     unread: 3,
   },
-  "notifications:log": [],
+  "notifications:log": [
+    { _id: "e1", subject: "New response to Client Onboarding", kind: "notification", to: "maya@studionine.co", form: "Client Onboarding", state: "sent", detail: null, at: now - 2 * HOUR },
+    { _id: "e2", subject: "We have your answers — Client Onboarding", kind: "confirmation", to: "john@email.com", form: "Client Onboarding", state: "sent", detail: null, at: now - 2 * HOUR },
+    { _id: "e3", subject: "Your week on Formkit: 38 responses", kind: "weekly report", to: "maya@studionine.co", form: null, state: "sent", detail: null, at: now - 3 * DAY },
+  ],
+  "collaborators:sharedWithMe": [
+    { _id: "sw1", formId: "f9", title: "Northstar Partner Intake", owner: "Ben Carter", role: "editor", status: "active" },
+  ],
   "analytics:overview": {
     from: now - 30 * DAY,
     to: now,

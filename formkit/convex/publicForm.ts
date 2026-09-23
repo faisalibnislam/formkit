@@ -61,6 +61,9 @@ async function brandOf(ctx: QueryCtx, form: Doc<"forms">) {
         ? await ctx.storage.getUrl(identity.logoId)
         : null,
     color: (identity as { brandColor?: string } | null)?.brandColor ?? null,
+    // A company can switch the "Made with Formkit" credit off; a person's own
+    // forms always carry it.
+    badge: (identity as { badge?: boolean } | null)?.badge !== false,
   };
 }
 

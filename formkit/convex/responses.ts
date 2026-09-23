@@ -450,3 +450,18 @@ export const contactsForExport = query({
     };
   },
 });
+
+/** How many responses an export would hold — Settings → Exports says so. */
+export const count = query({
+  args: {
+    formId: v.optional(v.id("forms")),
+    from: v.optional(v.number()),
+    includePartial: v.optional(v.boolean()),
+  },
+  handler: async (ctx, { formId, from, includePartial = true }) => {
+    const { rows } = await scope(ctx, formId);
+    return rows.filter(
+      (r) => !r.preview && (includePartial || !r.partial) && (from === undefined || r.submittedAt >= from),
+    ).length;
+  },
+});

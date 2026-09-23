@@ -67,9 +67,48 @@ export default defineSchema({
     aiLive: v.optional(v.boolean()),
     aiLiveSet: v.optional(v.boolean()),
     aiPeriod: v.optional(v.string()), // YYYY-MM, resets aiUsed on rollover
+
+    // Settings → Preferences: the header sky follows the clock unless pinned.
+    skyPref: v.optional(
+      v.union(v.literal("sync"), v.literal("morning"), v.literal("afternoon"), v.literal("evening")),
+    ),
+
+    // Settings → Account → Security.
+    signInAlerts: v.optional(v.boolean()), // absent means on
+    twoFactor: v.optional(
+      v.object({
+        secret: v.string(),
+        enabledAt: v.number(),
+        lastStep: v.optional(v.number()),
+        /** SHA-256 of each unused recovery code. */
+        recovery: v.array(v.string()),
+      }),
+    ),
+    twoFactorPending: v.optional(v.object({ secret: v.string(), at: v.number() })),
+    emailChange: v.optional(
+      v.object({ email: v.string(), codeHash: v.string(), expiresAt: v.number(), tries: v.number() }),
+    ),
+
+    // Settings → Notifications: what the account emails about, and the
+    // default recipient and wording every form starts from.
+    emailPrefs: v.optional(
+      v.object({
+        newResponse: v.optional(v.boolean()),
+        daily: v.optional(v.boolean()),
+        weekly: v.optional(v.boolean()),
+        to: v.optional(v.string()),
+        subject: v.optional(v.string()),
+        body: v.optional(v.string()),
+      }),
+    ),
+    // Settings → Exports → Email a copy: every new response, in full.
+    emailCopy: v.optional(v.object({ on: v.boolean(), to: v.string() })),
+    lastDaily: v.optional(v.string()), // YYYY-MM-DD in the person's zone
+    lastWeekly: v.optional(v.string()),
   })
     .index("email", ["email"])
-    .index("by_handle", ["handle"]),
+    .index("by_handle", ["handle"])
+    .index("by_deactivated", ["deactivatedAt"]),
 
   companies: defineTable({
     ownerId: v.id("users"),
@@ -164,7 +203,9 @@ export default defineSchema({
   })
     .index("by_owner", ["ownerId"])
     .index("by_owner_status", ["ownerId", "status"])
-    .index("by_slug", ["slug"]),
+    .index("by_slug", ["slug"])
+    .index("by_status", ["status"])
+    .index("by_deleted", ["deletedAt"]),
 
   /** Questions and page breaks share one ordered list, as in the builder. */
   blocks: defineTable({
@@ -259,6 +300,23 @@ export default defineSchema({
   })
     .index("by_form_at", ["formId", "at"])
     .index("by_owner_at", ["ownerId", "at"]),
+
+  /**
+   * What Formkit knows about each signed-in session: the device it is on,
+   * when it was last seen, and whether its two-factor code has been given.
+   */
+  sessionInfo: defineTable({
+    sessionId: v.id("authSessions"),
+    userId: v.id("users"),
+    device: v.string(),
+    firstSeen: v.number(),
+    lastSeen: v.number(),
+    twoFactorAt: v.optional(v.number()),
+    failures: v.optional(v.number()),
+    lockedUntil: v.optional(v.number()),
+  })
+    .index("by_session", ["sessionId"])
+    .index("by_user", ["userId"]),
 
   /** Exports someone downloaded or emailed, so Settings can list them again. */
   exports: defineTable({

@@ -41,6 +41,7 @@ export type ExportRequest = {
   ids?: Id<"responses">[];
   from?: number;
   to?: number;
+  includePartial?: boolean;
 };
 
 /**
@@ -66,6 +67,7 @@ export function useExporter() {
                 ids: req.ids,
                 from: req.from,
                 to: req.to,
+                includePartial: req.includePartial,
               });
         const title = sheet.title;
         const filename = downloadSheets(

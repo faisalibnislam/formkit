@@ -15,7 +15,7 @@ const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-119
 const p = await (await b.newContext({ viewport: { width: Number(w || 1500), height: 1000 } })).newPage();
 const errs = [];
 p.on("pageerror", (e) => errs.push(String(e).slice(0, 200)));
-p.on("console", (m) => { if (m.type() === "error" && !/Router action|HMR|Fast Refresh/.test(m.text())) errs.push(m.text().slice(0, 200)); });
+p.on("console", (m) => { if (m.type() === "error" && !/Router action|HMR|Fast Refresh/.test(m.text())) errs.push(m.text().slice(0, process.env.FK_ERRLEN ? Number(process.env.FK_ERRLEN) : 200)); });
 await p.goto((process.env.FK_BASE || "http://localhost:3001") + route, { waitUntil: "load" });
 await p.waitForTimeout(2200);
 if (steps && steps !== "-") { const fn = new Function("p", `return (async () => { ${readFileSync(steps, "utf8")} })()`); await fn(p); }

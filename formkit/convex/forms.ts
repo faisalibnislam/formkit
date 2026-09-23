@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query, type MutationCtx } from "./_generated/server";
+import { internalMutation, mutation, query, type MutationCtx } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { requireUser } from "./model/identity";
 import {
@@ -10,6 +10,7 @@ import {
   themeLogos,
   storedBlock,
   uniqueSlug,
+  purgeFormData,
 } from "./model/forms";
 import { builtinTemplate } from "./model/builtinTemplates";
 import { formUrl } from "./model/handles";
@@ -518,32 +519,7 @@ export const purge = mutation({
       if (!form.deletedAt) throw new Error("Move the form to Deleted first.");
     }
 
-    for (const form of targets) {
-      // `blocks` is indexed by form *and* order, so it is swept on its own.
-      const blocks = await ctx.db
-        .query("blocks")
-        .withIndex("by_form_order", (q) => q.eq("formId", form._id))
-        .collect();
-      for (const row of blocks) await ctx.db.delete(row._id);
-
-      for (const table of [
-        "logicRules",
-        "responses",
-        "versions",
-        "comments",
-        "collaborators",
-        "presence",
-        "joinLinks",
-        "activity",
-      ] as const) {
-        const rows = await ctx.db
-          .query(table)
-          .withIndex("by_form", (q) => q.eq("formId", form._id))
-          .collect();
-        for (const row of rows) await ctx.db.delete(row._id);
-      }
-      await ctx.db.delete(form._id);
-    }
+    for (const form of targets) await purgeFormData(ctx, form);
     return null;
   },
 });
@@ -720,5 +696,52 @@ export const sweepClosing = mutation({
       closed++;
     }
     return closed;
+  },
+});
+
+/** Every few minutes: closing rules whose date or count has arrived take effect. */
+export const sweepAllClosing = internalMutation({
+  args: {},
+  returns: v.number(),
+  handler: async (ctx) => {
+    const now = Date.now();
+    const forms = await ctx.db
+      .query("forms")
+      .withIndex("by_status", (q) => q.eq("status", "published"))
+      .collect();
+    let closed = 0;
+    for (const form of forms) {
+      if (!shouldAutoClose(form, now)) continue;
+      await ctx.db.patch(form._id, {
+        status: "closed",
+        closing: { ...(form.closing ?? {}), closedBy: "automatically", closedAt: now },
+        updatedAt: now,
+      });
+      await ctx.db.insert("activity", {
+        formId: form._id,
+        userId: form.ownerId,
+        what: "set a closing rule that has now closed the form",
+        at: now,
+      });
+      closed++;
+    }
+    return closed;
+  },
+});
+
+const BIN_DAYS = 60;
+
+/** Daily: forms in Deleted for 60 days are erased, a few at a time. */
+export const purgeExpired = internalMutation({
+  args: {},
+  returns: v.number(),
+  handler: async (ctx) => {
+    const cutoff = Date.now() - BIN_DAYS * 24 * 60 * 60 * 1000;
+    const old = await ctx.db
+      .query("forms")
+      .withIndex("by_deleted", (q) => q.gt("deletedAt", 0).lt("deletedAt", cutoff))
+      .take(10);
+    for (const form of old) await purgeFormData(ctx, form);
+    return old.length;
   },
 });

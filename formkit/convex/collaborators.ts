@@ -407,3 +407,121 @@ export const activity = query({
     }));
   },
 });
+
+/* ------------------------------------------------------------------ */
+/* Settings → Sharing: everyone, across every form                     */
+/* ------------------------------------------------------------------ */
+
+async function myShares(ctx: Parameters<typeof requireUser>[0], ownerId: string) {
+  const forms = (
+    await ctx.db
+      .query("forms")
+      .withIndex("by_owner", (q) => q.eq("ownerId", ownerId as never))
+      .collect()
+  ).filter((f) => !f.deletedAt);
+  const rows = [];
+  for (const f of forms) {
+    const people = await ctx.db
+      .query("collaborators")
+      .withIndex("by_form", (q) => q.eq("formId", f._id))
+      .collect();
+    for (const p of people) rows.push({ row: p, form: f });
+  }
+  return rows;
+}
+
+/** A person is their account once they have joined, their email until then. */
+function personKey(row: { userId?: string; email: string }) {
+  return row.userId ?? `email:${row.email.toLowerCase()}`;
+}
+
+export const people = query({
+  args: {},
+  handler: async (ctx) => {
+    const me = await requireUser(ctx);
+    const shares = await myShares(ctx, me._id);
+    const byKey = new Map<
+      string,
+      {
+        key: string;
+        name: string | null;
+        email: string;
+        color: string;
+        roles: Set<string>;
+        forms: { collaboratorId: string; formId: string; title: string; role: string; status: string }[];
+      }
+    >();
+    for (const { row, form } of shares.filter((s) => s.row.status === "active")) {
+      const key = personKey(row);
+      let p = byKey.get(key);
+      if (!p) {
+        const user = row.userId ? await ctx.db.get(row.userId) : null;
+        p = {
+          key,
+          name: user?.name ?? null,
+          email: user?.email ?? row.email,
+          color: colourFor(row.userId ?? row.email),
+          roles: new Set(),
+          forms: [],
+        };
+        byKey.set(key, p);
+      }
+      p.roles.add(row.role);
+      p.forms.push({ collaboratorId: row._id, formId: form._id, title: form.title, role: row.role, status: row.status });
+    }
+    const pending = shares
+      .filter((s) => s.row.status === "pending")
+      .map(({ row, form }) => ({
+        _id: row._id,
+        email: row.email,
+        role: row.role,
+        formId: form._id,
+        formTitle: form.title,
+        invitedAt: row.invitedAt,
+      }))
+      .sort((a, b) => b.invitedAt - a.invitedAt);
+    return {
+      people: [...byKey.values()].map((p) => ({
+        key: p.key,
+        name: p.name,
+        email: p.email,
+        color: p.color,
+        role: p.roles.size === 1 ? [...p.roles][0]! : "mixed",
+        forms: p.forms,
+      })),
+      pending,
+    };
+  },
+});
+
+export const setRoleEverywhere = mutation({
+  args: { key: v.string(), role },
+  returns: v.number(),
+  handler: async (ctx, { key, role: theirRole }) => {
+    const me = await requireUser(ctx);
+    let n = 0;
+    for (const { row, form } of await myShares(ctx, me._id)) {
+      if (personKey(row) !== key || row.role === theirRole) continue;
+      await ctx.db.patch(row._id, { role: theirRole });
+      await logActivity(ctx, form._id, me._id, `made ${row.email} ${ROLE_WORD[theirRole]}`, "user-cog");
+      n++;
+    }
+    return n;
+  },
+});
+
+export const removeEverywhere = mutation({
+  args: { key: v.string() },
+  returns: v.number(),
+  handler: async (ctx, { key }) => {
+    const me = await requireUser(ctx);
+    let n = 0;
+    for (const { row, form } of await myShares(ctx, me._id)) {
+      if (personKey(row) !== key) continue;
+      await ctx.db.delete(row._id);
+      await logActivity(ctx, form._id, me._id, `removed ${row.email}`, "user-minus");
+      n++;
+    }
+    return n;
+  },
+});
