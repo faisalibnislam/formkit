@@ -7,7 +7,7 @@ import { PublicPage } from "@/components/site/PublicPage";
 import { CompareTable } from "@/components/site/CompareTable";
 import { JsonLd, breadcrumb, faqPage } from "@/components/site/JsonLd";
 import { COMPARE_ASOF, RIVALS, rivalBySlug } from "@/content/compare";
-import { SITE_URL } from "@/lib/site";
+import { SHARE_IMAGE, SITE_URL } from "@/lib/site";
 
 export function generateStaticParams() {
   return RIVALS.map((r) => ({ slug: r.slug }));
@@ -25,13 +25,14 @@ export async function generateMetadata(
     description: r.meta,
     alternates: { canonical: `${SITE_URL}/compare/${r.slug}` },
     openGraph: {
+      images: [SHARE_IMAGE],
       type: "article",
       siteName: "Formkit",
       url: `${SITE_URL}/compare/${r.slug}`,
       title,
       description: r.meta,
     },
-    twitter: { card: "summary_large_image", title, description: r.meta },
+    twitter: { card: "summary_large_image", images: [SHARE_IMAGE], title, description: r.meta },
   };
 }
 

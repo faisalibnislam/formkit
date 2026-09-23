@@ -8,7 +8,7 @@ import { HelpArticleBody } from "@/components/site/HelpArticleBody";
 import { HelpFeedback } from "@/components/site/HelpFeedback";
 import { JsonLd, breadcrumb } from "@/components/site/JsonLd";
 import { HELP_ARTICLES, HELP_CATEGORIES, helpArticle } from "@/content/help";
-import { SITE_URL } from "@/lib/site";
+import { SHARE_IMAGE, SITE_URL } from "@/lib/site";
 
 export function generateStaticParams() {
   return HELP_ARTICLES.map((a) => ({ slug: a.id }));
@@ -25,6 +25,7 @@ export async function generateMetadata(
     description: article.summary,
     alternates: { canonical: `${SITE_URL}/help/${article.id}` },
     openGraph: {
+      images: [SHARE_IMAGE],
       type: "article",
       siteName: "Formkit",
       url: `${SITE_URL}/help/${article.id}`,

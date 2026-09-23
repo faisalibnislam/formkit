@@ -4,7 +4,7 @@ import { ArrowRight, Check } from "lucide-react";
 import { NightSky } from "@/components/brand/NightSky";
 import { PublicPage } from "@/components/site/PublicPage";
 import { JsonLd, breadcrumb, faqPage } from "@/components/site/JsonLd";
-import { SITE_URL } from "@/lib/site";
+import { SHARE_IMAGE, SITE_URL } from "@/lib/site";
 
 const TITLE = "Pricing — Formkit is free";
 const DESCRIPTION =
@@ -15,6 +15,7 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   alternates: { canonical: `${SITE_URL}/pricing` },
   openGraph: {
+    images: [SHARE_IMAGE],
     type: "website",
     siteName: "Formkit",
     url: `${SITE_URL}/pricing`,
@@ -23,6 +24,7 @@ export const metadata: Metadata = {
       "Every feature, every form, every response. No plans, no card, nothing withheld.",
   },
   twitter: {
+    images: [SHARE_IMAGE],
     card: "summary_large_image",
     title: TITLE,
     description:

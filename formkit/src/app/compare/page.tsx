@@ -6,7 +6,7 @@ import { PublicPage } from "@/components/site/PublicPage";
 import { CompareTable } from "@/components/site/CompareTable";
 import { JsonLd, breadcrumb } from "@/components/site/JsonLd";
 import { COMPARE_ASOF, RIVALS } from "@/content/compare";
-import { SITE_URL } from "@/lib/site";
+import { SHARE_IMAGE, SITE_URL } from "@/lib/site";
 
 const TITLE = "Compare form builders";
 const DESCRIPTION =
@@ -17,6 +17,7 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   alternates: { canonical: `${SITE_URL}/compare` },
   openGraph: {
+    images: [SHARE_IMAGE],
     type: "website",
     siteName: "Formkit",
     url: `${SITE_URL}/compare`,

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { LandingPage } from "@/components/landing/LandingPage";
 import { JsonLd, faqPage, organization } from "@/components/site/JsonLd";
 import { LANDING_FAQS } from "@/content/landing";
-import { SITE_URL } from "@/lib/site";
+import { SHARE_IMAGE, SITE_URL } from "@/lib/site";
 
 const TITLE = "Formkit — the free form builder for client-facing work";
 const DESCRIPTION =
@@ -13,6 +13,7 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   alternates: { canonical: `${SITE_URL}/` },
   openGraph: {
+    images: [SHARE_IMAGE],
     type: "website",
     siteName: "Formkit",
     url: `${SITE_URL}/`,
@@ -21,6 +22,7 @@ export const metadata: Metadata = {
       "Design every question, branch the journey with conditional logic, and read what comes back in one inbox with analytics attached. Free, under your own name.",
   },
   twitter: {
+    images: [SHARE_IMAGE],
     card: "summary_large_image",
     title: TITLE,
     description: "Build forms, add logic, read the responses. Free, under your own link.",

@@ -4,6 +4,19 @@ export const SITE_URL =
 
 export const SITE_NAME = "Formkit";
 
+/**
+ * The picture a shared link shows. Every page that sets its own Open Graph or
+ * Twitter metadata lists it too: a page's `openGraph` replaces the layout's
+ * whole object rather than merging into it, so an image set once at the root
+ * would silently vanish from those pages.
+ */
+export const SHARE_IMAGE = {
+  url: "/og-image.jpg",
+  width: 1200,
+  height: 630,
+  alt: "Formkit — What will your next form do? Design the questions, branch the journey, read what comes back.",
+};
+
 /** Routes the public navigation offers, in order. */
 export const NAV_LINKS = [
   { id: "product", label: "Product", href: "/#ask" },

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { LegalDocument } from "@/components/site/LegalDocument";
 import { JsonLd, breadcrumb } from "@/components/site/JsonLd";
 import { LEGAL_UPDATED, PRIVACY, PRIVACY_FOOT } from "@/content/legal";
-import { SITE_URL } from "@/lib/site";
+import { SHARE_IMAGE, SITE_URL } from "@/lib/site";
 
 const TITLE = "Privacy policy";
 const DESCRIPTION =
@@ -13,6 +13,7 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   alternates: { canonical: `${SITE_URL}/privacy` },
   openGraph: {
+    images: [SHARE_IMAGE],
     type: "article",
     siteName: "Formkit",
     url: `${SITE_URL}/privacy`,

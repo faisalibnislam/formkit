@@ -3,7 +3,7 @@ import { Outfit } from "next/font/google";
 import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import { ConvexClientProvider } from "./ConvexClientProvider";
 import { ToastProvider } from "@/components/ui/Toast";
-import { SITE_URL } from "@/lib/site";
+import { SHARE_IMAGE, SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 /**
@@ -26,10 +26,11 @@ export const metadata: Metadata = {
   description:
     "Build a form, brand it, publish it at your own link, and read the answers in one place. Formkit is free — no plans, no card.",
   openGraph: {
+    images: [SHARE_IMAGE],
     type: "website",
     siteName: "Formkit",
   },
-  twitter: { card: "summary_large_image" },
+  twitter: { card: "summary_large_image", images: [SHARE_IMAGE] },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

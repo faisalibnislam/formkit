@@ -6,7 +6,7 @@ import { PublicPage } from "@/components/site/PublicPage";
 import { HelpSearch } from "@/components/site/HelpSearch";
 import { JsonLd, breadcrumb, organization } from "@/components/site/JsonLd";
 import { HELP_ARTICLES, HELP_CATEGORIES } from "@/content/help";
-import { SITE_URL } from "@/lib/site";
+import { SHARE_IMAGE, SITE_URL } from "@/lib/site";
 
 const TITLE = "Help center";
 const DESCRIPTION = `Guides for building forms, sharing them and reading what comes back — ${HELP_ARTICLES.length} articles across ${HELP_CATEGORIES.length} categories.`;
@@ -16,6 +16,7 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   alternates: { canonical: `${SITE_URL}/help` },
   openGraph: {
+    images: [SHARE_IMAGE],
     type: "website",
     siteName: "Formkit",
     url: `${SITE_URL}/help`,
