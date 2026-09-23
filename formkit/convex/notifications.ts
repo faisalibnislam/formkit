@@ -174,7 +174,7 @@ export const record = internalMutation({
 /* The send itself                                                     */
 /* ------------------------------------------------------------------ */
 
-async function send(
+export async function send(
   payload: {
     to: string[];
     subject: string;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
@@ -14,6 +14,7 @@ import {
   Inbox,
   Layers,
   Lock,
+  MessageSquare,
   Palette,
   Rocket,
   Settings2,
@@ -27,6 +28,10 @@ import { useToast } from "@/components/ui/Toast";
 import { ClientTab, TabSummary } from "./ds";
 import { CloseFormDialog } from "./dialogs/CloseFormDialog";
 import { CollaboratorsDialog } from "./dialogs/CollaboratorsDialog";
+import { CommentsDrawer } from "./dialogs/CommentsDrawer";
+import { PreviewOverlay } from "./dialogs/PreviewOverlay";
+import { useCommentRequests, usePresence, usePresenceBeat } from "./editor/collab";
+import { usePreviewRequests, type PreviewRequest } from "./editor/previewBus";
 import { SaveTemplateDialog } from "./dialogs/SaveTemplateDialog";
 import { PublishDialog } from "./dialogs/PublishDialog";
 import { ShareDialog } from "./dialogs/ShareDialog";
@@ -66,6 +71,15 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
   >(null);
   const known = useRef<string | null>(null);
   const saved = useSaveStatus(form?.updatedAt);
+  const counts = useQuery(api.comments.counts, { formId });
+  const others = usePresence(formId);
+  usePresenceBeat(formId);
+
+  const [preview, setPreview] = useState<PreviewRequest | null>(null);
+  const [comments, setComments] = useState<{ blockId: string | null } | null>(null);
+  usePreviewRequests(useCallback((r: PreviewRequest) => setPreview(r), []));
+  useCommentRequests(useCallback((r: { blockId: string | null }) => setComments(r), []));
+  const openThreads = Object.values(counts ?? {}).reduce((a, b) => a + b, 0);
 
   useEffect(() => resetSaveStatus(), [formId]);
 
@@ -174,6 +188,33 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
+            {others.length > 0 && (
+              <span className="fk-presence" aria-label={`${others.length} other ${others.length === 1 ? "person" : "people"} here`}>
+                {others.slice(0, 4).map((p) => (
+                  <span key={p.userId} className="fk-presence-face" style={{ background: p.color }} title={`${p.name} is here`}>
+                    {p.image ? (
+                      <img src={p.image} alt="" />
+                    ) : (
+                      p.name.split(/\s+/).map((w) => w[0] ?? "").join("").slice(0, 2).toUpperCase()
+                    )}
+                  </span>
+                ))}
+                {others.length > 4 && <span className="fk-presence-face" data-more="true">+{others.length - 4}</span>}
+              </span>
+            )}
+            <span className="fk-bell">
+              <button
+                type="button"
+                className="fk-ring-btn"
+                data-on-sky="true"
+                aria-label={openThreads ? `Comments, ${openThreads} open` : "Comments"}
+                title="Comments"
+                onClick={() => setComments({ blockId: null })}
+              >
+                <MessageSquare size={18} strokeWidth={1.8} aria-hidden />
+              </button>
+              {openThreads > 0 && <span className="fk-bell-count">{openThreads}</span>}
+            </span>
             <span
               style={{
                 position: "relative",
@@ -217,9 +258,12 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
                     <button className="fk-menu-item" role="menuitem" onClick={() => { setActionsOpen(false); setDialog("versions"); }}>
                       <History size={16} strokeWidth={1.8} aria-hidden /> Version history
                     </button>
-                    <Link className="fk-menu-item" role="menuitem" href={`/f/${form.slug}?preview=1`} target="_blank" onClick={() => setActionsOpen(false)}>
+                    <button className="fk-menu-item" role="menuitem" onClick={() => { setActionsOpen(false); setPreview({}); }}>
                       <Eye size={16} strokeWidth={1.8} aria-hidden /> Preview
-                    </Link>
+                    </button>
+                    <button className="fk-menu-item" role="menuitem" onClick={() => { setActionsOpen(false); setComments({ blockId: null }); }}>
+                      <MessageSquare size={16} strokeWidth={1.8} aria-hidden /> Comments
+                    </button>
                     <button className="fk-menu-item" role="menuitem" onClick={() => { setActionsOpen(false); setDialog("share"); }}>
                       <Share2 size={16} strokeWidth={1.8} aria-hidden /> Share
                     </button>
@@ -269,6 +313,22 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
 
       {dialog === "share" && <ShareDialog formId={formId} onClose={() => setDialog(null)} />}
       {dialog === "versions" && <VersionsDialog formId={formId} onClose={() => setDialog(null)} />}
+      {preview && (
+        <PreviewOverlay
+          formId={formId}
+          device={preview.device}
+          closed={preview.closed}
+          onClose={() => setPreview(null)}
+        />
+      )}
+      {comments && (
+        <CommentsDrawer
+          formId={formId}
+          blockId={comments.blockId}
+          onScope={(blockId) => setComments({ blockId })}
+          onClose={() => setComments(null)}
+        />
+      )}
       {dialog === "publish" && (
         <PublishDialog
           formId={formId}
@@ -279,7 +339,7 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
       )}
       {dialog === "people" && <CollaboratorsDialog formId={formId} onClose={() => setDialog(null)} />}
       {dialog === "template" && (
-        <SaveTemplateDialog formId={formId} title={form.title} onClose={() => setDialog(null)} />
+        <SaveTemplateDialog formId={formId} title={form.title} description={form.description} onClose={() => setDialog(null)} />
       )}
       {dialog === "close" && (
         <CloseFormDialog

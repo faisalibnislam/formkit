@@ -19,6 +19,6 @@ p.on("console", (m) => { if (m.type() === "error" && !/Router action|HMR|Fast Re
 await p.goto((process.env.FK_BASE || "http://localhost:3001") + route, { waitUntil: "load" });
 await p.waitForTimeout(2200);
 if (steps && steps !== "-") { const fn = new Function("p", `return (async () => { ${readFileSync(steps, "utf8")} })()`); await fn(p); }
-await p.screenshot({ path: out, fullPage: true });
+await p.screenshot({ path: out, fullPage: process.env.FK_FULL !== "0" });
 console.log(errs.length ? "ERRORS:\n" + errs.join("\n") : "no errors");
 await b.close();

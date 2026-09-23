@@ -370,6 +370,22 @@ export function DesignTab({ formId }: { formId: Id<"forms"> }) {
               Centered reads in a 620px column. Split moves the question to the left and leaves
               room for a logo or image.
             </p>
+            <div style={{ fontSize: 14, fontWeight: 500, marginTop: 10 }}>How questions arrive</div>
+            <Segmented
+              ariaLabel="How questions arrive"
+              size="sm"
+              value={theme.flow}
+              onChange={(flow) => set({ flow })}
+              options={[
+                { value: "classic", label: "Classic" },
+                { value: "conversational", label: "Conversational" },
+              ]}
+            />
+            <p className="fk-proprow-hint" style={{ margin: 0, fontSize: 13.5 }}>
+              {theme.flow === "conversational"
+                ? "One question at a time, with Enter to go on and the submit button always in reach. Suits phones and short forms."
+                : "A page of questions at a time, split wherever you add a page break. Suits anything somebody wants to review before sending."}
+            </p>
           </div>
         )}
 

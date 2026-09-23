@@ -145,12 +145,16 @@ export const create = mutation({
 
     // A saved template is a row; the six Formkit ships with live in code, so
     // they exist on a brand-new deployment with nothing seeded.
-    const template = args.templateSlug
-      ? ((await ctx.db
-          .query("templates")
-          .withIndex("by_slug", (q) => q.eq("slug", args.templateSlug!))
-          .first()) ?? builtinTemplate(args.templateSlug))
-      : null;
+    // Only the person's own saved templates, or a built-in one.
+    const saved = args.templateSlug
+      ? (
+          await ctx.db
+            .query("templates")
+            .withIndex("by_slug", (q) => q.eq("slug", args.templateSlug!))
+            .collect()
+        ).find((t) => t.ownerId === user._id)
+      : undefined;
+    const template = args.templateSlug ? (saved ?? builtinTemplate(args.templateSlug)) : null;
 
     const title = args.title?.trim() || template?.name || "Untitled form";
 
@@ -191,14 +195,41 @@ export const create = mutation({
     });
 
     const blocks = (template?.blocks as unknown[] | undefined) ?? [];
+    const ids: Id<"blocks">[] = [];
     for (const [i, block] of blocks.entries()) {
-      await ctx.db.insert("blocks", { ...storedBlock(block), formId, order: i });
+      ids.push(await ctx.db.insert("blocks", { ...storedBlock(block), formId, order: i }));
+    }
+
+    // Logic travels by position, and is re-pointed at the new questions.
+    const rules = ((template && "rules" in template ? template.rules : undefined) ?? []) as {
+      name: string;
+      enabled: boolean;
+      join: "and" | "or";
+      action: "show" | "hide" | "require" | "jump";
+      targetIndex: number | null;
+      conditions: { index: number | null; operator: string; value?: string }[];
+    }[];
+    for (const [i, r] of rules.entries()) {
+      await ctx.db.insert("logicRules", {
+        formId,
+        name: r.name,
+        enabled: r.enabled,
+        join: r.join,
+        action: r.action,
+        targetId: r.targetIndex !== null ? ids[r.targetIndex] : undefined,
+        conditions: r.conditions.map((c) => ({
+          blockId: c.index !== null ? ids[c.index] : undefined,
+          operator: c.operator,
+          value: c.value,
+        })),
+        order: i,
+      });
     }
 
     await ctx.db.insert("activity", {
       formId,
       userId: user._id,
-      what: template ? `Created from the ${template.name} template` : "Created the form",
+      what: template ? `created the form from the ${template.name} template` : "created the form",
       at: now,
     });
 
@@ -322,7 +353,7 @@ export const publish = mutation({
     await ctx.db.insert("activity", {
       formId,
       userId: user._id,
-      what: number === 1 ? "Published the form" : `Published version ${number}`,
+      what: number === 1 ? "published the form" : `published version ${number}`,
       at: now,
     });
     return null;
@@ -339,7 +370,7 @@ export const unpublish = mutation({
     await ctx.db.insert("activity", {
       formId,
       userId: user._id,
-      what: "Unpublished the form — responses kept",
+      what: "unpublished the form — responses kept",
       at: Date.now(),
     });
     return null;
@@ -380,7 +411,7 @@ export const setClosing = mutation({
       await ctx.db.insert("activity", {
         formId,
         userId: user._id,
-        what: "Closed the form",
+        what: "closed the form",
         at: now,
       });
       return null;
@@ -405,7 +436,7 @@ export const setClosing = mutation({
       await ctx.db.insert("activity", {
         formId,
         userId: user._id,
-        what: "Reopened the form",
+        what: "reopened the form",
         at: now,
       });
       return null;
@@ -641,7 +672,7 @@ export const sweepClosing = mutation({
       await ctx.db.insert("activity", {
         formId: form._id,
         userId: user._id,
-        what: "Closed automatically",
+        what: "set a closing rule that has now closed the form",
         at: now,
       });
       closed++;

@@ -110,3 +110,34 @@ export function renderExport({
     body: `<p style="margin:0;font-size:14.5px;line-height:1.6;color:${INK};">The file is called ${escapeHtml(filename)}. It opens in Numbers, Excel, Google Sheets, or anything else that reads a spreadsheet.</p>`,
   });
 }
+
+/** "Maya added you to Client Onboarding" — an invitation to work on a form. */
+export function renderInvite({
+  inviter,
+  formTitle,
+  role,
+  note,
+  link,
+}: {
+  inviter: string;
+  formTitle: string;
+  role: string;
+  note?: string;
+  link: string;
+}) {
+  const can =
+    role === "editor"
+      ? "You can edit its questions and read its responses."
+      : role === "commenter"
+        ? "You can read it and leave comments."
+        : "You can read it and its responses.";
+  return renderEmailShell({
+    heading: `${inviter} added you to ${formTitle}`,
+    lede: `As ${role === "editor" ? "an Editor" : role === "commenter" ? "a Commenter" : "a Viewer"}. ${can}`,
+    body: `${
+      note
+        ? `<p style="margin:0 0 4px;padding:14px 18px;border-radius:18px;background:${PAPER};font-size:14.5px;line-height:1.6;color:${INK};">${escapeHtml(note)}</p>`
+        : ""
+    }<p style="margin:14px 0 0;font-size:14px;line-height:1.6;color:${MUTED};">Sign in — or make an account — with this email address, and the form is waiting in your list.</p>${button("Open the form", link)}`,
+  });
+}

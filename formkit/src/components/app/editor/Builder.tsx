@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { DragEvent, PointerEvent } from "react";
 import { useMutation, useQuery } from "convex/react";
 import {
@@ -27,6 +27,7 @@ import { FieldPicker } from "./FieldPicker";
 import { FieldSettings, NothingSelected, PageSettings } from "./Inspector";
 import { QuestionPreview } from "./QuestionPreview";
 import { FIELD_GROUPS, defaultTitle, fieldType, matchFieldTypes } from "./fieldTypes";
+import { openComments, setCurrentBlock, usePresence } from "./collab";
 import { tracked } from "./saveStatus";
 
 /**
@@ -99,23 +100,19 @@ function scrollToBlock(id: string) {
   });
 }
 
-export function Builder({
-  formId,
-  onComment,
-  commentCounts,
-  presence,
-}: {
-  formId: Id<"forms">;
-  /** Opens the comments panel on one question. */
-  onComment?: (blockId: Id<"blocks">) => void;
-  /** Open comments per question. */
-  commentCounts?: Record<string, number>;
-  /** Who else is on which question right now. */
-  presence?: Record<string, { name: string; color: string }[]>;
-}) {
+export function Builder({ formId }: { formId: Id<"forms"> }) {
   const toast = useToast();
   const form = useQuery(api.forms.get, { formId });
   const rules = useQuery(api.logic.list, { formId });
+  const commentCounts = useQuery(api.comments.counts, { formId });
+  const others = usePresence(formId);
+  const onComment = (blockId: Id<"blocks">) => openComments(blockId);
+
+  /* Who else is on which question, for the ring and the name on the card. */
+  const presence: Record<string, { name: string; color: string }[]> = {};
+  for (const p of others) {
+    if (p.blockId) (presence[p.blockId] ??= []).push({ name: p.name, color: p.color });
+  }
 
   const addBlock = useMutation(api.blocks.add);
   const updateBlock = useMutation(api.blocks.update);
@@ -135,6 +132,12 @@ export function Builder({
   );
 
   const blocks = useMemo(() => form?.blocks ?? [], [form]);
+
+  // Others see which question this person is on.
+  useEffect(() => {
+    setCurrentBlock(selected);
+    return () => setCurrentBlock(null);
+  }, [selected]);
   const active = blocks.find((b) => b._id === selected) ?? null;
   const library = matchFieldTypes(libTerm);
 
@@ -622,7 +625,7 @@ export function Builder({
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelected(b._id);
-                          onComment?.(b._id);
+                          onComment(b._id);
                         }}
                       >
                         <MessageSquare size={12} strokeWidth={2} aria-hidden />
@@ -718,17 +721,15 @@ export function Builder({
                   >
                     <ChevronDown size={15} strokeWidth={1.8} aria-hidden />
                   </IconButton>
-                  {onComment && (
-                    <IconButton
-                      label="Comment on this question"
-                      onClick={() => {
-                        setSelected(b._id);
-                        onComment(b._id);
-                      }}
-                    >
-                      <MessageSquare size={15} strokeWidth={1.8} aria-hidden />
-                    </IconButton>
-                  )}
+                  <IconButton
+                    label="Comment on this question"
+                    onClick={() => {
+                      setSelected(b._id);
+                      onComment(b._id);
+                    }}
+                  >
+                    <MessageSquare size={15} strokeWidth={1.8} aria-hidden />
+                  </IconButton>
                 </div>
               </article>
             )}

@@ -20,6 +20,8 @@ export type Theme = {
   size: "Small" | "Medium" | "Large";
   weight: "Light" | "Regular" | "Medium" | "Bold";
   layout: "centered" | "wide" | "full" | "split";
+  /** Classic: a page of questions at a time. Conversational: one at a time. */
+  flow: "classic" | "conversational";
   showLogo: boolean;
   /**
    * Up to three logos that sit beside the lead one — the logo of whoever the
@@ -57,6 +59,7 @@ export const DEFAULT_THEME: Theme = {
   size: "Medium",
   weight: "Medium",
   layout: "centered",
+  flow: "classic",
   showLogo: true,
   logos: [],
   logoAlign: "center",

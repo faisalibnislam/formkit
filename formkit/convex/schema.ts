@@ -226,8 +226,13 @@ export default defineSchema({
     note: v.optional(v.string()),
     resumeToken: v.optional(v.string()),
     versionNumber: v.optional(v.number()),
+    /** A random id the respondent's browser keeps, for the per-device rules. */
+    deviceId: v.optional(v.string()),
+    /** Sent from the builder's preview rather than the public link. */
+    preview: v.optional(v.boolean()),
   })
     .index("by_form", ["formId"])
+    .index("by_form_device", ["formId", "deviceId"])
     .index("by_owner", ["ownerId"])
     .index("by_resume", ["resumeToken"]),
 
@@ -253,6 +258,8 @@ export default defineSchema({
     welcome: v.optional(v.any()),
     thanks: v.optional(v.any()),
     theme: v.optional(v.any()),
+    /** Logic rules, pointing at questions by their position in `blocks`. */
+    rules: v.optional(v.array(v.any())),
     keepsTheme: v.optional(v.boolean()),
     keepsLogic: v.optional(v.boolean()),
     keepsCopy: v.optional(v.boolean()),
@@ -287,10 +294,36 @@ export default defineSchema({
     formId: v.optional(v.id("forms")),
     userId: v.id("users"),
     what: v.string(),
+    /** A lucide icon name for the mark beside the line. */
+    icon: v.optional(v.string()),
     at: v.number(),
   })
     .index("by_form", ["formId"])
     .index("by_user", ["userId"]),
+
+  /**
+   * "Copy invite link": anyone who opens it while signed in joins the form in
+   * the role it was made with. It lasts seven days.
+   */
+  joinLinks: defineTable({
+    formId: v.id("forms"),
+    token: v.string(),
+    role: v.union(v.literal("editor"), v.literal("commenter"), v.literal("viewer")),
+    createdBy: v.id("users"),
+    expiresAt: v.number(),
+  })
+    .index("by_token", ["token"])
+    .index("by_form", ["formId"]),
+
+  /** Who has a form open right now, and on which question. */
+  presence: defineTable({
+    formId: v.id("forms"),
+    userId: v.id("users"),
+    blockId: v.optional(v.string()),
+    at: v.number(),
+  })
+    .index("by_form", ["formId"])
+    .index("by_form_user", ["formId", "userId"]),
 
   /** The customer-side record of what Formkit sent on their behalf. */
   emailLog: defineTable({

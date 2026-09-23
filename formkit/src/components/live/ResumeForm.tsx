@@ -2,15 +2,16 @@
 
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import type { Id } from "../../../convex/_generated/dataModel";
+import type { Answer } from "./FormRunner";
 import { LiveForm } from "./LiveForm";
 
 /**
- * Coming back to a form somebody left half-answered.
+ * Coming back to a form: one somebody left half-answered, or — where the form
+ * allows it — one they sent and want to change.
  *
- * The token resolves to the partial response itself, so their answers are put
- * back rather than asked for again, and finishing replaces that record instead
- * of leaving a partial and a complete side by side.
+ * The token resolves to the response itself, so the answers are put back
+ * rather than asked for again, and finishing replaces that record instead of
+ * leaving two side by side.
  */
 export function ResumeForm({ token }: { token: string }) {
   const found = useQuery(api.publicForm.resume, { token });
@@ -22,7 +23,7 @@ export function ResumeForm({ token }: { token: string }) {
       <div className="fk-live">
         <div className="fk-live-inner">
           <h1>That link has already been used</h1>
-          <p style={{ marginTop: 12, opacity: 0.7 }}>
+          <p className="fk-live-lede">
             Either the form was finished, or it is no longer collecting. Ask whoever sent it for a
             fresh link.
           </p>
@@ -31,12 +32,13 @@ export function ResumeForm({ token }: { token: string }) {
     );
   }
 
-  const answers: Record<string, { value?: string; values?: string[]; fileName?: string }> = {};
+  const answers: Record<string, Answer> = {};
   for (const a of found.answers) {
     answers[a.blockId] = {
       ...(a.value !== null ? { value: a.value } : {}),
       ...(a.values !== null ? { values: a.values } : {}),
       ...(a.fileName !== null ? { fileName: a.fileName } : {}),
+      ...(a.fileId !== null ? { fileId: a.fileId } : {}),
     };
   }
 
@@ -44,7 +46,7 @@ export function ResumeForm({ token }: { token: string }) {
     <LiveForm
       slug={found.slug}
       handle={found.handle ?? undefined}
-      resume={{ responseId: found.responseId as Id<"responses">, answers }}
+      resume={{ token, answers, editing: found.editing }}
     />
   );
 }

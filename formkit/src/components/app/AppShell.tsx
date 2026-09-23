@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import {
   Bell,
@@ -84,6 +84,16 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { signOut } = useAuthActions();
 
   const viewer = useQuery(api.users.viewer, {});
+  const acceptPending = useMutation(api.collaborators.acceptPending);
+
+  // Invitations sent to this address before the account existed become live
+  // on the way in.
+  const accepted = useRef(false);
+  useEffect(() => {
+    if (!viewer || accepted.current) return;
+    accepted.current = true;
+    void acceptPending({}).catch(() => {});
+  }, [viewer, acceptPending]);
   const formsList = useQuery(api.forms.list, { filter: "all" });
   const notifications = useQuery(api.notifications.recent, {});
   const analytics = useQuery(api.analytics.overview, {});

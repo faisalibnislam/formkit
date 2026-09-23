@@ -283,6 +283,38 @@ const STAFF_USERS = PEOPLE.slice(0, 6).map(([name, email], i) => ({
   ai: { allowed: i < 2, limit: 25, used: i < 2 ? 3 : 0 },
 }));
 
+/** The form as the runner receives it — for the preview and the public link. */
+const RUNNER = {
+  state: "open",
+  formId: "f1",
+  title: "Client Onboarding",
+  brand: { name: "Studio Nine", logoUrl: null, color: null },
+  logos: [],
+  welcome: FORM_DETAIL.welcome,
+  thanks: FORM_DETAIL.thanks,
+  theme: null,
+  closedMessage: "This form is closed. Thank you to everyone who answered.",
+  uploadCapMb: 10,
+  rules: { spam: true, requireEmail: false, editAfter: true, multiple: true },
+  blocks: BLOCKS.map((b) => ({
+    _id: b._id,
+    kind: b.kind,
+    type: b.type ?? null,
+    title: b.title ?? null,
+    help: b.help || null,
+    placeholder: null,
+    required: !!b.required,
+    options: b.options?.length ? b.options : null,
+    accept: null,
+    scaleMin: null,
+    scaleMax: null,
+    pageName: b.pageName ?? null,
+  })),
+  logic: [],
+  status: "published",
+  url: "formkit.app/studio-nine/client-onboarding",
+};
+
 /** Every query the application reads, by its Convex function name. */
 export const QUERIES: Record<string, unknown> = {
   "users:viewer": VIEWER,
@@ -350,13 +382,37 @@ export const QUERIES: Record<string, unknown> = {
     })),
   },
   "collaborators:list": {
-    members: [
-      { _id: "m1", name: "Maya Ortiz", email: "maya@studionine.co", role: "owner", status: "active" },
-      { _id: "m2", name: "Ravi Menon", email: "ravi@studionine.co", role: "editor", status: "active" },
-      { _id: "m3", name: null, email: "freelance@grainhouse.com", role: "commenter", status: "pending" },
+    myRole: "owner",
+    owner: { _id: "u1", name: "Maya Ortiz", email: "maya@studionine.co", image: null, color: "#2e78bb", you: true, online: true, seen: "Here now" },
+    people: [
+      { _id: "m2", userId: "u2", name: "Ravi Menon", email: "ravi@studionine.co", image: null, color: "#4b9d6e", role: "editor", status: "active", invitedAt: now - 9 * DAY, note: null, you: false, online: true, seen: "Editing a question now" },
+      { _id: "m4", userId: "u4", name: "Ben Carter", email: "ben@northstar.co", image: null, color: "#c4614f", role: "commenter", status: "active", invitedAt: now - 5 * DAY, note: null, you: false, online: false, seen: "Last here 2 hours ago" },
+      { _id: "m3", userId: null, name: null, email: "freelance@grainhouse.com", image: null, color: "#6b8f9c", role: "viewer", status: "pending", invitedAt: now - 2 * DAY, note: null, you: false, online: false, seen: "Has not opened it yet" },
     ],
-    activity: [],
   },
+  "collaborators:activity": [
+    { _id: "a1", who: "Ravi Menon", image: null, color: "#4b9d6e", what: "left a comment", icon: "message-square", at: now - 40 * 60 * 1000 },
+    { _id: "a2", who: "You", image: null, color: "#2e78bb", what: "published version 3", icon: "rocket", at: now - 5 * 60 * 60 * 1000 },
+    { _id: "a3", who: "You", image: null, color: "#2e78bb", what: "invited freelance@grainhouse.com as Viewer", icon: "user-plus", at: now - 2 * DAY },
+  ],
+  "publicForm:preview": RUNNER,
+  "publicForm:bySlug": RUNNER,
+  "comments:counts": { b2: 1 },
+  "comments:list": {
+    canComment: true,
+    threads: [
+      {
+        _id: "c1", blockId: "b2", author: "Ravi Menon", image: null, color: "#4b9d6e",
+        body: "Should this say where the proposal comes from? People will look for our name in their inbox.",
+        createdAt: now - 40 * 60 * 1000, mine: false, canDelete: true, resolved: false,
+        replies: [{ _id: "c2", blockId: "b2", author: "You", image: null, color: "#2e78bb", body: "Good call — adding a line of help text.", createdAt: now - 20 * 60 * 1000, mine: true, canDelete: true }],
+      },
+      { _id: "c3", blockId: null, author: "Ben Carter", image: null, color: "#c4614f", body: "Looks ready from my side.", createdAt: now - DAY, mine: false, canDelete: true, resolved: true, replies: [] },
+    ],
+  },
+  "presence:here": [
+    { userId: "u2", name: "Ravi Menon", image: null, color: "#4b9d6e", blockId: "b4" },
+  ],
   "handles:mine": { handle: "maya", available: null },
   "blocks:list": BLOCKS,
   "logic:list": [
