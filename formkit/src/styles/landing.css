@@ -19,7 +19,27 @@
   overflow-x: clip;
 }
 
+/* The desktop scenes and the phone layout are both rendered; CSS shows one.
+   `display: contents` keeps each scene a flex/flow child of the page, so the
+   sticky shells pin exactly as they did before the wrapper existed. */
+.fk-desk {
+  display: contents;
+}
+.fk-mob {
+  display: none;
+}
+@media (max-width: 820px) {
+  .fk-desk {
+    display: none;
+  }
+  .fk-mob {
+    display: contents;
+  }
+}
+
 .fk-landing > section,
+.fk-desk > section,
+.fk-mob > section,
 .fk-landing > footer {
   margin: 0 var(--fk-gutter) var(--fk-gap);
   border-radius: var(--fk-round);
@@ -29,7 +49,7 @@
 
 /* A pinned scene stays full-bleed and transparent; the rounding, tint and ring
    live on the sticky shell inside it. */
-.fk-landing > section[data-scene] {
+.fk-desk > section[data-scene] {
   margin: 0 0 var(--fk-gap);
   border-radius: 0;
   overflow: visible;
@@ -37,7 +57,7 @@
   box-shadow: none;
 }
 
-.fk-landing > section[data-scene] > .fk-shell {
+.fk-desk > section[data-scene] > .fk-shell {
   position: sticky;
   top: var(--fk-gap);
   height: calc(100vh - var(--fk-gap) * 2);
@@ -437,62 +457,163 @@
   }
 }
 
-/* Phone and small tablet: the pinned scenes cannot work in a short viewport, so
-   they unpin and the horizontal track wraps. The scroll engine detects this and
-   stops driving transforms. */
-@media (max-width: 820px) {
-  .fk-landing > section[data-scene] {
-    height: auto !important;
-  }
-  .fk-landing > section[data-scene] > .fk-shell {
-    position: static !important;
-    height: auto !important;
-    overflow: visible !important;
-  }
-  .fk-builder,
-  .fk-hero-paper {
-    display: none !important;
-  }
-  .fk-hero-stage {
-    min-height: 82vh;
-  }
-  /* These are absolutely positioned on desktop, so they paint after the Night
-     Sky. Unpinned they return to flow, where in-flow inline content paints
-     BEFORE positioned descendants — the sky would cover them. `relative` with a
-     z-index puts them back on top. */
-  .fk-hero-marketing {
-    position: relative !important;
-    z-index: 1;
-    padding: clamp(96px, 18vh, 150px) clamp(20px, 6vw, 40px) clamp(40px, 8vh, 80px) !important;
-  }
-  .fk-hero-cue {
-    position: relative !important;
-    z-index: 1;
-    margin: 0 auto clamp(20px, 4vh, 40px);
-  }
-  .fk-plate {
-    position: relative !important;
-    z-index: 1;
-    opacity: 1 !important;
-    transform: none !important;
-  }
-  .fk-ftrack {
-    flex-wrap: wrap;
-    transform: none !important;
-    gap: 12px;
-  }
-  .fk-fcard {
-    flex: 1 1 260px !important;
-  }
-  .fk-fnav,
-  .fk-fbar {
-    display: none !important;
-  }
+/* Below 820px the desktop scenes are not shown at all; MobileLanding tells the
+   same story in landing-mobile.css. The scroll engine sees the width and stops
+   driving the (hidden) pinned scenes. */
+
+/* ---------- compare and questions (shared by both layouts) ---------- */
+
+.fk-lp-compare,
+.fk-lp-faq {
+  position: relative;
+  padding: clamp(56px, 7vw, 100px) clamp(24px, 7vw, 110px);
+}
+.fk-lp-compare {
+  background: #ffffff;
+}
+.fk-lp-faq {
+  background: var(--blue-50);
 }
 
-@media (max-width: 560px) {
-  .fk-hero-cta a {
-    width: 100%;
+.fk-lp-h2 {
+  margin: 0;
+  max-width: 20ch;
+  font-size: clamp(24px, 3.4vw, 46px);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.04;
+}
+.fk-lp-faq .fk-lp-h2 {
+  max-width: 12ch;
+  font-size: clamp(26px, 4vw, 52px);
+  line-height: 1.02;
+}
+
+.fk-lp-lede {
+  margin: 14px 0 0;
+  max-width: 56ch;
+  font-size: 15.5px;
+  line-height: 1.6;
+  color: var(--neutral-600);
+}
+.fk-lp-faq .fk-lp-lede {
+  margin-top: 16px;
+  max-width: 34ch;
+}
+
+.fk-lp-compare-table {
+  margin-top: clamp(28px, 4vw, 48px);
+}
+
+.fk-lp-close {
+  margin: clamp(24px, 3vw, 40px) 0 0;
+  max-width: 34ch;
+  font-size: clamp(17px, 2vw, 24px);
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+}
+
+.fk-lp-faq-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  gap: clamp(28px, 4vw, 64px);
+  align-items: start;
+}
+
+.fk-lp-faq-links {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 26px;
+  margin-top: 18px;
+}
+.fk-lp-faq-links .fk-pill-light {
+  height: 44px;
+  padding: 0 20px;
+  font-size: 14.5px;
+}
+.fk-lp-faq-links .fk-pill-dark {
+  height: 50px;
+  padding: 0 24px;
+  font-size: 15.5px;
+}
+
+.fk-lp-faq-list {
+  display: flex;
+  flex-direction: column;
+}
+.fk-lp-faq-item {
+  padding: 20px 0;
+  border-top: 1px solid var(--neutral-200);
+}
+.fk-lp-faq-item h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.fk-lp-faq-item p {
+  margin: 9px 0 0;
+  max-width: 58ch;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--neutral-600);
+  text-wrap: pretty;
+}
+
+@media (max-width: 820px) {
+  .fk-lp-compare,
+  .fk-lp-faq {
+    padding: 44px clamp(20px, 5vw, 40px) 40px;
+  }
+  .fk-lp-h2,
+  .fk-lp-faq .fk-lp-h2 {
+    max-width: 16ch;
+    font-size: clamp(28px, 8vw, 40px);
+    line-height: 1.04;
+  }
+  .fk-lp-lede {
+    font-size: 15px;
+  }
+  .fk-lp-compare-table {
+    margin-top: 24px;
+  }
+  .fk-lp-close {
+    font-size: 18px;
+  }
+  /* The questions come straight after the heading; the two links close it. */
+  .fk-lp-faq-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+  .fk-lp-faq-intro {
+    display: contents;
+  }
+  .fk-lp-faq-intro > :not(.fk-lp-faq-links) {
+    order: 0;
+  }
+  .fk-lp-faq-list {
+    order: 1;
+  }
+  .fk-lp-faq-links {
+    order: 2;
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 10px;
+    margin-top: 6px;
+  }
+  .fk-lp-faq-links .fk-pill {
     justify-content: center;
+    height: 50px;
+  }
+  .fk-lp-faq-item {
+    padding: 18px 0;
+  }
+  .fk-lp-faq-item h3 {
+    font-size: 16.5px;
+  }
+  .fk-lp-faq-item p {
+    font-size: 14.5px;
   }
 }

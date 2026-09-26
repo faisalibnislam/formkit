@@ -15,6 +15,7 @@ import { AnswerScene } from "./AnswerScene";
 import { InboxScene } from "./InboxScene";
 import { AnalyticsScene } from "./AnalyticsScene";
 import { FeaturesScene } from "./FeaturesScene";
+import { MobileLanding } from "./MobileLanding";
 import { createEngine, UNPIN_AT, type Engine } from "./scrollEngine";
 
 /**
@@ -133,151 +134,63 @@ export function LandingPage() {
 
   return (
     <div ref={root} className="fk-landing">
-      <a className="fk-skip" href="#ask">
+      <a className="fk-skip" href="#content">
         Skip to content
       </a>
       <SiteNav current="product" />
+      <span id="content" tabIndex={-1} />
 
-      <HeroScene />
-      <ShapeScene />
-      <AnswerScene />
-      <InboxScene />
-      <AnalyticsScene />
-      <FeaturesScene onStep={stepFeatures} />
+      {/* Two tellings of the same story; CSS shows the one that fits. */}
+      <div className="fk-desk">
+        <HeroScene />
+        <ShapeScene />
+        <AnswerScene />
+        <InboxScene />
+        <AnalyticsScene />
+        <FeaturesScene onStep={stepFeatures} />
+      </div>
+      <MobileLanding />
 
-      <section
-        style={{
-          position: "relative",
-          background: "#ffffff",
-          padding: "clamp(56px,7vw,100px) clamp(24px,7vw,110px)",
-        }}
-      >
-        <h2
-          style={{
-            margin: 0,
-            maxWidth: "20ch",
-            fontSize: "clamp(24px,3.4vw,46px)",
-            fontWeight: 700,
-            letterSpacing: "-.035em",
-            lineHeight: 1.04,
-          }}
-        >
-          Three ways to ask a question.
-        </h2>
-        <p
-          style={{
-            margin: "14px 0 0",
-            maxWidth: "56ch",
-            fontSize: 15.5,
-            lineHeight: 1.6,
-            color: "var(--neutral-600)",
-          }}
-        >
+      <section id="compare" className="fk-lp-compare">
+        <h2 className="fk-lp-h2">Three ways to ask a question.</h2>
+        <p className="fk-lp-lede">
           Based on what each one gives you for free in {COMPARE_ASOF}. Paid plans differ, and all
           three are good tools.
         </p>
-
-        <div style={{ marginTop: "clamp(28px,4vw,48px)" }}>
+        <div className="fk-lp-compare-table">
           <CompareTable />
         </div>
-
-        <p
-          style={{
-            margin: "clamp(24px,3vw,40px) 0 0",
-            maxWidth: "34ch",
-            fontSize: "clamp(17px,2vw,24px)",
-            lineHeight: 1.35,
-            letterSpacing: "-.02em",
-          }}
-        >
+        <p className="fk-lp-close">
           Pick the tool that fits the job. Pick Formkit when the form is part of how people see
           you.
         </p>
       </section>
 
-      <section
-        id="faq"
-        style={{
-          position: "relative",
-          background: "var(--blue-50)",
-          padding: "clamp(56px,7vw,100px) clamp(24px,7vw,110px)",
-        }}
-      >
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit,minmax(min(300px,100%),1fr))",
-            gap: "clamp(28px,4vw,64px)",
-            alignItems: "start",
-          }}
-        >
-          <div>
-            <h2
-              style={{
-                margin: 0,
-                maxWidth: "12ch",
-                fontSize: "clamp(26px,4vw,52px)",
-                fontWeight: 700,
-                letterSpacing: "-.035em",
-                lineHeight: 1.02,
-              }}
-            >
-              Questions people ask
-            </h2>
-            <p
-              style={{
-                margin: "16px 0 0",
-                maxWidth: "34ch",
-                fontSize: 15.5,
-                lineHeight: 1.6,
-                color: "var(--neutral-600)",
-              }}
-            >
+      <section id="faq" className="fk-lp-faq">
+        <div className="fk-lp-faq-grid">
+          <div className="fk-lp-faq-intro">
+            <h2 className="fk-lp-h2">Questions people ask</h2>
+            <p className="fk-lp-lede">
               The rest is in the help center: {HELP_ARTICLES.length} articles on building forms,
               sharing them and reading the answers.
             </p>
-            <Link
-              href="/help"
-              className="fk-pill fk-pill-light"
-              style={{ height: 44, padding: "0 20px", marginTop: 18, fontSize: 14.5 }}
-            >
-              Visit the help center
-              <ArrowUpRight size={16} strokeWidth={1.8} aria-hidden />
-            </Link>
-            <br />
-            <Link
-              href="/signup"
-              className="fk-pill fk-pill-dark"
-              style={{ height: 50, padding: "0 24px", marginTop: 26, fontSize: 15.5 }}
-            >
-              Start building free
-              <ArrowRight size={17} strokeWidth={1.8} aria-hidden />
-            </Link>
+            <div className="fk-lp-faq-links">
+              <Link href="/help" className="fk-pill fk-pill-light">
+                Visit the help center
+                <ArrowUpRight size={16} strokeWidth={1.8} aria-hidden />
+              </Link>
+              <Link href="/signup" className="fk-pill fk-pill-dark">
+                Start building free
+                <ArrowRight size={17} strokeWidth={1.8} aria-hidden />
+              </Link>
+            </div>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column" }}>
+          <div className="fk-lp-faq-list">
             {LANDING_FAQS.map((f) => (
-              <div
-                key={f.q}
-                style={{ padding: "20px 0", borderTop: "1px solid var(--neutral-200)" }}
-              >
-                <h3
-                  style={{ margin: 0, fontSize: 17, fontWeight: 500, letterSpacing: "-.01em" }}
-                >
-                  {f.q}
-                </h3>
-                <p
-                  style={{
-                    margin: "9px 0 0",
-                    maxWidth: "58ch",
-                    fontSize: 15,
-                    lineHeight: 1.6,
-                    color: "var(--neutral-600)",
-                    textWrap: "pretty",
-                  }}
-                >
-                  {f.a}
-                </p>
+              <div key={f.q} className="fk-lp-faq-item">
+                <h3>{f.q}</h3>
+                <p>{f.a}</p>
               </div>
             ))}
           </div>

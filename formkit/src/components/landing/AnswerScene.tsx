@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { ArrowLeft, ArrowRight, CircleCheck, Lock, Paperclip } from "lucide-react";
 import { BRAND_CHOICES, LIVE_QUESTIONS } from "@/content/landing";
 
@@ -11,11 +11,15 @@ import { BRAND_CHOICES, LIVE_QUESTIONS } from "@/content/landing";
  * screen, and hands control over permanently the moment the visitor touches it.
  * Reduced motion skips the auto-advance entirely.
  */
-const STEP_PROGRESS = [72, 82, 100];
-const STEP_QUESTION = [8, 9, 11];
+export const STEP_PROGRESS = [72, 82, 100];
+export const STEP_QUESTION = [8, 9, 11];
 
-export function AnswerScene() {
-  const section = useRef<HTMLElement | null>(null);
+/**
+ * The live form's state, shared by the desktop scene and the phone layout: it
+ * walks itself through the steps while on screen and stops for good the moment
+ * the visitor touches it.
+ */
+export function useLiveForm(section: RefObject<HTMLElement | null>) {
   const [step, setStep] = useState(0);
   const [chosen, setChosen] = useState<string | null>(null);
   const [attached, setAttached] = useState(false);
@@ -44,7 +48,8 @@ export function AnswerScene() {
       const el = section.current;
       if (!el) return;
       const r = el.getBoundingClientRect();
-      const onScreen = r.bottom > 0 && r.top < window.innerHeight;
+      // A hidden layout measures as an empty box at the origin.
+      const onScreen = r.height > 0 && r.bottom > 0 && r.top < window.innerHeight;
       if (!onScreen) return;
       // On the choice step the demo picks an option before moving on, so the
       // visitor sees the selection happen rather than a bare page turn.
@@ -55,9 +60,35 @@ export function AnswerScene() {
       });
     }, 3000);
     return () => window.clearInterval(id);
-  }, [advance, manual, step]);
+  }, [advance, manual, section, step]);
 
-  const nextLabel = step === 1 ? "Submit" : step === 2 ? "Start again" : "Continue";
+  return {
+    step,
+    chosen,
+    attached,
+    nextLabel: step === 1 ? "Submit" : step === 2 ? "Start again" : "Continue",
+    choose: (id: string) => {
+      takeOver();
+      setChosen(id);
+    },
+    attach: () => {
+      takeOver();
+      setAttached(true);
+    },
+    back: () => {
+      takeOver();
+      setStep((s) => Math.max(0, s - 1));
+    },
+    next: () => {
+      takeOver();
+      advance();
+    },
+  };
+}
+
+export function AnswerScene() {
+  const section = useRef<HTMLElement | null>(null);
+  const { step, chosen, attached, nextLabel, choose, attach, back, next } = useLiveForm(section);
 
   return (
     <section
@@ -217,10 +248,7 @@ export function AnswerScene() {
                         type="button"
                         className="fk-live-choice"
                         data-on={chosen === b.id}
-                        onClick={() => {
-                          takeOver();
-                          setChosen(b.id);
-                        }}
+                        onClick={() => choose(b.id)}
                       >
                         <BrandMark brand={b} size={22} />
                         <span
@@ -264,10 +292,7 @@ export function AnswerScene() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => {
-                      takeOver();
-                      setAttached(true);
-                    }}
+                    onClick={attach}
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -374,10 +399,7 @@ export function AnswerScene() {
             >
               <button
                 type="button"
-                onClick={() => {
-                  takeOver();
-                  setStep((s) => Math.max(0, s - 1));
-                }}
+                onClick={back}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -398,10 +420,7 @@ export function AnswerScene() {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  takeOver();
-                  advance();
-                }}
+                onClick={next}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -542,7 +561,7 @@ export function AnswerScene() {
 }
 
 /** An invented mark, shown only as a selectable answer inside this question. */
-function BrandMark({
+export function BrandMark({
   brand,
   size,
 }: {

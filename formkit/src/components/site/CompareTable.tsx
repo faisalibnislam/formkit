@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { Check, Minus, X } from "lucide-react";
 import { COMPARE_ROWS, COLUMNS, type Cell } from "@/content/compare";
 
@@ -45,7 +48,8 @@ export function CompareTable({ columns }: { columns?: (0 | 1 | 2)[] }) {
   const shown = columns ?? [0, 1, 2];
 
   return (
-    <div className="fk-scroll-x">
+    <>
+      <div className="fk-scroll-x fk-cmp-table">
       <table
         style={{
           width: "100%",
@@ -123,6 +127,64 @@ export function CompareTable({ columns }: { columns?: (0 | 1 | 2)[] }) {
           ))}
         </tbody>
       </table>
+      </div>
+      <CompareList shown={shown} />
+    </>
+  );
+}
+
+/**
+ * The same matrix on a phone, where three columns of notes cannot sit side by
+ * side: one product against Formkit at a time, each capability a row.
+ */
+function CompareList({ shown }: { shown: (0 | 1 | 2)[] }) {
+  const rivals = shown.filter((i) => COLUMNS[i] !== "Formkit");
+  const formkit = shown.find((i) => COLUMNS[i] === "Formkit");
+  const [rival, setRival] = useState(rivals[0]);
+
+  return (
+    <div className="fk-cmp-list">
+      {rivals.length > 1 && (
+        <div className="fk-cmp-pick" role="radiogroup" aria-label="Compare Formkit with">
+          {rivals.map((i) => (
+            <button
+              key={COLUMNS[i]}
+              type="button"
+              role="radio"
+              aria-checked={rival === i}
+              onClick={() => setRival(i)}
+            >
+              {COLUMNS[i]}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="fk-cmp-cols" aria-hidden>
+        <span />
+        {rival !== undefined && <span>{COLUMNS[rival]}</span>}
+        {formkit !== undefined && <span data-us>Formkit</span>}
+      </div>
+      <ul>
+        {COMPARE_ROWS.map((row) => (
+          <li key={row.label}>
+            <span className="fk-cmp-label">{row.label}</span>
+            <span className="fk-cmp-cells">
+              {rival !== undefined && (
+                <span>
+                  <span className="sr-only">{COLUMNS[rival]}: </span>
+                  <Mark cell={row.cells[rival]} />
+                </span>
+              )}
+              {formkit !== undefined && (
+                <span data-us>
+                  <span className="sr-only">Formkit: </span>
+                  <Mark cell={row.cells[formkit]} />
+                </span>
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

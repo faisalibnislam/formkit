@@ -250,7 +250,8 @@ export function createEngine(root: HTMLElement) {
     let my = 0;
     const onMove = (event: PointerEvent) => {
       const r = stage.getBoundingClientRect();
-      if (r.bottom < 0 || r.top > window.innerHeight) return;
+      // Hidden (the phone layout is showing) it measures as an empty box.
+      if (!r.width || r.bottom < 0 || r.top > window.innerHeight) return;
       mx = (event.clientX - (r.left + r.width / 2)) / Math.max(1, r.width / 2);
       my = (event.clientY - (r.top + r.height / 2)) / Math.max(1, r.height / 2);
     };
@@ -260,7 +261,7 @@ export function createEngine(root: HTMLElement) {
     let raf = requestAnimationFrame(function tick(now: number) {
       const r = stage.getBoundingClientRect();
       // Off screen the loop keeps its clock but writes nothing.
-      if (r.bottom > -100 && r.top < window.innerHeight + 100) {
+      if (r.height > 0 && r.bottom > -100 && r.top < window.innerHeight + 100) {
         const t = (now - t0) / 1000;
         els.forEach((el, i) => {
           const depth = parseFloat(el.getAttribute("data-float") ?? "") || 20;
