@@ -737,6 +737,8 @@
   opacity: 1;
   transform: translate(-50%, 0);
 }
+/* Escape hides a tip until the pointer or focus moves on (useTipEscape). */
+[data-tip][data-tip-off]::after,
 [data-tip][aria-expanded="true"]::after {
   opacity: 0;
 }

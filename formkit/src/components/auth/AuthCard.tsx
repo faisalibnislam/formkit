@@ -60,7 +60,10 @@ export function AuthCard({ initialView }: { initialView: View }) {
   const router = useRouter();
   const params = useSearchParams();
 
-  const [view, setView] = useState<View>(initialView);
+  // `/signin?view=forgot` opens straight on the reset form.
+  const [view, setView] = useState<View>(() =>
+    initialView === "signin" && params.get("view") === "forgot" ? "forgot" : initialView,
+  );
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

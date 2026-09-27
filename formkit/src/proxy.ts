@@ -19,7 +19,23 @@ import {
 const isSignedInOnly = createRouteMatcher(["/app(.*)", "/admin(.*)", "/onboarding(.*)"]);
 const isAuthPage = createRouteMatcher(["/signin", "/signup"]);
 
+/**
+ * `/app?view=…` is how links into auth and onboarding are written — from
+ * emails and the marketing site — so each lands on its own page.
+ */
+const VIEWS: Record<string, string> = {
+  signin: "/signin",
+  signup: "/signup",
+  forgot: "/signin?view=forgot",
+  setup: "/onboarding",
+};
+
 export const proxy = convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
+  const view = request.nextUrl.searchParams.get("view");
+  if (view && VIEWS[view] && request.nextUrl.pathname.startsWith("/app")) {
+    return nextjsMiddlewareRedirect(request, VIEWS[view]);
+  }
+
   const authed = await convexAuth.isAuthenticated();
 
   if (isSignedInOnly(request) && !authed) {

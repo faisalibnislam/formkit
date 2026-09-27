@@ -31,7 +31,10 @@ import { CreateFormDialog } from "./CreateFormDialog";
 import { NotificationsDrawer } from "./NotificationsDrawer";
 import { AskProvider } from "./ai/AskProvider";
 import { AskDock } from "./ai/AskDock";
+import { AppScrollbar } from "./AppScrollbar";
+import { SupportBanner, SupportView } from "./SupportView";
 import { useToast } from "@/components/ui/Toast";
+import { useEscape, useTipEscape } from "@/components/ui/useEscape";
 import { useInboxAlerts } from "./useInboxAlerts";
 import { CommandPalette } from "./CommandPalette";
 import { EditorHeader } from "./EditorHeader";
@@ -131,6 +134,8 @@ function AppFrame({ children }: { children: ReactNode }) {
   const { signOut } = useAuthActions();
 
   const viewer = useQuery(api.users.viewer, {});
+  // `?viewAs=` is staff only; for anyone else it is ignored.
+  const supportUser = viewer?.staffRole ? (search.get("viewAs") as Id<"users"> | null) : null;
   const acceptPending = useMutation(api.collaborators.acceptPending);
   const touch = useMutation(api.security.touch);
 
@@ -183,6 +188,9 @@ function AppFrame({ children }: { children: ReactNode }) {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  useEscape(menuOpen, () => setMenuOpen(false));
+  useEscape(accountOpen, () => setAccountOpen(false));
+  useTipEscape();
   const [floating, setFloating] = useState(false);
 
   const headerRef = useRef<HTMLElement>(null);
@@ -480,7 +488,13 @@ function AppFrame({ children }: { children: ReactNode }) {
             </span>
 
             <Link href="/app" className="fk-app-home" aria-label="Formkit — go to dashboard">
-              <Logo tone="inverse" />
+              {/* A narrow phone has room for the mark or the actions, not both. */}
+              <span className="fk-app-logo-full">
+                <Logo tone="inverse" />
+              </span>
+              <span className="fk-app-logo-mark">
+                <Logo tone="inverse" wordmark={false} size={24} />
+              </span>
             </Link>
           </div>
 
@@ -677,10 +691,26 @@ function AppFrame({ children }: { children: ReactNode }) {
 
       {createOpen && <CreateFormDialog onClose={() => setCreateOpen(false)} />}
       {bellOpen && <NotificationsDrawer onClose={() => setBellOpen(false)} />}
-      {paletteOpen && <CommandPalette onClose={() => setPaletteOpen(false)} />}
+      {paletteOpen && (
+        <CommandPalette onClose={() => setPaletteOpen(false)} onCreate={() => setCreateOpen(true)} />
+      )}
       {viewer?.ai.allowed && <AskDock />}
+      <AppScrollbar />
     </div>
   );
+
+  // A support view is the customer's account alone: none of the staff member's
+  // own greeting, tabs or actions, so the two can never be confused.
+  if (supportUser) {
+    return (
+      <div className="fk-app fk-support">
+        <SupportBanner who={search.get("who") || "this account"} />
+        <main className="fk-app-main" id="fk-app-main">
+          <SupportView userId={supportUser} />
+        </main>
+      </div>
+    );
+  }
 
   // Ask Formkit exists only for an account on the allow-list: without it there
   // is no provider, no launcher and no drawer to find.

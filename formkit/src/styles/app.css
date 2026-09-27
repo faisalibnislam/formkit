@@ -6074,3 +6074,128 @@
     animation: none;
   }
 }
+
+/* Command palette */
+.fk-palette-list {
+  max-height: min(56vh, 460px);
+  margin-top: 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.fk-palette-group {
+  padding: 12px 4px 6px;
+  font-size: 12.5px;
+  color: var(--color-text-tertiary);
+}
+.fk-palette-list > div:first-child .fk-palette-group {
+  padding-top: 2px;
+}
+.fk-palette-row[aria-selected="true"] {
+  background: var(--neutral-100);
+}
+.fk-palette-empty {
+  margin: 8px 2px;
+  font-size: 14.5px;
+  color: var(--color-text-tertiary);
+}
+.fk-palette-keys {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--neutral-150);
+  font-size: 12.5px;
+  color: var(--color-text-tertiary);
+}
+@media (hover: none) {
+  .fk-palette-keys {
+    display: none;
+  }
+}
+
+/* The app's own page scrollbar (AppScrollbar.tsx). The browser's is hidden
+   only while it is mounted, and only for a mouse. */
+html.fk-own-bar {
+  scrollbar-width: none;
+}
+html.fk-own-bar::-webkit-scrollbar {
+  display: none;
+}
+.fk-bar-thumb {
+  position: fixed;
+  top: 0;
+  right: 3px;
+  z-index: 900;
+  width: 8px;
+  border-radius: 999px;
+  background: rgba(15, 32, 54, 0.22);
+  cursor: grab;
+  touch-action: none;
+  transition:
+    background var(--duration-base, 0.2s) var(--ease-soft, ease),
+    width 0.15s ease;
+}
+.fk-bar-thumb:hover,
+.fk-bar-thumb[data-active="true"] {
+  background: rgba(15, 32, 54, 0.45);
+}
+.fk-bar-thumb[data-dragging="true"] {
+  cursor: grabbing;
+}
+
+/* Support view (SupportView.tsx): staff reading a customer's account. */
+.fk-support-banner {
+  position: sticky;
+  top: 0;
+  z-index: 95;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px clamp(16px, 3vw, 28px);
+  background: var(--neutral-950);
+  font-size: 14px;
+  color: var(--neutral-0);
+}
+.fk-support-banner strong {
+  font-weight: 500;
+}
+.fk-support-leave {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  background: var(--neutral-0);
+  font-size: 13px;
+  color: var(--neutral-900);
+}
+.fk-support-leave:hover {
+  color: var(--neutral-900);
+  box-shadow: var(--shadow-md);
+}
+
+/* The header on a narrow phone: the full wordmark would collide with five
+   44px controls, so the mark stands in for it. */
+.fk-app-home .fk-app-logo-mark {
+  display: none;
+}
+@media (max-width: 420px) {
+  .fk-app-home .fk-app-logo-full {
+    display: none;
+  }
+  .fk-app-home .fk-app-logo-mark {
+    display: block;
+  }
+}
+.fk-support .fk-app-main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding-top: 28px;
+}
+.fk-support .fk-app-main > .fk-panel {
+  width: 100%;
+}

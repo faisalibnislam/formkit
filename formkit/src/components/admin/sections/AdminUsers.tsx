@@ -108,6 +108,23 @@ export function AdminUsers({ permissions }: { permissions: string[] }) {
               <p className="fk-panel-lede">
                 {current.email} · joined {fullTime(current.joinedAt)}
               </p>
+              {permissions.includes("users.view") && (
+                <div style={{ margin: "-4px 0 18px" }}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() =>
+                      window.open(
+                        `/app?viewAs=${current._id}&who=${encodeURIComponent(current.name || current.email || "")}`,
+                        "_blank",
+                        "noopener",
+                      )
+                    }
+                  >
+                    Open support view
+                  </Button>
+                </div>
+              )}
 
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 {permissions.includes("ai.access") && (

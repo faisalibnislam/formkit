@@ -436,6 +436,15 @@ const RUNNER = {
 
 /** Every query the application reads, by its Convex function name. */
 export const QUERIES: Record<string, unknown> = {
+  "admin:supportView": {
+    who: "Jonas Sand",
+    email: "jonas@fieldnote.app",
+    forms: [
+      { _id: "sv1", title: "Fieldnote beta feedback", status: "published", responses: 64, updatedAt: Date.now() - 3 * 3600_000 },
+      { _id: "sv2", title: "App store survey", status: "draft", responses: 0, updatedAt: Date.now() - 4 * 86400_000 },
+      { _id: "sv3", title: "Launch waitlist", status: "closed", responses: 312, updatedAt: Date.now() - 21 * 86400_000 },
+    ],
+  },
   "users:viewer": VIEWER,
   "companies:list": COMPANIES.map((c) => ({ ...c, formCount: 4, logoId: null, ownerId: "u1" })),
   "forms:list": {

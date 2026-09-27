@@ -25,6 +25,7 @@ import {
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { useToast } from "@/components/ui/Toast";
+import { useEscape } from "@/components/ui/useEscape";
 import { ClientTab, TabSummary } from "./ds";
 import { CloseFormDialog } from "./dialogs/CloseFormDialog";
 import { CollaboratorsDialog } from "./dialogs/CollaboratorsDialog";
@@ -66,6 +67,7 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
 
   const [title, setTitle] = useState("");
   const [actionsOpen, setActionsOpen] = useState(false);
+  useEscape(actionsOpen, () => setActionsOpen(false));
   const [dialog, setDialog] = useState<
     null | "share" | "versions" | "people" | "template" | "close" | "publish"
   >(null);
@@ -86,10 +88,12 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
   // link to the same form (a notification, say) sets it again and is obeyed.
   useEffect(() => {
     const want = search.get("open");
-    // `open` also carries a response id for the inbox; only these three are ours.
-    if (want !== "preview" && want !== "share" && want !== "comments") return;
+    // `open` also carries a response id for the inbox; only these are ours.
+    if (want !== "preview" && want !== "share" && want !== "comments" && want !== "publish") return;
     const t = window.setTimeout(() => {
       if (want === "preview") setPreview({});
+      // The command palette's "Publish this form"; a closed form reopens instead.
+      else if (want === "publish") setDialog(form?.status === "closed" ? "close" : "publish");
       else if (want === "share") setDialog("share");
       else if (want === "comments") setComments({ blockId: null });
       const next = new URLSearchParams(search.toString());
@@ -97,7 +101,7 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
       router.replace(`${pathname}${next.size ? `?${next}` : ""}`, { scroll: false });
     }, 0);
     return () => window.clearTimeout(t);
-  }, [pathname, router, search]);
+  }, [pathname, router, search, form?.status]);
   useCommentRequests(useCallback((r: { blockId: string | null }) => setComments(r), []));
   const openThreads = Object.values(counts ?? {}).reduce((a, b) => a + b, 0);
 
