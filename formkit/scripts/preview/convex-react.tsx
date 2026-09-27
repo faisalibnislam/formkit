@@ -10,7 +10,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { getFunctionName } from "convex/server";
-import { fixtureFor } from "./fixtures";
+import { aiReply, fixtureFor } from "./fixtures";
 
 function nameOf(reference: unknown) {
   try {
@@ -48,6 +48,14 @@ export function useMutation(reference: unknown) {
 }
 
 export function useAction(reference: unknown) {
+  const name = nameOf(reference);
+  if (name === "ai:run") {
+    // A stand-in reply after a short wait, so the working steps show.
+    return (async (args: { text: string; formId?: string; draft?: unknown }) => {
+      await new Promise((r) => setTimeout(r, 1800));
+      return aiReply(args);
+    }) as never;
+  }
   return useMutation(reference);
 }
 

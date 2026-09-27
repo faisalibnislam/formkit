@@ -50,7 +50,8 @@ npx convex env set --prod AUTH_RESEND_KEY re_...                 # Resend, send-
 npx convex env set --prod AUTH_EMAIL_FROM "Formkit <hello@formkit.app>"
 npx convex env set --prod SITE_URL        https://formkit.app    # links inside notification emails
 npx convex env set --prod STAFF_EMAILS    you@formkit.app        # who gets the admin console
-npx convex env set --prod ANTHROPIC_API_KEY sk-ant-...           # only if Ask Formkit is to work
+npx convex env set --prod GEMINI_API_KEY  ...                    # Gemini API key; only if Ask Formkit is to work
+npx convex env set --prod GEMINI_MODEL    gemini-3.8-flash       # optional: tried first, before the built-in list
 ```
 
 `STAFF_EMAILS` is how the first staff account comes to exist. The console at
@@ -60,8 +61,11 @@ listed here get the owner role the first time they sign in; after that every
 role is changed from inside the console, where the change is audited.
 
 Without `AUTH_RESEND_KEY` nothing is sent and every attempt is written to the
-customer's email log as failed, with the reason. Without `ANTHROPIC_API_KEY`
-Ask Formkit refuses and says which variable is missing. Neither fails silently.
+customer's email log as failed, with the reason. Without `GEMINI_API_KEY`
+Ask Formkit answers that it is not connected, and the admin console's AI page
+shows "No key". Neither fails silently. A busy or retired model hands the
+request to the next one in `convex/model/gemini.ts`, and a failed request never
+spends a credit.
 
 ## Deploying
 

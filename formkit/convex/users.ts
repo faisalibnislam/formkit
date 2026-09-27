@@ -121,7 +121,9 @@ export const viewer = query({
       staffRole: user.staffRole ?? null,
       ai: {
         allowed,
-        used: allowed ? (user.aiUsed ?? 0) : 0,
+        // Credits count within the month; last month's use has already reset.
+        used:
+          allowed && user.aiPeriod === new Date().toISOString().slice(0, 7) ? (user.aiUsed ?? 0) : 0,
         limit: allowed ? await aiLimit(ctx, user._id) : 0,
         // Live is the default; a saved `false` from before that change is not
         // the same as the person choosing patterns, which `aiLiveSet` records.

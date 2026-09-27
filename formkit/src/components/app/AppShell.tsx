@@ -29,6 +29,9 @@ import { Logo } from "@/components/brand/Logo";
 import { PillTabs } from "@/components/ui";
 import { CreateFormDialog } from "./CreateFormDialog";
 import { NotificationsDrawer } from "./NotificationsDrawer";
+import { AskProvider } from "./ai/AskProvider";
+import { AskDock } from "./ai/AskDock";
+import { useToast } from "@/components/ui/Toast";
 import { useInboxAlerts } from "./useInboxAlerts";
 import { CommandPalette } from "./CommandPalette";
 import { EditorHeader } from "./EditorHeader";
@@ -152,6 +155,20 @@ function AppFrame({ children }: { children: ReactNode }) {
   const inbox = useQuery(api.inbox.list, {});
   const newResponses = useQuery(api.responses.unreadCount, {});
   useInboxAlerts(inbox);
+
+  // Ask Formkit being turned on or off while the app is open is news.
+  const toastAccess = useToast();
+  const aiWas = useRef<boolean | null>(null);
+  const aiNow = viewer?.ai.allowed;
+  useEffect(() => {
+    if (aiNow === undefined) return;
+    if (aiWas.current !== null && aiWas.current !== aiNow) {
+      toastAccess(aiNow ? "Ask Formkit is on for your account" : "Ask Formkit is off for now", {
+        detail: aiNow ? "Find it in the corner, or under Ask in the tabs." : "Everything it built for you is still in your forms.",
+      });
+    }
+    aiWas.current = aiNow;
+  }, [aiNow, toastAccess]);
   const analytics = useQuery(api.analytics.overview, {});
   const templates = useQuery(api.templates.list, {});
 
@@ -403,7 +420,7 @@ function AppFrame({ children }: { children: ReactNode }) {
     ? { eyebrow: "", title: "Settings", sub: "Your account, companies, sharing and exports." }
     : heroes[current];
 
-  return (
+  const frame = (
     <div className="fk-app">
       <a className="fk-skip" href="#fk-app-main">
         Skip to content
@@ -661,6 +678,17 @@ function AppFrame({ children }: { children: ReactNode }) {
       {createOpen && <CreateFormDialog onClose={() => setCreateOpen(false)} />}
       {bellOpen && <NotificationsDrawer onClose={() => setBellOpen(false)} />}
       {paletteOpen && <CommandPalette onClose={() => setPaletteOpen(false)} />}
+      {viewer?.ai.allowed && <AskDock />}
     </div>
+  );
+
+  // Ask Formkit exists only for an account on the allow-list: without it there
+  // is no provider, no launcher and no drawer to find.
+  return viewer?.ai.allowed ? (
+    <AskProvider key={viewer._id} userId={viewer._id} limit={viewer.ai.limit} used={viewer.ai.used}>
+      {frame}
+    </AskProvider>
+  ) : (
+    frame
   );
 }

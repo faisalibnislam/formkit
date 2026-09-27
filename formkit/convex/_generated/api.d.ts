@@ -28,13 +28,16 @@ import type * as http from "../http.js";
 import type * as inbox from "../inbox.js";
 import type * as logic from "../logic.js";
 import type * as model_access from "../model/access.js";
+import type * as model_aiIntent from "../model/aiIntent.js";
 import type * as model_builtinTemplates from "../model/builtinTemplates.js";
 import type * as model_forms from "../model/forms.js";
+import type * as model_gemini from "../model/gemini.js";
 import type * as model_handles from "../model/handles.js";
 import type * as model_identity from "../model/identity.js";
 import type * as model_inbox from "../model/inbox.js";
 import type * as model_security from "../model/security.js";
 import type * as model_sheet from "../model/sheet.js";
+import type * as model_themePresets from "../model/themePresets.js";
 import type * as model_totp from "../model/totp.js";
 import type * as notifications from "../notifications.js";
 import type * as presence from "../presence.js";
@@ -73,13 +76,16 @@ declare const fullApi: ApiFromModules<{
   "inbox": typeof inbox,
   "logic": typeof logic,
   "model/access": typeof model_access,
+  "model/aiIntent": typeof model_aiIntent,
   "model/builtinTemplates": typeof model_builtinTemplates,
   "model/forms": typeof model_forms,
+  "model/gemini": typeof model_gemini,
   "model/handles": typeof model_handles,
   "model/identity": typeof model_identity,
   "model/inbox": typeof model_inbox,
   "model/security": typeof model_security,
   "model/sheet": typeof model_sheet,
+  "model/themePresets": typeof model_themePresets,
   "model/totp": typeof model_totp,
   "notifications": typeof notifications,
   "presence": typeof presence,

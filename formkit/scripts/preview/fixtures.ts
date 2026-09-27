@@ -687,6 +687,83 @@ export const QUERIES: Record<string, unknown> = {
 };
 
 /** Read by name, with the shape a still-loading query would have otherwise. */
+/** What Ask Formkit answers in the preview, chosen by what was asked. */
+export function aiReply({ text, formId, draft }: { text: string; formId?: string; draft?: unknown }) {
+  const t = text.toLowerCase();
+  const items = [
+    { kind: "field", type: "name", title: "What is your name?", required: true },
+    { kind: "field", type: "email", title: "Where should we send the proposal?", required: true },
+    { kind: "field", type: "company", title: "Which company is this for?", required: false },
+    { kind: "pagebreak", pageName: "The project" },
+    { kind: "field", type: "single-choice", title: "What do you need most?", required: true, options: ["A new website", "A brand refresh", "Both", "Not sure yet"] },
+    { kind: "field", type: "dropdown", title: "Roughly what budget do you have in mind?", required: false, options: ["Under £5k", "£5k–£15k", "£15k–£40k", "Over £40k"] },
+    { kind: "field", type: "long-text", title: "Tell us about the project in a few lines.", help: "What it is, who it is for, and when it needs to be live.", required: true },
+    { kind: "field", type: "file", title: "Anything we should read first?", required: false },
+  ];
+  const d = {
+    title: "Client intake",
+    description: "For new clients of a small design studio, before the first call.",
+    welcome: { title: "Tell us about your project", message: "It takes about three minutes." },
+    thanks: { title: "Thank you", message: "We will be in touch within two working days." },
+    items,
+    rules: [{ name: "Only for a new website", when: 4, operator: "is", value: "A new website", action: "show", target: 5 }],
+    theme: "sky",
+  };
+  if (/^(hi|hello|hey)\b/.test(t) || t.endsWith("?")) {
+    return { kind: "chat", text: "Hello. Describe the form you need in a sentence and I will write it, or pick one of yours and ask for a change." };
+  }
+  if (/summar|responses/.test(t)) {
+    return {
+      kind: "insight",
+      formId: formId ?? "f1",
+      title: "Client Onboarding",
+      text: "Most people finish in under four minutes, but a quarter stop at the budget question. Offering a “Not sure yet” answer there would likely help.",
+      items: [
+        { k: "Responses", v: "248", n: "12 not read yet" },
+        { k: "Finished", v: "73%", n: "67 stopped part of the way" },
+        { k: "Median time to finish", v: "3m 41s", n: "short enough to hold attention" },
+        { k: "Where people stop", v: "41", n: "at “Where does the budget sit?”" },
+      ],
+    };
+  }
+  if (/warmer|tone|rewrite|shorter/.test(t) && formId && !draft) {
+    return {
+      kind: "diff",
+      formId,
+      title: "Client Onboarding",
+      mode: "warmer",
+      items: [
+        { blockId: "b1", before: "Full name", after: "What should we call you?" },
+        { blockId: "b2", before: "Company website URL", after: "Where can we see what you do now?" },
+        { blockId: "b3", before: "Project deadline", after: "When would you love this to be live?" },
+      ],
+    };
+  }
+  if (/logic|rule/.test(t) && formId && !draft) {
+    return {
+      kind: "rules",
+      formId,
+      title: "Client Onboarding",
+      items: [
+        { name: "Only for existing clients", when: "Have we worked together before?", operator: "is", value: "Yes", action: "hide", target: "How did you hear about us?" },
+        { name: "Budget for new sites", when: "What do you need most?", operator: "is", value: "A new website", action: "require", target: "Roughly what budget do you have in mind?" },
+      ],
+    };
+  }
+  if (/theme|dark|colour/.test(t) && formId && !draft) {
+    return { kind: "theme", formId, title: "Client Onboarding", name: "Midnight", swatches: ["#21282E", "#2b333a", "#ffffff", "#a3c8e7"], brand: false };
+  }
+  if (/add|also ask/.test(t) && formId && !draft) {
+    return {
+      kind: "added",
+      formId,
+      title: "Client Onboarding",
+      items: [{ type: "dropdown", title: "How did you hear about us?", options: ["A friend or colleague", "Search", "Social", "An event"] }],
+    };
+  }
+  return { kind: "draft", draft: d, revised: Boolean(draft), note: draft ? "Made it shorter." : undefined, used: 4, limit: 25 };
+}
+
 export function fixtureFor(name: string) {
   if (name in QUERIES) return QUERIES[name];
   return null;

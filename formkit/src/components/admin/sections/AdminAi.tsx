@@ -41,6 +41,17 @@ export function AdminAi() {
           </Field>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <span style={{ flex: 1, fontSize: 14.5 }}>
+              Model: Gemini
+              <span style={{ display: "block", marginTop: 2, fontSize: 13, color: "var(--color-text-tertiary)" }}>
+                {stats?.aiModelReady
+                  ? "Connected. The key is set on the deployment."
+                  : "Not connected. Set GEMINI_API_KEY in the Convex deployment's environment variables."}
+              </span>
+            </span>
+            {stats && <Badge tone={stats.aiModelReady ? "success" : "warning"}>{stats.aiModelReady ? "Connected" : "No key"}</Badge>}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ flex: 1, fontSize: 14.5 }}>
               {stats?.aiPaused ? "Paused for everyone" : "Running"}
             </span>
             <Switch

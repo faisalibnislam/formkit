@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { modelConfigured } from "./model/gemini";
 import { notify } from "./model/inbox";
 import { mutation, query } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -104,6 +105,8 @@ export const overview = query({
         .reduce((n, u) => n + (u.aiUsed ?? 0), 0),
       aiPaused: (await platformValue<boolean>(ctx, "aiPaused")) ?? false,
       aiDefault: (await platformValue<number>(ctx, "aiDefault")) ?? 5,
+      /** Whether the deployment has a model key; never the key itself. */
+      aiModelReady: modelConfigured(),
       openReports: reports.filter((r) => r.state === "open").length,
       openTickets: tickets.filter((t) => t.state === "open").length,
     };
