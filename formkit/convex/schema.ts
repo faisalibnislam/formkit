@@ -469,6 +469,12 @@ export default defineSchema({
         emailedAt: v.optional(v.number()),
         emailState: v.optional(v.string()),
         rating: v.optional(v.union(v.literal("up"), v.literal("down"))),
+        /** Which allowance paid for it — handed back if the reply fails. */
+        charged: v.optional(v.union(v.literal("monthly"), v.literal("pack"))),
+        /** The AI thinks a person should follow this one up. */
+        needsHuman: v.optional(v.boolean()),
+        /** Changed by the owner after the AI wrote it. */
+        edited: v.optional(v.boolean()),
       }),
     ),
     /** Business: what the AI read in this response, recorded with its reply. */

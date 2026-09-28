@@ -1,5 +1,6 @@
 "use client";
 
+import { AiReplyPanel } from "./AiReplyPanel";
 import { useSeededQuery } from "@/lib/seed";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -651,6 +652,10 @@ function ResponseDrawer({
         rows: calc.map(([k, v]) => ({ q: k, a: v.toLocaleString("en-US"), empty: false, file: false })),
       });
     }
+    const ending = response.ending ? form?.endings?.find((e) => e.id === response.ending) : undefined;
+    if (ending) {
+      out.push({ title: "Ending", rows: [{ q: "They finished on", a: ending.name, empty: false, file: false }] });
+    }
     if (response.payment && response.payment.status !== "none") {
       out.push({
         title: "Payment",
@@ -664,7 +669,7 @@ function ResponseDrawer({
       });
     }
     return out;
-  }, [form, response.answers, response.calc, response.payment]);
+  }, [form, response.answers, response.calc, response.payment, response.ending]);
 
   const name = who(response);
   const meta = [
@@ -799,6 +804,13 @@ function ResponseDrawer({
       )}
 
       <TagEditor responseId={response._id} tags={response.tags} />
+
+      <AiReplyPanel
+        responseId={response._id}
+        reply={response.aiReply}
+        insight={response.insight}
+        hasEmail={!!response.respondentEmail}
+      />
 
       <div className="fk-resp-groups">
         {groups.map((g, i) => (

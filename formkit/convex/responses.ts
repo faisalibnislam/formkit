@@ -98,6 +98,24 @@ async function shape(ctx: QueryCtx, r: Doc<"responses">, formTitle: string) {
     calc: r.calc ?? null,
     /** Pro: the payment taken after sending, amount in minor units. */
     payment: r.payment ? { status: r.payment.status, amount: r.payment.amount, currency: r.payment.currency, at: r.payment.at ?? null } : null,
+    /** Which of the form's endings they reached, when not the usual one. */
+    ending: r.ending ?? null,
+    /** Business: the AI-written reply and what the AI read in the response. */
+    aiReply: r.aiReply
+      ? {
+          status: r.aiReply.status,
+          subject: r.aiReply.subject ?? null,
+          text: r.aiReply.text ?? null,
+          reason: r.aiReply.reason ?? null,
+          at: r.aiReply.at ?? null,
+          emailedAt: r.aiReply.emailedAt ?? null,
+          emailState: r.aiReply.emailState ?? null,
+          rating: r.aiReply.rating ?? null,
+          needsHuman: !!r.aiReply.needsHuman,
+          edited: !!r.aiReply.edited,
+        }
+      : null,
+    insight: r.insight ?? null,
   };
 }
 

@@ -14,6 +14,7 @@ import { CloseFormDialog } from "../dialogs/CloseFormDialog";
 import { localZone, zoneOptions } from "../time";
 import { ClosingRules, closeWhenLabel } from "./ClosingRules";
 import { ConnectionsSection, PaymentsSection } from "./ConnectionsSection";
+import { AiReplySection } from "./AiReplySection";
 import { DraftArea, DraftPill } from "./Draft";
 import { openPreview } from "./previewBus";
 import { tracked } from "./saveStatus";
@@ -51,7 +52,7 @@ type Security = {
   requireEmail: boolean;
 };
 
-type Section = "general" | "responses" | "notifications" | "security" | "submission" | "connections" | "payments" | "emails";
+type Section = "general" | "responses" | "notifications" | "ai" | "security" | "submission" | "connections" | "payments" | "emails";
 
 const VARIABLES = ["{{name}}", "{{email}}", "{{form_name}}", "{{submitted_at}}"];
 const DEFAULT_NOTE = "This form is closed. Thank you to everyone who answered.";
@@ -163,6 +164,7 @@ export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
             { value: "general", label: "General" },
             { value: "responses", label: "Responses" },
             { value: "notifications", label: "Notifications" },
+            { value: "ai", label: "AI reply" },
             { value: "security", label: "Security" },
             { value: "submission", label: "Submission" },
             { value: "connections", label: "Connections" },
@@ -669,6 +671,8 @@ export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
           </div>
         </Card>
       )}
+
+      {section === "ai" && <AiReplySection formId={formId} form={form} />}
 
       {section === "connections" && <ConnectionsSection formId={formId} features={form.ownerPlan?.features} />}
 

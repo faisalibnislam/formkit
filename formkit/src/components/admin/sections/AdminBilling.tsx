@@ -13,10 +13,12 @@ const KEYS = [
   ["pro_year", "Pro, yearly — $35"],
   ["business_month", "Business, monthly — $10"],
   ["business_year", "Business, yearly — $99"],
+  ["replies_100", "AI replies, 100 — $5 one-off"],
 ] as const;
 
 /**
- * Billing: whether Polar is connected, who is paying, and the four products.
+ * Billing: whether Polar is connected, who is paying, and the products: four
+ * plans and the one-off pack of AI replies.
  * The secrets live in the Convex deployment's environment; this page only
  * says whether they are there.
  */
@@ -102,6 +104,7 @@ export function AdminBilling() {
                   pro_year: ids.pro_year ?? "",
                   business_month: ids.business_month ?? "",
                   business_year: ids.business_year ?? "",
+                  replies_100: ids.replies_100 ?? "",
                 });
                 setDraft(null);
                 toast("Products saved");

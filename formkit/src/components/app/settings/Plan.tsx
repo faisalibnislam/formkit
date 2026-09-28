@@ -3,7 +3,7 @@
 import { useViewer } from "@/lib/seed";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useAction } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "../../../../convex/_generated/api";
 import { FEATURES, PLANS, type Feature, type Interval, type PlanId, type PlanSummary } from "../../../../convex/model/plans";
@@ -74,6 +74,12 @@ function PlanBody({ viewer }: { viewer: NonNullable<FunctionReturnType<typeof ap
 
   return (
     <>
+      {search.get("replies") === "added" && (
+        <div className="fk-plan-welcome" role="status">
+          <strong>Thank you — your AI replies are on their way.</strong> They appear below as soon as Polar confirms
+          the payment, and roll over until used.
+        </div>
+      )}
       {welcome && welcome !== "free" && (
         <div className="fk-plan-welcome" role="status">
           <strong>Thank you — welcome to {PLANS[welcome].name}.</strong>{" "}
@@ -102,6 +108,7 @@ function PlanBody({ viewer }: { viewer: NonNullable<FunctionReturnType<typeof ap
             <ProgressBar value={viewer.ai.limit ? (viewer.ai.used / viewer.ai.limit) * 100 : 0} />
           </span>
         </Row>
+        {plan.id === "business" && <AiAllowance />}
         <Row label="File uploads" hint="The largest single file a respondent can send.">
           <strong>{plan.limits.uploadMb} MB</strong>
         </Row>
@@ -193,3 +200,53 @@ function PlanBody({ viewer }: { viewer: NonNullable<FunctionReturnType<typeof ap
 }
 
 const PLAN_RANK: Record<PlanId, number> = { free: 0, pro: 1, business: 2 };
+
+/** Business: AI replies and AI logic checks this month, and buying more replies. */
+function AiAllowance() {
+  const toast = useToast();
+  const usage = useQuery(api.aiReply.usage, {});
+  const buy = useAction(api.billing.buyReplies);
+  const [opening, setOpening] = useState(false);
+  if (!usage) return null;
+  const { replies, checks, pack } = usage;
+
+  const buyMore = async () => {
+    setOpening(true);
+    try {
+      const { url } = await buy({});
+      window.location.assign(url);
+    } catch (e) {
+      setOpening(false);
+      toast(errorText(e, "The checkout could not open. Try again in a moment."));
+    }
+  };
+
+  return (
+    <>
+      <Row
+        label="AI replies"
+        hint={`${replies.monthly} a month, reset on the first.${replies.credits ? ` Plus ${replies.credits} bought, which roll over until used.` : ""} Out of replies, people get your usual confirmation.`}
+      >
+        <span style={{ width: 200 }}>
+          <span className="fk-proprow-hint" style={{ display: "block", textAlign: "right", marginBottom: 6 }}>
+            {replies.used} of {replies.monthly} used{replies.credits ? ` · +${replies.credits}` : ""}
+          </span>
+          <ProgressBar value={replies.monthly ? (replies.used / replies.monthly) * 100 : 0} />
+        </span>
+      </Row>
+      <Row label={`${pack.replies} more AI replies`} hint={`A one-off $${pack.price}. They roll over until used.`}>
+        <Button variant="secondary" size="sm" onClick={buyMore} disabled={opening}>
+          {opening ? "Opening…" : `Buy for $${pack.price}`}
+        </Button>
+      </Row>
+      <Row label="AI logic checks" hint="“AI decides” conditions and facts pulled into hidden fields. Resets on the first.">
+        <span style={{ width: 200 }}>
+          <span className="fk-proprow-hint" style={{ display: "block", textAlign: "right", marginBottom: 6 }}>
+            {checks.used.toLocaleString("en-US")} of {checks.limit.toLocaleString("en-US")} used
+          </span>
+          <ProgressBar value={checks.limit ? (checks.used / checks.limit) * 100 : 0} />
+        </span>
+      </Row>
+    </>
+  );
+}

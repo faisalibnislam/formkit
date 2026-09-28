@@ -11,6 +11,7 @@ import { api, internal } from "./_generated/api";
 import { Doc, Id } from "./_generated/dataModel";
 import { requireUser } from "./model/identity";
 import { brandOf, formFor } from "./model/forms";
+import { emailsReply } from "./model/aiReply";
 import { senderFor } from "./emailDomains";
 import { hasFeature } from "./model/plans";
 import {
@@ -34,7 +35,7 @@ import { csv, xlsx } from "./model/sheet";
  * disappearing.
  */
 
-const FROM = process.env.AUTH_EMAIL_FROM ?? "Formkit <onboarding@resend.dev>";
+export const FROM = process.env.AUTH_EMAIL_FROM ?? "Formkit <onboarding@resend.dev>";
 const SITE = process.env.SITE_URL ?? "https://formkit.app";
 
 export type NotifySettings = {
@@ -125,8 +126,8 @@ function rowsOf(response: Doc<"responses">) {
 /* ------------------------------------------------------------------ */
 
 export const forResponse = internalQuery({
-  args: { responseId: v.id("responses") },
-  handler: async (ctx, { responseId }) => {
+  args: { responseId: v.id("responses"), force: v.optional(v.boolean()) },
+  handler: async (ctx, { responseId, force }) => {
     const response = await ctx.db.get(responseId);
     if (!response) return null;
     const form = await ctx.db.get(response.formId);
@@ -169,7 +170,10 @@ export const forResponse = internalQuery({
               link: `${SITE}/app/forms/${form._id}?tab=responses&open=${response._id}`,
             }
           : null,
-      confirmation: settings.confirm
+      // An AI reply on its way by email stands in for the confirmation; if it
+      // fails, the confirmation is sent then instead (see aiReply.ts).
+      confirmation:
+        settings.confirm && (force || !(response.aiReply?.status === "pending" && emailsReply(form)))
         ? {
             subject: fill(settings.confirmSubject, vars),
             message: fill(settings.confirmBody, vars),
@@ -206,7 +210,9 @@ export async function send(
   payload: {
     to: string[];
     subject: string;
-    html: string;
+    html?: string;
+    /** Plain text, sent alone or alongside the HTML. */
+    text?: string;
     replyTo?: string;
     /** A verified sender of the form owner's own; Formkit's address otherwise. */
     from?: string | null;
@@ -216,13 +222,17 @@ export async function send(
   if (!key) return { state: "failed", detail: "No Resend key is configured." };
   try {
     const resend = new ResendAPI(key);
-    const { error } = await resend.emails.send({
+    const base = {
       from: payload.from || FROM,
       to: payload.to,
       subject: payload.subject,
-      html: payload.html,
       ...(payload.replyTo ? { replyTo: payload.replyTo } : {}),
-    });
+    };
+    const { error } = await resend.emails.send(
+      payload.html
+        ? { ...base, html: payload.html, ...(payload.text ? { text: payload.text } : {}) }
+        : { ...base, text: payload.text ?? "" },
+    );
     if (error) return { state: "failed", detail: error.message };
     return { state: "sent" };
   } catch (e) {
@@ -295,6 +305,38 @@ export const onResponse = internalAction({
       });
     }
 
+    return null;
+  },
+});
+
+/** The usual confirmation, sent late because an AI reply that stood in for it failed. */
+export const confirmOnly = internalAction({
+  args: { responseId: v.id("responses") },
+  returns: v.null(),
+  handler: async (ctx, { responseId }) => {
+    const job = await ctx.runQuery(internal.notifications.forResponse, { responseId, force: true });
+    if (!job?.confirmation || !job.respondentEmail) return null;
+    const result = await send({
+      to: [job.respondentEmail],
+      subject: job.confirmation.subject,
+      replyTo: job.confirmation.replyTo,
+      from: job.confirmationFrom,
+      html: renderConfirmation({
+        subject: job.confirmation.subject,
+        message: job.confirmation.message,
+        rows: job.confirmation.rows,
+        brandName: job.brandName,
+        brand: job.brand,
+      }),
+    });
+    await ctx.runMutation(internal.notifications.record, {
+      userId: job.userId,
+      formId: job.formId,
+      kind: "confirmation",
+      to: job.respondentEmail,
+      subject: job.confirmation.subject,
+      ...result,
+    });
     return null;
   },
 });

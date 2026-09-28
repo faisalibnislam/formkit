@@ -278,6 +278,7 @@ export const get = query({
       identity: await formIdentity(ctx, form),
       calc: form.calc ?? [],
       endings: form.endings ?? [],
+      aiReply: form.aiReply ?? null,
       /** The owner's plan: what this form can do, whoever is editing it. */
       ownerPlan: await ownerPlanOf(ctx, form.ownerId),
       /** Business approvals: whether this person must ask, and what is waiting. */

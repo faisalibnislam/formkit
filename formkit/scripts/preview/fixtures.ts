@@ -204,6 +204,33 @@ const RESPONSES: Row[] = [
     tags: i === 0 ? ["Hot lead", "Retainer"] : i === 3 ? ["Follow up"] : [],
     versionNumber: 3,
     resumeToken: partial ? `tok${i}` : null,
+    ending: i === 1 ? "e1" : null,
+    aiReply:
+      partial || formId !== "f1"
+        ? null
+        : {
+            status: "ready",
+            subject: `Your project with Studio Nine, ${name.split(" ")[0]}`,
+            text: `Hi ${name.split(" ")[0]},\n\nThanks for telling us about the new marketing site and booking flow. Sites that let people book in two or three taps usually turn far more visits into enquiries, so you're right to put that first.\n\nWe'd start with a short discovery session, then design the booking flow alongside the pages so they feel like one thing. With your budget and an early-March launch, that's comfortably doable.\n\nIf it helps, book a free 20-minute call and we'll sketch a plan together.`,
+            reason: null,
+            at: now - ago + 40_000,
+            emailedAt: now - ago + 45_000,
+            emailState: "sent",
+            rating: i === 0 ? "up" : null,
+            needsHuman: i === 2,
+            edited: false,
+          },
+    insight:
+      partial || formId !== "f1"
+        ? null
+        : {
+            sentiment: i === 2 ? "negative" : "positive",
+            intent: "wants a new marketing site",
+            topics: ["website", "booking flow"],
+            score: [86, 74, 41][i] ?? 60,
+            urgency: i === 2 ? "high" : "medium",
+            summary: "A new marketing site with online booking, £20k–£35k, live by early March.",
+          },
   })),
   {
     _id: "r99",
@@ -395,6 +422,14 @@ const FORM_DETAIL = {
   blocks: BLOCKS,
   rules: [],
   calc: [],
+  aiReply: {
+    enabled: true,
+    prompt: "You're replying for our digital agency.\n- Thank them by first name.\n- Look closely at the challenges they describe and respond positively and helpfully.\n- Share one or two useful insights that relate to their situation.\n- Explain briefly how we could help and invite them to book a free 20-minute call.",
+    delivery: "both",
+    style: "branded",
+    senderName: "Maya at Studio Nine",
+    signature: "Maya Ortiz\nFounder, Studio Nine\nstudionine.co",
+  },
   endings: [
     { id: "e1", name: "Big project", title: "Let’s talk this week", message: "Projects like yours get a call from a partner within two days." },
     { id: "e2", name: "Not a fit yet", title: "Thanks for asking", message: "We’re not the right studio for this one — here are a few we trust." },
@@ -740,6 +775,19 @@ export const QUERIES: Record<string, unknown> = {
     },
   ],
   "ai:usage": { used: 3, limit: 25, allowed: true },
+  "aiReply:usage": { plan: "business", replies: { monthly: 30, used: 22, credits: 100, left: 108 }, checks: { limit: 1000, used: 318 }, pack: { price: 5, replies: 100 } },
+  "action:aiReply:tryIt": {
+    subject: "Your project with Studio Nine, John",
+    reply: "Hi John,\n\nThanks for telling us about the new marketing site and booking flow. Sites that let people book in two or three taps usually turn far more visits into enquiries, so you're right to put that first.\n\nWe'd start with a short discovery session, then design the booking flow alongside the pages so they feel like one thing.\n\nIf it helps, book a free 20-minute call and we'll sketch a plan together.",
+    needsHuman: false,
+    insight: { sentiment: "positive", intent: "wants a new marketing site", topics: ["website", "booking flow"], score: 86, urgency: "medium", summary: "A new marketing site with online booking, live by early March." },
+    sample: [
+      { question: "What should we call you?", answer: "John Smith" },
+      { question: "What are we making?", answer: "A new marketing site and a small booking flow." },
+      { question: "Budget range", answer: "£20k–£35k" },
+    ],
+    made: false,
+  },
   /** What "Describe a rule" writes in the preview. */
   "action:aiLogic:describe": {
     rules: [

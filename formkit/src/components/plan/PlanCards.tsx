@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Check } from "lucide-react";
-import { PLANS, type Interval, type PlanId } from "../../../convex/model/plans";
+import { PLANS, REPLY_PACK, type Interval, type PlanId } from "../../../convex/model/plans";
 
 /**
  * The three plans side by side. Presentational only — no hooks — so the
@@ -30,6 +30,7 @@ export const PLAN_POINTS: Record<PlanId, { lead?: string; points: string[] }> = 
       "Where people come from, and their devices",
       `Unlimited collaborators, up to ${PLANS.pro.companies} companies`,
       "Calculations, hidden fields, answer piping, redirects",
+      "Several endings, hidden options and limited places",
       "Webhooks, Zapier, Make, Slack and Google Sheets",
       "Take payments with your own Stripe",
       "Excel export and an email copy of every response",
@@ -39,6 +40,9 @@ export const PLAN_POINTS: Record<PlanId, { lead?: string; points: string[] }> = 
   business: {
     lead: "Everything in Pro, and",
     points: [
+      `AI replies to every response — ${PLANS.business.aiReplies} a month, then $${REPLY_PACK.price} per ${REPLY_PACK.replies}`,
+      "AI insights: sentiment, intent and lead scores",
+      `AI logic that reads answers — ${PLANS.business.aiChecks.toLocaleString("en-US")} checks a month`,
       "A team with unlimited seats",
       "Unlimited companies and brands",
       "Templates shared with the team",

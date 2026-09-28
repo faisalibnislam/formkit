@@ -102,7 +102,7 @@ const FAQS = [
   },
   {
     q: "Who is Business for?",
-    a: "Teams and agencies: a team with unlimited seats, unlimited brands, shared templates, approval before publishing, an audit log, retention rules, API access and company sign-in.",
+    a: "Teams and agencies: AI replies written for every person who answers (30 a month, then $5 for 100 more that roll over), AI insights on responses, AI logic that reads answers, a team with unlimited seats, unlimited brands, shared templates, approval before publishing, an audit log, retention rules, API access and company sign-in.",
   },
   {
     q: "Can I switch between monthly and yearly?",

@@ -13,6 +13,7 @@ import {
 } from "@/components/app/editor/themes";
 import { fontStack, loadFont } from "@/components/app/editor/fonts";
 import { computeAll, pipe, pipeValues } from "../../../convex/model/calc";
+import { LiveReply } from "./LiveReply";
 import { applyLogic, conditionsOf, type Rule as LogicRule } from "../../../convex/model/logicEval";
 import { LogoLockup } from "./LogoLockup";
 
@@ -70,6 +71,7 @@ export type Ending = {
 export type Answer = { value?: string; values?: string[]; fileId?: Id<"_storage">; fileName?: string };
 
 export type OpenForm = {
+  aiReply?: { delivery: "form" | "email" | "both" } | null;
   formId: Id<"forms">;
   title: string;
   brand: { name: string; logoUrl: string | null; color: string | null; badge?: boolean };
@@ -530,6 +532,15 @@ export function FormRunner({
           </span>
           <h1 style={{ marginTop: 22 }}>{say(t?.title) || "Thank you"}</h1>
           <p className="fk-live-lede">{say(t?.message) || "Your answers are in."}</p>
+          {data.aiReply && mode === "live" && done.responseId && (
+            <LiveReply responseId={done.responseId} token={done.token} />
+          )}
+          {data.aiReply && mode === "preview" && (
+            <p className="fk-live-note">
+              On the live form, a reply written by AI for this person shows here
+              {data.aiReply.delivery === "form" ? "" : data.aiReply.delivery === "email" ? ", by email instead" : " and goes by email"}.
+            </p>
+          )}
           {mode === "preview" && data.payment && (
             <p className="fk-live-note">
               On the live form, people go on to pay

@@ -4,6 +4,7 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query, type MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { closedReason, notifyResponse, tellFormTeam } from "./model/inbox";
+import { queueReply } from "./model/aiReply";
 import { Doc, Id } from "./_generated/dataModel";
 import { QueryCtx } from "./_generated/server";
 import { brandOf, shouldAutoClose, themeLogos } from "./model/forms";
@@ -183,6 +184,11 @@ async function payload(ctx: QueryCtx, form: Doc<"forms">) {
       left: advanced ? placesLeft(b, taken) : null,
       extract: smart.ai && b.extract ? { from: b.extract.from } : null,
     })),
+    /** Business: an AI-written reply follows, and where it goes. */
+    aiReply:
+      form.aiReply?.enabled && (await hasFeature(ctx, form.ownerId, "ai.reply"))
+        ? { delivery: form.aiReply.delivery }
+        : null,
     endings: advanced
       ? (form.endings ?? []).map((e) => ({ ...e, redirect: smart.redirect ? e.redirect : undefined }))
       : [],
@@ -395,6 +401,9 @@ async function store(
     // Editing an answer keeps what the owner already added to it.
     note: existing?.note,
     tags: existing?.tags,
+    // An AI reply already written is kept when the answers are edited.
+    aiReply: existing?.aiReply,
+    insight: existing?.insight,
     // Only an ending the form actually has.
     ending: args.ending && (form.endings ?? []).some((e) => e.id === args.ending) ? args.ending : undefined,
   };
@@ -445,6 +454,8 @@ async function store(
   if (!args.partial && !preview) {
     const saved = await ctx.db.get(responseId);
     if (saved && after) await notifyResponse(ctx, after, saved);
+    // Business: the AI reply is queued first, so the confirmation knows to wait for it.
+    if (!existing?.aiReply) await queueReply(ctx, form, responseId);
     await ctx.scheduler.runAfter(0, internal.notifications.onResponse, { responseId });
     await ctx.scheduler.runAfter(0, internal.connections.fanout, { responseId });
   }

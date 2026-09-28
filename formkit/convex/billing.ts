@@ -3,7 +3,7 @@ import { action, httpAction, internalMutation, internalQuery, mutation, query } 
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { platformValue, requireStaff, requireUser, setPlatformValue, writeAudit } from "./model/identity";
-import { PLANS, planOf, type Interval, type PlanId } from "./model/plans";
+import { PLANS, REPLY_PACK, planOf, planIncludes, type Interval, type PlanId } from "./model/plans";
 
 /**
  * Billing, through Polar (polar.sh) as the merchant of record.
@@ -21,7 +21,7 @@ import { PLANS, planOf, type Interval, type PlanId } from "./model/plans";
 
 const SITE = process.env.SITE_URL ?? "https://formkit.app";
 
-type Products = Partial<Record<`${Exclude<PlanId, "free">}_${Interval}`, string>>;
+type Products = Partial<Record<`${Exclude<PlanId, "free">}_${Interval}` | "replies_100", string>>;
 
 function apiBase() {
   return process.env.POLAR_SERVER === "sandbox" ? "https://sandbox-api.polar.sh" : "https://api.polar.sh";
@@ -94,6 +94,31 @@ export const checkout = action({
       ...(me.name ? { customer_name: me.name } : {}),
       success_url: `${SITE}/app/settings?tab=plan&welcome=${plan}`,
       metadata: { userId: me._id, plan, interval },
+    });
+    return { url: res.url };
+  },
+});
+
+/**
+ * Business: a one-off pack of AI replies. The credits land when Polar says
+ * the order is paid, and roll over until used.
+ */
+export const buyReplies = action({
+  args: {},
+  returns: v.object({ url: v.string() }),
+  handler: async (ctx): Promise<{ url: string }> => {
+    const me: { _id: Id<"users">; email: string | null; name: string | null; plan: PlanId; products: Products } =
+      await ctx.runQuery(internal.billing.me, {});
+    if (!planIncludes(me.plan, "ai.reply")) throw new ConvexError("AI replies are part of Business.");
+    const product = me.products.replies_100;
+    if (!product) throw new ConvexError("Reply packs are not on sale yet. Try again soon.");
+    const res = await polar<{ url: string }>("/v1/checkouts/", {
+      products: [product],
+      external_customer_id: me._id,
+      ...(me.email ? { customer_email: me.email } : {}),
+      ...(me.name ? { customer_name: me.name } : {}),
+      success_url: `${SITE}/app/settings?tab=plan&replies=added`,
+      metadata: { userId: me._id, pack: "replies_100" },
     });
     return { url: res.url };
   },
@@ -262,6 +287,11 @@ export const recordOrder = internalMutation({
     const user = await findCustomer(ctx, a.externalId, a.customerId, a.email);
     const products = (await platformValue<Products>(ctx, "polarProducts")) ?? {};
     const match = (Object.entries(products) as [keyof Products, string][]).find(([, id]) => id === a.productId);
+    if (match?.[0] === "replies_100") {
+      if (user) await ctx.db.patch(user._id, { aiReplyCredits: (user.aiReplyCredits ?? 0) + REPLY_PACK.replies });
+      await ctx.db.insert("polarOrders", { orderId: a.orderId, userId: user?._id, email: user?.email ?? a.email, at: a.at, amount: a.amount, currency: a.currency, reason: "reply pack" });
+      return null;
+    }
     const [plan, interval] = match ? (match[0].split("_") as [Exclude<PlanId, "free">, Interval]) : [undefined, undefined];
     await ctx.db.insert("polarOrders", {
       orderId: a.orderId,
@@ -465,6 +495,12 @@ export const createProducts = action({
         made[`${plan}_${interval}`] = res.id;
       }
     }
+    const pack = await polar<{ id: string }>("/v1/products/", {
+      name: `Formkit AI replies — ${REPLY_PACK.replies}`,
+      description: `${REPLY_PACK.replies} more AI replies for Business forms. They roll over until used.`,
+      prices: [{ amount_type: "fixed", price_amount: REPLY_PACK.price * 100, price_currency: "usd" }],
+    });
+    made.replies_100 = pack.id;
     await ctx.runMutation(internal.billing.storeProducts, { products: made });
     return null;
   },
@@ -486,6 +522,7 @@ export const saveProducts = mutation({
     pro_year: v.string(),
     business_month: v.string(),
     business_year: v.string(),
+    replies_100: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, ids) => {

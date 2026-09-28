@@ -139,6 +139,12 @@ export const prune = internalMutation({
   },
 });
 
+type ThinkContext = {
+  checks: { id: string; blockId: string; ask: string; about: string }[];
+  facts: { id: string; from: string; what: string; about: string }[];
+  left: number;
+};
+
 const THINK_SYSTEM = `You read one person's answers to a form and answer the form owner's questions about them.
 
 For each check, answer yes or no, judged only from the answer given. When the answer doesn't say enough to tell, answer no.
@@ -159,10 +165,10 @@ export const think = action({
     facts: v.array(v.string()),
   },
   returns: v.object({ judged: v.record(v.string(), v.boolean()), extracted: v.record(v.string(), v.string()) }),
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ judged: Record<string, boolean>; extracted: Record<string, string> }> => {
     const empty = { judged: {}, extracted: {} };
     if (!args.checks.length && !args.facts.length) return empty;
-    const context = await ctx.runQuery(internal.aiLogic.thinkContext, { formId: args.formId });
+    const context: ThinkContext | null = await ctx.runQuery(internal.aiLogic.thinkContext, { formId: args.formId });
     if (!context) return empty;
 
     const text = new Map(args.answers.slice(0, 60).map((a) => [a.blockId, a.text.slice(0, 2000).trim()]));
@@ -183,7 +189,7 @@ export const think = action({
     ];
     if (!items.length) return empty;
 
-    const known = await ctx.runQuery(internal.aiLogic.cached, { formId: args.formId, keys: items.map((i) => i.key) });
+    const known: Record<string, { yes?: boolean; value?: string }> = await ctx.runQuery(internal.aiLogic.cached, { formId: args.formId, keys: items.map((i) => i.key) });
     const judged: Record<string, boolean> = {};
     const extracted: Record<string, string> = {};
     const fresh = [];
@@ -302,6 +308,17 @@ export const countDescribe = internalMutation({
   },
 });
 
+type DescribeContext = {
+  userId: Id<"users">;
+  allowed: boolean;
+  usedToday: number;
+  advanced: boolean;
+  ai: boolean;
+  questions: Q[];
+  results: string[];
+  endings: { id: string; name: string }[];
+};
+
 const conditionOut = v.object({
   id: v.optional(v.string()),
   source: v.optional(v.union(v.literal("answer"), v.literal("calc"), v.literal("ai"))),
@@ -330,6 +347,8 @@ const proposal = v.object({
   endingId: v.optional(v.string()),
 });
 
+type Proposal = NonNullable<ReturnType<typeof checkProposal>>;
+
 type RawCondition = { question?: string; result?: string; ai?: string; operator?: string; value?: string; value2?: string };
 type RawRule = {
   name?: string;
@@ -345,8 +364,8 @@ type RawRule = {
 export const describe = action({
   args: { formId: v.id("forms"), text: v.string() },
   returns: v.object({ rules: v.array(proposal), note: v.optional(v.string()) }),
-  handler: async (ctx, { formId, text }) => {
-    const c = await ctx.runQuery(internal.aiLogic.describeContext, { formId });
+  handler: async (ctx, { formId, text }): Promise<{ rules: Proposal[]; note?: string }> => {
+    const c: DescribeContext = await ctx.runQuery(internal.aiLogic.describeContext, { formId });
     if (!c.allowed) throw new Error("AI is switched off for this account.");
     if (c.usedToday >= DAILY_DESCRIBE) throw new Error("That’s today’s allowance of rules from a description. Try again tomorrow.");
     const words = text.trim().slice(0, 1200);
