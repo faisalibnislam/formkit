@@ -11,6 +11,8 @@ export type LegalSection = {
   title: string;
   paras?: string[];
   bullets?: string[];
+  /** Blocks of code, shown after the text — the API docs use these. */
+  code?: string[];
 };
 
 export const LEGAL_UPDATED = "21 September 2026";
@@ -210,3 +212,112 @@ export const TERMS: LegalSection[] = [
 
 export const TERMS_FOOT =
   "This is written to be read, not to be impressive. If a term here conflicts with a right you have under your local law, your local law wins.";
+
+/**
+ * The data processing agreement. Business accounts accept it with the plan;
+ * anyone may read it. Like the rest of this file it is plain English and has
+ * not been through a lawyer — have it reviewed before relying on it.
+ */
+export const DPA: LegalSection[] = [
+  {
+    id: "parties",
+    title: "Who this is between",
+    paras: [
+      "This agreement is between you, the Formkit customer who builds forms and collects responses (the controller), and Formkit (the processor). It forms part of the terms of service and applies whenever Formkit processes personal data in the responses your forms collect.",
+      "It is included with the Business plan. Customers on any plan may rely on it; if your organisation needs a countersigned copy, ask from Settings → Plan → Contact support.",
+    ],
+  },
+  {
+    id: "scope",
+    title: "What we process, and why",
+    bullets: [
+      "Subject matter: the answers, files and contact details people give in your forms, and the account details of you and your team.",
+      "Purpose: to host your forms, collect and store responses, send the emails you switch on, and give you the exports and connections you set up.",
+      "Duration: for as long as you use Formkit, then as set out under deletion below.",
+      "People concerned: the people who answer your forms, and your team members.",
+    ],
+  },
+  {
+    id: "instructions",
+    title: "We act only on your instructions",
+    paras: [
+      "We process the data only to provide Formkit as you configure it — your forms, settings, connections and exports are your instructions. We do not sell it, use it to advertise, or use your responses to train AI models. If we ever believe an instruction breaks data-protection law, we will tell you.",
+    ],
+  },
+  {
+    id: "confidentiality",
+    title: "Confidentiality and staff access",
+    paras: [
+      "Everyone at Formkit who can reach customer data is bound to confidentiality. Staff reach an account only to answer a ticket, look into a report or investigate abuse; that access is read-only in the product and is logged.",
+    ],
+  },
+  {
+    id: "security",
+    title: "Security measures",
+    bullets: [
+      "Data is encrypted in transit (TLS) and at rest by our hosting providers.",
+      "Passwords are never stored in readable form; API keys are kept only as hashes.",
+      "Access to production systems is limited to the people who run Formkit.",
+      "Business accounts get an audit log of who did what, automatic deletion after a period you choose, and single sign-on for your domain.",
+    ],
+  },
+  {
+    id: "subprocessors",
+    title: "Subprocessors",
+    paras: ["We use these companies to run Formkit. Each is bound to protect the data at least as well as this agreement requires:"],
+    bullets: [
+      "Convex — database, file storage and back-end hosting.",
+      "Vercel — hosting for the website and the forms.",
+      "Resend — delivery of the emails Formkit sends.",
+      "Polar — billing for Formkit plans (your account details only, never your responses).",
+      "Google — the AI features, only when you use Ask Formkit: your prompts and the form, and responses only when you ask it to summarise them.",
+    ],
+  },
+  {
+    id: "changes-to-subprocessors",
+    title: "Changes to subprocessors",
+    paras: [
+      "We will list any new subprocessor on this page and tell Business accounts in the app at least 30 days before it starts. If you object on reasonable data-protection grounds, you may end your plan and we will refund the unused part of it.",
+    ],
+  },
+  {
+    id: "your-own-services",
+    title: "Services you connect yourself",
+    paras: [
+      "Webhooks, Slack, Google Sheets and Stripe payments send data where you tell them to. Those services are yours to choose, and your agreement with them — not this one — covers what they do with it.",
+    ],
+  },
+  {
+    id: "helping-you",
+    title: "Helping you with requests and incidents",
+    bullets: [
+      "Requests from the people who answered your forms — to see, correct or delete their answers — can be handled by you in the app. If one comes to us, we pass it to you.",
+      "If we learn of a breach affecting your data, we will tell you without undue delay, and within 72 hours, with what we know and what we are doing.",
+      "We will give you the information you reasonably need for a data-protection impact assessment or to answer a regulator.",
+    ],
+  },
+  {
+    id: "transfers",
+    title: "International transfers",
+    paras: [
+      "Data is stored in the United States and the European Union. Where data leaves the EEA, the UK or Switzerland, transfers rely on the standard contractual clauses our providers have signed.",
+    ],
+  },
+  {
+    id: "deletion",
+    title: "Deletion at the end",
+    paras: [
+      "You can export and delete your data at any time. When you close your account, everything — forms, responses, uploads — is removed within 30 days, and backups age out within 90.",
+    ],
+  },
+  {
+    id: "audits",
+    title: "Audits",
+    paras: [
+      "We will answer reasonable written questions about how we protect your data, once a year or after an incident. On-site audits are by agreement, at your cost.",
+    ],
+  },
+];
+
+export const DPA_FOOT =
+  "Where this agreement and the terms of service disagree about personal data, this agreement wins. Questions go to hello@formkit.app.";

@@ -1,7 +1,8 @@
 "use client";
 
 import { useMutation, useQuery } from "convex/react";
-import { EyeOff, History, Rocket } from "lucide-react";
+import { BadgeCheck, EyeOff, History, Rocket, Undo2 } from "lucide-react";
+import { useState } from "react";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import { Button, Modal } from "@/components/ui";
@@ -34,6 +35,11 @@ export function PublishDialog({
   const pending = useQuery(api.forms.unpublishedChanges, { formId }) ?? 0;
   const publish = useMutation(api.forms.publish);
   const unpublish = useMutation(api.forms.unpublish);
+  const request = useMutation(api.approvals.request);
+  const withdraw = useMutation(api.approvals.withdraw);
+  const approve = useMutation(api.approvals.approve);
+  const decline = useMutation(api.approvals.decline);
+  const [note, setNote] = useState("");
 
   if (!form) return null;
   const live = form.status !== "draft";
@@ -91,7 +97,19 @@ export function PublishDialog({
       ? `One question has changed since version ${form.liveVersion ?? 1}.`
       : `${pending} questions have changed since version ${form.liveVersion ?? 1}.`;
 
+  const approval = form.approval;
+  // Business approvals: an editor asks; the owner or an admin approves.
+  const mustAsk = !!approval?.required;
+  const waiting = approval?.state === "pending";
+  const reviewing = waiting && !!approval?.canApprove;
+
   async function doPublish(first: boolean) {
+    if (mustAsk) {
+      await tracked(request({ formId, note: note || undefined }));
+      toast("Sent for approval", { detail: "You will hear when it is approved." });
+      onClose();
+      return;
+    }
     await tracked(publish({ formId }));
     toast(first ? "Your form is live" : "Changes are live", { detail: form!.url });
     onClose();
@@ -109,7 +127,47 @@ export function PublishDialog({
       onClose={onClose}
       width={580}
       footer={
-        live ? (
+        reviewing ? (
+          <>
+            <Button
+              variant="secondary"
+              iconLeft={<Undo2 size={16} strokeWidth={1.8} aria-hidden />}
+              onClick={async () => {
+                await tracked(decline({ formId, note: note || undefined }));
+                toast("Sent back", { detail: `${approval?.by ?? "They"} will see your note.` });
+                onClose();
+              }}
+            >
+              Send back
+            </Button>
+            <Button
+              iconLeft={<BadgeCheck size={16} strokeWidth={1.8} aria-hidden />}
+              onClick={async () => {
+                await tracked(approve({ formId }));
+                toast("Approved and live", { detail: form.url });
+                onClose();
+              }}
+            >
+              Approve and publish
+            </Button>
+          </>
+        ) : waiting && mustAsk ? (
+          <>
+            <Button variant="secondary" onClick={onClose}>
+              Done
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={async () => {
+                await tracked(withdraw({ formId }));
+                toast("Request withdrawn");
+                onClose();
+              }}
+            >
+              Withdraw request
+            </Button>
+          </>
+        ) : live ? (
           <>
             <Button variant="secondary" onClick={onClose}>
               Done
@@ -130,7 +188,7 @@ export function PublishDialog({
                 iconLeft={<Rocket size={16} strokeWidth={1.8} aria-hidden />}
                 onClick={() => doPublish(false)}
               >
-                Publish changes
+                {mustAsk ? "Ask for approval" : "Publish changes"}
               </Button>
             )}
           </>
@@ -144,13 +202,35 @@ export function PublishDialog({
               disabled={fields.length === 0}
               onClick={() => doPublish(true)}
             >
-              Publish form
+              {mustAsk ? "Ask for approval" : "Publish form"}
             </Button>
           </>
         )
       }
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {approval && (reviewing || mustAsk || approval.state === "declined") && (
+          <div className="fk-amber" style={{ flexDirection: "column", alignItems: "stretch", gap: 10 }}>
+            <span>
+              {reviewing
+                ? `${approval.by} asked to publish this${approval.note ? `: “${approval.note}”` : "."} Approving puts it live.`
+                : waiting
+                  ? "Waiting for the owner or a team admin to approve it."
+                  : approval.state === "declined"
+                    ? `It was sent back${approval.note ? `: “${approval.note}”` : "."} Make the changes, then ask again.`
+                    : "Forms on this team are approved before they go live. Asking tells the owner and the admins."}
+            </span>
+            {(reviewing || (mustAsk && !waiting)) && (
+              <textarea
+                className="ui-textarea"
+                rows={2}
+                value={note}
+                placeholder={reviewing ? "A note if you send it back (optional)" : "A note for whoever approves it (optional)"}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            )}
+          </div>
+        )}
         {live && pending > 0 && (
           <div className="fk-amber">
             <span style={{ flex: 1, minWidth: 200 }}>{changesNote}</span>

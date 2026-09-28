@@ -170,6 +170,7 @@ function AppFrame({ children }: { children: ReactNode }) {
   // `?viewAs=` is staff only; for anyone else it is ignored.
   const supportUser = viewer?.staffRole ? (search.get("viewAs") as Id<"users"> | null) : null;
   const acceptPending = useMutation(api.collaborators.acceptPending);
+  const acceptTeam = useMutation(api.team.acceptPending);
   const touch = useMutation(api.security.touch);
   const backfillCounts = useMutation(api.forms.backfillCounts);
 
@@ -189,10 +190,11 @@ function AppFrame({ children }: { children: ReactNode }) {
     if (!viewer || accepted.current) return;
     accepted.current = true;
     void acceptPending({}).catch(() => {});
+    void acceptTeam({}).catch(() => {});
     // Forms made before question counts were stored get them now, so the
     // forms list can stop reading their questions.
     void backfillCounts({}).catch(() => {});
-  }, [viewer, acceptPending, backfillCounts]);
+  }, [viewer, acceptPending, acceptTeam, backfillCounts]);
   // Counts only: the full list reads every form's questions, and would recount
   // on every edit in the builder.
   const formsList = useQuery(api.forms.summary, {});
@@ -414,6 +416,8 @@ function AppFrame({ children }: { children: ReactNode }) {
       members: { label: "Shared with:", value: sharing ? String(sharing.people.length) : "" },
       notifications: { label: "Sent to:", value: viewer?.emailPrefs.to ?? "" },
       exports: { label: "Responses:", value: formsList ? formsList.responses.toLocaleString("en-US") : "" },
+      team: { label: "Plan:", value: viewer ? (viewer.plan.features?.team ? "Unlimited seats" : "Business") : "" },
+      controls: { label: "Sign-in:", value: viewer ? (viewer.plan.features?.sso ? "Your rules" : "Business") : "" },
     }[t.value],
   }));
 

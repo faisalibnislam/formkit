@@ -795,6 +795,45 @@ export const QUERIES: Record<string, unknown> = {
     calcNames: ["total"],
     currencies: ["usd", "eur", "gbp", "cad", "aud", "inr", "bdt", "jpy"],
   },
+  "team:overview": {
+    members: [
+      { _id: "t1", email: "ravi@studionine.co", name: "Ravi Menon", role: "admin", status: "active", invitedAt: now - 20 * DAY },
+      { _id: "t2", email: "priya@studionine.co", name: "Priya Shah", role: "editor", status: "active", invitedAt: now - 9 * DAY },
+      { _id: "t3", email: "leo@studionine.co", name: null, role: "viewer", status: "pending", invitedAt: now - 2 * HOUR },
+    ],
+    teams: [],
+    approvals: true,
+    enabled: true,
+  },
+  "approvals:waiting": [
+    { formId: "f2", title: "Event RSVP", by: "Priya Shah", at: now - 3 * HOUR, note: "New venue details added" },
+  ],
+  "controls:auditLog": {
+    enabled: true,
+    more: false,
+    rows: [
+      { _id: "a1", at: now - 2 * HOUR, who: "Maya Ortiz", action: "Invited leo@studionine.co as Viewer", subject: null },
+      { _id: "a2", at: now - 5 * HOUR, who: "Ravi Menon", action: "Approved and published", subject: "Client Onboarding" },
+      { _id: "a3", at: now - 26 * HOUR, who: "Maya Ortiz", action: "Created an API key", subject: "Warehouse sync" },
+      { _id: "a4", at: now - 3 * DAY, who: "Formkit", action: "Erased 12 responses past the retention period", subject: null },
+    ],
+  },
+  "controls:retention": { days: 365, choices: [30, 90, 180, 365, 730] },
+  "controls:apiKeys": [
+    { _id: "k1", name: "Warehouse sync", prefix: "fk_live_3f9a", createdAt: now - 26 * HOUR, lastUsedAt: now - HOUR },
+  ],
+  "sso:settings": {
+    sso: {
+      domain: "studionine.co",
+      verified: true,
+      enforce: false,
+      providers: ["google"],
+      record: { type: "TXT", name: "_formkit.studionine.co", value: "formkit-verify=8c1f0a3b9d2e4f5a6b7c8d9e" },
+    },
+    available: ["google", "microsoft-entra-id"],
+  },
+  "sso:providers": [],
+  "support:mine": { priority: true, tickets: [] },
   "billing:adminStatus": {
     token: true,
     secret: false,

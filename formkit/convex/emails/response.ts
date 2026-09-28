@@ -200,3 +200,23 @@ export function renderCommentEmail({ heading, quote: text, link }: { heading: st
     links: [{ label: "Turn these emails off", href: SETTINGS }],
   });
 }
+
+/** Business: an invitation onto someone's whole team. */
+export function renderTeamInvite({ inviter, role, link }: { inviter: string; role: string; link: string }) {
+  const can =
+    role === "admin"
+      ? "You can work on every form, manage the team and approve forms."
+      : role === "editor"
+        ? "You can edit every form and read its responses."
+        : "You can read every form and its responses.";
+  const as = role === "admin" ? "an Admin" : role === "editor" ? "an Editor" : "a Viewer";
+  return renderShell({
+    eyebrow: "Team invitation",
+    heading: `${inviter} added you to their team`,
+    lede: `As ${as}. ${can}`,
+    body: `${paragraph(
+      "Sign in — or make an account — with this email address, and the team's forms are waiting under Shared.",
+    )}${button("Open Formkit", link)}`,
+    reason: `${inviter} added this address to their team on Formkit.`,
+  });
+}

@@ -2,6 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { internalMutation, mutation, query, type MutationCtx } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { requireUser } from "./model/identity";
+import { approvalView, audit, needsApproval, teamTemplate, teamsOf } from "./model/team";
 import { PLANS, planOfId, planSummary, requireFeature } from "./model/plans";
 import { validKey } from "./model/calc";
 import {
@@ -123,6 +124,21 @@ export const list = query({
       const owner = await ctx.db.get(f.ownerId);
       sharedForms.push({ form: f, role: r.role, owner: owner?.name ?? owner?.email ?? "Someone" });
     }
+    // Business: every form on the teams this person is on.
+    for (const { row, owner } of await teamsOf(ctx, user._id)) {
+      const forms = await ctx.db
+        .query("forms")
+        .withIndex("by_owner", (q) => q.eq("ownerId", owner._id))
+        .collect();
+      for (const f of forms) {
+        if (f.deletedAt || sharedForms.some((x) => x.form._id === f._id)) continue;
+        sharedForms.push({
+          form: f,
+          role: row.role === "viewer" ? "viewer" : "editor",
+          owner: `${owner.name ?? owner.email ?? "Someone"}'s team`,
+        });
+      }
+    }
 
     const term = search?.trim().toLowerCase();
     if (filter === "shared") {
@@ -198,9 +214,18 @@ export const summary = query({
         .withIndex("by_email", (q) => q.eq("email", (user.email ?? "").toLowerCase()))
         .collect()
     ).filter((r) => r.status === "active" && r.userId === user._id).length;
+    let teamForms = 0;
+    for (const { owner } of await teamsOf(ctx, user._id)) {
+      teamForms += (
+        await ctx.db
+          .query("forms")
+          .withIndex("by_owner", (q) => q.eq("ownerId", owner._id))
+          .collect()
+      ).filter((f) => !f.deletedAt).length;
+    }
     const live = all.filter((f) => !f.deletedAt);
     return {
-      counts: countsOf(all, shared),
+      counts: countsOf(all, shared + teamForms),
       responses: live.reduce((n, f) => n + f.responsesCount, 0),
     };
   },
@@ -253,6 +278,8 @@ export const get = query({
       calc: form.calc ?? [],
       /** The owner's plan: what this form can do, whoever is editing it. */
       ownerPlan: await ownerPlanOf(ctx, form.ownerId),
+      /** Business approvals: whether this person must ask, and what is waiting. */
+      approval: await approvalView(ctx, form),
       notify: form.notify ?? null,
       security: publicSecurity(form.security),
       closing: form.closing ?? null,
@@ -275,8 +302,8 @@ export const create = mutation({
 
     // A saved template is a row; the six Formkit ships with live in code, so
     // they exist on a brand-new deployment with nothing seeded.
-    // Only the person's own saved templates, or a built-in one.
-    const saved = args.templateSlug
+    // The person's own saved templates, one shared on their team, or a built-in one.
+    const own = args.templateSlug
       ? (
           await ctx.db
             .query("templates")
@@ -284,6 +311,7 @@ export const create = mutation({
             .collect()
         ).find((t) => t.ownerId === user._id)
       : undefined;
+    const saved = own ?? (args.templateSlug ? ((await teamTemplate(ctx, args.templateSlug, user._id)) ?? undefined) : undefined);
     const template = args.templateSlug ? (saved ?? builtinTemplate(args.templateSlug)) : null;
 
     const title = args.title?.trim() || template?.name || "Untitled form";
@@ -509,6 +537,21 @@ export const publish = mutation({
   handler: async (ctx, { formId }) => {
     const form = await formFor(ctx, formId);
     const user = await requireUser(ctx);
+    if (await needsApproval(ctx, form, user._id)) {
+      throw new ConvexError({
+        code: "approval",
+        message: "Forms on this team are approved by an admin before they go live. Ask for approval instead.",
+      });
+    }
+    await publishNow(ctx, form, user);
+    return null;
+  },
+});
+
+/** Publishes: a new version, live at once. Approvals call this too. */
+export async function publishNow(ctx: MutationCtx, form: Doc<"forms">, user: Doc<"users">) {
+  const formId = form._id;
+  {
     const now = Date.now();
 
     const blocks = await ctx.db
@@ -546,9 +589,10 @@ export const publish = mutation({
       icon: "globe",
       actorId: user._id,
     });
-    return null;
-  },
-});
+    await ctx.db.patch(formId, { approval: undefined });
+    await audit(ctx, form.ownerId, user, number === 1 ? "Published a form" : `Published version ${number}`, form.title);
+  }
+}
 
 export const unpublish = mutation({
   args: { formId: v.id("forms") },

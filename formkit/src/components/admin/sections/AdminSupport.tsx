@@ -51,7 +51,8 @@ export function AdminSupport() {
                   {t.fromName} · {t.fromEmail} · {relativeTime(t.openedAt)}
                 </span>
               </span>
-              <span className="fk-row-side">
+              <span className="fk-row-side" style={{ display: "inline-flex", gap: 6 }}>
+                {t.priority && <Badge tone="error">Priority</Badge>}
                 <Badge
                   tone={t.state === "open" ? "warning" : t.state === "answered" ? "info" : "neutral"}
                 >

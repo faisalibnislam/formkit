@@ -626,7 +626,9 @@ export const tickets = query({
   args: {},
   handler: async (ctx) => {
     await requireStaff(ctx, "support");
-    return (await ctx.db.query("tickets").collect()).sort((a, b) => b.openedAt - a.openedAt);
+    // Open Business tickets first, then everything newest first.
+    const rank = (t: { state: string; priority?: boolean }) => (t.state === "open" && t.priority ? 0 : 1);
+    return (await ctx.db.query("tickets").collect()).sort((a, b) => rank(a) - rank(b) || b.openedAt - a.openedAt);
   },
 });
 

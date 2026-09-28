@@ -12,7 +12,9 @@ export function LegalDocument({
   updated,
   sections,
   foot,
+  eyebrow = "LEGAL",
 }: {
+  eyebrow?: string;
   title: string;
   intro: string;
   updated: string;
@@ -40,7 +42,7 @@ export function LegalDocument({
               color: "rgba(255,255,255,.75)",
             }}
           >
-            LEGAL
+            {eyebrow}
           </span>
           <h1
             style={{
@@ -184,6 +186,11 @@ export function LegalDocument({
                       {b}
                     </span>
                   </div>
+                ))}
+                {(sec.code ?? []).map((c) => (
+                  <pre key={c.slice(0, 40)} className="fk-codeblock" style={{ margin: "12px 0 0", maxWidth: "76ch" }}>
+                    {c}
+                  </pre>
                 ))}
               </div>
             ))}

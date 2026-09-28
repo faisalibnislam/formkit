@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState } from "react";
 import { ArrowRight, Lock, Mail, RotateCcw, User } from "lucide-react";
 import { useAuthActions } from "@convex-dev/auth/react";
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 import { NightSky } from "@/components/brand/NightSky";
 import { SiteNav } from "@/components/site/SiteNav";
 import { Button, Checkbox, Field, Input, ProgressBar } from "@/components/ui";
@@ -30,7 +32,12 @@ function strength(password: string) {
 
 /** Convex Auth errors arrive as opaque strings; translate the ones we cause. */
 function readableError(err: unknown, fallback: string) {
+  // A company that requires single sign-on says so in the error's data.
+  const data = (err as { data?: { code?: string; message?: string } } | null)?.data;
+  if (data && typeof data === "object" && data.code === "sso" && data.message) return data.message;
   const raw = err instanceof Error ? err.message : String(err);
+  const sso = raw.match(/([a-z0-9.-]+\.[a-z]{2,} signs in with [^.]+\.)/i);
+  if (sso) return `${sso[1]} Use the button below.`;
   if (/InvalidSecret|InvalidAccountId/i.test(raw)) {
     return "That email and password do not match an account. Check the address, or reset the password.";
   }
@@ -57,6 +64,7 @@ function readableError(err: unknown, fallback: string) {
 
 export function AuthCard({ initialView }: { initialView: View }) {
   const { signIn } = useAuthActions();
+  const oauth = useQuery(api.sso.providers, {});
   const router = useRouter();
   const params = useSearchParams();
 
@@ -243,6 +251,24 @@ export function AuthCard({ initialView }: { initialView: View }) {
                 >
                   {busy ? "Signing in…" : "Sign in"}
                 </Button>
+                {oauth && oauth.length > 0 && (
+                  <>
+                    <div className="fk-auth-or">
+                      <span>or, if your company uses it</span>
+                    </div>
+                    {oauth.map((p) => (
+                      <Button
+                        key={p}
+                        variant="secondary"
+                        fullWidth
+                        disabled={busy}
+                        onClick={() => void signIn(p, { redirectTo: landing() })}
+                      >
+                        {p === "google" ? "Continue with Google" : "Continue with Microsoft"}
+                      </Button>
+                    ))}
+                  </>
+                )}
                 <Aside>
                   New here? <LinkButton onClick={() => setView("signup")}>Create an account</LinkButton>
                 </Aside>

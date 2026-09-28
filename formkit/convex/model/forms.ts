@@ -1,3 +1,4 @@
+import { teamRoleOf } from "./team";
 import { Doc, Id } from "../_generated/dataModel";
 import { MutationCtx, QueryCtx } from "../_generated/server";
 import { requireUser } from "./identity";
@@ -50,7 +51,13 @@ export async function formFor(
     .filter((q) => q.eq(q.field("userId"), user._id))
     .first();
 
-  if (!share || share.status !== "active") throw new Error("You do not have access to that form.");
+  if (!share || share.status !== "active") {
+    // Business: the owner's team works on every form.
+    const team = await teamRoleOf(ctx, form.ownerId, user._id);
+    if (!team) throw new Error("You do not have access to that form.");
+    if (need === "write" && team === "viewer") throw new Error("Your role on this team is read-only.");
+    return form;
+  }
   if (need === "write" && share.role !== "editor") {
     throw new Error("Your role on this form is read-only.");
   }

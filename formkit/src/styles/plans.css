@@ -533,3 +533,19 @@ button.fk-prochip[data-plan="business"]:hover {
   background: var(--yellow-100);
   color: var(--yellow-600);
 }
+
+/* Sign in: the single sign-on buttons under the password form. */
+.fk-auth-or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+}
+.fk-auth-or::before,
+.fk-auth-or::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--neutral-150);
+}

@@ -1,3 +1,5 @@
+import { audit, teamTemplate, teamsOf } from "./model/team";
+import { requireFeature } from "./model/plans";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireUser } from "./model/identity";
@@ -33,10 +35,39 @@ export const list = query({
       _id: null,
       keeps: null,
       createdAt: null,
+      shared: false,
+      team: null as string | null,
     }));
+
+    // Business: templates a team's owner has shared with everyone on it.
+    const fromTeams = [];
+    for (const { owner } of await teamsOf(ctx, user._id)) {
+      const rows = await ctx.db
+        .query("templates")
+        .withIndex("by_owner", (q) => q.eq("ownerId", owner._id))
+        .collect();
+      for (const t of rows) if (t.shared) fromTeams.push({ t, from: owner.name ?? owner.email ?? "Your team" });
+    }
 
     return [
       ...builtin,
+      ...fromTeams.map(({ t, from }) => ({
+        slug: t.slug,
+        name: t.name,
+        topic: t.topic,
+        blurb: t.blurb,
+        audience: t.audience ?? null,
+        questions: (t.blocks as { kind?: string }[]).filter((b) => b.kind === "field").length,
+        pages: (t.blocks as { kind?: string }[]).filter((b) => b.kind === "pagebreak").length + 1,
+        icon: "users",
+        accent: "var(--green-100)",
+        mine: false,
+        _id: null,
+        keeps: null,
+        createdAt: t.createdAt,
+        shared: true,
+        team: from,
+      })),
       ...saved.map((t) => ({
         slug: t.slug,
         name: t.name,
@@ -57,6 +88,8 @@ export const list = query({
           ...(t.keepsCopy !== false && t.welcome ? ["Welcome & thanks"] : []),
         ],
         createdAt: t.createdAt,
+        shared: !!t.shared,
+        team: null as string | null,
       })),
     ];
   },
@@ -73,7 +106,8 @@ export const get = query({
         .withIndex("by_slug", (q) => q.eq("slug", slug))
         .collect()
     ).find((t) => t.ownerId === user._id);
-    const t = saved ?? BUILTIN_TEMPLATES.find((b) => b.slug === slug);
+    const team = saved ? null : await teamTemplate(ctx, slug, user._id);
+    const t = saved ?? team ?? BUILTIN_TEMPLATES.find((b) => b.slug === slug);
     if (!t) return null;
     const blocks = t.blocks as { kind?: string; type?: string; title?: string; pageName?: string; required?: boolean; options?: string[]; help?: string }[];
     return {
@@ -203,6 +237,21 @@ export const duplicate = mutation({
       slug: `${row.slug.replace(/-[a-z0-9]+$/, "")}-${Date.now().toString(36)}`,
       createdAt: Date.now(),
     });
+  },
+});
+
+/** Business: offer a saved template to everyone on the team. */
+export const setShared = mutation({
+  args: { templateId: v.id("templates"), shared: v.boolean() },
+  returns: v.null(),
+  handler: async (ctx, { templateId, shared }) => {
+    const user = await requireUser(ctx);
+    const row = await ctx.db.get(templateId);
+    if (!row || row.ownerId !== user._id) throw new Error("That template is not yours to share.");
+    if (shared) await requireFeature(ctx, user._id, "templates.shared");
+    await ctx.db.patch(templateId, { shared });
+    await audit(ctx, user._id, user, shared ? "Shared a template with the team" : "Stopped sharing a template", row.name);
+    return null;
   },
 });
 

@@ -26,7 +26,11 @@ export type InboxKind =
   | "locked"
   | "security"
   | "ai"
-  | "support";
+  | "support"
+  | "approval"
+  | "approved"
+  | "declined"
+  | "team";
 
 type Group = "sharing" | "comments" | "responses" | "sharedResponses" | "forms" | "security" | null;
 
@@ -48,6 +52,10 @@ const GROUP: Record<InboxKind, Group> = {
   security: "security",
   ai: null,
   support: null,
+  approval: null,
+  approved: "forms",
+  declined: null,
+  team: "sharing",
 };
 
 const EMAIL_AFTER_MS = 10 * 60 * 1000;

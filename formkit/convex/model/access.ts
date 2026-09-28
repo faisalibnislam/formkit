@@ -1,6 +1,7 @@
 import { Doc, Id } from "../_generated/dataModel";
 import { MutationCtx, QueryCtx } from "../_generated/server";
 import { requireUser } from "./identity";
+import { teamRoleOf } from "./team";
 
 export type Role = "owner" | "editor" | "commenter" | "viewer";
 
@@ -21,8 +22,11 @@ export async function accessOf(
     .withIndex("by_form", (q) => q.eq("formId", formId))
     .filter((q) => q.eq(q.field("userId"), user._id))
     .first();
-  if (!share || share.status !== "active") throw new Error("You do not have access to that form.");
-  return { form, user, role: share.role };
+  if (share?.status === "active") return { form, user, role: share.role };
+  // Business: the owner's team works on every form.
+  const team = await teamRoleOf(ctx, form.ownerId, user._id);
+  if (!team) throw new Error("You do not have access to that form.");
+  return { form, user, role: team === "viewer" ? "viewer" : "editor" };
 }
 
 export function canComment(role: Role) {

@@ -103,6 +103,7 @@ export function SiteFooter() {
         <span>formkit.app</span>
         <Link href="/privacy">Privacy</Link>
         <Link href="/terms">Terms</Link>
+        <Link href="/dpa">DPA</Link>
       </div>
     </footer>
   );

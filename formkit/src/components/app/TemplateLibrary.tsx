@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery } from "convex/react";
-import { ArrowRight, Bookmark, Copy, Eye, FileText, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { ArrowRight, Bookmark, Copy, Eye, FileText, Pencil, Plus, Search, Trash2, Users } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { Button, Drawer, EmptyState, IconButton, Input, Modal } from "@/components/ui";
@@ -14,6 +14,7 @@ import { FieldIcon } from "./editor/FieldIcon";
 import { fieldType } from "./editor/fieldTypes";
 import { TemplateIcon } from "./TemplateIcon";
 import { PageSkeleton } from "./Skeleton";
+import { openUpgrade, upgradeOnPlanError, useGate } from "@/components/plan/usePlan";
 
 /**
  * The template library: the thirteen Formkit ships with, filed by topic, and
@@ -33,6 +34,8 @@ export function TemplateLibrary() {
   const forms = useQuery(api.forms.list, { filter: "all" });
   const remove = useMutation(api.templates.remove);
   const duplicate = useMutation(api.templates.duplicate);
+  const setShared = useMutation(api.templates.setShared);
+  const teamGate = useGate("templates.shared");
 
   const [term, setTerm] = useState("");
   const [topic, setTopic] = useState("All");
@@ -44,8 +47,9 @@ export function TemplateLibrary() {
   if (!templates) return <PageSkeleton kind="cards" />;
 
   const needle = term.trim().toLowerCase();
-  const builtin = templates.filter((t) => !t.mine);
-  const mine = templates.filter((t) => t.mine);
+  // Templates shared on a team sit with the person's own, marked as the team's.
+  const builtin = templates.filter((t) => !t.mine && !t.team);
+  const mine = templates.filter((t) => t.mine || t.team);
   const shown = builtin
     .filter((t) => (topic === "All" ? true : t.topic === topic))
     .filter((t) => (needle ? `${t.name} ${t.blurb} ${t.topic}`.toLowerCase().includes(needle) : true));
@@ -119,10 +123,32 @@ export function TemplateLibrary() {
                       {t.name}
                     </span>
                     <span className="fk-proprow-hint" style={{ display: "block" }}>
+                      {t.team ? `From ${t.team}’s team · ` : t.shared ? "Shared with your team · " : ""}
                       {t.topic} · {t.questions} {t.questions === 1 ? "question" : "questions"}
                     </span>
                   </span>
+                  {t.mine && (
                   <span style={{ display: "flex", gap: 2, flex: "0 0 auto" }}>
+                  <IconButton
+                    tip
+                    label={t.shared ? "Stop sharing with the team" : "Share with the team"}
+                    onClick={async () => {
+                      if (!t.shared && teamGate.locked) {
+                        openUpgrade({ feature: "templates.shared" });
+                        return;
+                      }
+                      try {
+                        await setShared({ templateId: t._id as Id<"templates">, shared: !t.shared });
+                        toast(t.shared ? "No longer shared" : "Shared with your team", {
+                          detail: t.shared ? undefined : "Everyone on your team can start from it.",
+                        });
+                      } catch (e) {
+                        upgradeOnPlanError(e);
+                      }
+                    }}
+                  >
+                    <Users size={15} strokeWidth={1.8} aria-hidden style={t.shared ? { color: "var(--green-600)" } : undefined} />
+                  </IconButton>
                   <IconButton tip label="Edit" onClick={() => setEditing(t)}>
                     <Pencil size={15} strokeWidth={1.8} aria-hidden />
                   </IconButton>
@@ -140,6 +166,7 @@ export function TemplateLibrary() {
                     <Trash2 size={15} strokeWidth={1.8} aria-hidden />
                   </IconButton>
                   </span>
+                  )}
                 </div>
                 <p className="fk-proprow-hint" style={{ margin: 0, fontSize: 13.5 }}>
                   {t.blurb}

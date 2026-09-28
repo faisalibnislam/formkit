@@ -77,6 +77,23 @@ export default defineSchema({
     planComp: v.optional(v.union(v.literal("pro"), v.literal("business"))),
     /** Pro: no "Made with Formkit" on forms published under the person's own name. */
     hideBadge: v.optional(v.boolean()),
+    /** Business: team members' forms wait for an admin's approval before going live. */
+    approvals: v.optional(v.boolean()),
+    /** Business: responses older than this many days are erased. */
+    retentionDays: v.optional(v.number()),
+    /**
+     * Business: people with an address at this domain sign in with Google or
+     * Microsoft. Proven with a DNS TXT record before it is enforced.
+     */
+    sso: v.optional(
+      v.object({
+        domain: v.string(),
+        token: v.string(),
+        verified: v.boolean(),
+        enforce: v.boolean(),
+        providers: v.array(v.union(v.literal("google"), v.literal("microsoft-entra-id"))),
+      }),
+    ),
     polarCustomerId: v.optional(v.string()),
     polarSubscriptionId: v.optional(v.string()),
 
@@ -142,7 +159,9 @@ export default defineSchema({
     .index("email", ["email"])
     .index("by_handle", ["handle"])
     .index("by_self_deleted", ["selfDeletedAt"])
-    .index("by_polar_customer", ["polarCustomerId"]),
+    .index("by_polar_customer", ["polarCustomerId"])
+    .index("by_retention", ["retentionDays"])
+    .index("by_sso_domain", ["sso.domain"]),
 
   companies: defineTable({
     ownerId: v.id("users"),
@@ -181,6 +200,15 @@ export default defineSchema({
   forms: defineTable({
     ownerId: v.id("users"),
     brand: brandIdentity,
+    /** Business: a team member asked for this form to be published. */
+    approval: v.optional(
+      v.object({
+        state: v.union(v.literal("pending"), v.literal("declined")),
+        by: v.id("users"),
+        at: v.number(),
+        note: v.optional(v.string()),
+      }),
+    ),
     title: v.string(),
     slug: v.string(),
     description: v.optional(v.string()),
@@ -433,6 +461,8 @@ export default defineSchema({
     keepsTheme: v.optional(v.boolean()),
     keepsLogic: v.optional(v.boolean()),
     keepsCopy: v.optional(v.boolean()),
+    /** Business: offered to everyone on the owner's team. */
+    shared: v.optional(v.boolean()),
     createdAt: v.number(),
   })
     .index("by_owner", ["ownerId"])
@@ -595,6 +625,8 @@ export default defineSchema({
       v.object({ who: v.string(), body: v.string(), at: v.number() }),
     ),
     openedAt: v.number(),
+    /** Business customers are answered first. */
+    priority: v.optional(v.boolean()),
   }).index("by_state", ["state"]),
 
   announcements: defineTable({
@@ -632,6 +664,48 @@ export default defineSchema({
     .index("by_host", ["host"])
     .index("by_owner", ["ownerId"])
     .index("by_status", ["status"]),
+
+  /**
+   * Business: people who work on every one of the owner's forms. An admin
+   * also manages the team and approves forms.
+   */
+  teamMembers: defineTable({
+    ownerId: v.id("users"),
+    email: v.string(),
+    userId: v.optional(v.id("users")),
+    role: v.union(v.literal("admin"), v.literal("editor"), v.literal("viewer")),
+    status: v.union(v.literal("active"), v.literal("pending")),
+    invitedBy: v.optional(v.id("users")),
+    invitedAt: v.number(),
+  })
+    .index("by_owner", ["ownerId"])
+    .index("by_email", ["email"])
+    .index("by_user", ["userId"]),
+
+  /** Business: who did what on the account, kept for a year. */
+  accountAudit: defineTable({
+    ownerId: v.id("users"),
+    actorId: v.optional(v.id("users")),
+    actorName: v.string(),
+    action: v.string(),
+    subject: v.optional(v.string()),
+    at: v.number(),
+  })
+    .index("by_owner_at", ["ownerId", "at"])
+    .index("by_at", ["at"]),
+
+  /** Business: keys for the REST API. Only a hash is kept. */
+  apiKeys: defineTable({
+    ownerId: v.id("users"),
+    name: v.string(),
+    prefix: v.string(),
+    hash: v.string(),
+    createdAt: v.number(),
+    createdBy: v.optional(v.id("users")),
+    lastUsedAt: v.optional(v.number()),
+  })
+    .index("by_owner", ["ownerId"])
+    .index("by_hash", ["hash"]),
 
   /**
    * Pro: where a form's new responses go — a signed webhook (Zapier and

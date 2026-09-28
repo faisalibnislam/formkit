@@ -356,6 +356,82 @@ export const HELP_CATEGORIES: HelpCategory[] = [
     ]
   },
   {
+    "id": "connect",
+    "name": "Connections and payments",
+    "icon": "share-2",
+    "desc": "Send responses to other tools as they arrive, and take payment when a form is sent.",
+    "articles": [
+      {
+        "id": "webhooks",
+        "title": "Webhooks, Zapier and Make",
+        "summary": "Every new response, as JSON, to an address of yours — signed so you know it came from Formkit.",
+        "body": "Open a form's Settings → Connections and choose Webhook. Paste the address that should receive each response. Zapier's “Catch Hook” trigger and Make's “Custom webhook” module both give you one.\n## What arrives\nA POST with the form, the respondent, every answer with its question and key, the calculations and any payment. The Formkit-Event header says response.created, response.paid or response.test.\n## Checking the signature\nWhen you add a webhook you are shown its secret once. Each delivery carries Formkit-Signature: t=…,v1=…, an HMAC-SHA256 of the timestamp and the body. The API page has code for checking it.\n## When a delivery fails\nFormkit tries again after a minute, then after ten. Recent deliveries — and what the other end answered — are listed under the connection. Send a test to set things up before real answers arrive.\n> Connections are part of Pro."
+      },
+      {
+        "id": "slack",
+        "title": "Post new responses to Slack",
+        "summary": "A short message in a channel for each response.",
+        "body": "In Slack, add the Incoming Webhooks app to the channel you want and copy the address it gives you. It starts https://hooks.slack.com/services/.\nIn a form's Settings → Connections, choose Slack and paste it. Each new response posts its first few answers; a payment posts a line of its own.\n> Slack is part of Pro."
+      },
+      {
+        "id": "google-sheets",
+        "title": "Keep a Google Sheet up to date",
+        "summary": "A private link your sheet pulls from — nothing to authorise.",
+        "body": "In a form's Settings → Connections, choose Google Sheets. Formkit makes a private link to the form's responses.\n## The quick way\nIn any cell of a sheet, type the =IMPORTDATA(\"…\") formula shown. Google refreshes it about once an hour.\n## Every few minutes\nUse the Apps Script instead: Extensions → Apps Script, paste the script Formkit gives you, then add a time-driven trigger.\n## Keep it private\nAnyone with the link can read the responses. If it gets out, make a new link — the old one stops working at once.\n> Google Sheets is part of Pro."
+      },
+      {
+        "id": "payments",
+        "title": "Take a payment with a form",
+        "summary": "People pay through your own Stripe account after they send the form.",
+        "body": "Formkit never holds the money: payments go straight to your Stripe account, and Formkit takes no cut.\n## Connect Stripe\nIn Stripe, open Developers → API keys → Create restricted key. Give it Write access to Checkout Sessions and nothing else. Paste it in a form's Settings → Payments. A test key (rk_test_…) lets you try it without real money.\n## Set the amount\nCharge a fixed amount, or the result of one of the form's calculations — a quote that adds up the options someone picked, say.\n## What people see\nAfter sending the form they go to Stripe's checkout, then back to a page confirming the payment. Their answers are saved first, so a closed tab never loses them.\n## In your responses\nEach response shows Paid, Awaiting payment or Not paid, and exports gain a Payment column. Refunds are made in Stripe.\n> Payments are part of Pro."
+      }
+    ]
+  },
+  {
+    "id": "business",
+    "name": "Teams and controls",
+    "icon": "building-2",
+    "desc": "Business: a whole team on every form, approvals, the audit log, retention, the API and single sign-on.",
+    "articles": [
+      {
+        "id": "team",
+        "title": "Add your team",
+        "summary": "People who work on every one of your forms, as Admin, Editor or Viewer.",
+        "body": "Settings → Team. Add people by email address, as many as you like. They join as soon as they sign in with that address, and your forms appear in their list under Shared.\n- Admin: every form, plus the team, approvals and the controls.\n- Editor: edits every form and reads its responses.\n- Viewer: reads every form and its responses.\nInviting someone to a single form still works on any plan, from the form's Share panel.\n> Teams are part of Business. If the plan ends, members lose access to your forms."
+      },
+      {
+        "id": "approvals",
+        "title": "Approvals before publishing",
+        "summary": "Editors ask; you or an Admin approve, and approving publishes.",
+        "body": "Turn it on in Settings → Team. From then on, anyone who is not you or a team Admin sees Ask for approval where Publish was, with room for a note.\nYou and your Admins hear about each request, and the form's Publish dialog shows Approve and publish or Send back. Sending it back tells the person why."
+      },
+      {
+        "id": "audit-retention",
+        "title": "Audit log and data retention",
+        "summary": "Who did what, and responses that erase themselves when they are old enough.",
+        "body": "## Audit log\nSettings → Controls lists publishing, approvals, team changes, API keys, sign-in rules and retention — who, what and when — kept for a year.\n## Data retention\nChoose how long responses are kept: 30 days to two years, or until you delete them. Older responses, and the files uploaded with them, are erased every hour. It cannot be undone, so export first if you need a copy."
+      },
+      {
+        "id": "api",
+        "title": "The Formkit API",
+        "summary": "Read your forms and responses from your own code.",
+        "body": "Make a key in Settings → Controls → API keys; it is shown once. Send it as Authorization: Bearer fk_live_… to https://formkit.app/api/v1.\nThe API is read-only: list forms, get a form's questions, page through its responses and fetch one response. The full reference, with examples, is at formkit.app/api-docs."
+      },
+      {
+        "id": "sso",
+        "title": "Single sign-on for your domain",
+        "summary": "Everyone at your company signs in with Google or Microsoft.",
+        "body": "Settings → Controls → Single sign-on. Enter your company's email domain and add the TXT record shown where its DNS is managed, then check.\nOnce the domain is verified, turn on Require. Anyone with an address at that domain then signs in with Google or Microsoft; the password form turns them away. Someone removed from your company's directory can no longer get in.\n> Sign in once with Google or Microsoft yourself before requiring it, so you are not locked out."
+      },
+      {
+        "id": "dpa-support",
+        "title": "DPA and priority support",
+        "summary": "The paperwork, and getting a person quickly.",
+        "body": "The data processing agreement is at formkit.app/dpa and is included with Business. If you need a countersigned copy, ask support.\nContact support from Settings → Controls. Business messages go to the top of the queue and are answered within one business day."
+      }
+    ]
+  },
+  {
     "id": "trouble",
     "name": "Troubleshooting",
     "icon": "life-buoy",

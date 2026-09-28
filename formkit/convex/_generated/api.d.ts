@@ -11,6 +11,7 @@ import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server
 import type * as admin from "../admin.js";
 import type * as ai from "../ai.js";
 import type * as analytics from "../analytics.js";
+import type * as approvals from "../approvals.js";
 import type * as auth from "../auth.js";
 import type * as billing from "../billing.js";
 import type * as blocks from "../blocks.js";
@@ -18,6 +19,7 @@ import type * as collaborators from "../collaborators.js";
 import type * as comments from "../comments.js";
 import type * as companies from "../companies.js";
 import type * as connections from "../connections.js";
+import type * as controls from "../controls.js";
 import type * as crons from "../crons.js";
 import type * as digests from "../digests.js";
 import type * as domains from "../domains.js";
@@ -36,6 +38,7 @@ import type * as logic from "../logic.js";
 import type * as model_access from "../model/access.js";
 import type * as model_aiForms from "../model/aiForms.js";
 import type * as model_aiIntent from "../model/aiIntent.js";
+import type * as model_apiKeys from "../model/apiKeys.js";
 import type * as model_builtinTemplates from "../model/builtinTemplates.js";
 import type * as model_calc from "../model/calc.js";
 import type * as model_flags from "../model/flags.js";
@@ -48,6 +51,7 @@ import type * as model_money from "../model/money.js";
 import type * as model_plans from "../model/plans.js";
 import type * as model_security from "../model/security.js";
 import type * as model_sheet from "../model/sheet.js";
+import type * as model_team from "../model/team.js";
 import type * as model_themePresets from "../model/themePresets.js";
 import type * as model_totp from "../model/totp.js";
 import type * as notifications from "../notifications.js";
@@ -55,7 +59,11 @@ import type * as payments from "../payments.js";
 import type * as presence from "../presence.js";
 import type * as publicForm from "../publicForm.js";
 import type * as responses from "../responses.js";
+import type * as restApi from "../restApi.js";
 import type * as security from "../security.js";
+import type * as sso from "../sso.js";
+import type * as support from "../support.js";
+import type * as team from "../team.js";
 import type * as templates from "../templates.js";
 import type * as users from "../users.js";
 
@@ -71,6 +79,7 @@ declare const fullApi: ApiFromModules<{
   "admin": typeof admin,
   "ai": typeof ai,
   "analytics": typeof analytics,
+  "approvals": typeof approvals,
   "auth": typeof auth,
   "billing": typeof billing,
   "blocks": typeof blocks,
@@ -78,6 +87,7 @@ declare const fullApi: ApiFromModules<{
   "comments": typeof comments,
   "companies": typeof companies,
   "connections": typeof connections,
+  "controls": typeof controls,
   "crons": typeof crons,
   "digests": typeof digests,
   "domains": typeof domains,
@@ -96,6 +106,7 @@ declare const fullApi: ApiFromModules<{
   "model/access": typeof model_access,
   "model/aiForms": typeof model_aiForms,
   "model/aiIntent": typeof model_aiIntent,
+  "model/apiKeys": typeof model_apiKeys,
   "model/builtinTemplates": typeof model_builtinTemplates,
   "model/calc": typeof model_calc,
   "model/flags": typeof model_flags,
@@ -108,6 +119,7 @@ declare const fullApi: ApiFromModules<{
   "model/plans": typeof model_plans,
   "model/security": typeof model_security,
   "model/sheet": typeof model_sheet,
+  "model/team": typeof model_team,
   "model/themePresets": typeof model_themePresets,
   "model/totp": typeof model_totp,
   "notifications": typeof notifications,
@@ -115,7 +127,11 @@ declare const fullApi: ApiFromModules<{
   "presence": typeof presence,
   "publicForm": typeof publicForm,
   "responses": typeof responses,
+  "restApi": typeof restApi,
   "security": typeof security,
+  "sso": typeof sso,
+  "support": typeof support,
+  "team": typeof team,
   "templates": typeof templates,
   "users": typeof users,
 }>;

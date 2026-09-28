@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Bell, CircleUser, CreditCard, Download, SlidersHorizontal, Store, Users } from "lucide-react";
+import { Bell, CircleUser, CreditCard, Download, ShieldCheck, SlidersHorizontal, Store, UsersRound, Users } from "lucide-react";
 import { PillTabs } from "@/components/ui";
 import { AccountSection } from "./settings/Account";
 import { CompanySection } from "./settings/Company";
@@ -11,6 +11,8 @@ import { MembersSection } from "./settings/Members";
 import { NotificationsSection } from "./settings/Notifications";
 import { ExportsSection } from "./settings/Exports";
 import { PlanSection } from "./settings/Plan";
+import { TeamSection } from "./settings/Team";
+import { ControlsSection } from "./settings/Controls";
 
 /**
  * Account settings.
@@ -23,7 +25,16 @@ import { PlanSection } from "./settings/Plan";
  * cannot hold six readable tabs.
  */
 
-export type SettingsTab = "account" | "plan" | "company" | "general" | "members" | "notifications" | "exports";
+export type SettingsTab =
+  | "account"
+  | "plan"
+  | "company"
+  | "team"
+  | "general"
+  | "members"
+  | "notifications"
+  | "exports"
+  | "controls";
 
 /** Older links and the account menu use these names. */
 const ALIAS: Record<string, SettingsTab> = {
@@ -32,16 +43,21 @@ const ALIAS: Record<string, SettingsTab> = {
   emails: "exports",
   preferences: "general",
   billing: "plan",
+  security: "controls",
+  audit: "controls",
+  api: "controls",
 };
 
 export const SETTINGS_TABS: { value: SettingsTab; label: string; meta: string; icon: typeof CircleUser }[] = [
   { value: "account", label: "Account", meta: "Profile and password", icon: CircleUser },
   { value: "plan", label: "Plan", meta: "Plan, usage and billing", icon: CreditCard },
   { value: "company", label: "Companies", meta: "Optional — links, logos and brands", icon: Store },
+  { value: "team", label: "Team", meta: "People on every form, approvals", icon: UsersRound },
   { value: "general", label: "Preferences", meta: "Dashboard appearance", icon: SlidersHorizontal },
   { value: "members", label: "Sharing", meta: "People with access", icon: Users },
   { value: "notifications", label: "Notifications", meta: "Email and alerts", icon: Bell },
   { value: "exports", label: "Exports", meta: "Excel, CSV and email", icon: Download },
+  { value: "controls", label: "Controls", meta: "Audit, retention, API, sign-in", icon: ShieldCheck },
 ];
 
 export function settingsTabOf(raw: string | null): SettingsTab {
@@ -92,6 +108,8 @@ export function Settings() {
       {tab === "members" && <MembersSection />}
       {tab === "notifications" && <NotificationsSection />}
       {tab === "exports" && <ExportsSection />}
+      {tab === "team" && <TeamSection />}
+      {tab === "controls" && <ControlsSection />}
     </div>
   );
 }

@@ -255,8 +255,11 @@ export function ConnectionsSection({
       })}
 
       <p className="fk-proprow-hint" style={{ margin: "14px 0 0" }}>
-        A delivery that fails is tried again after a minute, then after ten. Webhooks are signed — see Help → Webhooks for
-        checking the signature.
+        A delivery that fails is tried again after a minute, then after ten. Webhooks are signed —{" "}
+        <a href="/api-docs#webhooks" target="_blank" className="fk-linkbtn">
+          how to check the signature
+        </a>
+        .
       </p>
 
       {adding && (
