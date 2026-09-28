@@ -1,9 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
-import { Badge, Button, Checkbox, Select } from "@/components/ui";
+import { Badge, Button, Checkbox, Field, Input, Select } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 
 /**
@@ -21,11 +22,59 @@ export function AdminTeam({ meId }: { meId: Id<"users"> }) {
   const setStaffPermission = useMutation(api.admin.setStaffPermission);
   const clearOverride = useMutation(api.admin.clearStaffOverride);
   const setRolePermission = useMutation(api.admin.setRolePermission);
+  const invite = useMutation(api.admin.inviteStaff);
+  const [email, setEmail] = useState("");
+  const [role, setInviteRole] = useState<"admin" | "support">("support");
 
   if (!data) return null;
 
   return (
     <>
+      <section className="fk-panel">
+        <h3>Add somebody</h3>
+        <p className="fk-panel-lede">
+          They need a Formkit account first. Owners are only ever made from the list below, never invited.
+        </p>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
+          <Field label="Email">
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="name@formkit.app"
+              style={{ width: 280 }}
+            />
+          </Field>
+          <div style={{ width: 170 }}>
+            <Field label="Role">
+              <Select
+                value={role}
+                ariaLabel="Role"
+                onChange={(v) => setInviteRole(v as "admin" | "support")}
+                options={[
+                  { value: "support", label: "Support" },
+                  { value: "admin", label: "Admin" },
+                ]}
+              />
+            </Field>
+          </div>
+          <Button
+            disabled={!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())}
+            onClick={async () => {
+              try {
+                await invite({ email, role });
+                toast(`${email.trim()} is on the team`, { detail: `As ${role}. They are told in their bell.` });
+                setEmail("");
+              } catch (e) {
+                toast("Could not add them", { detail: e instanceof Error ? e.message.split("\n")[0] : undefined, tone: "error" });
+              }
+            }}
+          >
+            Add to the team
+          </Button>
+        </div>
+      </section>
+
       <section className="fk-panel">
         <h3>People</h3>
         <p className="fk-panel-lede">
@@ -43,6 +92,9 @@ export function AdminTeam({ meId }: { meId: Id<"users"> }) {
                   </div>
                 </div>
                 {m.custom && <Badge tone="info">Own permissions</Badge>}
+                {m.role === "owner" || m._id === meId ? (
+                  <Badge tone="neutral">{m.role[0]!.toUpperCase() + m.role.slice(1)}</Badge>
+                ) : (
                 <div style={{ width: 170 }}>
                   <Select
                     value={m.role}
@@ -67,11 +119,12 @@ export function AdminTeam({ meId }: { meId: Id<"users"> }) {
                     placeholder="Role"
                   />
                 </div>
+                )}
               </div>
 
               {m.role === "owner" ? (
                 <p style={{ margin: "12px 0 0", fontSize: 13.5, color: "var(--color-text-tertiary)" }}>
-                  Owners hold every permission. To take something away, move them to Admin first.
+                  Owners hold every permission, and an owner's role is locked here. Another owner can move them to Admin.
                 </p>
               ) : (
                 <>
@@ -109,7 +162,7 @@ export function AdminTeam({ meId }: { meId: Id<"users"> }) {
                           toast(`Put ${m.name} back on the ${m.role} permissions`);
                         }}
                       >
-                        Put them back on the role
+                        Follow the role again
                       </Button>
                     </div>
                   )}

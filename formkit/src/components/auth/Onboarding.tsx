@@ -114,9 +114,13 @@ export function Onboarding() {
         color: "var(--color-text-primary)",
       }}
     >
+      <a className="fk-skip" href="#fk-onb-main">
+        Skip to content
+      </a>
       <NightSky />
 
       <div
+        id="fk-onb-main"
         style={{
           position: "relative",
           zIndex: 1,

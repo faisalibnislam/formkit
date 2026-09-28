@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronDown, LayoutGrid, LifeBuoy, LogOut } from "lucide-react";
+import { ChevronDown, LayoutGrid, LifeBuoy, LogOut, Menu, X } from "lucide-react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
@@ -29,6 +29,8 @@ export function SiteNav({ current }: { current?: NavKey }) {
   const [narrow, setNarrow] = useState(false);
   const [hidden, setHidden] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  // The section links, on a screen too narrow to show them in the bar.
+  const [sectionsOpen, setSectionsOpen] = useState(false);
 
   const viewer = useQuery(api.users.viewer);
   const { signOut } = useAuthActions();
@@ -80,6 +82,22 @@ export function SiteNav({ current }: { current?: NavKey }) {
     };
   }, [menuOpen]);
 
+  useEffect(() => {
+    if (!sectionsOpen) return;
+    const onDown = (e: PointerEvent) => {
+      if (bar.current && !bar.current.contains(e.target as Node)) setSectionsOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSectionsOpen(false);
+    };
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [sectionsOpen]);
+
   const onSignOut = useCallback(async () => {
     setMenuOpen(false);
     await signOut();
@@ -125,6 +143,37 @@ export function SiteNav({ current }: { current?: NavKey }) {
       </nav>
 
       <span className="fk-nav-spacer" />
+
+      <span className="fk-nav-sections">
+        <button
+          type="button"
+          className="fk-nav-burger"
+          aria-label={sectionsOpen ? "Close the menu" : "Menu"}
+          aria-expanded={sectionsOpen}
+          aria-controls="fk-nav-sheet"
+          onClick={() => {
+            setMenuOpen(false);
+            setSectionsOpen((o) => !o);
+          }}
+        >
+          {sectionsOpen ? <X size={19} strokeWidth={1.8} aria-hidden /> : <Menu size={19} strokeWidth={1.8} aria-hidden />}
+        </button>
+        {sectionsOpen && (
+          <nav id="fk-nav-sheet" className="fk-nav-sheet" aria-label="Sections">
+            {NAV_LINKS.map((l) => (
+              <Link
+                key={l.id}
+                href={l.href}
+                className="fk-nav-sheet-link"
+                aria-current={current === l.id ? "page" : undefined}
+                onClick={() => setSectionsOpen(false)}
+              >
+                {l.label}
+              </Link>
+            ))}
+          </nav>
+        )}
+      </span>
 
       {signedIn ? (
         <span className="fk-nav-account">

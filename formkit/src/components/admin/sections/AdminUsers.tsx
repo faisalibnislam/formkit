@@ -1,247 +1,480 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
-import { Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Eye, Search, X } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
-import { Badge, Button, EmptyState, Field, Input, PillTabs, Switch } from "@/components/ui";
+import { Badge, Button, EmptyState, Field, Input, PillTabs, Select, Switch, Textarea } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
-import { fullTime } from "@/components/app/bits";
+import { fullTime, relativeTime } from "@/components/app/bits";
 
 /**
- * Users. Opening somebody shows what they have and what may be changed about
- * them; deleting an account asks for its email typed out, because it destroys
- * every form and response it owns.
+ * Users. A filtered, paged list — a table on a wide screen, cards on a narrow
+ * one — and a side panel for whoever is open: their numbers, Ask Formkit,
+ * a message into their bell, the emails Formkit sent them, their standing, and
+ * deletion, which asks for their email typed out because it destroys every
+ * form and response they own.
+ *
+ * Filters and the open person live in the address, so another section can
+ * link straight to "suspended users" or to one person.
  */
+type Status = "all" | "active" | "suspended" | "staff";
+type Ai = "all" | "on" | "off";
+
 export function AdminUsers({ permissions }: { permissions: string[] }) {
-  const toast = useToast();
+  const router = useRouter();
+  const params = useSearchParams();
   const [term, setTerm] = useState("");
-  const [only, setOnly] = useState<"all" | "ai" | "suspended">("all");
-  const [open, setOpen] = useState<Id<"users"> | null>(null);
-  const [confirm, setConfirm] = useState("");
+  const [page, setPage] = useState(0);
 
-  const users = useQuery(api.admin.users, {
-    search: term || undefined,
-    only: only === "all" ? undefined : only,
-  });
-  const setStanding = useMutation(api.admin.setStanding);
-  const deleteUser = useMutation(api.admin.deleteUser);
-  const setAiAccess = useMutation(api.admin.setAiAccess);
+  const status = (params.get("status") as Status | null) ?? "all";
+  const ai = (params.get("ai") as Ai | null) ?? "all";
+  const open = params.get("open") as Id<"users"> | null;
 
-  const current = users?.find((u) => u._id === open) ?? null;
+  const setParam = (next: Record<string, string | null>) => {
+    const q = new URLSearchParams(params.toString());
+    q.set("section", "users");
+    for (const [k, val] of Object.entries(next)) {
+      if (val === null || val === "all") q.delete(k);
+      else q.set(k, val);
+    }
+    router.replace(`/admin?${q}`, { scroll: false });
+  };
+
+  const data = useQuery(api.admin.usersPage, { search: term || undefined, status, ai, page });
+  const filtered = Boolean(term) || status !== "all" || ai !== "all";
 
   return (
     <>
       <div className="fk-panel" data-pad="tight">
-        <div className="fk-toolbar">
+        <div className="fk-toolbar" style={{ flexWrap: "wrap" }}>
           <PillTabs
-            ariaLabel="Which users"
-            value={only}
-            onChange={setOnly}
+            ariaLabel="Standing"
+            value={status}
+            onChange={(v) => {
+              setPage(0);
+              setParam({ status: v });
+            }}
             tabs={[
               { value: "all", label: "Everyone" },
-              { value: "ai", label: "On the AI allow-list" },
+              { value: "active", label: "Active" },
               { value: "suspended", label: "Suspended" },
+              { value: "staff", label: "Staff" },
+            ]}
+          />
+          <Select
+            size="sm"
+            ariaLabel="Ask Formkit"
+            value={ai}
+            onChange={(v) => {
+              setPage(0);
+              setParam({ ai: v });
+            }}
+            options={[
+              { value: "all", label: "AI: everyone" },
+              { value: "on", label: "AI: on" },
+              { value: "off", label: "AI: off" },
             ]}
           />
           <span className="fk-toolbar-spacer" />
           <Input
             value={term}
-            onChange={(e) => setTerm(e.target.value)}
+            onChange={(e) => {
+              setTerm(e.target.value);
+              setPage(0);
+            }}
             placeholder="Search by name, email or link"
             icon={<Search size={17} strokeWidth={1.8} aria-hidden />}
-            style={{ width: 280 }}
+            style={{ width: 260 }}
           />
+          {filtered && (
+            <Button
+              variant="ghost"
+              size="sm"
+              iconLeft={<X size={15} strokeWidth={1.8} aria-hidden />}
+              onClick={() => {
+                setTerm("");
+                setPage(0);
+                setParam({ status: null, ai: null });
+              }}
+            >
+              Clear filters
+            </Button>
+          )}
         </div>
       </div>
 
       <div className="fk-resp-layout">
         <section className="fk-panel" data-pad="none">
-          {users && users.length === 0 ? (
+          {data && data.total === 0 ? (
             <div style={{ padding: 24 }}>
-              <EmptyState title="Nobody matches" description="Try a shorter search." />
+              <EmptyState title="Nobody matches" description={filtered ? "Clear the filters, or try a shorter search." : "No accounts yet."} />
             </div>
           ) : (
-            <div className="fk-rows">
-              {(users ?? []).map((u) => (
-                <div
-                  key={u._id}
-                  className="fk-row"
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => {
-                    setOpen(u._id);
-                    setConfirm("");
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") setOpen(u._id);
-                  }}
-                  style={open === u._id ? { background: "var(--blue-50)" } : undefined}
-                >
-                  <span className="fk-row-main">
-                    <span className="fk-row-title">{u.name || u.email}</span>
-                    <span className="fk-row-meta">
-                      {u.email} · {u.forms} forms · {u.responses} responses
-                      {u.handle ? ` · formkit.app/${u.handle}` : ""}
+            <>
+              <table className="fk-admin-table">
+                <thead>
+                  <tr>
+                    <th scope="col">User</th>
+                    <th scope="col">Forms</th>
+                    <th scope="col">Responses</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">AI used</th>
+                    <th scope="col">Joined</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(data?.rows ?? []).map((u) => (
+                    <tr
+                      key={u._id}
+                      data-on={open === u._id ? "true" : undefined}
+                      tabIndex={0}
+                      onClick={() => setParam({ open: u._id })}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") setParam({ open: u._id });
+                      }}
+                    >
+                      <td>
+                        {u.name || u.email}
+                        <span className="fk-admin-sub">{u.email}</span>
+                      </td>
+                      <td>{u.forms.toLocaleString()}</td>
+                      <td>{u.responses.toLocaleString()}</td>
+                      <td>
+                        <Standing u={u} />
+                      </td>
+                      <td>{u.ai.allowed ? `${u.ai.used} of ${u.ai.limit}` : "Off"}</td>
+                      <td>{relativeTime(u.joinedAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <div className="fk-rows fk-admin-cards">
+                {(data?.rows ?? []).map((u) => (
+                  <button
+                    key={u._id}
+                    type="button"
+                    className="fk-row"
+                    onClick={() => setParam({ open: u._id })}
+                    style={open === u._id ? { background: "var(--blue-50)" } : undefined}
+                  >
+                    <span className="fk-row-main">
+                      <span className="fk-row-title">{u.name || u.email}</span>
+                      <span className="fk-row-meta">
+                        {u.forms} forms · {u.responses} responses · {u.ai.allowed ? `AI ${u.ai.used}/${u.ai.limit}` : "AI off"}
+                      </span>
                     </span>
+                    <Standing u={u} />
+                  </button>
+                ))}
+              </div>
+
+              {data && (
+                <div className="fk-admin-pager">
+                  <span style={{ flex: 1 }}>
+                    {(data.page * data.pageSize + 1).toLocaleString()}–
+                    {Math.min(data.total, (data.page + 1) * data.pageSize).toLocaleString()} of {data.total.toLocaleString()}
                   </span>
-                  <span className="fk-row-side">
-                    {u.staffRole && <Badge tone="info">{u.staffRole}</Badge>}
-                    {u.ai.allowed && <Badge tone="success">AI</Badge>}
-                    {u.deactivatedAt && <Badge tone="error">Suspended</Badge>}
-                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={data.page === 0}
+                    iconLeft={<ChevronLeft size={15} strokeWidth={1.8} aria-hidden />}
+                    onClick={() => setPage(data.page - 1)}
+                  >
+                    Newer
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={(data.page + 1) * data.pageSize >= data.total}
+                    iconRight={<ChevronRight size={15} strokeWidth={1.8} aria-hidden />}
+                    onClick={() => setPage(data.page + 1)}
+                  >
+                    Older
+                  </Button>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </section>
 
         <aside className="fk-panel" style={{ position: "sticky", top: 24 }}>
-          {!current ? (
+          {open ? (
+            <UserPanel key={open} userId={open} permissions={permissions} onClosed={() => setParam({ open: null })} />
+          ) : (
             <p style={{ margin: 0, fontSize: 14, color: "var(--color-text-tertiary)" }}>
               Pick somebody and their account opens here.
             </p>
-          ) : (
-            <>
-              <h3 style={{ marginBottom: 2 }}>{current.name || current.email}</h3>
-              <p className="fk-panel-lede">
-                {current.email} · joined {fullTime(current.joinedAt)}
-              </p>
-              {permissions.includes("users.view") && (
-                <div style={{ margin: "-4px 0 18px" }}>
+          )}
+        </aside>
+      </div>
+    </>
+  );
+}
+
+type Row = { staffRole: string | null; deactivatedAt: number | null };
+
+function Standing({ u }: { u: Row }) {
+  if (u.staffRole) return <Badge tone="info">{u.staffRole}</Badge>;
+  if (u.deactivatedAt) return <Badge tone="error">Suspended</Badge>;
+  return <Badge tone="success">Active</Badge>;
+}
+
+function UserPanel({
+  userId,
+  permissions,
+  onClosed,
+}: {
+  userId: Id<"users">;
+  permissions: string[];
+  onClosed: () => void;
+}) {
+  const toast = useToast();
+  const router = useRouter();
+  const current = useQuery(api.admin.user, { userId });
+  const mail = useQuery(api.admin.mail, { userId, limit: 5 });
+  const setStanding = useMutation(api.admin.setStanding);
+  const deleteUser = useMutation(api.admin.deleteUser);
+  const setAiAccess = useMutation(api.admin.setAiAccess);
+  const message = useMutation(api.admin.messageUser);
+  const [confirm, setConfirm] = useState("");
+  const [note, setNote] = useState({ title: "", body: "" });
+  const [limit, setLimit] = useState<string | null>(null);
+
+  if (current === undefined) return null;
+  if (current === null) return <p className="fk-admin-quiet">That account no longer exists.</p>;
+
+  const can = (p: string) => permissions.includes(p);
+
+  return (
+    <>
+      <h3 style={{ marginBottom: 2 }}>{current.name || current.email}</h3>
+      <p className="fk-panel-lede">
+        {current.email} · joined {fullTime(current.joinedAt)}
+        {current.handle ? ` · formkit.app/${current.handle}` : ""}
+      </p>
+
+      <div className="fk-admin-stats">
+        <div>
+          <strong>{current.forms.toLocaleString()}</strong>
+          <span>Forms</span>
+        </div>
+        <div>
+          <strong>{current.responses.toLocaleString()}</strong>
+          <span>Responses</span>
+        </div>
+        <div>
+          <strong>{current.ai.allowed ? `${current.ai.used}/${current.ai.limit}` : "Off"}</strong>
+          <span>AI this month</span>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {can("users.view") && (
+          <div>
+            <Button
+              variant="secondary"
+              size="sm"
+              iconLeft={<Eye size={15} strokeWidth={1.8} aria-hidden />}
+              onClick={() =>
+                window.open(
+                  `/app?viewAs=${current._id}&who=${encodeURIComponent(current.name || current.email || "")}`,
+                  "_blank",
+                  "noopener",
+                )
+              }
+            >
+              Open support view
+            </Button>
+          </div>
+        )}
+
+        {can("ai.access") && (
+          <div className="fk-admin-block">
+            <div className="fk-admin-row">
+              <span style={{ flex: 1 }}>Ask Formkit</span>
+              <Switch
+                checked={current.ai.allowed}
+                label="Ask Formkit for this account"
+                onChange={async (on) => {
+                  await setAiAccess({ userId: current._id, enabled: on });
+                  toast(on ? "Ask Formkit turned on" : "Ask Formkit turned off", {
+                    detail: on ? "It appears in their app straight away." : "Every AI surface disappears from their app.",
+                  });
+                }}
+              />
+            </div>
+            {current.ai.allowed && (
+              <>
+                <Field label="Monthly limit" help={`${current.ai.used} used this month.`}>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={limit ?? String(current.ai.limit)}
+                      onChange={(e) => setLimit(e.target.value)}
+                      onBlur={async () => {
+                        if (limit === null || Number(limit) === current.ai.limit || limit === "") return setLimit(null);
+                        await setAiAccess({ userId: current._id, limitOverride: Math.max(0, Number(limit)) });
+                        setLimit(null);
+                        toast(`Their limit is now ${limit} a month`);
+                      }}
+                      style={{ maxWidth: 120 }}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={async () => {
+                        await setAiAccess({ userId: current._id, useDefault: true });
+                        setLimit(null);
+                        toast("Back on the platform default");
+                      }}
+                    >
+                      Use default
+                    </Button>
+                  </div>
+                </Field>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() =>
-                      window.open(
-                        `/app?viewAs=${current._id}&who=${encodeURIComponent(current.name || current.email || "")}`,
-                        "_blank",
-                        "noopener",
-                      )
-                    }
+                    onClick={async () => {
+                      await setAiAccess({ userId: current._id, grant: 5 });
+                      toast("Five extra credits granted", { detail: "They are told in their bell." });
+                    }}
                   >
-                    Open support view
+                    Grant 5 extra
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={async () => {
+                      await setAiAccess({ userId: current._id, resetUsage: true });
+                      toast("This month's usage reset");
+                    }}
+                  >
+                    Reset usage
                   </Button>
                 </div>
-              )}
+              </>
+            )}
+          </div>
+        )}
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                {permissions.includes("ai.access") && (
-                  <>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <span style={{ flex: 1, fontSize: 14.5 }}>Ask Formkit</span>
-                      <Switch
-                        checked={current.ai.allowed}
-                        label="Ask Formkit for this account"
-                        onChange={async (on) => {
-                          await setAiAccess({ userId: current._id, enabled: on });
-                          toast(on ? "Ask Formkit turned on" : "Ask Formkit turned off", {
-                            detail: on
-                              ? "It appears in their app on the next load."
-                              : "Every AI surface disappears from their app.",
-                          });
-                        }}
-                      />
-                    </div>
+        {can("support") && (
+          <div className="fk-admin-block">
+            <h4>Message them</h4>
+            <Input
+              inputSize="sm"
+              placeholder="Subject"
+              value={note.title}
+              onChange={(e) => setNote((n) => ({ ...n, title: e.target.value }))}
+            />
+            <Textarea
+              rows={3}
+              placeholder="It arrives in their bell, from Formkit."
+              value={note.body}
+              onChange={(e) => setNote((n) => ({ ...n, body: e.target.value }))}
+            />
+            <div>
+              <Button
+                size="sm"
+                disabled={!note.title.trim() || !note.body.trim()}
+                onClick={async () => {
+                  await message({ userId: current._id, title: note.title, body: note.body });
+                  setNote({ title: "", body: "" });
+                  toast("Sent", { detail: "It is in their bell now." });
+                }}
+              >
+                Send message
+              </Button>
+            </div>
+          </div>
+        )}
 
-                    {current.ai.allowed && (
-                      <>
-                        <Field
-                          label="Monthly limit"
-                          help={`${current.ai.used} used this month. Leave blank to follow the platform default.`}
-                        >
-                          <Input
-                            type="number"
-                            min={0}
-                            defaultValue={current.ai.limit}
-                            onBlur={(e) =>
-                              setAiAccess({
-                                userId: current._id,
-                                limitOverride: Number(e.target.value),
-                              })
-                            }
-                          />
-                        </Field>
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={async () => {
-                              await setAiAccess({ userId: current._id, grant: 5 });
-                              toast("Five extra credits granted");
-                            }}
-                          >
-                            Grant 5 credits
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={async () => {
-                              await setAiAccess({ userId: current._id, resetUsage: true });
-                              toast("This month's usage reset");
-                            }}
-                          >
-                            Reset usage
-                          </Button>
-                        </div>
-                      </>
-                    )}
-                  </>
-                )}
-
-                {permissions.includes("users.suspend") && !current.staffRole && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <span style={{ flex: 1, fontSize: 14.5 }}>Account is active</span>
-                    <Switch
-                      checked={!current.deactivatedAt}
-                      label="Account is active"
-                      onChange={async (on) => {
-                        await setStanding({ userId: current._id, deactivated: !on });
-                        toast(on ? "Account reactivated" : "Account suspended", {
-                          detail: on
-                            ? "They can sign in again."
-                            : "Their forms keep collecting; they cannot sign in.",
-                        });
-                      }}
-                    />
-                  </div>
-                )}
-
-                {permissions.includes("users.delete") && !current.staffRole && (
-                  <div className="fk-note" data-tone="danger" style={{ display: "block" }}>
-                    <p style={{ margin: "0 0 10px" }}>
-                      Deleting destroys {current.forms} forms and {current.responses} responses.
-                      There is no bin and no undo. Type <strong>{current.email}</strong> to confirm.
-                    </p>
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      <Input
-                        inputSize="sm"
-                        value={confirm}
-                        onChange={(e) => setConfirm(e.target.value)}
-                        placeholder={current.email}
-                        style={{ flex: 1, minWidth: 180 }}
-                      />
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        disabled={confirm !== current.email}
-                        onClick={async () => {
-                          await deleteUser({ userId: current._id, confirm });
-                          toast("Account deleted");
-                          setOpen(null);
-                          setConfirm("");
-                        }}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </div>
-                )}
+        <div className="fk-admin-block">
+          <h4>Their emails</h4>
+          {mail && mail.length === 0 ? (
+            <p className="fk-admin-quiet" style={{ margin: 0 }}>Nothing sent to them in the last 30 days.</p>
+          ) : (
+            (mail ?? []).map((m) => (
+              <div key={m._id} className="fk-admin-row" style={{ fontSize: 13.5 }}>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  {m.subject}
+                  <span className="fk-admin-sub">
+                    {m.kind} · {relativeTime(m.at)}
+                  </span>
+                </span>
+                <Badge tone={m.state === "sent" ? "success" : "error"}>{m.state === "sent" ? "Sent" : "Failed"}</Badge>
               </div>
-            </>
+            ))
           )}
-        </aside>
+          <div>
+            <Button variant="ghost" size="sm" onClick={() => router.push(`/admin?section=mail&user=${current._id}`)}>
+              All their emails
+            </Button>
+          </div>
+        </div>
+
+        {can("users.suspend") && !current.staffRole && (
+          <div className="fk-admin-block">
+            <div className="fk-admin-row">
+              <span style={{ flex: 1 }}>
+                {current.deactivatedAt ? "Suspended" : "Active"}
+                <span className="fk-admin-sub">
+                  {current.deactivatedAt ? "They cannot sign in. Their forms stay as they are." : "They can sign in and use Formkit."}
+                </span>
+              </span>
+              <Button
+                variant={current.deactivatedAt ? "primary" : "secondary"}
+                size="sm"
+                onClick={async () => {
+                  const suspend = !current.deactivatedAt;
+                  await setStanding({ userId: current._id, deactivated: suspend });
+                  toast(suspend ? "Account suspended" : "Account reactivated", {
+                    detail: suspend ? "Their forms keep collecting; they cannot sign in." : "They can sign in again.",
+                  });
+                }}
+              >
+                {current.deactivatedAt ? "Reactivate" : "Suspend"}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {can("users.delete") && !current.staffRole && (
+          <div className="fk-note" data-tone="danger" style={{ display: "block" }}>
+            <p style={{ margin: "0 0 10px" }}>
+              Deleting destroys {current.forms} forms and {current.responses} responses. There is no bin and no undo.
+              Type <strong>{current.email}</strong> to confirm.
+            </p>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <Input
+                inputSize="sm"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                placeholder={current.email}
+                style={{ flex: 1, minWidth: 180 }}
+              />
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={confirm !== current.email}
+                onClick={async () => {
+                  await deleteUser({ userId: current._id, confirm });
+                  toast("Account deleted");
+                  onClosed();
+                }}
+              >
+                Delete user
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

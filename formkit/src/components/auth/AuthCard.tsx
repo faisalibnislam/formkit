@@ -169,10 +169,14 @@ export function AuthCard({ initialView }: { initialView: View }) {
       className="fk-page"
       style={{ position: "relative", background: "#0a3d6f", minHeight: "100vh" }}
     >
+      <a className="fk-skip" href="#fk-auth-main">
+        Skip to content
+      </a>
       <NightSky />
       <SiteNav />
 
       <div
+        id="fk-auth-main"
         style={{
           position: "relative",
           zIndex: 1,

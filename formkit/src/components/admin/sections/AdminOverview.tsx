@@ -1,61 +1,138 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
+import { ArrowRight } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
-import { Switch } from "@/components/ui";
+import { ProgressBar, Segmented, Switch } from "@/components/ui";
 import { StatCard } from "@/components/app/ds";
 import { useToast } from "@/components/ui/Toast";
 
-/** What the platform is doing right now, counted from stored data. */
+/**
+ * What the platform is doing, counted from stored data: the headline numbers
+ * over 30 or 90 days, who is in what standing, sign-ups a day, Ask Formkit
+ * against what the allow-list could spend, and the things waiting on staff.
+ */
 export function AdminOverview() {
   const toast = useToast();
-  const stats = useQuery(api.admin.overview, {});
+  const router = useRouter();
+  const [range, setRange] = useState<30 | 90>(30);
+  const stats = useQuery(api.admin.overview, { range });
   const setAiPlatform = useMutation(api.admin.setAiPlatform);
   if (!stats) return null;
 
+  const peak = Math.max(1, ...stats.signups);
+  const total = stats.standing.active + stats.standing.suspended + stats.standing.deleting || 1;
+  const go = (href: string) => router.push(href, { scroll: false });
+
+  const waiting = [
+    { label: "Forms reported", count: stats.openReports, href: "/admin?section=moderation" },
+    { label: "Support waiting", count: stats.openTickets, href: "/admin?section=support" },
+    { label: "Suspended users", count: stats.standing.suspended, href: "/admin?section=users&status=suspended" },
+    { label: "Out of AI credits", count: stats.aiOutOfCredits, href: "/admin?section=ai" },
+  ];
+
   return (
     <>
-      <div className="fk-grid" data-cols="stats-sm">
-        <StatCard label="Accounts" value={stats.users.toLocaleString()} caption={`${stats.newUsers.toLocaleString()} in the last week`} />
-        <StatCard label="Forms" value={stats.forms.toLocaleString()} caption={`${stats.live.toLocaleString()} collecting`} />
-        <StatCard
-          label="Responses"
-          value={stats.responses.toLocaleString()}
-          caption={`${stats.responsesWeek.toLocaleString()} in the last week`}
+      <div className="fk-admin-bar">
+        <Segmented
+          ariaLabel="Range"
+          value={String(range) as "30" | "90"}
+          onChange={(v) => setRange(Number(v) as 30 | 90)}
+          options={[
+            { value: "30", label: "30 days" },
+            { value: "90", label: "90 days" },
+          ]}
         />
-        <StatCard
-          label="On the AI allow-list"
-          value={stats.aiAllowed.toLocaleString()}
-          caption={`${stats.aiUsed.toLocaleString()} credits used this month`}
-        />
+        <span className="fk-admin-quiet">Everything below counts the last {range} days unless it says otherwise.</span>
       </div>
 
-      <section className="fk-panel">
-        <h3>Ask Formkit, platform-wide</h3>
-        <p className="fk-panel-lede">
-          Pausing suspends it for everyone at once without forgetting who was allowed. Nobody on the
-          allow-list loses their place.
-        </p>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ flex: 1, fontSize: 14.5 }}>
-            {stats.aiPaused ? "Paused for everyone" : "Running"}
-          </span>
-          <Switch
-            checked={!stats.aiPaused}
-            label="Ask Formkit is running"
-            onChange={async (on) => {
-              await setAiPlatform({ paused: !on });
-              toast(on ? "Ask Formkit is running" : "Ask Formkit is paused for everyone");
-            }}
-          />
-        </div>
-      </section>
+      <div className="fk-grid" data-cols="stats-sm">
+        <StatCard label="New users" value={stats.newInRange.toLocaleString()} caption={`${stats.users.toLocaleString()} accounts in all`} />
+        <StatCard label="Live forms" value={stats.live.toLocaleString()} caption={`of ${stats.forms.toLocaleString()} forms`} />
+        <StatCard label="Responses" value={stats.responsesInRange.toLocaleString()} caption={`${stats.responses.toLocaleString()} in all`} />
+        <StatCard label="AI forms built" value={stats.aiFormsBuilt.toLocaleString()} caption={`${stats.aiAllowed} accounts have Ask Formkit`} />
+      </div>
 
       <div className="fk-grid" data-cols="two">
-        <StatCard label="Open reports" value={stats.openReports} />
-        <StatCard label="Open tickets" value={stats.openTickets} />
-        <StatCard label="Suspended accounts" value={stats.deactivated} />
-        <StatCard label="Staff" value={stats.staff} caption="People who can reach this console" />
+        <section className="fk-panel">
+          <h3>Sign-ups a day</h3>
+          <p className="fk-panel-lede">{stats.newInRange.toLocaleString()} new accounts in {range} days, not counting staff.</p>
+          <div className="fk-admin-bars" role="img" aria-label={`Sign-ups a day over the last ${range} days, peaking at ${peak}`}>
+            {stats.signups.map((n, i) => (
+              <span key={i} style={{ height: `${Math.max(2, (n / peak) * 100)}%` }} data-zero={n === 0 ? "true" : undefined} />
+            ))}
+          </div>
+          <div className="fk-admin-axis">
+            <span>{range} days ago</span>
+            <span>Today</span>
+          </div>
+        </section>
+
+        <section className="fk-panel">
+          <h3>Accounts by standing</h3>
+          <p className="fk-panel-lede">Customers only; staff are counted apart.</p>
+          <div className="fk-admin-standing">
+            {[
+              { label: "Active", n: stats.standing.active, color: "var(--green-400)" },
+              { label: "Suspended", n: stats.standing.suspended, color: "var(--red-400)" },
+              { label: "Leaving — in their 30 days", n: stats.standing.deleting, color: "var(--yellow-400)" },
+            ].map((row) => (
+              <div key={row.label}>
+                <div className="fk-admin-standing-row">
+                  <span>{row.label}</span>
+                  <strong>{row.n.toLocaleString()}</strong>
+                </div>
+                <ProgressBar value={(row.n / total) * 100} color={row.color} />
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      <div className="fk-grid" data-cols="two">
+        <section className="fk-panel">
+          <h3>Ask Formkit this month</h3>
+          <p className="fk-panel-lede">
+            {stats.aiUsed.toLocaleString()} of {stats.aiCapacity.toLocaleString()} credits the allow-list could spend.
+          </p>
+          <ProgressBar value={stats.aiCapacity ? (stats.aiUsed / stats.aiCapacity) * 100 : 0} />
+          <div className="fk-admin-row" style={{ marginTop: 18 }}>
+            <span style={{ flex: 1 }}>
+              {stats.aiPaused ? "Paused for everyone" : "Running"}
+              <span className="fk-admin-quiet" style={{ display: "block" }}>
+                Pausing stops every request at once and remembers the allow-list.
+              </span>
+            </span>
+            <Switch
+              checked={!stats.aiPaused}
+              label="Ask Formkit is running"
+              onChange={async (on) => {
+                await setAiPlatform({ paused: !on });
+                toast(on ? "Ask Formkit is running" : "Ask Formkit is paused for everyone");
+              }}
+            />
+          </div>
+        </section>
+
+        <section className="fk-panel">
+          <h3>Needs a look</h3>
+          <p className="fk-panel-lede">Anything here is waiting on somebody on the team.</p>
+          <div className="fk-rows">
+            {waiting.map((w) => (
+              <button key={w.label} type="button" className="fk-row" onClick={() => go(w.href)}>
+                <span className="fk-row-main">
+                  <span className="fk-row-title">{w.label}</span>
+                </span>
+                <span className="fk-admin-count" data-zero={w.count === 0 ? "true" : undefined}>
+                  {w.count}
+                </span>
+                <ArrowRight size={16} strokeWidth={1.8} aria-hidden />
+              </button>
+            ))}
+          </div>
+        </section>
       </div>
     </>
   );

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { SessionGate } from "@/components/app/AccountGates";
 import { AdminConsole } from "@/components/admin/AdminConsole";
 
@@ -10,7 +11,9 @@ export const metadata: Metadata = {
 export default function AdminPage() {
   return (
     <SessionGate>
-      <AdminConsole />
+      <Suspense>
+        <AdminConsole />
+      </Suspense>
     </SessionGate>
   );
 }

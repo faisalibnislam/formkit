@@ -77,8 +77,8 @@ export const who = query({
 /* ------------------------------------------------------------------ */
 
 export const overview = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { range: v.optional(v.union(v.literal(30), v.literal(90))) },
+  handler: async (ctx, { range = 30 }) => {
     await requireStaff(ctx);
     const users = await ctx.db.query("users").collect();
     const forms = await ctx.db.query("forms").collect();
@@ -86,25 +86,65 @@ export const overview = query({
     const access = await ctx.db.query("aiAccess").collect();
     const reports = await ctx.db.query("moderation").collect();
     const tickets = await ctx.db.query("tickets").collect();
+    const activity = await ctx.db.query("activity").collect();
 
-    const week = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const DAY = 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const since = now - range * DAY;
+    const week = now - 7 * DAY;
     const period = new Date().toISOString().slice(0, 7);
+    const customers = users.filter((u) => !u.staffRole);
+
+    // Sign-ups a day across the range, oldest first.
+    const start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    const first = start.getTime() - (range - 1) * DAY;
+    const signups = Array.from({ length: range }, () => 0);
+    for (const u of customers) {
+      const i = Math.floor((u._creationTime - first) / DAY);
+      if (i >= 0 && i < range) signups[i]! += 1;
+    }
+
+    // Ask Formkit: what the allowed accounts could build this month, and did.
+    const allowedRows = access.filter((a) => a.enabled);
+    let capacity = 0;
+    let used = 0;
+    let outOfCredits = 0;
+    for (const row of allowedRows) {
+      const u = users.find((x) => x._id === row.userId);
+      if (!u) continue;
+      const limit = await aiLimit(ctx, u._id);
+      const spent = u.aiPeriod === period ? (u.aiUsed ?? 0) : 0;
+      capacity += limit;
+      used += spent;
+      if (spent >= limit) outOfCredits += 1;
+    }
+
+    const suspended = customers.filter((u) => u.deactivatedAt && !u.selfDeletedAt).length;
+    const deleting = customers.filter((u) => u.selfDeletedAt).length;
 
     return {
+      range,
       users: users.length,
       newUsers: users.filter((u) => u._creationTime >= week).length,
+      newInRange: customers.filter((u) => u._creationTime >= since).length,
       deactivated: users.filter((u) => u.deactivatedAt).length,
       staff: users.filter((u) => u.staffRole).length,
+      standing: { active: customers.length - suspended - deleting, suspended, deleting },
+      signups,
       forms: forms.filter((f) => !f.deletedAt).length,
       live: forms.filter((f) => f.status === "published" && !f.deletedAt).length,
       responses: responses.length,
       responsesWeek: responses.filter((r) => r.submittedAt >= week).length,
-      aiAllowed: access.filter((a) => a.enabled).length,
-      aiUsed: users
-        .filter((u) => u.aiPeriod === period)
-        .reduce((n, u) => n + (u.aiUsed ?? 0), 0),
+      responsesInRange: responses.filter((r) => r.submittedAt >= since && !r.preview).length,
+      aiFormsBuilt: activity.filter((a) => a.at >= since && a.what === "created the form with Ask Formkit").length,
+      aiAllowed: allowedRows.length,
+      aiUsed: used,
+      aiCapacity: capacity,
+      aiOutOfCredits: outOfCredits,
       aiPaused: (await platformValue<boolean>(ctx, "aiPaused")) ?? false,
       aiDefault: (await platformValue<number>(ctx, "aiDefault")) ?? 5,
+      aiDefaultPrevious: await platformValue<number>(ctx, "aiDefaultPrevious"),
       /** Whether the deployment has a model key; never the key itself. */
       aiModelReady: modelConfigured(),
       openReports: reports.filter((r) => r.state === "open").length,
@@ -158,6 +198,74 @@ export const users = query({
     if (only === "ai") return described.filter((u) => u.ai.allowed);
     if (only === "suspended") return described.filter((u) => u.deactivatedAt);
     return described;
+  },
+});
+
+/**
+ * One page of people, filtered. The sort is newest first, and the total is of
+ * everybody who matches, so the pager can say "21–40 of 10,020".
+ */
+export const usersPage = query({
+  args: {
+    search: v.optional(v.string()),
+    status: v.optional(v.union(v.literal("all"), v.literal("active"), v.literal("suspended"), v.literal("staff"))),
+    ai: v.optional(v.union(v.literal("all"), v.literal("on"), v.literal("off"))),
+    page: v.optional(v.number()),
+  },
+  handler: async (ctx, { search, status = "all", ai = "all", page = 0 }) => {
+    await requireStaff(ctx, "users.view");
+    const PAGE = 20;
+    const term = search?.trim().toLowerCase();
+    const allowed = new Set(
+      (await ctx.db.query("aiAccess").collect()).filter((a) => a.enabled).map((a) => a.userId as string),
+    );
+    const rows = (await ctx.db.query("users").collect())
+      .filter((u) => (term ? `${u.name ?? ""} ${u.email ?? ""} ${u.handle ?? ""}`.toLowerCase().includes(term) : true))
+      .filter((u) =>
+        status === "active"
+          ? !u.deactivatedAt && !u.staffRole
+          : status === "suspended"
+            ? Boolean(u.deactivatedAt)
+            : status === "staff"
+              ? Boolean(u.staffRole)
+              : true,
+      )
+      .filter((u) => (ai === "on" ? allowed.has(u._id) : ai === "off" ? !allowed.has(u._id) : true))
+      .sort((a, b) => b._creationTime - a._creationTime);
+    const at = Math.max(0, Math.min(page, Math.max(0, Math.ceil(rows.length / PAGE) - 1)));
+    return {
+      total: rows.length,
+      page: at,
+      pageSize: PAGE,
+      rows: await Promise.all(rows.slice(at * PAGE, at * PAGE + PAGE).map((u) => describeUser(ctx, u))),
+    };
+  },
+});
+
+/** One person, for the side panel — whether or not they are on the current page. */
+export const user = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    await requireStaff(ctx, "users.view");
+    const u = await ctx.db.get(userId);
+    return u ? describeUser(ctx, u) : null;
+  },
+});
+
+/** A note from Formkit, into one person's bell. */
+export const messageUser = mutation({
+  args: { userId: v.id("users"), title: v.string(), body: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { userId, title, body }) => {
+    const staff = await requireStaff(ctx, "support");
+    const target = await ctx.db.get(userId);
+    if (!target) throw new Error("That account no longer exists.");
+    const t = title.trim().slice(0, 120);
+    const b = body.trim().slice(0, 1200);
+    if (!t || !b) throw new Error("Write a subject and a message.");
+    await notify(ctx, userId, { kind: "support", title: t, body: b, icon: "life-buoy" });
+    await writeAudit(ctx, staff, "Messaged somebody", target.email ?? target.name, t);
+    return null;
   },
 });
 
@@ -253,9 +361,11 @@ export const setAiAccess = mutation({
     limitOverride: v.optional(v.number()),
     grant: v.optional(v.number()),
     resetUsage: v.optional(v.boolean()),
+    /** Drop their own limit, so the platform default applies again. */
+    useDefault: v.optional(v.boolean()),
   },
   returns: v.null(),
-  handler: async (ctx, { userId, enabled, limitOverride, grant, resetUsage }) => {
+  handler: async (ctx, { userId, enabled, limitOverride, grant, resetUsage, useDefault }) => {
     const staff = await requireStaff(ctx, "ai.access");
     const target = await ctx.db.get(userId);
     if (!target) throw new Error("That account no longer exists.");
@@ -268,7 +378,7 @@ export const setAiAccess = mutation({
     const next = {
       userId,
       enabled: enabled ?? row?.enabled ?? false,
-      limitOverride: limitOverride ?? row?.limitOverride,
+      limitOverride: useDefault ? undefined : (limitOverride ?? row?.limitOverride),
       granted: (row?.granted ?? 0) + (grant ?? 0),
       changedBy: staff._id,
       changedAt: Date.now(),
@@ -308,7 +418,9 @@ export const setAiAccess = mutation({
             ? `Granted ${grant} extra credits`
             : resetUsage
               ? "Reset this month's AI usage"
-              : "Changed the AI limit";
+              : useDefault
+                ? "Put somebody back on the default AI limit"
+                : `Set somebody's AI limit to ${limitOverride}`;
     await writeAudit(ctx, staff, what, target.email ?? target.name);
     return null;
   },
@@ -316,19 +428,70 @@ export const setAiAccess = mutation({
 
 /** The platform pause suspends everyone at once, without forgetting who was allowed. */
 export const setAiPlatform = mutation({
-  args: { paused: v.optional(v.boolean()), defaultLimit: v.optional(v.number()) },
+  args: {
+    paused: v.optional(v.boolean()),
+    defaultLimit: v.optional(v.number()),
+    /** Also drop every personal limit, so the new default reaches everyone. */
+    applyToAll: v.optional(v.boolean()),
+    /** Go back to the default before the last change. */
+    revert: v.optional(v.boolean()),
+  },
   returns: v.null(),
-  handler: async (ctx, { paused, defaultLimit }) => {
+  handler: async (ctx, { paused, defaultLimit, applyToAll, revert }) => {
     const staff = await requireStaff(ctx, "ai.access");
     if (paused !== undefined) {
       await setPlatformValue(ctx, "aiPaused", paused);
       await writeAudit(ctx, staff, paused ? "Paused Ask Formkit everywhere" : "Resumed Ask Formkit");
     }
-    if (defaultLimit !== undefined) {
-      await setPlatformValue(ctx, "aiDefault", defaultLimit);
-      await writeAudit(ctx, staff, `Set the AI default to ${defaultLimit} a month`);
+    const current = (await platformValue<number>(ctx, "aiDefault")) ?? 5;
+    const next = revert ? await platformValue<number>(ctx, "aiDefaultPrevious") : defaultLimit;
+    if (next !== undefined && next !== null && next !== current) {
+      const limit = Math.max(0, Math.min(1000, Math.round(next)));
+      await setPlatformValue(ctx, "aiDefaultPrevious", current);
+      await setPlatformValue(ctx, "aiDefault", limit);
+      await writeAudit(ctx, staff, `${revert ? "Reverted" : "Set"} the AI default to ${limit} a month`, undefined, `Was ${current}`);
+    }
+    if (applyToAll) {
+      const rows = (await ctx.db.query("aiAccess").collect()).filter((r) => r.limitOverride !== undefined);
+      for (const r of rows) await ctx.db.patch(r._id, { limitOverride: undefined, changedBy: staff._id, changedAt: Date.now() });
+      await writeAudit(ctx, staff, "Applied the AI default to everyone", undefined, `${rows.length} personal limits cleared`);
     }
     return null;
+  },
+});
+
+/** Who has Ask Formkit, how much they use, and who is on a limit of their own. */
+export const aiStats = query({
+  args: { search: v.optional(v.string()), show: v.optional(v.union(v.literal("on"), v.literal("off"), v.literal("all"))) },
+  handler: async (ctx, { search, show = "on" }) => {
+    await requireStaff(ctx, "ai.access");
+    const period = new Date().toISOString().slice(0, 7);
+    const access = await ctx.db.query("aiAccess").collect();
+    const term = search?.trim().toLowerCase();
+    const rows = [];
+    for (const row of access) {
+      if (show === "on" && !row.enabled) continue;
+      if (show === "off" && row.enabled) continue;
+      const u = await ctx.db.get(row.userId);
+      if (!u) continue;
+      if (term && !`${u.name ?? ""} ${u.email ?? ""}`.toLowerCase().includes(term)) continue;
+      rows.push({
+        _id: u._id,
+        name: u.name ?? "",
+        email: u.email ?? "",
+        enabled: row.enabled,
+        limit: await aiLimit(ctx, u._id),
+        override: row.limitOverride ?? null,
+        granted: row.granted ?? 0,
+        used: u.aiPeriod === period ? (u.aiUsed ?? 0) : 0,
+      });
+    }
+    rows.sort((a, b) => b.used - a.used || a.name.localeCompare(b.name));
+    return {
+      rows,
+      overrides: rows.filter((r) => r.override !== null),
+      heaviest: rows.filter((r) => r.used > 0).slice(0, 5),
+    };
   },
 });
 
@@ -340,7 +503,10 @@ export const reports = query({
   args: {},
   handler: async (ctx) => {
     await requireStaff(ctx, "moderation");
-    return (await ctx.db.query("moderation").collect()).sort((a, b) => b.reportedAt - a.reportedAt);
+    const rows = (await ctx.db.query("moderation").collect()).sort((a, b) => b.reportedAt - a.reportedAt);
+    return Promise.all(
+      rows.map(async (r) => ({ ...r, ownerId: r.formId ? ((await ctx.db.get(r.formId))?.ownerId ?? null) : null })),
+    );
   },
 });
 
@@ -354,7 +520,31 @@ export const resolveReport = mutation({
     const staff = await requireStaff(ctx, "moderation");
     const report = await ctx.db.get(reportId);
     if (!report) return null;
-    await ctx.db.patch(reportId, { state });
+    const form = report.formId ? await ctx.db.get(report.formId) : null;
+    await ctx.db.patch(reportId, {
+      state,
+      ...(state === "locked" && form ? { statusBeforeLock: form.status } : {}),
+    });
+
+    // Unlocking puts the form back the way the lock found it.
+    if (report.state === "locked" && state !== "locked" && form && form.status === "closed" && form.closing?.closedBy === "Formkit") {
+      const back = report.statusBeforeLock === "published" ? "published" : report.statusBeforeLock === "draft" ? "draft" : "closed";
+      // The lock's own closing note goes; any schedule the owner set stays.
+      const { closedBy: _by, closedAt: _at, message: _msg, ...kept } = form.closing;
+      void _by;
+      void _at;
+      void _msg;
+      await ctx.db.patch(form._id, { status: back, closing: kept });
+      await notify(ctx, form.ownerId, {
+        kind: "locked",
+        title: `Formkit reopened ${form.title}`,
+        body: back === "published" ? "The review is done and it is collecting again." : "The review is done.",
+        href: `/app/forms/${form._id}`,
+        action: "Open the form",
+        icon: "shield-check",
+        formId: form._id,
+      });
+    }
 
     // Locking a form stops it collecting; it is not deleted, and its responses stay.
     if (state === "locked" && report.formId) {
@@ -472,10 +662,15 @@ export const saveAnnouncement = mutation({
 /* ------------------------------------------------------------------ */
 
 export const mail = query({
-  args: { limit: v.optional(v.number()) },
-  handler: async (ctx, { limit = 100 }) => {
+  args: { limit: v.optional(v.number()), userId: v.optional(v.id("users")), days: v.optional(v.number()) },
+  handler: async (ctx, { limit = 100, userId, days = 30 }) => {
     await requireStaff(ctx);
-    const rows = (await ctx.db.query("emailLog").collect())
+    const since = Date.now() - days * 24 * 60 * 60 * 1000;
+    const source = userId
+      ? await ctx.db.query("emailLog").withIndex("by_user", (q) => q.eq("userId", userId)).collect()
+      : await ctx.db.query("emailLog").collect();
+    const rows = source
+      .filter((r) => r.at >= since)
       .sort((a, b) => b.at - a.at)
       .slice(0, limit);
     return Promise.all(
@@ -544,6 +739,39 @@ export const setStaffRole = mutation({
       role === "none" ? "Removed admin access" : `Gave the ${role} role`,
       target.email ?? target.name,
     );
+    return null;
+  },
+});
+
+/** Bring an existing Formkit account onto the team by its email. */
+export const inviteStaff = mutation({
+  args: { email: v.string(), role: v.union(v.literal("admin"), v.literal("support")) },
+  returns: v.null(),
+  handler: async (ctx, { email, role }) => {
+    const staff = await requireStaff(ctx, "team");
+    const wanted = email.trim().toLowerCase();
+    const target = (await ctx.db.query("users").collect()).find((u) => (u.email ?? "").toLowerCase() === wanted);
+    if (!target) throw new Error("There is no Formkit account with that email. They need to sign up first.");
+    if (target.staffRole) throw new Error(`They are already on the team as ${target.staffRole}.`);
+    await ctx.db.patch(target._id, { staffRole: role });
+    await notify(ctx, target._id, {
+      kind: "support",
+      title: "You have been added to the Formkit team",
+      body: `As ${role === "admin" ? "an admin" : "support"}. The console is at formkit.app/admin.`,
+      icon: "shield-check",
+    });
+    await writeAudit(ctx, staff, `Added somebody to the team as ${role}`, target.email ?? target.name);
+    return null;
+  },
+});
+
+/** The console records staff coming and going, like every other action. */
+export const noteSession = mutation({
+  args: { what: v.union(v.literal("in"), v.literal("out")) },
+  returns: v.null(),
+  handler: async (ctx, { what }) => {
+    const staff = await requireStaff(ctx);
+    await writeAudit(ctx, staff, what === "in" ? "Signed in to the console" : "Signed out of the console");
     return null;
   },
 });

@@ -4,6 +4,7 @@ import { NightSky } from "@/components/brand/NightSky";
 import { Glyph } from "@/components/brand/Glyph";
 import { PublicPage } from "@/components/site/PublicPage";
 import { HelpSearch } from "@/components/site/HelpSearch";
+import { HelpCta } from "@/components/site/HelpCta";
 import { JsonLd, breadcrumb, organization } from "@/components/site/JsonLd";
 import { HELP_ARTICLES, HELP_CATEGORIES } from "@/content/help";
 import { SHARE_IMAGE, SITE_URL } from "@/lib/site";
@@ -150,6 +151,9 @@ export default function HelpPage() {
                 </div>
               </section>
             ))}
+          </div>
+          <div className="fk-measure">
+            <HelpCta />
           </div>
         </main>
       </PublicPage>

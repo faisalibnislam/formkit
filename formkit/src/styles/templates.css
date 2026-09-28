@@ -160,3 +160,42 @@ button.fk-chip {
   font-size: 14px;
   cursor: pointer;
 }
+
+.fk-tpl-how {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: fk-how;
+}
+.fk-tpl-how li {
+  position: relative;
+  padding: 14px 16px 14px 56px;
+  border-radius: var(--radius-card);
+  background: var(--neutral-50);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+  counter-increment: fk-how;
+}
+.fk-tpl-how li::before {
+  content: counter(fk-how);
+  position: absolute;
+  left: 16px;
+  top: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--neutral-900);
+  font-size: 13px;
+  color: var(--neutral-0);
+}
+.fk-tpl-how strong {
+  font-weight: 500;
+  color: var(--neutral-900);
+}

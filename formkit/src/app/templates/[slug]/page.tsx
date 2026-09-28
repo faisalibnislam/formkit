@@ -142,7 +142,7 @@ export default async function TemplateDetailPage(props: PageProps<"/templates/[s
                 <ArrowRight size={17} strokeWidth={1.8} aria-hidden />
               </Link>
               <span style={{ fontSize: 14.5, color: "rgba(255,255,255,.78)" }}>
-                Free, like everything else
+                Free · no credit card
               </span>
             </div>
           </div>
@@ -178,7 +178,7 @@ export default async function TemplateDetailPage(props: PageProps<"/templates/[s
                   letterSpacing: "-.02em",
                 }}
               >
-                The {t.questions.length} questions
+                Every question in this template
               </h2>
               <div style={{ marginTop: 10 }}>
                 {t.questions.map((question, i) => (
@@ -249,6 +249,31 @@ export default async function TemplateDetailPage(props: PageProps<"/templates/[s
                   letterSpacing: "-.02em",
                 }}
               >
+                How Formkit templates work
+              </h2>
+              <ol className="fk-tpl-how">
+                <li>
+                  <strong>Use this template</strong> makes a copy in your account — yours to change, and nothing you
+                  do touches the original.
+                </li>
+                <li>
+                  <strong>Change anything.</strong> Reword the questions, add or remove them, change the logic and the
+                  theme. It is an ordinary form from here on.
+                </li>
+                <li>
+                  <strong>Publish when it reads right.</strong> It goes out under your own link, and the answers land
+                  in your inbox.
+                </li>
+              </ol>
+
+              <h2
+                style={{
+                  margin: "clamp(30px,4vw,48px) 0 0",
+                  fontSize: "clamp(20px,2.2vw,28px)",
+                  fontWeight: 600,
+                  letterSpacing: "-.02em",
+                }}
+              >
                 Questions about this template
               </h2>
               <div style={{ maxWidth: "70ch", marginTop: 8 }}>
@@ -284,7 +309,7 @@ export default async function TemplateDetailPage(props: PageProps<"/templates/[s
                   letterSpacing: "-.02em",
                 }}
               >
-                The other five
+                Other templates
               </h2>
               <div
                 style={{

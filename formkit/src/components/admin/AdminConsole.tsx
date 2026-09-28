@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useCallback, useEffect, type ReactNode } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useQuery } from "convex/react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import {
   ChartPie,
@@ -155,7 +155,25 @@ export function AdminConsole() {
   const { signOut } = useAuthActions();
   const me = useQuery(api.admin.who, {});
   const stats = useQuery(api.admin.overview, {});
-  const [key, setKey] = useState<Key>("overview");
+  const noteSession = useMutation(api.admin.noteSession);
+  const search = useSearchParams();
+  // The section lives in the address, so a link can land on one — the support
+  // view's "Leave", or "Needs a look" jumping to a filtered list.
+  const key = (search.get("section") as Key | null) ?? "overview";
+  const setKey = useCallback((next: Key) => router.push(`/admin?section=${next}`, { scroll: false }), [router]);
+
+  // Staff coming in is audited like every other action, once a browser session.
+  const staffId = me?.staff?._id;
+  useEffect(() => {
+    if (!staffId) return;
+    try {
+      if (window.sessionStorage.getItem("fk.admin.in") === staffId) return;
+      window.sessionStorage.setItem("fk.admin.in", staffId);
+    } catch {
+      /* no session storage: audit every load instead */
+    }
+    void noteSession({ what: "in" }).catch(() => {});
+  }, [staffId, noteSession]);
 
   if (me === undefined) return null;
 
@@ -231,8 +249,15 @@ export function AdminConsole() {
           <button
             type="button"
             className="fk-admin-link"
-            onClick={() => {
-              void signOut().then(() => router.push("/"));
+            onClick={async () => {
+              await noteSession({ what: "out" }).catch(() => {});
+              try {
+                window.sessionStorage.removeItem("fk.admin.in");
+              } catch {
+                /* nothing to clear */
+              }
+              await signOut();
+              router.push("/");
             }}
           >
             <LogOut size={17} strokeWidth={1.8} aria-hidden />

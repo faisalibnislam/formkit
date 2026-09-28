@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Badge, Button, EmptyState } from "@/components/ui";
@@ -9,6 +10,7 @@ import { relativeTime } from "@/components/app/bits";
 /** Reported forms. Locking closes a form; it never deletes anything. */
 export function AdminModeration() {
   const toast = useToast();
+  const router = useRouter();
   const reports = useQuery(api.admin.reports, {});
   const resolve = useMutation(api.admin.resolveReport);
 
@@ -63,7 +65,24 @@ export function AdminModeration() {
                 Dismiss the report
               </Button>
             )}
-            {r.state !== "open" && (
+            {r.state === "locked" && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={async () => {
+                  await resolve({ reportId: r._id, state: "open" });
+                  toast("Form unlocked", { detail: "It is back the way it was, and the owner is told." });
+                }}
+              >
+                Unlock
+              </Button>
+            )}
+            {r.ownerId && (
+              <Button variant="ghost" size="sm" onClick={() => router.push(`/admin?section=users&open=${r.ownerId}`)}>
+                View user
+              </Button>
+            )}
+            {r.state === "dismissed" && (
               <Button variant="ghost" size="sm" onClick={() => resolve({ reportId: r._id, state: "open" })}>
                 Reopen
               </Button>

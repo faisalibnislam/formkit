@@ -57,17 +57,16 @@ export function HelpSearch() {
             color: "var(--neutral-900)",
           }}
         >
-          <p
-            style={{
-              margin: "16px 0 0",
-              fontSize: 13.5,
-              color: "var(--color-text-tertiary)",
-            }}
-          >
-            {results.length === 0
-              ? `Nothing matches “${term.trim()}”. Try a shorter word, or browse the categories below.`
-              : `${results.length} article${results.length === 1 ? "" : "s"} match “${term.trim()}”`}
-          </p>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "16px 0 0", flexWrap: "wrap" }}>
+            <p style={{ flex: 1, margin: 0, fontSize: 13.5, color: "var(--color-text-tertiary)" }}>
+              {results.length === 0
+                ? `Nothing matches “${term.trim()}”. Try a shorter word, or browse the categories below.`
+                : `${results.length} article${results.length === 1 ? "" : "s"} match “${term.trim()}”`}
+            </p>
+            <button type="button" className="fk-help-clear" onClick={() => setTerm("")}>
+              Clear search
+            </button>
+          </div>
           {results.map(({ article, match }) => (
             <Link key={article.id} href={`/help/${article.id}`} className="fk-help-result">
               <span

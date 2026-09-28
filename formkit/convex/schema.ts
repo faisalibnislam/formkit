@@ -523,6 +523,8 @@ export default defineSchema({
     reason: v.string(),
     state: v.union(v.literal("open"), v.literal("locked"), v.literal("dismissed")),
     reportedAt: v.number(),
+    /** What the form was before a lock closed it, so unlocking can put it back. */
+    statusBeforeLock: v.optional(v.string()),
   }).index("by_state", ["state"]),
 
   tickets: defineTable({

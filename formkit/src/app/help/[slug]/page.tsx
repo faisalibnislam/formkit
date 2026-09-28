@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { HelpSearch } from "@/components/site/HelpSearch";
+import { HelpCta } from "@/components/site/HelpCta";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { NightSky } from "@/components/brand/NightSky";
@@ -111,6 +113,9 @@ export default async function HelpArticlePage(props: PageProps<"/help/[slug]">) 
             >
               {article.summary}
             </p>
+            <div className="fk-help-hero-search">
+              <HelpSearch />
+            </div>
           </div>
         </section>
 
@@ -225,6 +230,8 @@ export default async function HelpArticlePage(props: PageProps<"/help/[slug]">) 
                   </Link>
                 )}
               </div>
+
+              <HelpCta />
             </div>
           </div>
         </main>
