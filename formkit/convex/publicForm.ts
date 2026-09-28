@@ -1,3 +1,4 @@
+import { owed, takesPayment } from "./payments";
 import { ConvexError, v } from "convex/values";
 import { mutation, query, type MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
@@ -139,6 +140,8 @@ async function payload(ctx: QueryCtx, form: Doc<"forms">) {
     /** Which smarter-form features the owner's plan turns on here. */
     smart,
     calc: smart.calc ? (form.calc ?? []) : [],
+    /** Pro: people are sent to pay, through the owner's Stripe, after sending. */
+    payment: await takesPayment(ctx, form),
     uploadCapMb: PLANS[await planOfId(ctx, form.ownerId)].uploadMb,
     custom: await customLook(ctx, form),
     rules: {
@@ -379,7 +382,15 @@ async function store(
           Object.fromEntries(answers.map((a) => [a.blockId as string, { value: a.value, values: a.values }])),
         )
       : undefined;
-  const full = calc ? { ...record, calc } : record;
+  const withCalc = calc ? { ...record, calc } : record;
+  // A payment already made stays made; otherwise work out what is owed now.
+  const payment =
+    existing?.payment?.status === "paid"
+      ? existing.payment
+      : !args.partial && !preview
+        ? await owed(ctx, form, calc)
+        : null;
+  const full = payment ? { ...withCalc, payment } : withCalc;
 
   const responseId = existing
     ? (await ctx.db.replace(existing._id, full), existing._id)
@@ -408,8 +419,9 @@ async function store(
     const saved = await ctx.db.get(responseId);
     if (saved && after) await notifyResponse(ctx, after, saved);
     await ctx.scheduler.runAfter(0, internal.notifications.onResponse, { responseId });
+    await ctx.scheduler.runAfter(0, internal.connections.fanout, { responseId });
   }
-  return { responseId, resumeToken: record.resumeToken };
+  return { responseId, resumeToken: record.resumeToken, pay: payment?.status === "pending" };
 }
 
 /**
@@ -433,7 +445,7 @@ export const submit = mutation({
     human: v.optional(v.boolean()),
     answers: v.array(answerArg),
   },
-  returns: v.object({ responseId: v.id("responses"), resumeToken: v.string() }),
+  returns: v.object({ responseId: v.id("responses"), resumeToken: v.string(), pay: v.boolean() }),
   handler: async (ctx, args) => {
     const form = await ctx.db.get(args.formId);
     if (!form || form.deletedAt) throw new ConvexError("That form is no longer available.");
@@ -523,7 +535,7 @@ export const submitPreview = mutation({
     durationMs: v.optional(v.number()),
     answers: v.array(answerArg),
   },
-  returns: v.object({ responseId: v.id("responses"), resumeToken: v.string() }),
+  returns: v.object({ responseId: v.id("responses"), resumeToken: v.string(), pay: v.boolean() }),
   handler: async (ctx, args) => {
     const { form } = await accessOf(ctx, args.formId);
     return store(ctx, form, { ...args, partial: false }, null, true);

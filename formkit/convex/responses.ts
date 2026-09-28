@@ -1,3 +1,4 @@
+import { moneyText } from "./model/money";
 import { v } from "convex/values";
 import { internalMutation, mutation, query, type QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
@@ -95,6 +96,8 @@ async function shape(ctx: QueryCtx, r: Doc<"responses">, formTitle: string) {
     resumeToken: r.partial ? (r.resumeToken ?? null) : null,
     /** Pro: the form's calculations, as worked out when it was sent. */
     calc: r.calc ?? null,
+    /** Pro: the payment taken after sending, amount in minor units. */
+    payment: r.payment ? { status: r.payment.status, amount: r.payment.amount, currency: r.payment.currency, at: r.payment.at ?? null } : null,
   };
 }
 
@@ -425,6 +428,7 @@ export const forExport = query({
 
     // Calculation results get a column each, after the questions.
     const calcNames = [...new Set(picked.flatMap((r) => Object.keys(r.calc ?? {})))];
+    const paid = picked.some((r) => r.payment);
 
     const many = !formId;
     const columns = [
@@ -442,6 +446,7 @@ export const forExport = query({
       "Note",
       ...questions,
       ...calcNames,
+      ...(paid ? ["Payment"] : []),
     ];
     const slug = formId ? (forms[0]?.slug ?? "form") : "all-forms";
     return {
@@ -470,6 +475,7 @@ export const forExport = query({
             return a.fileName ?? a.value ?? "";
           }),
           ...calcNames.map((n) => (r.calc && n in r.calc ? String(r.calc[n]) : "")),
+          ...(paid ? [r.payment ? `${r.payment.status} · ${moneyText(r.payment.amount, r.payment.currency)}` : ""] : []),
         ];
       }),
     };

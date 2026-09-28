@@ -19,5 +19,6 @@ crons.hourly("erase forms 60 days in the bin", { minuteUTC: 20 }, internal.forms
 crons.hourly("erase accounts deleted 30 days ago", { minuteUTC: 40 }, internal.security.purgeDeactivated, {});
 crons.interval("check custom domains waiting on DNS", { minutes: 10 }, internal.domains.recheckPending, {});
 crons.interval("check email domains waiting on DNS", { minutes: 10 }, internal.emailDomains.recheckPending, {});
+crons.interval("settle payments nobody came back from", { minutes: 20 }, internal.payments.recheckPending, {});
 
 export default crons;

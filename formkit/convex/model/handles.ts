@@ -26,6 +26,7 @@ const RESERVED = new Set([
   "formkit",
   "help",
   "onboarding",
+  "pay",
   "pricing",
   "privacy",
   "settings",

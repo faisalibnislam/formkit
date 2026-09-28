@@ -12,6 +12,7 @@ import { fullTime } from "../bits";
 import { CloseFormDialog } from "../dialogs/CloseFormDialog";
 import { localZone, zoneOptions } from "../time";
 import { ClosingRules, closeWhenLabel } from "./ClosingRules";
+import { ConnectionsSection, PaymentsSection } from "./ConnectionsSection";
 import { DraftArea, DraftPill } from "./Draft";
 import { openPreview } from "./previewBus";
 import { tracked } from "./saveStatus";
@@ -49,7 +50,7 @@ type Security = {
   requireEmail: boolean;
 };
 
-type Section = "general" | "responses" | "notifications" | "security" | "submission" | "emails";
+type Section = "general" | "responses" | "notifications" | "security" | "submission" | "connections" | "payments" | "emails";
 
 const VARIABLES = ["{{name}}", "{{email}}", "{{form_name}}", "{{submitted_at}}"];
 const DEFAULT_NOTE = "This form is closed. Thank you to everyone who answered.";
@@ -163,6 +164,8 @@ export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
             { value: "notifications", label: "Notifications" },
             { value: "security", label: "Security" },
             { value: "submission", label: "Submission" },
+            { value: "connections", label: "Connections" },
+            { value: "payments", label: "Payments" },
             { value: "emails", label: "Email log" },
           ]}
         />
@@ -665,6 +668,10 @@ export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
           </div>
         </Card>
       )}
+
+      {section === "connections" && <ConnectionsSection formId={formId} features={form.ownerPlan?.features} />}
+
+      {section === "payments" && <PaymentsSection formId={formId} features={form.ownerPlan?.features} />}
 
       {section === "emails" && (
         <section className="fk-panel" data-pad="none">

@@ -225,6 +225,18 @@ export default defineSchema({
       }),
     ),
 
+    /** Pro: take a payment through the owner's own Stripe after submitting. */
+    payment: v.optional(
+      v.object({
+        enabled: v.boolean(),
+        currency: v.string(),
+        /** A fixed amount in the currency's minor unit (cents)… */
+        amount: v.optional(v.number()),
+        /** …or the result of one of the form's calculations, in major units. */
+        fromCalc: v.optional(v.string()),
+        label: v.optional(v.string()),
+      }),
+    ),
     /** Pro: named formulas over question keys, worked out at submit. */
     calc: v.optional(v.array(v.object({ name: v.string(), formula: v.string() }))),
     /** Kept in step with the blocks by `recount`, so the forms list never reads them. */
@@ -316,6 +328,16 @@ export default defineSchema({
     device: v.optional(v.string()),
     source: v.optional(v.string()),
     durationMs: v.optional(v.number()),
+    /** Pro: the payment taken after this response, through the owner's Stripe. */
+    payment: v.optional(
+      v.object({
+        status: v.union(v.literal("pending"), v.literal("paid"), v.literal("failed"), v.literal("none")),
+        amount: v.number(),
+        currency: v.string(),
+        sessionId: v.optional(v.string()),
+        at: v.optional(v.number()),
+      }),
+    ),
     /** Pro: the form's calculations, worked out when it was sent. */
     calc: v.optional(v.record(v.string(), v.number())),
     status: v.union(v.literal("new"), v.literal("read"), v.literal("reviewed")),
@@ -335,7 +357,8 @@ export default defineSchema({
     .index("by_owner_status", ["ownerId", "status"])
     .index("by_owner_submitted", ["ownerId", "submittedAt"])
     .index("by_form_submitted", ["formId", "submittedAt"])
-    .index("by_resume", ["resumeToken"]),
+    .index("by_resume", ["resumeToken"])
+    .index("by_payment", ["payment.status", "submittedAt"]),
 
   /**
    * Each time a published form is opened or started, so views and starts can
@@ -609,6 +632,51 @@ export default defineSchema({
     .index("by_host", ["host"])
     .index("by_owner", ["ownerId"])
     .index("by_status", ["status"]),
+
+  /**
+   * Pro: where a form's new responses go — a signed webhook (Zapier and
+   * Make catch these too), a Slack channel, or a Google Sheet that pulls from
+   * a private link.
+   */
+  connections: defineTable({
+    formId: v.id("forms"),
+    ownerId: v.id("users"),
+    kind: v.union(v.literal("webhook"), v.literal("slack"), v.literal("sheets")),
+    label: v.optional(v.string()),
+    url: v.optional(v.string()),
+    /** Signs each webhook delivery; shown once, when the webhook is made. */
+    secret: v.optional(v.string()),
+    /** The private part of a Sheets link. */
+    token: v.optional(v.string()),
+    enabled: v.boolean(),
+    createdAt: v.number(),
+    last: v.optional(v.object({ at: v.number(), ok: v.boolean(), status: v.number(), detail: v.optional(v.string()) })),
+  })
+    .index("by_form", ["formId"])
+    .index("by_token", ["token"]),
+
+  /** The last deliveries of each connection, newest kept, for its log. */
+  deliveries: defineTable({
+    connectionId: v.id("connections"),
+    responseId: v.optional(v.id("responses")),
+    at: v.number(),
+    attempt: v.number(),
+    ok: v.boolean(),
+    status: v.number(),
+    detail: v.optional(v.string()),
+  }).index("by_connection", ["connectionId", "at"]),
+
+  /**
+   * Pro: the form owner's own Stripe account, by a restricted key they
+   * pasted. Formkit opens checkouts on it; the money is theirs.
+   */
+  paymentAccounts: defineTable({
+    ownerId: v.id("users"),
+    key: v.string(),
+    live: v.boolean(),
+    name: v.optional(v.string()),
+    addedAt: v.number(),
+  }).index("by_owner", ["ownerId"]),
 
   /**
    * Pro: confirmation emails sent from the customer's own domain, verified

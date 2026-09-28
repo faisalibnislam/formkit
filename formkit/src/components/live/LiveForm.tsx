@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { Lock } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -47,6 +47,7 @@ export function LiveForm({
   const recordView = useMutation(api.publicForm.recordView);
   const uploadUrl = useMutation(api.publicForm.uploadUrl);
   const submit = useMutation(api.publicForm.submit);
+  const checkout = useAction(api.payments.checkout);
   const viewed = useRef(false);
 
   const open = data?.state === "open" ? data : null;
@@ -177,6 +178,7 @@ export function LiveForm({
       mode="live"
       resume={resume}
       onSubmit={onSubmit}
+      onPay={checkout}
       onStart={() => void recordView({ formId: data.formId, started: true, source: sourceLabel() })}
       upload={upload}
     />

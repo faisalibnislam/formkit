@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
-import { ArrowLeft, Check, CornerDownLeft, Lock, Paperclip } from "lucide-react";
+import { ArrowLeft, Check, CornerDownLeft, CreditCard, Lock, Paperclip } from "lucide-react";
 import type { Id } from "../../../convex/_generated/dataModel";
 import {
   cleanCss,
@@ -82,7 +82,12 @@ export type OpenForm = {
   calc?: { name: string; formula: string }[];
   /** Pro: the brand's own font file and custom CSS, when the owner's plan has them. */
   custom?: { font: { name: string; url: string } | null; css: string | null } | null;
+  /** Pro: people go on to pay, through the owner's Stripe, after sending. */
+  payment?: { label: string | null; currency: string; amount: number | null; fromCalc: string | null } | null;
 };
+
+/** What a sent response comes back as. */
+export type Submitted = { resumeToken: string; responseId?: Id<"responses">; pay?: boolean };
 
 export type SubmitArgs = {
   partial: boolean;
@@ -140,6 +145,7 @@ export function FormRunner({
   closed = false,
   resume,
   onSubmit,
+  onPay,
   onStart,
   upload,
   scrollRoot,
@@ -150,7 +156,9 @@ export function FormRunner({
   closed?: boolean;
   /** Answers already given — a partial being finished, or a response being changed. */
   resume?: { token: string; answers: Record<string, Answer>; editing: boolean };
-  onSubmit: (args: SubmitArgs) => Promise<{ resumeToken: string }>;
+  onSubmit: (args: SubmitArgs) => Promise<Submitted>;
+  /** Opens the payment page for a response that owes one; the live form only. */
+  onPay?: (r: { responseId: Id<"responses">; resumeToken: string }) => Promise<{ url: string } | { paid: true } | null>;
   onStart?: () => void;
   upload: (file: File) => Promise<Id<"_storage">>;
   /** What scrolls — the window, or the preview's own frame. */
@@ -171,7 +179,8 @@ export function FormRunner({
   const hiddenFields = blocks.filter((b) => b.type === "hidden");
   const [problem, setProblem] = useState<string | null>(null);
   const [fileProblem, setFileProblem] = useState<Record<string, string>>({});
-  const [done, setDone] = useState<{ token: string } | null>(null);
+  const [done, setDone] = useState<{ token: string; responseId?: Id<"responses">; paying?: boolean } | null>(null);
+  const [payProblem, setPayProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
   const [prove, setProve] = useState(false);
@@ -264,7 +273,7 @@ export function FormRunner({
       : data.thanks.redirect
     : null;
   useEffect(() => {
-    if (!done || mode !== "live" || !redirectTo || !/^https?:\/\//i.test(redirectTo)) return;
+    if (!done || done.paying || mode !== "live" || !redirectTo || !/^https?:\/\//i.test(redirectTo)) return;
     const t = window.setTimeout(() => window.location.assign(redirectTo), 1400);
     return () => window.clearTimeout(t);
   }, [done, mode, redirectTo]);
@@ -285,8 +294,10 @@ export function FormRunner({
           .map(([blockId, a]) => ({ blockId: blockId as Id<"blocks">, ...a })),
       });
       setProve(false);
-      setDone({ token: r.resumeToken });
+      const paying = !!(r.pay && r.responseId && onPay && mode === "live");
+      setDone({ token: r.resumeToken, responseId: r.responseId, paying });
       toTop();
+      if (paying) void goPay(r.responseId!, r.resumeToken);
     } catch (e) {
       savedPartial.current = false;
       const data = (e as { data?: unknown }).data;
@@ -298,6 +309,28 @@ export function FormRunner({
       }
     } finally {
       setBusy(false);
+    }
+  }
+
+  /** Sends the person on to Stripe; the answers are already saved. */
+  async function goPay(responseId: Id<"responses">, resumeToken: string) {
+    if (!onPay) return;
+    setPayProblem(null);
+    try {
+      const next = await onPay({ responseId, resumeToken });
+      if (next && "url" in next) {
+        try {
+          window.sessionStorage.setItem("fk.pay", JSON.stringify({ responseId, resumeToken }));
+        } catch {
+          /* Coming back to try again just will not be offered. */
+        }
+        window.location.assign(next.url);
+        return;
+      }
+      setDone((d) => (d ? { ...d, paying: false } : d));
+    } catch (e) {
+      const data = (e as { data?: unknown }).data;
+      setPayProblem(typeof data === "string" ? data : "The payment page did not open. Try again in a moment.");
     }
   }
 
@@ -403,6 +436,30 @@ export function FormRunner({
   }
 
   /* ---------- sent ---------- */
+  if (done?.paying) {
+    return (
+      <Shell theme={theme} brand={data.brand} logos={data.logos} custom={data.custom}>
+        <div style={{ textAlign: split ? "left" : "center", paddingTop: "4vh" }}>
+          <span className="fk-live-lock" style={{ background: theme.primary, color: ink }}>
+            <CreditCard size={30} strokeWidth={1.8} aria-hidden />
+          </span>
+          <h1 style={{ marginTop: 22 }}>{payProblem ? "One more step" : "Taking you to payment…"}</h1>
+          <p className="fk-live-lede">
+            {payProblem ?? "Your answers are saved. Payment is handled securely by Stripe."}
+          </p>
+          {payProblem && (
+            <div className="fk-live-foot" style={{ justifyContent: split ? "flex-start" : "center" }}>
+              <button type="button" style={button(true)} onClick={() => void goPay(done.responseId!, done.token)}>
+                Try again
+              </button>
+            </div>
+          )}
+        </div>
+        {credit}
+      </Shell>
+    );
+  }
+
   if (done) {
     const t = data.thanks;
     return (
@@ -413,6 +470,15 @@ export function FormRunner({
           </span>
           <h1 style={{ marginTop: 22 }}>{say(t?.title) || "Thank you"}</h1>
           <p className="fk-live-lede">{say(t?.message) || "Your answers are in."}</p>
+          {mode === "preview" && data.payment && (
+            <p className="fk-live-note">
+              On the live form, people go on to pay
+              {data.payment.amount !== null
+                ? ` ${data.payment.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ${data.payment.currency.toUpperCase()}`
+                : ` the amount from ${data.payment.fromCalc}`}{" "}
+              through Stripe from here.
+            </p>
+          )}
           {redirectTo && (
             <p className="fk-live-note">
               {mode === "live"

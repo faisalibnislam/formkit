@@ -416,3 +416,120 @@ button.fk-prochip[data-plan="business"]:hover {
   gap: 10px;
   flex-wrap: wrap;
 }
+
+/* Settings → Connections. */
+.fk-connect-kinds {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  margin: 4px 0 6px;
+}
+.fk-connect-kind {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--neutral-0);
+  box-shadow: inset 0 0 0 1px var(--neutral-150);
+  color: var(--neutral-900);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: box-shadow 0.15s ease, background 0.15s ease;
+}
+.fk-connect-kind:hover {
+  background: var(--neutral-50);
+  box-shadow: inset 0 0 0 1px var(--neutral-200);
+}
+.fk-connect-kind .fk-proprow-hint {
+  display: block;
+  margin-top: 3px;
+}
+.fk-connect-icon {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--neutral-100);
+  color: var(--neutral-800);
+}
+.fk-connect-url {
+  margin: 8px 0 0;
+  overflow-wrap: anywhere;
+}
+.fk-copyline {
+  width: 100%;
+  font-size: 13.5px;
+}
+.fk-connect-log {
+  margin-top: 12px;
+  font-size: 13.5px;
+}
+.fk-connect-log summary {
+  cursor: pointer;
+  color: var(--color-text-secondary);
+}
+.fk-connect-logrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--neutral-100);
+}
+.fk-connect-detail {
+  flex-basis: 100%;
+  overflow-wrap: anywhere;
+}
+.fk-linkbtn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--neutral-900);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+.fk-linkbtn:hover {
+  color: var(--color-text-secondary);
+}
+.fk-codeblock {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--neutral-50);
+  box-shadow: inset 0 0 0 1px var(--neutral-150);
+  font-size: 12.5px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Responses: paid, waiting, not paid. */
+.fk-paychip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 500;
+  background: var(--neutral-100);
+  color: var(--neutral-700);
+}
+.fk-paychip[data-status="paid"] {
+  background: var(--green-100);
+  color: var(--green-600);
+}
+.fk-paychip[data-status="failed"] {
+  background: var(--red-100);
+  color: var(--red-600);
+}
+.fk-paychip[data-status="pending"] {
+  background: var(--yellow-100);
+  color: var(--yellow-600);
+}

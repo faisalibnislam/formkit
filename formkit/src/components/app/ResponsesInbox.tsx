@@ -118,12 +118,37 @@ export function ResponsesInbox({ formId, openId }: { formId?: Id<"forms">; openI
   );
 }
 
-function badgeFor(r: Pick<Row, "partial" | "preview" | "status">) {
+function statusBadge(r: Pick<Row, "partial" | "preview" | "status">) {
   if (r.preview) return <Badge tone="draft">Preview</Badge>;
   if (r.partial) return <Badge tone="warning">Partial</Badge>;
   if (r.status === "new") return <Badge tone="info">New</Badge>;
   if (r.status === "reviewed") return <Badge tone="success">Reviewed</Badge>;
   return <Badge tone="neutral">Read</Badge>;
+}
+
+/** 2500, "usd" → "$25.00". Stripe counts most currencies in cents. */
+export function payText(p: { amount: number; currency: string }) {
+  const major = ["jpy", "krw", "vnd", "clp"].includes(p.currency) ? p.amount : p.amount / 100;
+  try {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: p.currency.toUpperCase() }).format(major);
+  } catch {
+    return `${major.toFixed(2)} ${p.currency.toUpperCase()}`;
+  }
+}
+
+const PAY_LABEL = { paid: "Paid", pending: "Awaiting payment", failed: "Not paid", none: "" } as const;
+
+function badgeFor(r: Pick<Row, "partial" | "preview" | "status" | "payment">) {
+  const main = statusBadge(r);
+  if (!r.payment || r.payment.status === "none") return main;
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+      <span className="fk-paychip" data-status={r.payment.status} title={`${PAY_LABEL[r.payment.status]} · ${payText(r.payment)}`}>
+        {r.payment.status === "paid" ? payText(r.payment) : PAY_LABEL[r.payment.status]}
+      </span>
+      {main}
+    </span>
+  );
 }
 
 const who = (r: Pick<Row, "respondentName" | "respondentEmail">) =>
@@ -625,8 +650,20 @@ function ResponseDrawer({
         rows: calc.map(([k, v]) => ({ q: k, a: v.toLocaleString("en-US"), empty: false, file: false })),
       });
     }
+    if (response.payment && response.payment.status !== "none") {
+      out.push({
+        title: "Payment",
+        rows: [
+          { q: "Amount", a: payText(response.payment), empty: false, file: false },
+          { q: "Status", a: PAY_LABEL[response.payment.status], empty: false, file: false },
+          ...(response.payment.at
+            ? [{ q: "Paid", a: fullTime(response.payment.at), empty: false, file: false }]
+            : []),
+        ],
+      });
+    }
     return out;
-  }, [form, response.answers, response.calc]);
+  }, [form, response.answers, response.calc, response.payment]);
 
   const name = who(response);
   const meta = [
