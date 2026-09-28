@@ -1,3 +1,4 @@
+import { fromPortable, type PortableRule } from "./model/logicCopy";
 import { ConvexError, v } from "convex/values";
 import { internalMutation, mutation, query, type MutationCtx } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
@@ -276,6 +277,7 @@ export const get = query({
       logos: await themeLogos(ctx, form.theme),
       identity: await formIdentity(ctx, form),
       calc: form.calc ?? [],
+      endings: form.endings ?? [],
       /** The owner's plan: what this form can do, whoever is editing it. */
       ownerPlan: await ownerPlanOf(ctx, form.ownerId),
       /** Business approvals: whether this person must ask, and what is waiting. */
@@ -359,29 +361,9 @@ export const create = mutation({
     }
 
     // Logic travels by position, and is re-pointed at the new questions.
-    const rules = ((template && "rules" in template ? template.rules : undefined) ?? []) as {
-      name: string;
-      enabled: boolean;
-      join: "and" | "or";
-      action: "show" | "hide" | "require" | "jump";
-      targetIndex: number | null;
-      conditions: { index: number | null; operator: string; value?: string }[];
-    }[];
+    const rules = ((template && "rules" in template ? template.rules : undefined) ?? []) as PortableRule[];
     for (const [i, r] of rules.entries()) {
-      await ctx.db.insert("logicRules", {
-        formId,
-        name: r.name,
-        enabled: r.enabled,
-        join: r.join,
-        action: r.action,
-        targetId: r.targetIndex !== null ? ids[r.targetIndex] : undefined,
-        conditions: r.conditions.map((c) => ({
-          blockId: c.index !== null ? ids[c.index] : undefined,
-          operator: c.operator,
-          value: c.value,
-        })),
-        order: i,
-      });
+      await ctx.db.insert("logicRules", fromPortable(r, ids, formId, i));
     }
 
     await recount(ctx, formId);
@@ -465,6 +447,43 @@ export const patchSettings = mutation({
     const current = ((form as Record<string, unknown>)[key] ?? {}) as Record<string, unknown>;
     await ctx.db.patch(formId, {
       [key]: { ...current, ...(patch as Record<string, unknown>) },
+      updatedAt: Date.now(),
+    });
+    return null;
+  },
+});
+
+/** Pro: the form's other endings. Rules that point at a removed one simply stop. */
+export const setEndings = mutation({
+  args: {
+    formId: v.id("forms"),
+    endings: v.array(
+      v.object({
+        id: v.string(),
+        name: v.string(),
+        title: v.string(),
+        message: v.string(),
+        buttonLabel: v.optional(v.string()),
+        buttonUrl: v.optional(v.string()),
+        redirect: v.optional(v.string()),
+      }),
+    ),
+  },
+  returns: v.null(),
+  handler: async (ctx, { formId, endings }) => {
+    const form = await formFor(ctx, formId);
+    if (endings.length) await requireFeature(ctx, form.ownerId, "logic.advanced");
+    if (endings.some((e) => e.redirect?.trim())) await requireFeature(ctx, form.ownerId, "forms.redirect");
+    await ctx.db.patch(formId, {
+      endings: endings.slice(0, 12).map((e) => ({
+        id: e.id.slice(0, 40),
+        name: e.name.trim().slice(0, 60) || "Ending",
+        title: e.title.slice(0, 200),
+        message: e.message.slice(0, 2000),
+        buttonLabel: e.buttonLabel?.trim() || undefined,
+        buttonUrl: e.buttonUrl?.trim() || undefined,
+        redirect: e.redirect?.trim() || undefined,
+      })),
       updatedAt: Date.now(),
     });
     return null;

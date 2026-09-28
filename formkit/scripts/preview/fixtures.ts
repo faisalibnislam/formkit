@@ -394,6 +394,11 @@ const FORM_DETAIL = {
   closing: { closeAfter: 400, timezone: "Pacific/Auckland" },
   blocks: BLOCKS,
   rules: [],
+  calc: [],
+  endings: [
+    { id: "e1", name: "Big project", title: "Let’s talk this week", message: "Projects like yours get a call from a partner within two days." },
+    { id: "e2", name: "Not a fit yet", title: "Thanks for asking", message: "We’re not the right studio for this one — here are a few we trust." },
+  ],
 };
 
 const PERMS = [
@@ -644,6 +649,20 @@ export const QUERIES: Record<string, unknown> = {
         ],
       };
     }
+    if (flag("fk_logic")) {
+      // Places left on the budget, an option hidden until the project mentions a website.
+      return {
+        ...RUNNER,
+        blocks: RUNNER.blocks.map((b) =>
+          b._id === "b5" ? { ...b, type: "single-choice", left: [3, 0, null, 12] } : b,
+        ),
+        endings: FORM_DETAIL.endings,
+        logic: [
+          { _id: "r4", join: "and", conditions: [{ blockId: "b4", operator: "not-contains", value: "website" }], action: "hide-options", targetId: "b5", options: ["More than £35k"] },
+          { _id: "r3", join: "and", conditions: [{ blockId: "b5", operator: "is", value: "£20k–£35k" }], action: "ending", endingId: "e1" },
+        ],
+      };
+    }
     return flag("fk_css")
       ? { ...RUNNER, custom: { font: null, css: ".fk-live-q-title { color: #c4614f; text-transform: uppercase; letter-spacing: .04em; } body { background: red; }" } }
       : RUNNER;
@@ -691,6 +710,33 @@ export const QUERIES: Record<string, unknown> = {
       action: "require",
       targetId: "b6",
       order: 1,
+    },
+    {
+      _id: "r3",
+      formId: "f1",
+      name: "Serious enquiries",
+      enabled: true,
+      join: "or",
+      conditions: [{ blockId: "b5", operator: "any-of", value: "£20k–£35k|More than £35k" }],
+      groups: [
+        { join: "and", conditions: [{ blockId: "b5", operator: "any-of", value: "£20k–£35k|More than £35k" }, { blockId: "b2", operator: "email-domain", value: "studionine.co" }] },
+        { join: "and", conditions: [{ id: "ai1", source: "ai", blockId: "b4", operator: "yes", value: "Is this a large, multi-page website?", fallback: false }] },
+      ],
+      action: "ending",
+      endingId: "e1",
+      order: 2,
+    },
+    {
+      _id: "r4",
+      formId: "f1",
+      name: "No rush options for small budgets",
+      enabled: true,
+      join: "and",
+      conditions: [{ blockId: "b4", operator: "not-contains", value: "website" }],
+      action: "hide-options",
+      targetId: "b5",
+      options: ["More than £35k"],
+      order: 3,
     },
   ],
   "ai:usage": { used: 3, limit: 25, allowed: true },

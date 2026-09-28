@@ -47,7 +47,10 @@ import type * as model_gemini from "../model/gemini.js";
 import type * as model_handles from "../model/handles.js";
 import type * as model_identity from "../model/identity.js";
 import type * as model_inbox from "../model/inbox.js";
+import type * as model_logicCopy from "../model/logicCopy.js";
+import type * as model_logicEval from "../model/logicEval.js";
 import type * as model_money from "../model/money.js";
+import type * as model_places from "../model/places.js";
 import type * as model_plans from "../model/plans.js";
 import type * as model_security from "../model/security.js";
 import type * as model_sheet from "../model/sheet.js";
@@ -116,7 +119,10 @@ declare const fullApi: ApiFromModules<{
   "model/handles": typeof model_handles,
   "model/identity": typeof model_identity,
   "model/inbox": typeof model_inbox,
+  "model/logicCopy": typeof model_logicCopy,
+  "model/logicEval": typeof model_logicEval,
   "model/money": typeof model_money,
+  "model/places": typeof model_places,
   "model/plans": typeof model_plans,
   "model/security": typeof model_security,
   "model/sheet": typeof model_sheet,

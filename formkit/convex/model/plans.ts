@@ -36,6 +36,10 @@ export const PLANS: Record<
     collaborators: number | null;
     /** Companies (brands) on the account; null is no limit. */
     companies: number | null;
+    /** AI-written replies to submitters each month (more can be bought). */
+    aiReplies: number;
+    /** Live AI logic checks each month: "AI decides" and facts read from answers. */
+    aiChecks: number;
   }
 > = {
   free: {
@@ -47,6 +51,8 @@ export const PLANS: Record<
     historyDays: 30,
     collaborators: 3,
     companies: 1,
+    aiReplies: 0,
+    aiChecks: 0,
   },
   pro: {
     name: "Pro",
@@ -57,6 +63,8 @@ export const PLANS: Record<
     historyDays: 365,
     collaborators: null,
     companies: 5,
+    aiReplies: 0,
+    aiChecks: 0,
   },
   business: {
     name: "Business",
@@ -67,8 +75,13 @@ export const PLANS: Record<
     historyDays: null,
     collaborators: null,
     companies: null,
+    aiReplies: 30,
+    aiChecks: 1000,
   },
 };
+
+/** A pack of extra AI replies: its price in dollars and how many it holds. */
+export const REPLY_PACK = { price: 5, replies: 100 } as const;
 
 /** Every paid feature, the plan that first includes it, and how it is described. */
 export const FEATURES = {
@@ -88,6 +101,7 @@ export const FEATURES = {
   "logic.hidden": { plan: "pro", label: "Hidden fields and pre-filled answers", group: "Smarter forms" },
   "logic.piping": { plan: "pro", label: "Earlier answers in later questions", group: "Smarter forms" },
   "forms.redirect": { plan: "pro", label: "Send people to your page after", group: "Smarter forms" },
+  "logic.advanced": { plan: "pro", label: "Several endings, hidden options and limited places", group: "Smarter forms" },
   // Pro — connections
   // Pro — people and brands
   collaborators: { plan: "pro", label: "Unlimited collaborators on every form", group: "Teams" },
@@ -106,6 +120,10 @@ export const FEATURES = {
   api: { plan: "business", label: "API access", group: "Control" },
   sso: { plan: "business", label: "Sign-in with your company’s Google or Microsoft", group: "Control" },
   "support.priority": { plan: "business", label: "Priority support", group: "Control" },
+  // Business — AI
+  "ai.reply": { plan: "business", label: "AI-written replies to every submission", group: "AI" },
+  "ai.insights": { plan: "business", label: "AI insights on your submissions", group: "AI" },
+  "logic.ai": { plan: "business", label: "AI decides: logic that reads answers, and facts pulled from them", group: "AI" },
 } as const satisfies Record<string, { plan: Exclude<PlanId, "free">; label: string; group: string }>;
 
 export type Feature = keyof typeof FEATURES;
@@ -198,6 +216,8 @@ export function planSummary(user: Doc<"users">) {
       historyDays: PLANS[id].historyDays,
       collaborators: PLANS[id].collaborators,
       companies: PLANS[id].companies,
+      aiReplies: PLANS[id].aiReplies,
+      aiChecks: PLANS[id].aiChecks,
     },
   };
 }

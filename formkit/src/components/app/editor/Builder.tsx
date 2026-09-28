@@ -1,5 +1,6 @@
 "use client";
 
+import { conditionsOf } from "../../../../convex/model/logicEval";
 import { useSeededQuery } from "@/lib/seed";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { DragEvent, PointerEvent } from "react";
@@ -324,7 +325,7 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
 
   const fields = blocks.filter((b) => b.kind === "field");
   const ruleCount = (id: string) =>
-    (rules ?? []).filter((r) => r.targetId === id || r.conditions.some((c) => c.blockId === id))
+    (rules ?? []).filter((r) => r.targetId === id || conditionsOf(r).some((c) => c.blockId === id))
       .length;
 
   /* A plain function rather than a component: it holds no state of its own, and

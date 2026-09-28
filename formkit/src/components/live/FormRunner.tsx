@@ -13,6 +13,7 @@ import {
 } from "@/components/app/editor/themes";
 import { fontStack, loadFont } from "@/components/app/editor/fonts";
 import { computeAll, pipe, pipeValues } from "../../../convex/model/calc";
+import { applyLogic, type Rule as LogicRule } from "../../../convex/model/logicEval";
 import { LogoLockup } from "./LogoLockup";
 
 /**
@@ -47,13 +48,23 @@ export type Block = {
   key?: string | null;
   scores?: number[] | null;
   defaultValue?: string | null;
+  /** Pro: places left per option; null where an option has no limit. */
+  left?: (number | null)[] | null;
+  /** Business: a hidden field AI fills from another answer. */
+  extract?: { from: Id<"blocks"> } | null;
 };
 
-type Rule = {
-  join: "and" | "or";
-  conditions: { blockId?: Id<"blocks">; operator: string; value?: string }[];
-  action: "show" | "hide" | "require" | "jump";
-  targetId: Id<"blocks"> | null;
+type Rule = LogicRule;
+
+/** Another ending a rule can lead to (Pro). */
+export type Ending = {
+  id: string;
+  name: string;
+  title: string;
+  message: string;
+  buttonLabel?: string;
+  buttonUrl?: string;
+  redirect?: string;
 };
 
 export type Answer = { value?: string; values?: string[]; fileId?: Id<"_storage">; fileName?: string };
@@ -78,7 +89,9 @@ export type OpenForm = {
   blocks: Block[];
   logic: Rule[];
   /** Which smarter-form features the owner's plan turns on. */
-  smart?: { hidden: boolean; piping: boolean; calc: boolean; redirect: boolean };
+  smart?: { hidden: boolean; piping: boolean; calc: boolean; redirect: boolean; ai?: boolean };
+  /** Pro: endings logic rules can lead to, besides `thanks`. */
+  endings?: Ending[];
   calc?: { name: string; formula: string }[];
   /** Pro: the brand's own font file and custom CSS, when the owner's plan has them. */
   custom?: { font: { name: string; url: string } | null; css: string | null } | null;
@@ -95,6 +108,8 @@ export type SubmitArgs = {
   trap?: string;
   durationMs?: number;
   device?: string;
+  /** The ending the answers led to, when it was not the default. */
+  ending?: string;
   answers: ({ blockId: Id<"blocks"> } & Answer)[];
 };
 
@@ -103,41 +118,6 @@ const now = () => Date.now();
 const since = (from: number) => (from ? now() - from : undefined);
 
 const filled = (a?: Answer) => !!(a?.value?.trim() || a?.values?.length || a?.fileId);
-
-function matches(rule: Rule, answers: Record<string, Answer>) {
-  const results = rule.conditions.map((c) => {
-    if (!c.blockId) return false;
-    const a = answers[c.blockId];
-    const given = a?.values?.join(", ") ?? a?.value ?? "";
-    const want = c.value ?? "";
-    const same = (x: string) => x.trim().toLowerCase() === want.trim().toLowerCase();
-    // A multiple-choice answer "is" an option when that option is among those picked.
-    const is = a?.values ? a.values.some(same) : same(given);
-    switch (c.operator) {
-      case "is":
-        return is;
-      case "is-not":
-        return !is;
-      case "contains":
-        return given.toLowerCase().includes(want.toLowerCase());
-      case "is-empty":
-        return given.trim() === "";
-      case "is-not-empty":
-        return given.trim() !== "";
-      case "at-least":
-        return given.trim() !== "" && Number(given) >= Number(want);
-      case "at-most":
-        return given.trim() !== "" && Number(given) <= Number(want);
-      case "greater":
-        return given.trim() !== "" && Number(given) > Number(want);
-      case "less":
-        return given.trim() !== "" && Number(given) < Number(want);
-      default:
-        return false;
-    }
-  });
-  return rule.join === "or" ? results.some(Boolean) : results.every(Boolean);
-}
 
 export function FormRunner({
   data,
@@ -179,7 +159,7 @@ export function FormRunner({
   const hiddenFields = blocks.filter((b) => b.type === "hidden");
   const [problem, setProblem] = useState<string | null>(null);
   const [fileProblem, setFileProblem] = useState<Record<string, string>>({});
-  const [done, setDone] = useState<{ token: string; responseId?: Id<"responses">; paying?: boolean } | null>(null);
+  const [done, setDone] = useState<{ token: string; responseId?: Id<"responses">; paying?: boolean; ending?: string | null } | null>(null);
   const [payProblem, setPayProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
@@ -199,30 +179,37 @@ export function FormRunner({
     else window.scrollTo({ top: 0 });
   };
 
-  /* ---------- logic ---------- */
-  const { hidden, forced, jumpTo } = useMemo(() => {
-    const h = new Set<string>();
-    const f = new Set<string>();
-    let j: string | null = null;
-    for (const rule of data.logic) {
-      if (!rule.targetId) continue;
-      const hit = matches(rule, answers);
-      if (rule.action === "show" && !hit) h.add(rule.targetId);
-      if (rule.action === "hide" && hit) h.add(rule.targetId);
-      if (rule.action === "require" && hit) f.add(rule.targetId);
-      if (rule.action === "jump" && hit && j === null) j = rule.targetId;
-    }
-    return { hidden: h, forced: f, jumpTo: j };
-  }, [answers, data.logic]);
-
   /* ---------- calculations and piping (Pro) ---------- */
   const results = useMemo(
     () => (data.smart?.calc && data.calc?.length ? computeAll(data.calc, blocks, answers) : {}),
     [data.smart?.calc, data.calc, blocks, answers],
   );
   const piped = useMemo(() => pipeValues(blocks, answers, results), [blocks, answers, results]);
+
+  /* ---------- logic ---------- */
+  // Business: what the AI said about answers, by condition id, once asked.
+  const [judged, setJudged] = useState<Record<string, boolean>>({});
+  const types = useMemo(() => Object.fromEntries(blocks.map((b) => [b._id as string, b.type])), [blocks]);
+  const outcome = useMemo(
+    () => applyLogic(data.logic, { answers, calc: results, ai: judged, types }),
+    [answers, data.logic, results, judged, types],
+  );
+  const { hidden, forced, jumpTo, hiddenOptions } = outcome;
   /** Text with {{key}} filled in from earlier answers, when the plan has piping. */
   const say = (text: string | null | undefined) => (data.smart?.piping ? pipe(text, piped) : (text ?? ""));
+
+  // An option a rule hides counts as not picked, and is never sent.
+  const kept = useMemo(() => {
+    if (!hiddenOptions.size) return answers;
+    const next = { ...answers };
+    for (const [id, gone] of hiddenOptions) {
+      const a = answers[id];
+      if (!a) continue;
+      if (a.value && gone.has(a.value)) next[id] = { ...a, value: undefined };
+      if (a.values?.some((v) => gone.has(v))) next[id] = { ...a, values: a.values.filter((v) => !gone.has(v)) };
+    }
+    return next;
+  }, [answers, hiddenOptions]);
 
   /* ---------- pages, and the questions in order ---------- */
   const pages: { name: string; fields: Block[] }[] = [{ name: "", fields: [] }];
@@ -236,7 +223,7 @@ export function FormRunner({
   const lastPage = page >= live.length - 1;
   const cur = fields[Math.min(step, Math.max(0, fields.length - 1))];
   const lastStep = step >= fields.length - 1;
-  const answeredCount = fields.filter((b) => filled(answers[b._id])).length;
+  const answeredCount = fields.filter((b) => filled(kept[b._id])).length;
 
   function isRequired(b: Block) {
     // A hidden question is never required, or the form cannot be finished.
@@ -244,7 +231,7 @@ export function FormRunner({
     if (b.required || forced.has(b._id)) return true;
     return data.rules.requireEmail && b.type === "email";
   }
-  const firstMissing = (list: Block[]) => list.find((b) => isRequired(b) && !filled(answers[b._id]));
+  const firstMissing = (list: Block[]) => list.find((b) => isRequired(b) && !filled(kept[b._id]));
 
   // Leaving keeps what was answered.
   useEffect(() => {
@@ -267,10 +254,12 @@ export function FormRunner({
   }, [answers, done, mode, onSubmit, data.rules.partials]);
 
   // A redirect after submitting, on the live form only — with {{keys}} filled in.
-  const redirectTo = data.thanks?.redirect
+  const endingNow = done?.ending ? data.endings?.find((e) => e.id === done.ending) : undefined;
+  const finalRedirect = endingNow ? endingNow.redirect : data.thanks?.redirect;
+  const redirectTo = finalRedirect
     ? data.smart?.piping
-      ? pipe(data.thanks.redirect, piped, true)
-      : data.thanks.redirect
+      ? pipe(finalRedirect, piped, true)
+      : finalRedirect
     : null;
   useEffect(() => {
     if (!done || done.paying || mode !== "live" || !redirectTo || !/^https?:\/\//i.test(redirectTo)) return;
@@ -289,13 +278,14 @@ export function FormRunner({
         trap: trap || undefined,
         device: describeDevice(),
         durationMs: since(openedAt.current),
-        answers: Object.entries(answers)
+        ending: outcome.ending ?? undefined,
+        answers: Object.entries(kept)
           .filter(([id]) => fields.some((f) => f._id === id) || hiddenFields.some((f) => f._id === id))
           .map(([blockId, a]) => ({ blockId: blockId as Id<"blocks">, ...a })),
       });
       setProve(false);
       const paying = !!(r.pay && r.responseId && onPay && mode === "live");
-      setDone({ token: r.resumeToken, responseId: r.responseId, paying });
+      setDone({ token: r.resumeToken, responseId: r.responseId, paying, ending: outcome.ending });
       toTop();
       if (paying) void goPay(r.responseId!, r.resumeToken);
     } catch (e) {
@@ -355,7 +345,7 @@ export function FormRunner({
 
   function nextStep() {
     if (!cur) return;
-    if (isRequired(cur) && !filled(answers[cur._id])) {
+    if (isRequired(cur) && !filled(kept[cur._id])) {
       setProblem(cur._id);
       return;
     }
@@ -461,7 +451,7 @@ export function FormRunner({
   }
 
   if (done) {
-    const t = data.thanks;
+    const t = endingNow ?? data.thanks;
     return (
       <Shell theme={theme} brand={data.brand} logos={data.logos} custom={data.custom}>
         <div style={{ textAlign: split ? "left" : "center", paddingTop: "4vh" }}>
@@ -592,6 +582,7 @@ export function FormRunner({
           }}
           onFile={(file) => attach(b, file)}
           capMb={data.uploadCapMb}
+          hiddenOptions={hiddenOptions.get(b._id)}
         />
       </div>
       {fileProblem[b._id] ? (
@@ -792,6 +783,7 @@ function Control({
   onChange,
   onFile,
   capMb = 10,
+  hiddenOptions,
 }: {
   block: Block;
   theme: ReturnType<typeof themeOf>;
@@ -799,8 +791,16 @@ function Control({
   onChange: (a: Answer) => void;
   onFile: (file: File) => void;
   capMb?: number;
+  /** Options a logic rule hides right now. */
+  hiddenOptions?: Set<string>;
 }) {
   const radius = Math.min(theme.radius, 24);
+  // The options on offer: minus any a rule hides, each with its places left.
+  const offered = (block.options ?? [])
+    .map((o, i) => ({ o, left: block.left?.[i] ?? null }))
+    .filter((x) => !hiddenOptions?.has(x.o));
+  const placeNote = (left: number | null) =>
+    left === null ? null : left <= 0 ? "Full" : left === 1 ? "1 place left" : `${left} places left`;
   const box: React.CSSProperties = {
     width: "100%",
     padding: "13px 16px",
@@ -842,19 +842,25 @@ function Control({
 
     case "single-choice":
     case "yes-no": {
-      const options = block.type === "yes-no" ? ["Yes", "No"] : (block.options ?? []);
+      const options =
+        block.type === "yes-no"
+          ? ["Yes", "No"].filter((o) => !hiddenOptions?.has(o)).map((o) => ({ o, left: null as number | null }))
+          : offered;
       return (
         <div className="fk-live-choices">
-          {options.map((o) => (
+          {options.map(({ o, left }) => (
             <button
               key={o}
               type="button"
               className="fk-live-choice"
               data-picked={value?.value === o ? "true" : undefined}
+              data-full={left !== null && left <= 0 ? "true" : undefined}
+              disabled={left !== null && left <= 0}
               style={{ borderRadius: radius }}
               onClick={() => onChange({ value: o })}
             >
               {o}
+              {placeNote(left) && <span className="fk-live-places">{placeNote(left)}</span>}
             </button>
           ))}
         </div>
@@ -865,12 +871,14 @@ function Control({
       const picked = value?.values ?? [];
       return (
         <div className="fk-live-choices">
-          {(block.options ?? []).map((o) => (
+          {offered.map(({ o, left }) => (
             <button
               key={o}
               type="button"
               className="fk-live-choice"
               data-picked={picked.includes(o) ? "true" : undefined}
+              data-full={left !== null && left <= 0 && !picked.includes(o) ? "true" : undefined}
+              disabled={left !== null && left <= 0 && !picked.includes(o)}
               style={{ borderRadius: radius }}
               onClick={() =>
                 onChange({
@@ -879,6 +887,7 @@ function Control({
               }
             >
               {o}
+              {placeNote(left) && <span className="fk-live-places">{placeNote(left)}</span>}
             </button>
           ))}
         </div>
@@ -894,9 +903,9 @@ function Control({
           onChange={(e) => onChange({ value: e.target.value })}
         >
           <option value="">Choose one</option>
-          {(block.options ?? []).map((o) => (
-            <option key={o} value={o}>
-              {o}
+          {offered.map(({ o, left }) => (
+            <option key={o} value={o} disabled={left !== null && left <= 0}>
+              {placeNote(left) ? `${o} — ${placeNote(left)}` : o}
             </option>
           ))}
         </select>

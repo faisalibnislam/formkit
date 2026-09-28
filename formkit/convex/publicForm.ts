@@ -1,3 +1,4 @@
+import { hasLimits, placesLeft, placesTaken } from "./model/places";
 import { owed, takesPayment } from "./payments";
 import { ConvexError, v } from "convex/values";
 import { mutation, query, type MutationCtx } from "./_generated/server";
@@ -33,6 +34,8 @@ async function smartOf(ctx: QueryCtx, ownerId: Id<"users">) {
     piping: await hasFeature(ctx, owner, "logic.piping"),
     calc: await hasFeature(ctx, owner, "logic.calc"),
     redirect: await hasFeature(ctx, owner, "forms.redirect"),
+    /** Business: AI conditions and facts read from answers. */
+    ai: await hasFeature(ctx, owner, "logic.ai"),
   };
 }
 
@@ -125,6 +128,9 @@ async function payload(ctx: QueryCtx, form: Doc<"forms">) {
   const s = securityOf(form.security);
   const smart = await smartOf(ctx, form.ownerId);
   const thanks = form.thanks as { redirect?: string } | null | undefined;
+  // Several endings, hidden options and limited places are Pro.
+  const advanced = await hasFeature(ctx, form.ownerId, "logic.advanced");
+  const taken = advanced ? await placesTaken(ctx, form._id, blocks) : new Map<string, number[]>();
 
   return {
     state: "open" as const,
@@ -169,13 +175,26 @@ async function payload(ctx: QueryCtx, form: Doc<"forms">) {
       key: b.key ?? null,
       scores: smart.calc ? (b.scores ?? null) : null,
       defaultValue: b.type === "hidden" ? (b.defaultValue ?? null) : null,
+      /** Places left per option; null where an option has no limit. */
+      left: advanced ? placesLeft(b, taken) : null,
+      extract: smart.ai && b.extract ? { from: b.extract.from } : null,
     })),
-    logic: rules.map((r) => ({
-      join: r.join,
-      conditions: r.conditions,
-      action: r.action,
-      targetId: r.targetId ?? null,
-    })),
+    endings: advanced
+      ? (form.endings ?? []).map((e) => ({ ...e, redirect: smart.redirect ? e.redirect : undefined }))
+      : [],
+    logic: rules
+      // Rules the owner's plan no longer covers stop, rather than half-working.
+      .filter((r) => advanced || (r.action !== "hide-options" && r.action !== "ending"))
+      .map((r) => ({
+        _id: r._id,
+        join: r.join,
+        conditions: r.conditions,
+        groups: r.groups ?? null,
+        action: r.action,
+        targetId: r.targetId ?? null,
+        options: r.options ?? null,
+        endingId: r.endingId ?? null,
+      })),
   };
 }
 
@@ -323,6 +342,7 @@ async function store(
     source?: string;
     durationMs?: number;
     deviceId?: string;
+    ending?: string;
     answers: AnswerIn[];
   },
   existing: Doc<"responses"> | null,
@@ -370,6 +390,8 @@ async function store(
     // Editing an answer keeps what the owner already added to it.
     note: existing?.note,
     tags: existing?.tags,
+    // Only an ending the form actually has.
+    ending: args.ending && (form.endings ?? []).some((e) => e.id === args.ending) ? args.ending : undefined,
   };
 
   // The server's own working-out of the calculations is the one kept.
@@ -443,6 +465,8 @@ export const submit = mutation({
     trap: v.optional(v.string()),
     /** The person ticked "I am a person" after being asked. */
     human: v.optional(v.boolean()),
+    /** The ending the person's answers led to, when it was not the default. */
+    ending: v.optional(v.string()),
     answers: v.array(answerArg),
   },
   returns: v.object({ responseId: v.id("responses"), resumeToken: v.string(), pay: v.boolean() }),
@@ -501,6 +525,22 @@ export const submit = mutation({
         ?.value?.trim()
         .toLowerCase();
 
+      // Limited places: a place is only taken if it is still free when sent.
+      if (blocks.some(hasLimits) && (await hasFeature(ctx, form.ownerId, "logic.advanced"))) {
+        const taken = await placesTaken(ctx, form._id, blocks, existing?._id);
+        for (const a of args.answers) {
+          const b = blocks.find((x) => x._id === a.blockId);
+          if (!b || !hasLimits(b)) continue;
+          const left = placesLeft(b, taken) ?? [];
+          for (const picked of a.values ?? (a.value ? [a.value] : [])) {
+            const i = (b.options ?? []).indexOf(picked);
+            if (i >= 0 && left[i] !== null && left[i]! <= 0) {
+              throw new ConvexError(`“${picked}” has just filled up. Pick another and send again.`);
+            }
+          }
+        }
+      }
+
       if (s.requireEmail && !email) {
         throw new ConvexError("This form needs your email address before it can be sent.");
       }
@@ -533,6 +573,7 @@ export const submitPreview = mutation({
     formId: v.id("forms"),
     device: v.optional(v.string()),
     durationMs: v.optional(v.number()),
+    ending: v.optional(v.string()),
     answers: v.array(answerArg),
   },
   returns: v.object({ responseId: v.id("responses"), resumeToken: v.string(), pay: v.boolean() }),

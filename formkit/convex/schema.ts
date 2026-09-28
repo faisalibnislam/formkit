@@ -36,6 +36,18 @@ export const questionType = v.union(
   v.literal("hidden"),
 );
 
+/** One condition of a logic rule; see model/logicEval.ts for what each part means. */
+const condition = v.object({
+  id: v.optional(v.string()),
+  source: v.optional(v.union(v.literal("answer"), v.literal("calc"), v.literal("ai"))),
+  blockId: v.optional(v.id("blocks")),
+  ref: v.optional(v.string()),
+  operator: v.string(),
+  value: v.optional(v.string()),
+  value2: v.optional(v.string()),
+  fallback: v.optional(v.boolean()),
+});
+
 export default defineSchema({
   ...authTables,
 
@@ -79,6 +91,14 @@ export default defineSchema({
     hideBadge: v.optional(v.boolean()),
     /** When the current paid plan began — for tenure and cohort figures. */
     planSince: v.optional(v.number()),
+    /** Business: AI replies and AI logic checks used this month ("2026-09"). */
+    aiReplyPeriod: v.optional(v.string()),
+    aiReplyUsed: v.optional(v.number()),
+    /** Bought replies, which roll over until used. */
+    aiReplyCredits: v.optional(v.number()),
+    aiReplyWarned: v.optional(v.string()),
+    aiCheckPeriod: v.optional(v.string()),
+    aiCheckUsed: v.optional(v.number()),
     /** Business: team members' forms wait for an admin's approval before going live. */
     approvals: v.optional(v.boolean()),
     /** Business: responses older than this many days are erased. */
@@ -238,6 +258,41 @@ export default defineSchema({
         redirect: v.optional(v.string()),
       }),
     ),
+    /**
+     * Pro: other endings a logic rule can send people to instead of `thanks`,
+     * the default one.
+     */
+    endings: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          name: v.string(),
+          title: v.string(),
+          message: v.string(),
+          buttonLabel: v.optional(v.string()),
+          buttonUrl: v.optional(v.string()),
+          redirect: v.optional(v.string()),
+        }),
+      ),
+    ),
+    /**
+     * Business: a reply written by AI for each person who answers, from the
+     * owner's instructions and their answers. See convex/aiReply.ts.
+     */
+    aiReply: v.optional(
+      v.object({
+        enabled: v.boolean(),
+        prompt: v.string(),
+        delivery: v.union(v.literal("form"), v.literal("email"), v.literal("both")),
+        /** Plain text, or the branded template with the form's logo and colours. */
+        style: v.union(v.literal("plain"), v.literal("branded")),
+        senderName: v.optional(v.string()),
+        signature: v.optional(v.string()),
+        subject: v.optional(v.string()),
+        /** Background the reply may draw on: services, prices, FAQs. */
+        knowledge: v.optional(v.string()),
+      }),
+    ),
 
     theme: v.optional(v.any()),
     notify: v.optional(v.any()),
@@ -310,27 +365,37 @@ export default defineSchema({
     scores: v.optional(v.array(v.number())),
     /** A hidden field's value when the link does not carry one. */
     defaultValue: v.optional(v.string()),
+    /** Pro: how many people can pick each option, in the same order as `options`; 0 is no limit. */
+    limits: v.optional(v.array(v.number())),
+    /**
+     * Business: a hidden field filled by AI from another answer — "the budget
+     * in dollars, as a number" read out of a free-text reply.
+     */
+    extract: v.optional(v.object({ from: v.id("blocks"), what: v.string() })),
   }).index("by_form_order", ["formId", "order"]),
 
   logicRules: defineTable({
     formId: v.id("forms"),
     name: v.string(),
     enabled: v.boolean(),
+    /** Between groups when there are groups; between conditions otherwise. */
     join: v.union(v.literal("and"), v.literal("or")),
-    conditions: v.array(
-      v.object({
-        blockId: v.optional(v.id("blocks")),
-        operator: v.string(),
-        value: v.optional(v.string()),
-      }),
-    ),
+    conditions: v.array(condition),
+    /** Groups of conditions, each with its own AND / OR. See model/logicEval.ts. */
+    groups: v.optional(v.array(v.object({ join: v.union(v.literal("and"), v.literal("or")), conditions: v.array(condition) }))),
     action: v.union(
       v.literal("show"),
       v.literal("hide"),
       v.literal("require"),
       v.literal("jump"),
+      v.literal("hide-options"),
+      v.literal("ending"),
     ),
     targetId: v.optional(v.id("blocks")),
+    /** The options a "hide-options" rule hides. */
+    options: v.optional(v.array(v.string())),
+    /** The ending an "ending" rule shows. */
+    endingId: v.optional(v.string()),
     order: v.number(),
   }).index("by_form", ["formId", "order"]),
 
@@ -370,6 +435,33 @@ export default defineSchema({
     ),
     /** Pro: the form's calculations, worked out when it was sent. */
     calc: v.optional(v.record(v.string(), v.number())),
+    /** Which ending the person saw, when it was not the default. */
+    ending: v.optional(v.string()),
+    /** Business: the AI-written reply to this response, and where it went. */
+    aiReply: v.optional(
+      v.object({
+        status: v.union(v.literal("pending"), v.literal("ready"), v.literal("failed"), v.literal("skipped")),
+        subject: v.optional(v.string()),
+        text: v.optional(v.string()),
+        reason: v.optional(v.string()),
+        at: v.optional(v.number()),
+        emailedAt: v.optional(v.number()),
+        emailState: v.optional(v.string()),
+        rating: v.optional(v.union(v.literal("up"), v.literal("down"))),
+      }),
+    ),
+    /** Business: what the AI read in this response, recorded with its reply. */
+    insight: v.optional(
+      v.object({
+        sentiment: v.union(v.literal("positive"), v.literal("neutral"), v.literal("negative")),
+        intent: v.optional(v.string()),
+        topics: v.array(v.string()),
+        /** 0–100: how promising this response is, by the owner's own goal. */
+        score: v.optional(v.number()),
+        urgency: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"))),
+        summary: v.optional(v.string()),
+      }),
+    ),
     status: v.union(v.literal("new"), v.literal("read"), v.literal("reviewed")),
     note: v.optional(v.string()),
     resumeToken: v.optional(v.string()),

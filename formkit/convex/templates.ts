@@ -1,3 +1,4 @@
+import { toPortable } from "./model/logicCopy";
 import { audit, teamTemplate, teamsOf } from "./model/team";
 import { requireFeature } from "./model/plans";
 import { v } from "convex/values";
@@ -162,18 +163,7 @@ export const saveFrom = mutation({
             .collect()
         )
           .sort((a, b) => a.order - b.order)
-          .map((r) => ({
-            name: r.name,
-            enabled: r.enabled,
-            join: r.join,
-            action: r.action,
-            targetIndex: r.targetId ? (index.get(r.targetId) ?? null) : null,
-            conditions: r.conditions.map((c) => ({
-              index: c.blockId ? (index.get(c.blockId) ?? null) : null,
-              operator: c.operator,
-              value: c.value,
-            })),
-          }))
+          .map((r) => toPortable(r, index))
       : undefined;
 
     const title = name?.trim() || form.title;

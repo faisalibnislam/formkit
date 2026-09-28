@@ -1,5 +1,6 @@
 "use client";
 
+import { conditionsOf } from "../../../../convex/model/logicEval";
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
@@ -44,18 +45,24 @@ const ACTION_LABEL: Record<Rule["action"], string> = {
   hide: "Hide",
   require: "Require",
   jump: "Jump to",
+  "hide-options": "Hide options on",
+  ending: "End with",
 };
 const ACTION_VERB: Record<Rule["action"], string> = {
   show: "shows",
   hide: "hides",
   require: "requires",
   jump: "jumps to",
+  "hide-options": "hides options on",
+  ending: "ends with",
 };
 const ACTION_ICON: Record<Rule["action"], typeof Eye> = {
   show: Eye,
   hide: EyeOff,
   require: Asterisk,
   jump: CornerDownRight,
+  "hide-options": EyeOff,
+  ending: CornerDownRight,
 };
 
 function PropertyRow({
@@ -161,13 +168,14 @@ export function FieldSettings({
   const calcGate = useGate("logic.calc");
   const pipingGate = useGate("logic.piping");
   const hiddenGate = useGate("logic.hidden");
+  const placesGate = useGate("logic.advanced");
   // A key is useful with any of the three; it is locked only when all are.
   const keyLocked = pipingGate.locked && hiddenGate.locked && calcGate.locked;
   const title = (id?: Id<"blocks">) =>
     fields.find((f) => f._id === id)?.title || (id ? "Untitled question" : "—");
 
   const mine = rules.filter(
-    (r) => r.targetId === block._id || r.conditions.some((c) => c.blockId === block._id),
+    (r) => r.targetId === block._id || conditionsOf(r).some((c) => c.blockId === block._id),
   );
   const others = rules.filter((r) => !mine.includes(r));
 
@@ -190,12 +198,26 @@ export function FieldSettings({
 
   const options = block.options ?? [];
   const [optDrag, setOptDrag] = useState<number | null>(null);
+  // Places per option, by position: 0 is no limit. They move with their option.
+  const limits = options.map((_, i) => block.limits?.[i] ?? 0);
+  const [placesOn, setPlacesOn] = useState(() => limits.some((n) => n > 0));
+  const withLimits = (list: number[]) => (placesOn || list.some((n) => n > 0) ? { limits: list } : {});
   const moveOption = (from: number, to: number) => {
     if (from === to) return;
     const next = options.slice();
     const [moved] = next.splice(from, 1);
     next.splice(to, 0, moved!);
-    void patch({ options: next });
+    const lim = limits.slice();
+    const [m] = lim.splice(from, 1);
+    lim.splice(to, 0, m ?? 0);
+    void patch({ options: next, ...withLimits(lim) });
+  };
+  const setPlaces = async (i: number, n: number) => {
+    try {
+      await tracked(update({ blockId: block._id, patch: { limits: limits.map((x, k) => (k === i ? n : x)) } }));
+    } catch (e) {
+      if (!upgradeOnPlanError(e)) toast(errorText(e, "That limit did not save."));
+    }
   };
 
   return (
@@ -409,10 +431,23 @@ export function FieldSettings({
                     void patch({ options: list });
                   }}
                 />
+                {placesOn && (
+                  <DraftPill
+                    value={limits[i] ? String(limits[i]) : ""}
+                    aria-label={`Places for ${o || `option ${i + 1}`}`}
+                    title="Places — leave empty for no limit"
+                    placeholder="∞"
+                    inputMode="numeric"
+                    wrapStyle={{ flex: "0 0 64px", width: 64 }}
+                    onCommit={(v) => void setPlaces(i, Math.max(0, Math.min(100000, Math.floor(Number(v) || 0))))}
+                  />
+                )}
                 <IconButton
                   label={`Remove ${o || "this option"}`}
                   disabled={options.length <= 1}
-                  onClick={() => patch({ options: options.filter((_, k) => k !== i) })}
+                  onClick={() =>
+                    patch({ options: options.filter((_, k) => k !== i), ...withLimits(limits.filter((_, k) => k !== i)) })
+                  }
                 >
                   <X size={15} strokeWidth={1.8} aria-hidden />
                 </IconButton>
@@ -424,10 +459,31 @@ export function FieldSettings({
             size="sm"
             style={{ marginTop: 8, paddingLeft: 6 }}
             iconLeft={<Plus size={15} strokeWidth={1.8} aria-hidden />}
-            onClick={() => patch({ options: [...options, `Option ${options.length + 1}`] })}
+            onClick={() =>
+              patch({ options: [...options, `Option ${options.length + 1}`], ...withLimits([...limits, 0]) })
+            }
           >
             Add option
           </Button>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
+            <span style={{ flex: 1, fontSize: 13.5 }}>
+              Limit places
+              <span className="fk-proprow-hint" style={{ display: "block", margin: "2px 0 0", fontSize: 12.5 }}>
+                {placesOn
+                  ? "Type how many people can pick each option. A full option can’t be picked."
+                  : "For workshop seats, time slots or tickets."}
+              </span>
+            </span>
+            {placesGate.locked && <ProChip onClick={() => openUpgrade({ feature: "logic.advanced" })} />}
+            <Switch
+              checked={placesOn}
+              label="Limit places"
+              onChange={placesGate.guard((on: boolean) => {
+                setPlacesOn(on);
+                if (!on && limits.some((n) => n > 0)) void patch({ limits: [] });
+              })}
+            />
+          </div>
         </div>
       )}
 
@@ -442,8 +498,8 @@ export function FieldSettings({
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {mine.map((r) => {
-            const c = r.conditions[0];
-            const extra = r.conditions.length - 1;
+            const c = conditionsOf(r)[0]!;
+            const extra = conditionsOf(r).length - 1;
             return (
               <div
                 key={r._id}
@@ -453,7 +509,7 @@ export function FieldSettings({
                 <div className="fk-rulecard-name">{r.name || "Untitled rule"}</div>
                 <div className="fk-rulecard-sentence">
                   <span className="fk-rw">If</span>
-                  <span className="fk-rchip">{title(c?.blockId)}</span>
+                  <span className="fk-rchip">{title(c?.blockId as Id<"blocks"> | undefined)}</span>
                   <span className="fk-rw">{opLabel(c?.operator)}</span>
                   {!VALUELESS.has(c?.operator ?? "") && (
                     <span className="fk-rchip" data-tone="ink">

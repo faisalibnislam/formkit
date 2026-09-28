@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { formFor } from "./model/forms";
+import { requireFeature } from "./model/plans";
+import { conditionsOf } from "./model/logicEval";
 
 /**
  * Conditional logic. Rules read like sentences: when someone answers this way,
@@ -51,6 +53,45 @@ export function operatorGroup(type: string | undefined, title: string | undefine
   return "text";
 }
 
+const condition = v.object({
+  id: v.optional(v.string()),
+  source: v.optional(v.union(v.literal("answer"), v.literal("calc"), v.literal("ai"))),
+  blockId: v.optional(v.id("blocks")),
+  ref: v.optional(v.string()),
+  operator: v.string(),
+  value: v.optional(v.string()),
+  value2: v.optional(v.string()),
+  fallback: v.optional(v.boolean()),
+});
+const group = v.object({ join: v.union(v.literal("and"), v.literal("or")), conditions: v.array(condition) });
+const action = v.union(
+  v.literal("show"),
+  v.literal("hide"),
+  v.literal("require"),
+  v.literal("jump"),
+  v.literal("hide-options"),
+  v.literal("ending"),
+);
+
+/**
+ * What a rule may use on the owner's plan: several endings and hidden options
+ * are Pro, AI conditions Business. Refused with the upgrade sheet's error.
+ */
+async function checkPlan(
+  ctx: Parameters<typeof requireFeature>[0],
+  ownerId: Parameters<typeof requireFeature>[1],
+  r: { action?: string; conditions?: { source?: string }[]; groups?: { conditions: { source?: string }[] }[] },
+) {
+  if (r.action === "hide-options" || r.action === "ending") await requireFeature(ctx, ownerId, "logic.advanced");
+  const all = [...(r.conditions ?? []), ...(r.groups ?? []).flatMap((g) => g.conditions)];
+  if (all.some((c) => c.source === "ai")) await requireFeature(ctx, ownerId, "logic.ai");
+}
+
+/** AI conditions need a stable id for their judgement to be kept against. */
+function withIds<T extends { id?: string; source?: string }>(list: T[]): T[] {
+  return list.map((c) => (c.source === "ai" && !c.id ? { ...c, id: crypto.randomUUID().slice(0, 12) } : c));
+}
+
 export const list = query({
   args: { formId: v.id("forms") },
   handler: async (ctx, { formId }) => {
@@ -67,27 +108,18 @@ export const add = mutation({
   args: {
     formId: v.id("forms"),
     name: v.optional(v.string()),
-    action: v.union(
-      v.literal("show"),
-      v.literal("hide"),
-      v.literal("require"),
-      v.literal("jump"),
-    ),
+    action,
     targetId: v.optional(v.id("blocks")),
     /** Where the rule starts. Omitted, the condition is left for the Logic page. */
-    conditions: v.optional(
-      v.array(
-        v.object({
-          blockId: v.optional(v.id("blocks")),
-          operator: v.string(),
-          value: v.optional(v.string()),
-        }),
-      ),
-    ),
+    conditions: v.optional(v.array(condition)),
+    groups: v.optional(v.array(group)),
+    options: v.optional(v.array(v.string())),
+    endingId: v.optional(v.string()),
   },
   returns: v.id("logicRules"),
-  handler: async (ctx, { formId, name, action, targetId, conditions }) => {
-    await formFor(ctx, formId);
+  handler: async (ctx, { formId, name, action, targetId, conditions, groups, options, endingId }) => {
+    const form = await formFor(ctx, formId);
+    await checkPlan(ctx, form.ownerId, { action, conditions, groups });
     const existing = await ctx.db
       .query("logicRules")
       .withIndex("by_form", (q) => q.eq("formId", formId))
@@ -98,9 +130,12 @@ export const add = mutation({
       name: name?.trim() || `Rule ${existing.length + 1}`,
       enabled: true,
       join: "and",
-      conditions: conditions?.length ? conditions : [{ operator: "is" }],
+      conditions: withIds(conditions?.length ? conditions : [{ operator: "is" }]),
+      groups: groups?.map((g) => ({ ...g, conditions: withIds(g.conditions) })),
       action,
       targetId,
+      options,
+      endingId,
       order: existing.length,
     });
     await ctx.db.patch(formId, { updatedAt: Date.now() });
@@ -115,27 +150,31 @@ export const update = mutation({
       name: v.optional(v.string()),
       enabled: v.optional(v.boolean()),
       join: v.optional(v.union(v.literal("and"), v.literal("or"))),
-      conditions: v.optional(
-        v.array(
-          v.object({
-            blockId: v.optional(v.id("blocks")),
-            operator: v.string(),
-            value: v.optional(v.string()),
-          }),
-        ),
-      ),
-      action: v.optional(
-        v.union(v.literal("show"), v.literal("hide"), v.literal("require"), v.literal("jump")),
-      ),
+      conditions: v.optional(v.array(condition)),
+      /** null clears the groups, back to one list of conditions. */
+      groups: v.optional(v.union(v.array(group), v.null())),
+      action: v.optional(action),
       targetId: v.optional(v.id("blocks")),
+      options: v.optional(v.array(v.string())),
+      endingId: v.optional(v.string()),
     }),
   },
   returns: v.null(),
   handler: async (ctx, { ruleId, patch }) => {
     const rule = await ctx.db.get(ruleId);
     if (!rule) throw new Error("That rule no longer exists.");
-    await formFor(ctx, rule.formId);
-    await ctx.db.patch(ruleId, patch);
+    const form = await formFor(ctx, rule.formId);
+    await checkPlan(ctx, form.ownerId, {
+      action: patch.action,
+      conditions: patch.conditions,
+      groups: patch.groups ?? undefined,
+    });
+    const { groups, conditions, ...rest } = patch;
+    await ctx.db.patch(ruleId, {
+      ...rest,
+      ...(conditions ? { conditions: withIds(conditions) } : {}),
+      ...(groups === null ? { groups: undefined } : groups ? { groups: groups.map((g) => ({ ...g, conditions: withIds(g.conditions) })) } : {}),
+    });
     await ctx.db.patch(rule.formId, { updatedAt: Date.now() });
     return null;
   },
@@ -175,7 +214,7 @@ export const unapply = mutation({
       return "The rule no longer affects this question.";
     }
 
-    const triggers = rule.conditions.some((c) => c.blockId === blockId);
+    const triggers = conditionsOf(rule).some((c) => c.blockId === blockId);
     if (!triggers) return "That rule does not involve this question.";
 
     const others = (
@@ -186,15 +225,16 @@ export const unapply = mutation({
     ).filter((b) => b.kind === "field" && b._id !== blockId);
 
     const replacement = others[0];
-    const conditions = rule.conditions.map((c) =>
-      c.blockId === blockId ? { ...c, blockId: replacement?._id, value: undefined } : c,
-    );
+    const swap = (list: typeof rule.conditions) =>
+      list.map((c) => (c.blockId === blockId ? { ...c, blockId: replacement?._id, value: undefined } : c));
+    const conditions = swap(rule.conditions);
+    const groups = rule.groups?.map((g) => ({ ...g, conditions: swap(g.conditions) }));
 
     if (!replacement) {
-      await ctx.db.patch(ruleId, { conditions, enabled: false });
+      await ctx.db.patch(ruleId, { conditions, groups, enabled: false });
       return "No other question could trigger the rule, so it is paused.";
     }
-    await ctx.db.patch(ruleId, { conditions });
+    await ctx.db.patch(ruleId, { conditions, groups });
     return `The rule now reads ${replacement.title ?? "another question"} instead.`;
   },
 });

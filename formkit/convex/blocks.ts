@@ -1,3 +1,4 @@
+import { conditionsOf } from "./model/logicEval";
 import { ConvexError, v } from "convex/values";
 import { mutation } from "./_generated/server";
 import { questionType } from "./schema";
@@ -27,6 +28,8 @@ const blockFields = {
   key: v.optional(v.string()),
   scores: v.optional(v.array(v.number())),
   defaultValue: v.optional(v.string()),
+  limits: v.optional(v.array(v.number())),
+  extract: v.optional(v.union(v.object({ from: v.id("blocks"), what: v.string() }), v.null())),
 };
 
 /** A key not already used on this form: "source", then "source_2" and on. */
@@ -116,6 +119,12 @@ export const update = mutation({
     const form = await formFor(ctx, block.formId);
     if (patch.type === "hidden" && block.type !== "hidden") await requireFeature(ctx, form.ownerId, "logic.hidden");
     if (patch.scores?.some((n) => n !== 0)) await requireFeature(ctx, form.ownerId, "logic.calc");
+    if (patch.limits?.some((n) => n > 0)) await requireFeature(ctx, form.ownerId, "logic.advanced");
+    if (patch.extract) {
+      await requireFeature(ctx, form.ownerId, "logic.ai");
+      if ((patch.type ?? block.type) !== "hidden") throw new ConvexError("Only a hidden field can be filled in by AI.");
+      patch = { ...patch, extract: { from: patch.extract.from, what: patch.extract.what.trim().slice(0, 300) } };
+    }
     if (patch.key !== undefined) {
       const key = patch.key.trim().toLowerCase();
       if (key && !validKey(key)) {
@@ -133,7 +142,9 @@ export const update = mutation({
       }
       patch.key = key || undefined;
     }
-    await ctx.db.patch(blockId, patch);
+    // null clears the AI extraction; the stored field cannot hold null.
+    const { extract, ...rest } = patch;
+    await ctx.db.patch(blockId, { ...rest, ...(extract === null ? { extract: undefined } : extract ? { extract } : {}) });
     await ctx.db.patch(block.formId, { updatedAt: Date.now() });
     return null;
   },
@@ -153,7 +164,7 @@ export const remove = mutation({
       .withIndex("by_form", (q) => q.eq("formId", block.formId))
       .collect();
     for (const rule of rules) {
-      const triggers = rule.conditions.some((c) => c.blockId === blockId);
+      const triggers = conditionsOf(rule).some((c) => c.blockId === blockId);
       if (triggers || rule.targetId === blockId) await ctx.db.delete(rule._id);
     }
 
@@ -250,7 +261,7 @@ export const removePage = mutation({
       .collect();
     for (const rule of rules) {
       const touches =
-        rule.conditions.some((c) => c.blockId && gone.has(c.blockId)) ||
+        conditionsOf(rule).some((c) => c.blockId && gone.has(c.blockId)) ||
         (rule.targetId && gone.has(rule.targetId));
       if (touches) await ctx.db.delete(rule._id);
     }

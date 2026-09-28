@@ -47,7 +47,7 @@ export function operatorGroup(type: string | undefined | null, title: string | u
 }
 
 /** Operators that take no value — the rule reads complete without one. */
-export const VALUELESS = new Set(["is-empty", "is-not-empty"]);
+export const VALUELESS = new Set(["is-empty", "is-not-empty", "yes", "no"]);
 
 type Q = {
   type?: string | null;
@@ -99,28 +99,65 @@ export function valueControl(q: Q): ValueControl {
 const LABELS: Record<string, string> = {
   is: "is",
   "is-not": "is not",
+  "any-of": "is any of",
+  "none-of": "is none of",
   contains: "contains",
+  "not-contains": "does not contain",
+  "starts-with": "starts with",
+  "ends-with": "ends with",
+  "email-domain": "is at the domain",
+  matches: "matches the pattern",
+  equals: "equals",
   "at-least": "is at least",
   "at-most": "is at most",
   greater: "is greater than",
   less: "is less than",
+  between: "is between",
+  before: "is before",
+  after: "is after",
+  on: "is on",
   "is-empty": "is empty",
   "is-not-empty": "is not empty",
+  yes: "AI says yes",
+  no: "AI says no",
 };
+
+/** Comparisons that pick several of a question's options. */
+export const MULTI = new Set(["any-of", "none-of"]);
 
 /** The comparisons that make sense for a question. */
 export function opsFor(q: Q) {
   const vc = valueControl(q);
+  const type = q?.type ?? "";
   const ids =
     vc.kind === "none"
       ? ["is-empty", "is-not-empty"]
-      : vc.numeric
-        ? ["is", "is-not", "at-least", "at-most", "greater", "less", "is-empty", "is-not-empty"]
-        : vc.kind === "select"
-          ? ["is", "is-not", "is-empty", "is-not-empty"]
-          : ["is", "is-not", "contains", "is-empty", "is-not-empty"];
+      : type === "date"
+        ? ["on", "before", "after", "between", "is-empty", "is-not-empty"]
+        : vc.numeric
+          ? ["is", "is-not", "at-least", "at-most", "greater", "less", "between", "is-empty", "is-not-empty"]
+          : vc.kind === "select"
+            ? ["is", "is-not", "any-of", "none-of", "is-empty", "is-not-empty"]
+            : [
+                "is",
+                "is-not",
+                "contains",
+                "not-contains",
+                "starts-with",
+                "ends-with",
+                ...(type === "email" ? ["email-domain"] : []),
+                "matches",
+                "is-empty",
+                "is-not-empty",
+              ];
   return ids.map((value) => ({ value, label: LABELS[value]! }));
 }
+
+/** The comparisons a calculation's result can use. */
+export const CALC_OPS = ["equals", "at-least", "at-most", "greater", "less", "between"].map((value) => ({
+  value,
+  label: LABELS[value]!,
+}));
 
 export function opLabel(op: string | undefined) {
   return LABELS[op ?? ""] ?? op ?? "is";

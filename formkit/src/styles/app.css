@@ -3104,6 +3104,19 @@
 .fk-live-choice[data-picked="true"] {
   box-shadow: inset 0 0 0 2px currentColor;
 }
+.fk-live-choice[data-full="true"],
+.fk-live-choice[data-full="true"]:hover {
+  background: rgba(0, 0, 0, 0.04);
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.fk-live-places {
+  margin-left: auto;
+  padding-left: 12px;
+  font-size: 12.5px;
+  opacity: 0.65;
+  white-space: nowrap;
+}
 .fk-live-scale {
   display: flex;
   gap: 8px;
