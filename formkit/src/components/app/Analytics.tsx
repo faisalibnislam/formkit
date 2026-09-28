@@ -1,6 +1,7 @@
 "use client";
 
 import { useSeedClock, useSeededQuery } from "@/lib/seed";
+import { AiInsights } from "./AiInsights";
 import { useState } from "react";
 import Link from "next/link";
 import { useMutation } from "convex/react";
@@ -430,6 +431,8 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
                 </div>
               </section>
             </div>
+
+            {scope && <AiInsights formId={scope} from={span.from} to={span.to} />}
           </>
         )
       )}

@@ -36,6 +36,7 @@ import type * as forms from "../forms.js";
 import type * as handles from "../handles.js";
 import type * as http from "../http.js";
 import type * as inbox from "../inbox.js";
+import type * as insights from "../insights.js";
 import type * as logic from "../logic.js";
 import type * as model_access from "../model/access.js";
 import type * as model_aiForms from "../model/aiForms.js";
@@ -112,6 +113,7 @@ declare const fullApi: ApiFromModules<{
   "handles": typeof handles,
   "http": typeof http,
   "inbox": typeof inbox,
+  "insights": typeof insights,
   "logic": typeof logic,
   "model/access": typeof model_access,
   "model/aiForms": typeof model_aiForms,

@@ -395,6 +395,15 @@ export default defineSchema({
     .index("by_form_at", ["formId", "at"])
     .index("by_at", ["at"]),
 
+  /** Business: the AI's written report on a form's responses, kept until asked again. */
+  aiReports: defineTable({
+    formId: v.id("forms"),
+    at: v.number(),
+    /** How many responses it read. */
+    count: v.number(),
+    report: v.any(),
+  }).index("by_form", ["formId", "at"]),
+
   logicRules: defineTable({
     formId: v.id("forms"),
     name: v.string(),
