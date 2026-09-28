@@ -208,6 +208,9 @@ export default defineSchema({
       }),
     ),
 
+    /** Kept in step with the blocks by `recount`, so the forms list never reads them. */
+    questionCount: v.optional(v.number()),
+    pageCount: v.optional(v.number()),
     responsesCount: v.number(),
     completedCount: v.number(),
     views: v.optional(v.number()),
@@ -303,6 +306,8 @@ export default defineSchema({
     .index("by_form_device", ["formId", "deviceId"])
     .index("by_owner", ["ownerId"])
     .index("by_owner_status", ["ownerId", "status"])
+    .index("by_owner_submitted", ["ownerId", "submittedAt"])
+    .index("by_form_submitted", ["formId", "submittedAt"])
     .index("by_resume", ["resumeToken"]),
 
   /**

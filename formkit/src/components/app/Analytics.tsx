@@ -89,7 +89,8 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
     from: ymd(new Date(new Date(today).getFullYear(), new Date(today).getMonth(), 1).getTime()),
     to: ymd(today),
   }));
-  const forms = useQuery(api.forms.list, formId ? "skip" : { filter: "all" });
+  // Names for the picker only — the light list, not every form's questions.
+  const forms = useQuery(api.forms.picker, formId ? "skip" : {});
 
   const scope = formId ?? (picked !== "all" ? (picked as Id<"forms">) : undefined);
   const span = (() => {
@@ -121,7 +122,7 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
   function exportAnalytics(format: "csv" | "xlsx") {
     if (!data) return;
     const title =
-      scope && forms?.forms ? (forms.forms.find((f) => f._id === scope)?.title ?? "Form") : formId ? "This form" : "All forms";
+      scope && forms ? (forms.find((f) => f._id === scope)?.title ?? "Form") : formId ? "This form" : "All forms";
     const filename = downloadAnalytics(data, title, format);
     void record({
       formId: scope,
@@ -187,7 +188,7 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
             ariaLabel="Which form"
             options={[
               { value: "all", label: "All forms" },
-              ...(forms?.forms ?? []).map((f) => ({ value: f._id, label: f.title })),
+              ...(forms ?? []).map((f) => ({ value: f._id, label: f.title })),
             ]}
           />
         )}

@@ -96,19 +96,24 @@ export const overview = query({
         ).filter((f) => !f.deletedAt);
     const ids = new Set(forms.map((f) => f._id as string));
 
-    const allResponses = (
+    // Only the two windows being compared — never every response ever sent.
+    const inWindows = (
       args.formId
         ? await ctx.db
             .query("responses")
-            .withIndex("by_form", (q) => q.eq("formId", args.formId!))
+            .withIndex("by_form_submitted", (q) =>
+              q.eq("formId", args.formId!).gte("submittedAt", previous.from).lt("submittedAt", current.to),
+            )
             .collect()
         : await ctx.db
             .query("responses")
-            .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
+            .withIndex("by_owner_submitted", (q) =>
+              q.eq("ownerId", user._id).gte("submittedAt", previous.from).lt("submittedAt", current.to),
+            )
             .collect()
     ).filter((r) => ids.has(r.formId) && !r.preview);
 
-    const within = (w: Window) => allResponses.filter((r) => r.submittedAt >= w.from && r.submittedAt < w.to);
+    const within = (w: Window) => inWindows.filter((r) => r.submittedAt >= w.from && r.submittedAt < w.to);
     const recent = within(current);
     const before = within(previous);
     const [eventsNow, eventsBefore] = await Promise.all([
@@ -131,18 +136,31 @@ export const overview = query({
         now_.medianSeconds === null || was.medianSeconds === null ? null : now_.medianSeconds - was.medianSeconds,
     };
 
-    // One row per day, oldest first; the screen gathers them into bars.
-    const daily = Array.from({ length: days }, (_, i) => {
-      const at = from + i * DAY;
-      const inDay = (t: number) => t >= at && t < at + DAY;
-      return {
-        at,
-        views: eventsNow.filter((e) => ids.has(e.formId) && e.kind === "view" && inDay(e.at)).length,
-        starts: eventsNow.filter((e) => ids.has(e.formId) && e.kind === "start" && inDay(e.at)).length,
-        responses: recent.filter((r) => inDay(r.submittedAt)).length,
-        completed: recent.filter((r) => !r.partial && inDay(r.submittedAt)).length,
-      };
-    });
+    // One row per day, oldest first; the screen gathers them into bars. Each
+    // event and response is dropped into its day once, not re-scanned per day.
+    const daily = Array.from({ length: days }, (_, i) => ({
+      at: from + i * DAY,
+      views: 0,
+      starts: 0,
+      responses: 0,
+      completed: 0,
+    }));
+    const dayOf = (t: number) => {
+      const i = Math.floor((t - from) / DAY);
+      return i >= 0 && i < days ? daily[i] : undefined;
+    };
+    for (const e of eventsNow) {
+      if (!ids.has(e.formId)) continue;
+      const d = dayOf(e.at);
+      if (d && e.kind === "view") d.views++;
+      else if (d && e.kind === "start") d.starts++;
+    }
+    for (const r of recent) {
+      const d = dayOf(r.submittedAt);
+      if (!d) continue;
+      d.responses++;
+      if (!r.partial) d.completed++;
+    }
 
     /* Where people leave: for each question, the share of everyone who began
        that stopped on it — the first question after the last they answered. */
@@ -204,6 +222,9 @@ export const overview = query({
       byDevice.set(d, (byDevice.get(d) ?? 0) + 1);
     }
 
+    const inRange = new Map<string, number>();
+    for (const r of recent) inRange.set(r.formId, (inRange.get(r.formId) ?? 0) + 1);
+
     return {
       from,
       to,
@@ -226,7 +247,7 @@ export const overview = query({
       lifetime: {
         views: forms.reduce((n, f) => n + (f.views ?? 0), 0),
         starts: forms.reduce((n, f) => n + (f.starts ?? 0), 0),
-        responses: allResponses.length,
+        responses: forms.reduce((n, f) => n + f.responsesCount, 0),
       },
       formCount: forms.length,
       forms: forms
@@ -238,7 +259,7 @@ export const overview = query({
           completed: f.completedCount,
           views: f.views ?? 0,
           completionRate: completionRate(f),
-          inRange: recent.filter((r) => r.formId === f._id).length,
+          inRange: inRange.get(f._id) ?? 0,
         }))
         .sort((a, b) => b.inRange - a.inRange || b.responses - a.responses),
     };

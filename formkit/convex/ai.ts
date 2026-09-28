@@ -11,7 +11,7 @@ import {
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { aiAllowed, aiLimit, requireUser } from "./model/identity";
-import { formFor, uniqueSlug } from "./model/forms";
+import { formFor, recount, uniqueSlug } from "./model/forms";
 import { logActivity } from "./model/access";
 import { OPERATORS } from "./logic";
 import { THEME_PRESETS } from "./model/themePresets";
@@ -295,6 +295,7 @@ export const addQuestions = internalMutation({
       });
     }
     await ctx.db.patch(formId, { updatedAt: Date.now() });
+    await recount(ctx, formId);
     await logActivity(
       ctx,
       formId,
@@ -465,6 +466,7 @@ export const commit = mutation({
         order,
       });
     }
+    await recount(ctx, formId);
     await logActivity(ctx, formId, user._id, "created the form with Ask Formkit", "sparkles");
     return formId;
   },

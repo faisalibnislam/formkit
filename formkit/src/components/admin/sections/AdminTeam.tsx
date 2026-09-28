@@ -124,7 +124,7 @@ export function AdminTeam({ meId }: { meId: Id<"users"> }) {
 
               {m.role === "owner" ? (
                 <p style={{ margin: "12px 0 0", fontSize: 13.5, color: "var(--color-text-tertiary)" }}>
-                  Owners hold every permission, and an owner's role is locked here. Another owner can move them to Admin.
+                  Owners hold every permission, and an owner’s role is locked here. Another owner can move them to Admin.
                 </p>
               ) : (
                 <>

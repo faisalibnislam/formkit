@@ -110,6 +110,28 @@ export async function themeLogos(ctx: QueryCtx, theme: unknown) {
   );
 }
 
+/**
+ * A form's question and page counts, stored on the form so the forms list
+ * need not read every block of every form. Called after anything that adds or
+ * removes blocks; editing a question's text does not change them.
+ */
+export async function recount(ctx: MutationCtx, formId: Id<"forms">) {
+  const counts = countBlocks(
+    await ctx.db
+      .query("blocks")
+      .withIndex("by_form_order", (q) => q.eq("formId", formId))
+      .collect(),
+  );
+  await ctx.db.patch(formId, { questionCount: counts.questions, pageCount: counts.pages });
+}
+
+export function countBlocks(blocks: { kind: string }[]) {
+  return {
+    questions: blocks.filter((b) => b.kind === "field").length,
+    pages: blocks.filter((b) => b.kind === "pagebreak").length + 1,
+  };
+}
+
 /** The identity a form is published under, as its respondents see it. */
 export async function brandOf(ctx: QueryCtx, form: Doc<"forms">) {
   const identity =

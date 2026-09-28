@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { mutation } from "./_generated/server";
 import { questionType } from "./schema";
-import { formFor } from "./model/forms";
+import { formFor, recount } from "./model/forms";
 import type { Id } from "./_generated/dataModel";
 
 /**
@@ -76,6 +76,8 @@ export const add = mutation({
     });
 
     await ctx.db.patch(formId, { updatedAt: Date.now() });
+
+    await recount(ctx, formId);
     return id;
   },
 });
@@ -124,6 +126,8 @@ export const remove = mutation({
     }
 
     await ctx.db.patch(block.formId, { updatedAt: Date.now() });
+
+    await recount(ctx, block.formId);
     return null;
   },
 });
@@ -149,6 +153,7 @@ export const duplicate = mutation({
     }
     const id = await ctx.db.insert("blocks", { ...rest, order: order + 1 });
     await ctx.db.patch(block.formId, { updatedAt: Date.now() });
+    await recount(ctx, block.formId);
     return id;
   },
 });
@@ -214,6 +219,8 @@ export const removePage = mutation({
     }
 
     await ctx.db.patch(block.formId, { updatedAt: Date.now() });
+
+    await recount(ctx, block.formId);
     return gone.size - 1;
   },
 });
@@ -253,6 +260,7 @@ export const duplicatePage = mutation({
       first ??= id;
     }
     await ctx.db.patch(block.formId, { updatedAt: Date.now() });
+    await recount(ctx, block.formId);
     return first!;
   },
 });

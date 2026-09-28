@@ -170,6 +170,7 @@ function AppFrame({ children }: { children: ReactNode }) {
   const supportUser = viewer?.staffRole ? (search.get("viewAs") as Id<"users"> | null) : null;
   const acceptPending = useMutation(api.collaborators.acceptPending);
   const touch = useMutation(api.security.touch);
+  const backfillCounts = useMutation(api.forms.backfillCounts);
 
   // The sessions list in Settings names each device; this is where it learns
   // this one, and where a new sign-in alert is set off.
@@ -187,7 +188,10 @@ function AppFrame({ children }: { children: ReactNode }) {
     if (!viewer || accepted.current) return;
     accepted.current = true;
     void acceptPending({}).catch(() => {});
-  }, [viewer, acceptPending]);
+    // Forms made before question counts were stored get them now, so the
+    // forms list can stop reading their questions.
+    void backfillCounts({}).catch(() => {});
+  }, [viewer, acceptPending, backfillCounts]);
   // Counts only: the full list reads every form's questions, and would recount
   // on every edit in the builder.
   const formsList = useQuery(api.forms.summary, {});

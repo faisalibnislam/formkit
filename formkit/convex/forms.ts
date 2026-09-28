@@ -11,6 +11,8 @@ import {
   storedBlock,
   uniqueSlug,
   purgeFormData,
+  countBlocks,
+  recount,
 } from "./model/forms";
 import { builtinTemplate } from "./model/builtinTemplates";
 import { closedReason, nameOf, tellFormTeam } from "./model/inbox";
@@ -29,12 +31,17 @@ async function nextVersion(ctx: MutationCtx, formId: Id<"forms">) {
 }
 
 async function decorate(ctx: Parameters<typeof formUrl>[0], form: Doc<"forms">) {
-  const blocks = await ctx.db
-    .query("blocks")
-    .withIndex("by_form_order", (q) => q.eq("formId", form._id))
-    .collect();
-  const questions = blocks.filter((b) => b.kind === "field").length;
-  const pages = blocks.filter((b) => b.kind === "pagebreak").length + 1;
+  // Stored counts; a form not yet counted (made before they were kept) is
+  // counted from its blocks until `backfillCounts` reaches it.
+  const { questions, pages } =
+    form.questionCount !== undefined && form.pageCount !== undefined
+      ? { questions: form.questionCount, pages: form.pageCount }
+      : countBlocks(
+          await ctx.db
+            .query("blocks")
+            .withIndex("by_form_order", (q) => q.eq("formId", form._id))
+            .collect(),
+        );
 
   return {
     _id: form._id,
@@ -143,6 +150,30 @@ export const list = query({
         rows.map(async (f) => ({ ...(await decorate(ctx, f)), sharedAs: null as { role: string; owner: string } | null })),
       ),
     };
+  },
+});
+
+/**
+ * Stores the question and page counts on this person's forms made before the
+ * counts were kept. The app calls it once on load; with nothing to do it only
+ * reads the form rows.
+ */
+export const backfillCounts = mutation({
+  args: {},
+  returns: v.number(),
+  handler: async (ctx) => {
+    const user = await requireUser(ctx);
+    const forms = await ctx.db
+      .query("forms")
+      .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
+      .collect();
+    let done = 0;
+    for (const f of forms) {
+      if (f.questionCount !== undefined && f.pageCount !== undefined) continue;
+      await recount(ctx, f._id);
+      done++;
+    }
+    return done;
   },
 });
 
@@ -312,6 +343,8 @@ export const create = mutation({
         order: i,
       });
     }
+
+    await recount(ctx, formId);
 
     await ctx.db.insert("activity", {
       formId,
@@ -678,6 +711,7 @@ export const duplicate = mutation({
       const { _id, _creationTime, formId: _f, ...rest } = block;
       await ctx.db.insert("blocks", { ...rest, formId: copyId });
     }
+    await recount(ctx, copyId);
     return copyId;
   },
 });
@@ -736,6 +770,7 @@ export const restoreVersion = mutation({
     }
 
     await ctx.db.patch(form._id, { updatedAt: now });
+    await recount(ctx, form._id);
     return null;
   },
 });
