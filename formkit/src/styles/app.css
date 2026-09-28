@@ -394,11 +394,19 @@
   display: flex;
   align-items: flex-end;
   gap: 7px;
-  margin: clamp(30px, 4vw, 44px) calc(-1 * clamp(16px, 3.5vw, 40px)) 0;
-  padding: 0 20px;
+  /* Scrolling sideways clips vertically too, so the box reaches 40px above
+     the tabs, taken back out of the margin: room for the active tab's shadow,
+     which otherwise stops at a hard line across the sky. */
+  margin: calc(clamp(30px, 4vw, 44px) - 40px) calc(-1 * clamp(16px, 3.5vw, 40px)) 0;
+  padding: 40px 20px 0;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
+  /* The headroom is empty sky: clicks go through it to the hero beneath. */
+  pointer-events: none;
+}
+.fk-dock > * {
+  pointer-events: auto;
 }
 .fk-dock::-webkit-scrollbar {
   display: none;
