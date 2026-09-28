@@ -22,5 +22,6 @@ crons.interval("check email domains waiting on DNS", { minutes: 10 }, internal.e
 crons.interval("settle payments nobody came back from", { minutes: 20 }, internal.payments.recheckPending, {});
 crons.hourly("erase responses past each account's retention period", { minuteUTC: 50 }, internal.controls.applyRetention, {});
 crons.daily("erase account audit lines over a year old", { hourUTC: 3, minuteUTC: 10 }, internal.controls.purgeAudit, {});
+crons.daily("forget AI judgements over a month old", { hourUTC: 3, minuteUTC: 30 }, internal.aiLogic.prune, {});
 
 export default crons;

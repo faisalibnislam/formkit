@@ -1,8 +1,9 @@
 "use client";
 
 import { useSeededQuery } from "@/lib/seed";
-import { useMutation, useQuery } from "convex/react";
-import { Flag, GitBranch, Plus, Sparkles, Trash2, X } from "lucide-react";
+import { useAction, useMutation, useQuery } from "convex/react";
+import { useState } from "react";
+import { Check, Flag, GitBranch, Plus, Sparkles, Trash2, X } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
 import type { Doc, Id } from "../../../../convex/_generated/dataModel";
 import { Button, IconButton, Segmented, Select, Switch } from "@/components/ui";
@@ -124,6 +125,8 @@ export function LogicTab({ formId }: { formId: Id<"forms"> }) {
           </div>
         </section>
       )}
+
+      {questions.length >= 2 && <DescribeRule formId={formId} form={form} />}
 
       {rules && rules.length > 0 && <LogicMap form={form} rules={rules} />}
 
@@ -418,6 +421,143 @@ function RuleCard({ rule, index, form }: { rule: Rule; index: number; form: Form
           </span>
         )}
       </div>
+    </section>
+  );
+}
+
+type Proposal = FunctionReturnType<typeof api.aiLogic.describe>["rules"][number];
+
+/**
+ * Plain words in, rules out: the AI proposes, the owner reads each one and
+ * adds the ones they want. Nothing is saved until they do.
+ */
+function DescribeRule({ formId, form }: { formId: Id<"forms">; form: Form }) {
+  const toast = useToast();
+  const viewer = useSeededQuery(api.users.viewer, {});
+  const describe = useAction(api.aiLogic.describe);
+  const add = useMutation(api.logic.add);
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [found, setFound] = useState<{ rules: Proposal[]; note?: string } | null>(null);
+  const [added, setAdded] = useState<Set<number>>(new Set());
+
+  if (!viewer?.ai.allowed) return null;
+
+  async function go() {
+    setBusy(true);
+    setFound(null);
+    setAdded(new Set());
+    try {
+      setFound(await describe({ formId, text }));
+    } catch (e) {
+      toast(errorText(e, "That didn’t work. Try again in a minute."));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function take(p: Proposal, i: number) {
+    try {
+      const one = p.groups.length === 1;
+      await tracked(
+        add({
+          formId,
+          name: p.name,
+          join: one ? p.groups[0]!.join : p.join,
+          action: p.action,
+          targetId: p.targetId,
+          conditions: p.groups[0]!.conditions,
+          groups: one ? undefined : p.groups,
+          options: p.options,
+          endingId: p.endingId,
+        }),
+      );
+      setAdded((s) => new Set(s).add(i));
+      toast("Rule added", { detail: p.name });
+    } catch (e) {
+      if (!upgradeOnPlanError(e)) toast(errorText(e, "That rule did not save."));
+    }
+  }
+
+  const byId = new Map(form.blocks.map((b) => [b._id as string, b]));
+  return (
+    <section className="fk-panel fk-describe">
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <Sparkles size={17} strokeWidth={1.8} aria-hidden style={{ display: "inline-block" }} />
+        <h3 style={{ flex: 1, margin: 0 }}>Describe a rule</h3>
+      </div>
+      <p className="fk-panel-lede">
+        Say what should happen in your own words, and check the rules it writes before adding them.
+      </p>
+      <form
+        className="fk-describe-row"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (text.trim().length >= 6 && !busy) void go();
+        }}
+      >
+        <span className="ui-input-wrap" data-size="md" style={{ flex: 1, minWidth: 0 }}>
+          <input
+            aria-label="What should happen"
+            placeholder="e.g. If the budget is over £20k and they found us on Instagram, skip to the call booking page"
+            value={text}
+            maxLength={1200}
+            onChange={(e) => setText(e.target.value)}
+          />
+        </span>
+        <Button type="submit" disabled={busy || text.trim().length < 6}>
+          {busy ? "Writing…" : "Write rules"}
+        </Button>
+      </form>
+      {found && (
+        <div className="fk-describe-out">
+          {found.rules.map((p, i) => (
+            <div key={i} className="fk-describe-card">
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <strong>{p.name}</strong>
+                {p.explain && <p>{p.explain}</p>}
+                <div className="fk-rulecard-sentence" style={{ marginTop: 8 }}>
+                  {p.groups.map((g, gi) => (
+                    <span key={gi} style={{ display: "contents" }}>
+                      {gi > 0 && <span className="fk-rw">{p.join}</span>}
+                      {g.conditions.map((c, k) => (
+                        <span key={k} style={{ display: "contents" }}>
+                          <span className="fk-rw">{k === 0 ? (gi === 0 ? "If" : "") : g.join}</span>
+                          <ConditionWords c={c as Condition} form={form} />
+                        </span>
+                      ))}
+                    </span>
+                  ))}
+                  <span className="fk-rw">then</span>
+                  <span className="fk-rchip" data-tone="sky">
+                    {ACTIONS.find((a) => a.value === p.action)?.label}
+                  </span>
+                  <span className="fk-rchip">
+                    {p.action === "ending"
+                      ? (form.endings ?? []).find((e) => e.id === p.endingId)?.name
+                      : byId.get(p.targetId ?? "")?.title}
+                  </span>
+                  {p.options?.length ? (
+                    <span className="fk-rchip" data-tone="ink">
+                      {p.options.join(", ")}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+              {added.has(i) ? (
+                <span className="fk-describe-added">
+                  <Check size={15} strokeWidth={2} aria-hidden style={{ display: "inline-block" }} /> Added
+                </span>
+              ) : (
+                <Button size="sm" variant="secondary" onClick={() => void take(p, i)}>
+                  Add rule
+                </Button>
+              )}
+            </div>
+          ))}
+          {found.note && <p className="fk-proprow-hint" style={{ margin: 0 }}>{found.note}</p>}
+        </div>
+      )}
     </section>
   );
 }

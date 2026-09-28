@@ -108,6 +108,7 @@ export const add = mutation({
   args: {
     formId: v.id("forms"),
     name: v.optional(v.string()),
+    join: v.optional(v.union(v.literal("and"), v.literal("or"))),
     action,
     targetId: v.optional(v.id("blocks")),
     /** Where the rule starts. Omitted, the condition is left for the Logic page. */
@@ -117,7 +118,7 @@ export const add = mutation({
     endingId: v.optional(v.string()),
   },
   returns: v.id("logicRules"),
-  handler: async (ctx, { formId, name, action, targetId, conditions, groups, options, endingId }) => {
+  handler: async (ctx, { formId, name, join, action, targetId, conditions, groups, options, endingId }) => {
     const form = await formFor(ctx, formId);
     await checkPlan(ctx, form.ownerId, { action, conditions, groups });
     const existing = await ctx.db
@@ -129,7 +130,7 @@ export const add = mutation({
       formId,
       name: name?.trim() || `Rule ${existing.length + 1}`,
       enabled: true,
-      join: "and",
+      join: join ?? "and",
       conditions: withIds(conditions?.length ? conditions : [{ operator: "is" }]),
       groups: groups?.map((g) => ({ ...g, conditions: withIds(g.conditions) })),
       action,

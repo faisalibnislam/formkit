@@ -298,6 +298,8 @@ export function FieldSettings({
         </div>
       )}
 
+      {block.type === "hidden" && <FillWithAi block={block} fields={fields} />}
+
       {(hasOptions(block.type) || block.type === "yes-no") && (
         <div className="fk-proprow" data-stack="true">
           <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, marginBottom: 7 }}>
@@ -624,5 +626,74 @@ export function FieldSettings({
         </div>
       </div>
     </section>
+  );
+}
+
+/**
+ * Business: a hidden field the AI fills with a fact pulled out of an earlier
+ * answer — a budget from a paragraph, a company name from an email.
+ */
+function FillWithAi({ block, fields }: { block: Block; fields: Block[] }) {
+  const toast = useToast();
+  const update = useMutation(api.blocks.update);
+  const gate = useGate("logic.ai");
+  const [on, setOn] = useState(!!block.extract);
+  const sources = fields.filter(
+    (f) => f._id !== block._id && f.type && !["hidden", "file", "signature"].includes(f.type) && f.order < block.order,
+  );
+  const save = async (extract: { from: Id<"blocks">; what: string } | null) => {
+    try {
+      await tracked(update({ blockId: block._id, patch: { extract } }));
+    } catch (e) {
+      if (!upgradeOnPlanError(e)) toast(errorText(e, "That did not save."));
+    }
+  };
+  const from = block.extract?.from ?? sources[sources.length - 1]?._id;
+
+  return (
+    <div className="fk-proprow" data-stack="true">
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ flex: 1, fontSize: 14 }}>
+          Fill it in with AI
+          <span className="fk-proprow-hint" style={{ display: "block", margin: "2px 0 0", fontSize: 12.5 }}>
+            Pulls one fact out of an earlier answer when that page is finished.
+          </span>
+        </span>
+        {gate.locked && <ProChip plan="business" onClick={() => openUpgrade({ feature: "logic.ai" })} />}
+        <Switch
+          checked={on}
+          label="Fill it in with AI"
+          onChange={gate.guard((next: boolean) => {
+            setOn(next);
+            if (!next && block.extract) void save(null);
+          })}
+        />
+      </div>
+      {on && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
+          {sources.length === 0 ? (
+            <span className="fk-proprow-hint" style={{ margin: 0 }}>
+              Move this below the question it should read.
+            </span>
+          ) : (
+            <>
+              <Select
+                size="sm"
+                ariaLabel="Which answer to read"
+                value={(from as string | undefined) ?? null}
+                options={sources.map((f) => ({ value: f._id as string, label: f.title || "Untitled question" }))}
+                onChange={(v) => void save({ from: v as Id<"blocks">, what: block.extract?.what ?? "" })}
+              />
+              <DraftPill
+                aria-label="What to pull out"
+                placeholder="e.g. their budget in pounds, as a number"
+                value={block.extract?.what ?? ""}
+                onCommit={(what) => from && void save({ from, what })}
+              />
+            </>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

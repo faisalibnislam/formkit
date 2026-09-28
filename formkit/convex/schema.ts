@@ -97,6 +97,9 @@ export default defineSchema({
     /** Bought replies, which roll over until used. */
     aiReplyCredits: v.optional(v.number()),
     aiReplyWarned: v.optional(v.string()),
+    /** Rules written from a description today (YYYY-MM-DD), capped per day. */
+    aiRuleDay: v.optional(v.string()),
+    aiRuleCount: v.optional(v.number()),
     aiCheckPeriod: v.optional(v.string()),
     aiCheckUsed: v.optional(v.number()),
     /** Business: team members' forms wait for an admin's approval before going live. */
@@ -373,6 +376,24 @@ export default defineSchema({
      */
     extract: v.optional(v.object({ from: v.id("blocks"), what: v.string() })),
   }).index("by_form_order", ["formId", "order"]),
+
+  /**
+   * Business: what the AI said about an answer, kept so the same answer is
+   * never asked about twice. `key` hashes the condition (or hidden field) with
+   * the answer it read. Also counts a form's checks per hour.
+   */
+  aiJudgements: defineTable({
+    formId: v.id("forms"),
+    key: v.string(),
+    /** A yes-or-no condition's answer. */
+    yes: v.optional(v.boolean()),
+    /** A fact pulled out of an answer into a hidden field. */
+    value: v.optional(v.string()),
+    at: v.number(),
+  })
+    .index("by_key", ["formId", "key"])
+    .index("by_form_at", ["formId", "at"])
+    .index("by_at", ["at"]),
 
   logicRules: defineTable({
     formId: v.id("forms"),

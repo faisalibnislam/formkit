@@ -740,6 +740,35 @@ export const QUERIES: Record<string, unknown> = {
     },
   ],
   "ai:usage": { used: 3, limit: 25, allowed: true },
+  /** What "Describe a rule" writes in the preview. */
+  "action:aiLogic:describe": {
+    rules: [
+      {
+        name: "Fast track big budgets",
+        explain: "People with a budget over £20k who write from a company address go straight to the “Big project” ending.",
+        join: "and",
+        groups: [
+          {
+            join: "and",
+            conditions: [
+              { blockId: "b5", operator: "any-of", value: "£20k–£35k|More than £35k" },
+              { blockId: "b2", operator: "email-domain", value: "studionine.co" },
+            ],
+          },
+        ],
+        action: "ending",
+        endingId: "e1",
+      },
+      {
+        name: "Ask for a date on websites",
+        explain: "When the project is a website, the launch date becomes required.",
+        join: "and",
+        groups: [{ join: "and", conditions: [{ blockId: "b4", operator: "contains", value: "website" }] }],
+        action: "require",
+        targetId: "b6",
+      },
+    ],
+  },
   "admin:who": {
     signedIn: true,
     staff: {

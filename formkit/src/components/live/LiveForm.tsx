@@ -48,6 +48,7 @@ export function LiveForm({
   const uploadUrl = useMutation(api.publicForm.uploadUrl);
   const submit = useMutation(api.publicForm.submit);
   const checkout = useAction(api.payments.checkout);
+  const think = useAction(api.aiLogic.think);
   const viewed = useRef(false);
 
   const open = data?.state === "open" ? data : null;
@@ -179,6 +180,7 @@ export function LiveForm({
       resume={resume}
       onSubmit={onSubmit}
       onPay={checkout}
+      onThink={(a) => think({ formId: (data as OpenForm).formId, ...a })}
       onStart={() => void recordView({ formId: data.formId, started: true, source: sourceLabel() })}
       upload={upload}
     />

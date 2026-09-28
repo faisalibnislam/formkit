@@ -13,7 +13,7 @@ import {
 } from "@/components/app/editor/themes";
 import { fontStack, loadFont } from "@/components/app/editor/fonts";
 import { computeAll, pipe, pipeValues } from "../../../convex/model/calc";
-import { applyLogic, type Rule as LogicRule } from "../../../convex/model/logicEval";
+import { applyLogic, conditionsOf, type Rule as LogicRule } from "../../../convex/model/logicEval";
 import { LogoLockup } from "./LogoLockup";
 
 /**
@@ -127,6 +127,7 @@ export function FormRunner({
   onSubmit,
   onPay,
   onStart,
+  onThink,
   upload,
   scrollRoot,
 }: {
@@ -140,6 +141,12 @@ export function FormRunner({
   /** Opens the payment page for a response that owes one; the live form only. */
   onPay?: (r: { responseId: Id<"responses">; resumeToken: string }) => Promise<{ url: string } | { paid: true } | null>;
   onStart?: () => void;
+  /** Business: asks the AI about answers when a page is finished. The live form only. */
+  onThink?: (a: {
+    checks: string[];
+    facts: string[];
+    answers: { blockId: string; text: string }[];
+  }) => Promise<{ judged: Record<string, boolean>; extracted: Record<string, string> }>;
   upload: (file: File) => Promise<Id<"_storage">>;
   /** What scrolls — the window, or the preview's own frame. */
   scrollRoot?: RefObject<HTMLElement | null>;
@@ -189,6 +196,9 @@ export function FormRunner({
   /* ---------- logic ---------- */
   // Business: what the AI said about answers, by condition id, once asked.
   const [judged, setJudged] = useState<Record<string, boolean>>({});
+  const [thinking, setThinking] = useState(false);
+  // The answer each AI condition or hidden field was last asked about.
+  const askedWith = useRef<Record<string, string>>({});
   const types = useMemo(() => Object.fromEntries(blocks.map((b) => [b._id as string, b.type])), [blocks]);
   const outcome = useMemo(
     () => applyLogic(data.logic, { answers, calc: results, ai: judged, types }),
@@ -212,12 +222,15 @@ export function FormRunner({
   }, [answers, hiddenOptions]);
 
   /* ---------- pages, and the questions in order ---------- */
-  const pages: { name: string; fields: Block[] }[] = [{ name: "", fields: [] }];
-  for (const b of blocks) {
-    if (b.kind === "pagebreak") pages.push({ name: b.pageName ?? "", fields: [] });
-    else if (b.type !== "hidden" && !hidden.has(b._id)) pages[pages.length - 1]!.fields.push(b);
-  }
-  const live = pages.filter((p) => p.fields.length > 0);
+  const pagesFor = (gone: Set<string>) => {
+    const pages: { name: string; fields: Block[] }[] = [{ name: "", fields: [] }];
+    for (const b of blocks) {
+      if (b.kind === "pagebreak") pages.push({ name: b.pageName ?? "", fields: [] });
+      else if (b.type !== "hidden" && !gone.has(b._id)) pages[pages.length - 1]!.fields.push(b);
+    }
+    return pages.filter((p) => p.fields.length > 0);
+  };
+  const live = pagesFor(hidden);
   const fields = live.flatMap((p) => p.fields);
   const current = live[Math.min(page, Math.max(0, live.length - 1))];
   const lastPage = page >= live.length - 1;
@@ -267,7 +280,9 @@ export function FormRunner({
     return () => window.clearTimeout(t);
   }, [done, mode, redirectTo]);
 
-  async function send(asHuman = human) {
+  async function send(asHuman = human, over?: { answers?: Record<string, Answer>; ending?: string | null }) {
+    const sending = over?.answers ?? kept;
+    const ending = over && "ending" in over ? over.ending : outcome.ending;
     setBusy(true);
     setFailed(null);
     try {
@@ -278,14 +293,14 @@ export function FormRunner({
         trap: trap || undefined,
         device: describeDevice(),
         durationMs: since(openedAt.current),
-        ending: outcome.ending ?? undefined,
-        answers: Object.entries(kept)
+        ending: ending ?? undefined,
+        answers: Object.entries(sending)
           .filter(([id]) => fields.some((f) => f._id === id) || hiddenFields.some((f) => f._id === id))
           .map(([blockId, a]) => ({ blockId: blockId as Id<"blocks">, ...a })),
       });
       setProve(false);
       const paying = !!(r.pay && r.responseId && onPay && mode === "live");
-      setDone({ token: r.resumeToken, responseId: r.responseId, paying, ending: outcome.ending });
+      setDone({ token: r.resumeToken, responseId: r.responseId, paying, ending });
       toTop();
       if (paying) void goPay(r.responseId!, r.resumeToken);
     } catch (e) {
@@ -324,7 +339,56 @@ export function FormRunner({
     }
   }
 
-  function nextPage() {
+  /**
+   * Business: asks the AI about the answers just given — its yes-or-no
+   * conditions and the hidden fields it fills — and works the rules out
+   * again with what it said. Never holds anyone up for long: after a few
+   * seconds, or on any failure, the form goes on with the fallbacks.
+   */
+  async function think(list: Block[]) {
+    const same = { answers: kept, judged, outcome };
+    if (!onThink || mode !== "live" || !data.smart?.ai) return same;
+    const onPage = new Set(list.map((b) => b._id as string));
+    const textOf = (id: string) => {
+      const a = kept[id];
+      return (a?.values?.join(", ") ?? a?.value ?? "").trim();
+    };
+    const checks = data.logic
+      .flatMap((r) => conditionsOf(r))
+      .filter((c) => c.source === "ai" && c.id && c.blockId && onPage.has(c.blockId))
+      .filter((c) => textOf(c.blockId!) && askedWith.current[c.id!] !== textOf(c.blockId!));
+    const facts = blocks.filter(
+      (b) => b.extract && onPage.has(b.extract.from) && textOf(b.extract.from) && askedWith.current[b._id] !== textOf(b.extract.from),
+    );
+    if (!checks.length && !facts.length) return same;
+
+    const read = new Set([...checks.map((c) => c.blockId!), ...facts.map((f) => f.extract!.from as string)]);
+    setThinking(true);
+    try {
+      const res = await Promise.race([
+        onThink({
+          checks: [...new Set(checks.map((c) => c.id!))],
+          facts: facts.map((f) => f._id as string),
+          answers: [...read].map((blockId) => ({ blockId, text: textOf(blockId) })),
+        }),
+        new Promise<null>((r) => window.setTimeout(() => r(null), 10_000)),
+      ]).catch(() => null);
+      for (const c of checks) askedWith.current[c.id!] = textOf(c.blockId!);
+      for (const f of facts) askedWith.current[f._id] = textOf(f.extract!.from);
+      if (!res) return same;
+      const nextJudged = { ...judged, ...res.judged };
+      const nextAnswers = { ...kept };
+      for (const [id, value] of Object.entries(res.extracted)) nextAnswers[id] = { value };
+      setJudged(nextJudged);
+      if (Object.keys(res.extracted).length) setAnswers((a) => ({ ...a, ...Object.fromEntries(Object.entries(res.extracted).map(([id, value]) => [id, { value }])) }));
+      const calc = data.smart?.calc && data.calc?.length ? computeAll(data.calc, blocks, nextAnswers) : {};
+      return { answers: nextAnswers, judged: nextJudged, outcome: applyLogic(data.logic, { answers: nextAnswers, calc, ai: nextJudged, types }) };
+    } finally {
+      setThinking(false);
+    }
+  }
+
+  async function nextPage() {
     const missing = firstMissing(current?.fields ?? []);
     if (missing) {
       setProblem(missing._id);
@@ -332,26 +396,32 @@ export function FormRunner({
       return;
     }
     setProblem(null);
+    const now = await think(current?.fields ?? []);
     if (!lastPage) {
       // A matching "jump to" rule skips straight to the page that holds its
       // question, as long as that page is ahead of this one.
-      const jumpPage = jumpTo ? live.findIndex((p) => p.fields.some((f) => f._id === jumpTo)) : -1;
+      const pagesNow = pagesFor(now.outcome.hidden);
+      const to = now.outcome.jumpTo;
+      const jumpPage = to ? pagesNow.findIndex((p) => p.fields.some((f) => f._id === to)) : -1;
       setPage(jumpPage > page ? jumpPage : page + 1);
       toTop();
       return;
     }
-    void send();
+    void send(human, { answers: now.answers, ending: now.outcome.ending });
   }
 
-  function nextStep() {
+  async function nextStep() {
     if (!cur) return;
     if (isRequired(cur) && !filled(kept[cur._id])) {
       setProblem(cur._id);
       return;
     }
     setProblem(null);
+    const now = await think([cur]);
     if (!lastStep) {
-      const jumpIndex = jumpTo ? fields.findIndex((f) => f._id === jumpTo) : -1;
+      const to = now.outcome.jumpTo;
+      const fieldsNow = pagesFor(now.outcome.hidden).flatMap((p) => p.fields);
+      const jumpIndex = to ? fieldsNow.findIndex((f) => f._id === to) : -1;
       setStep(jumpIndex > step ? jumpIndex : step + 1);
       return;
     }
@@ -361,7 +431,7 @@ export function FormRunner({
       setProblem(missing._id);
       return;
     }
-    void send();
+    void send(human, { answers: now.answers, ending: now.outcome.ending });
   }
 
   async function attach(block: Block, file: File) {
@@ -647,8 +717,8 @@ export function FormRunner({
                 <ArrowLeft size={17} strokeWidth={1.9} aria-hidden /> Back
               </button>
             )}
-            <button type="submit" style={button(true)} disabled={busy}>
-              {busy ? "Sending…" : lastStep ? "Submit" : "OK"}
+            <button type="submit" style={button(true)} disabled={busy || thinking}>
+              {thinking ? "One moment…" : busy ? "Sending…" : lastStep ? "Submit" : "OK"}
             </button>
             {!lastStep && (
               <span className="fk-live-hint">
@@ -701,8 +771,8 @@ export function FormRunner({
               Back
             </button>
           )}
-          <button type="submit" style={button(true)} disabled={busy || !fields.length}>
-            {busy ? "Sending…" : lastPage ? (resume?.editing ? "Save changes" : "Submit") : "Next"}
+          <button type="submit" style={button(true)} disabled={busy || thinking || !fields.length}>
+            {thinking ? "One moment…" : busy ? "Sending…" : lastPage ? (resume?.editing ? "Save changes" : "Submit") : "Next"}
           </button>
           <span style={{ fontSize: 13.5, opacity: 0.6 }}>
             {answeredCount} of {fields.length} answered

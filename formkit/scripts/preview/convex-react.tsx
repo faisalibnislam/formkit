@@ -65,6 +65,13 @@ export function useAction(reference: unknown) {
       return aiReply(args);
     }) as never;
   }
+  const canned = fixtureFor(`action:${name}`);
+  if (canned != null) {
+    return (async () => {
+      await new Promise((r) => setTimeout(r, 900));
+      return canned;
+    }) as never;
+  }
   return useMutation(reference);
 }
 

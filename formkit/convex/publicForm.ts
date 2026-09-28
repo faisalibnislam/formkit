@@ -107,6 +107,10 @@ async function resolve(
 }
 
 
+function publicCondition<C extends { source?: string; value?: string }>(c: C): C {
+  return c.source === "ai" ? { ...c, value: undefined } : c;
+}
+
 /** Everything the runner needs to show the questions. */
 async function payload(ctx: QueryCtx, form: Doc<"forms">) {
   const blocks = (
@@ -188,8 +192,9 @@ async function payload(ctx: QueryCtx, form: Doc<"forms">) {
       .map((r) => ({
         _id: r._id,
         join: r.join,
-        conditions: r.conditions,
-        groups: r.groups ?? null,
+        // What an AI condition asks stays with the owner; the form only needs its id.
+        conditions: r.conditions.map(publicCondition),
+        groups: r.groups?.map((g) => ({ ...g, conditions: g.conditions.map(publicCondition) })) ?? null,
         action: r.action,
         targetId: r.targetId ?? null,
         options: r.options ?? null,
