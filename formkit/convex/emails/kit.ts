@@ -47,6 +47,21 @@ export function escapeHtml(value: string) {
 }
 const e = escapeHtml;
 
+const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/g;
+
+/**
+ * Text with any email address in it made a link of our own, in a colour that
+ * reads where it sits. Left alone, Gmail and Apple Mail turn an address into
+ * their own blue, underlined link — invisible on the night sky.
+ */
+function withLinks(text: string, color: string, weight = 500) {
+  return e(text).replace(
+    EMAIL,
+    (addr) =>
+      `<a href="mailto:${addr}" style="color:${color};text-decoration:none;font-weight:${weight};">${addr}</a>`,
+  );
+}
+
 /** The customer's identity, for mail sent on their behalf. */
 export type Brand = {
   name: string;
@@ -115,6 +130,7 @@ export function renderShell({ heading, preheader, eyebrow, lede, body, reason, l
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="x-apple-disable-message-reformatting" />
+<meta name="format-detection" content="telephone=no, date=no, address=no, email=no, url=no" />
 <meta name="color-scheme" content="light only" />
 <meta name="supported-color-schemes" content="light only" />
 <title>${e(heading)}</title>
@@ -125,6 +141,12 @@ export function renderShell({ heading, preheader, eyebrow, lede, body, reason, l
   table { border-collapse: separate; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
   img { border: 0; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }
   a { color: ${C.blue600}; }
+  /* Dates, times and phone numbers the mail app links on its own keep the
+     colour of the text around them, whatever that sits on. */
+  a[x-apple-data-detectors] {
+    color: inherit !important; text-decoration: none !important; font-size: inherit !important;
+    font-family: inherit !important; font-weight: inherit !important; line-height: inherit !important;
+  }
   @media (max-width: 620px) {
     .fk-outer { padding: 12px 8px 28px !important; }
     .fk-pad { padding-left: 24px !important; padding-right: 24px !important; }
@@ -165,8 +187,8 @@ function skyHead({ heading, eyebrow, lede }: { heading: string; eyebrow?: string
                 ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:34px;"><tr><td style="padding:6px 13px;border-radius:999px;background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.24);font-family:${FONT};font-size:12.5px;font-weight:500;line-height:1.2;color:#ffffff;">${e(eyebrow)}</td></tr></table>`
                 : `<div style="height:22px;line-height:22px;font-size:1px;">&nbsp;</div>`
             }
-            <h1 class="fk-h1" style="margin:${eyebrow ? "16px" : "12px"} 0 0;font-family:${FONT};font-size:30px;line-height:1.15;font-weight:700;letter-spacing:-0.6px;color:#ffffff;">${e(heading)}</h1>
-            ${lede ? `<p style="margin:12px 0 0;font-family:${FONT};font-size:15.5px;line-height:1.55;color:#ffffff;color:rgba(255,255,255,0.84);">${e(lede)}</p>` : ""}
+            <h1 class="fk-h1" style="margin:${eyebrow ? "16px" : "12px"} 0 0;font-family:${FONT};font-size:30px;line-height:1.15;font-weight:700;letter-spacing:-0.6px;color:#ffffff;">${withLinks(heading, "#ffffff", 700)}</h1>
+            ${lede ? `<p style="margin:12px 0 0;font-family:${FONT};font-size:15.5px;line-height:1.55;color:#ffffff;color:rgba(255,255,255,0.84);">${withLinks(lede, "#ffffff")}</p>` : ""}
           </td>
         </tr>`;
 }
@@ -182,8 +204,8 @@ function brandHead(brand: Brand, accent: string, { heading, eyebrow, lede }: { h
           <td class="fk-sky fk-pad" bgcolor="${wash}" style="padding:32px 40px 30px;border-radius:28px 28px 0 0;background:${wash};border-bottom:1px solid ${C.ring};font-family:${FONT};">
             ${mark}
             ${eyebrow ? `<div style="margin-top:28px;font-size:13px;font-weight:500;color:${C.muted};"><span style="display:inline-block;width:8px;height:8px;border-radius:8px;background:${accent};margin-right:8px;vertical-align:1px;"></span>${e(eyebrow)}</div>` : `<div style="height:14px;line-height:14px;font-size:1px;">&nbsp;</div>`}
-            <h1 class="fk-h1" style="margin:${eyebrow ? "8px" : "12px"} 0 0;font-family:${FONT};font-size:28px;line-height:1.2;font-weight:700;letter-spacing:-0.5px;color:${C.ink};">${e(heading)}</h1>
-            ${lede ? `<p style="margin:12px 0 0;font-family:${FONT};font-size:15.5px;line-height:1.6;color:${C.body};">${e(lede)}</p>` : ""}
+            <h1 class="fk-h1" style="margin:${eyebrow ? "8px" : "12px"} 0 0;font-family:${FONT};font-size:28px;line-height:1.2;font-weight:700;letter-spacing:-0.5px;color:${C.ink};">${withLinks(heading, C.ink, 700)}</h1>
+            ${lede ? `<p style="margin:12px 0 0;font-family:${FONT};font-size:15.5px;line-height:1.6;color:${C.body};">${withLinks(lede, C.blue600)}</p>` : ""}
           </td>
         </tr>`;
 }
@@ -237,7 +259,7 @@ export function button(label: string, href: string, color: string = C.ink) {
 }
 
 export function paragraph(text: string, opts: { muted?: boolean; top?: number } = {}) {
-  return `<p style="margin:${opts.top ?? 0}px 0 0;font-family:${FONT};font-size:${opts.muted ? 13.5 : 15}px;line-height:1.6;color:${opts.muted ? C.muted : C.body};">${e(text)}</p>`;
+  return `<p style="margin:${opts.top ?? 0}px 0 0;font-family:${FONT};font-size:${opts.muted ? 13.5 : 15}px;line-height:1.6;color:${opts.muted ? C.muted : C.body};">${withLinks(text, C.blue600)}</p>`;
 }
 
 /** A pale rounded panel. */
@@ -258,7 +280,7 @@ export function answers(rows: { question: string; value: string }[], opts: { top
       return `<tr><td style="padding:14px 0;${line}font-family:${FONT};">
         <div style="font-size:12.5px;line-height:1.5;color:${C.muted};">${e(question)}</div>
         <div style="margin-top:3px;font-size:15px;line-height:1.55;color:${C.ink};white-space:pre-wrap;">${
-          value ? e(value) : `<span style="color:${C.faint};">Not answered</span>`
+          value ? withLinks(value, C.blue600, 400) : `<span style="color:${C.faint};">Not answered</span>`
         }</div>
       </td></tr>`;
     })
@@ -275,7 +297,7 @@ export function facts(rows: [string, string][], opts: { top?: number } = {}) {
       const line = i < rows.length - 1 ? `border-bottom:1px solid ${C.ring};` : "";
       return `<tr>
         <td style="padding:13px 0;${line}font-family:${FONT};font-size:13.5px;color:${C.muted};width:38%;" valign="top">${e(k)}</td>
-        <td style="padding:13px 0;${line}font-family:${FONT};font-size:15px;color:${C.ink};font-weight:500;" valign="top">${e(v)}</td>
+        <td style="padding:13px 0;${line}font-family:${FONT};font-size:15px;color:${C.ink};font-weight:500;" valign="top">${withLinks(v, C.blue600)}</td>
       </tr>`;
     })
     .join("");
@@ -291,7 +313,7 @@ export function quote(text: string, who?: string, opts: { top?: number } = {}) {
     <td width="4" bgcolor="${C.blue100}" style="width:4px;border-radius:4px;background:${C.blue100};">&nbsp;</td>
     <td style="padding:4px 0 4px 18px;font-family:${FONT};">
       ${who ? `<div style="font-size:13px;font-weight:600;color:${C.ink};margin-bottom:4px;">${e(who)}</div>` : ""}
-      <div style="font-size:15.5px;line-height:1.6;color:${C.body};white-space:pre-wrap;">${e(text)}</div>
+      <div style="font-size:15.5px;line-height:1.6;color:${C.body};white-space:pre-wrap;">${withLinks(text, C.blue600)}</div>
     </td>
   </tr>
 </table>`;
