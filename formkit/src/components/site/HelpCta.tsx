@@ -1,6 +1,7 @@
 "use client";
 
 import { useViewer } from "@/lib/seed";
+import { ContactSupport } from "@/components/support/ContactSupport";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
@@ -18,10 +19,11 @@ export function HelpCta() {
         <strong>{signedIn ? "Back to your forms" : "Try it on a form of your own"}</strong>
         <span>
           {signedIn
-            ? "Everything in this article is a click or two away in the builder."
+            ? "Everything in this article is a click or two away in the builder — or ask us directly."
             : "Free to start, with unlimited forms and responses. No card needed."}
         </span>
       </div>
+      {signedIn && <ContactSupport />}
       <Link href={signedIn ? "/app" : "/signup"} className="fk-pill fk-pill-dark">
         {signedIn ? "Go to dashboard" : "Start building free"}
         <ArrowRight size={16} strokeWidth={1.8} aria-hidden />

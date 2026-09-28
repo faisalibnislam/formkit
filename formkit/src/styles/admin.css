@@ -162,6 +162,28 @@
     flex: 0 0 auto;
     border-radius: var(--radius-pill);
     background: var(--neutral-100);
+    white-space: nowrap;
+  }
+  /* The rail scrolls sideways on its own; it never widens the page. */
+  .fk-admin-rail {
+    min-width: 0;
+  }
+  .fk-admin-rail > div {
+    flex: 0 0 auto;
+  }
+  .fk-admin-rail > div[style] {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+  .fk-admin-whoami {
+    display: none;
+  }
+  .fk-rev-table {
+    font-size: 12.5px;
+  }
+  .fk-rev-table th,
+  .fk-rev-table td {
+    padding: 8px 3px;
   }
 }
 
@@ -417,9 +439,11 @@
 .fk-rev-stack > i:first-child {
   border-radius: 4px 4px 0 0;
 }
-/* The hover label: month and value, above the bar. */
+/* The hover label: month and value, above the bar — only where there is a
+   pointer to hover with, so it never widens a phone's page. */
+@media (hover: hover) {
 .fk-rev-bar:hover::after {
-  content: attr(data-tip);
+  content: attr(data-rev-tip);
   position: absolute;
   bottom: calc(100% + 8px);
   left: 50%;
@@ -432,6 +456,16 @@
   font-size: 12px;
   white-space: nowrap;
   pointer-events: none;
+}
+.fk-rev-bar:nth-last-child(-n + 3):hover::after {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+.fk-rev-bar:nth-child(-n + 3):hover::after {
+  left: 0;
+  transform: none;
+}
 }
 .fk-rev-bar:hover > i,
 .fk-rev-bar:hover .fk-rev-stack {

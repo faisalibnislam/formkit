@@ -39,7 +39,7 @@ function Bars({ data, label }: { data: { month: string; value: number; show: str
     <>
       <div className="fk-rev-bars" role="img" aria-label={`${label}. ${data.map((d) => `${monthLabel(d.month, true)}: ${d.show}`).join("; ")}`}>
         {data.map((d, i) => (
-          <span key={d.month} className="fk-rev-bar" data-tip={`${monthLabel(d.month, true)} · ${d.show}`}>
+          <span key={d.month} className="fk-rev-bar" data-rev-tip={`${monthLabel(d.month, true)} · ${d.show}`}>
             {i === data.length - 1 && d.value > 0 && <em>{d.show}</em>}
             <i style={{ height: `${d.value ? Math.max(3, (d.value / peak) * 100) : 0}%`, background: SERIES }} />
           </span>
@@ -77,7 +77,7 @@ function StackedSignups({ data }: { data: { month: string; free: number; pro: nu
             <span
               key={d.month}
               className="fk-rev-bar"
-              data-tip={`${monthLabel(d.month, true)} · ${total} sign-ups — ${d.free} Free, ${d.pro} Pro, ${d.business} Business`}
+              data-rev-tip={`${monthLabel(d.month, true)} · ${total} sign-ups — ${d.free} Free, ${d.pro} Pro, ${d.business} Business`}
             >
               <span className="fk-rev-stack" style={{ height: `${total ? Math.max(3, (total / peak) * 100) : 0}%` }}>
                 {(["business", "pro", "free"] as const).map((p) =>

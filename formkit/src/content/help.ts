@@ -3,7 +3,7 @@
  *
  * Content lifted verbatim from the design handoff. Each article gets its own
  * indexable route at /help/<id> rather than the hash routing the prototype
- * used, so search engines index 41 pages instead of one.
+ * used, so every article is its own page for search engines.
  *
  * Article bodies are a small Markdown subset: "## " headings, "- " bullets,
  * "> " callouts, and blank-line-separated paragraphs. See HelpArticleBody.
@@ -53,7 +53,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "id": "version-history",
         "title": "Version history",
         "summary": "Every publish is a snapshot you can read and restore.",
-        "body": "Each time you publish, Formkit takes a snapshot of the questions as they were. Open Version history from the form actions menu to see them, newest first, with the date and who published.\n## Restoring\nRestoring a version puts those questions back on the canvas. Your current questions are snapshotted first, so restoring is itself undoable. Restoring does not publish — you will see the amber \"unpublished changes\" note until you do.\n## Unpublished changes\nThe builder counts edits made since the live version. The publish modal shows that count so you always know whether respondents are seeing your latest work."
+        "body": "Each time you publish, Formkit takes a snapshot of the questions as they were. Open Version history from the form actions menu to see them, newest first, with the date and who published.\n## Restoring\nRestoring a version puts those questions back on the canvas. Your current questions are snapshotted first, so restoring is itself undoable. Restoring does not publish — you will see the amber \"unpublished changes\" note until you do.\n## Unpublished changes\nThe builder counts edits made since the live version. The publish modal shows that count so you always know whether respondents are seeing your latest work.\n## How far back\nFree keeps the last 30 days of published versions, Pro a year, and Business all of them. Older versions are still stored — upgrade and they come back into the list."
       }
     ]
   },
@@ -91,7 +91,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "id": "file-uploads",
         "title": "File uploads",
         "summary": "Collecting documents, and the limits that apply.",
-        "body": "Add a File upload field and respondents get a drop zone they can drag onto or select to browse.\n## Size\nEach file is capped at 10 MB. The limit is fixed and shown to the respondent under the drop zone, so nobody wastes time on a file that will be refused.\n## Accepted types\nLeave the accepted list blank to take anything. Otherwise, list extensions — .pdf .png .docx — and the picker filters to those.\n## Where files go\nUploaded files are attached to the response. Open the response in the inbox to preview or download them, and CSV exports include a link column rather than the file itself."
+        "body": "Add a File upload field and respondents get a drop zone they can drag onto or select to browse.\n## Size\nEach file can be up to 20 MB on Free, 150 MB on Pro and 250 MB on Business — the form owner's plan decides. The limit is shown to the respondent under the drop zone, so nobody wastes time on a file that will be refused.\n## Accepted types\nLeave the accepted list blank to take anything. Otherwise, list extensions — .pdf .png .docx — and the picker filters to those.\n## Where files go\nUploaded files are attached to the response. Open the response in the inbox to preview or download them, and CSV exports include a link column rather than the file itself."
       }
     ]
   },
@@ -137,7 +137,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "id": "colours-type",
         "title": "Colours, type and layout",
         "summary": "The individual controls behind a theme.",
-        "body": "## Colours\nFour colours make up a theme: page background, card surface, accent and text. Each has a swatch row of suggestions plus a hex field. Error colouring is recalculated for you so a dark theme stays legible.\n## Type\nPick a font for the form from the picker. Serif families suit long-form applications; the sans families suit short enquiries. Formkit does not offer monospace faces.\n## Layout\nChoose classic, where every question is on one page, or conversational, where questions arrive one at a time with a sticky submit. Conversational suits phones and short forms; classic suits anything somebody needs to review before sending."
+        "body": "## Colours\nFour colours make up a theme: page background, card surface, accent and text. Each has a swatch row of suggestions plus a hex field. Error colouring is recalculated for you so a dark theme stays legible.\n## Type\nPick a font for the form from the picker. Serif families suit long-form applications; the sans families suit short enquiries. Formkit does not offer monospace faces.\n## Layout\nChoose classic, where every question is on one page, or conversational, where questions arrive one at a time with a sticky submit. Conversational suits phones and short forms; classic suits anything somebody needs to review before sending.\n## Your own font and CSS (Pro)\nOn Pro and Business, upload your brand's font file under Type, and add your own CSS in the CSS section of Design. The CSS applies only inside the form, so it cannot change anything else on the page."
       },
       {
         "id": "logos",
@@ -189,13 +189,13 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "id": "partials",
         "title": "Partial responses",
         "summary": "People who started and stopped, and what you can do about it.",
-        "body": "A partial response is one where somebody answered at least one question and left without submitting. Formkit keeps them, badged as partial with the number of questions answered.\n## Where they show up\nPartials are excluded from the Completed count and from the completion rate, so your headline numbers stay honest. Use the All / Complete / Partial control to see them.\n## Resuming\nEach partial has a resume link in its drawer. Send it to the respondent and they pick up where they stopped, with their answers still there.\n## Reading them as signal\nA cluster of partials that all stop at the same question usually means that question is the problem — too personal, too vague, or too much work."
+        "body": "A partial response is one where somebody answered at least one question and left without submitting. Formkit keeps them, badged as partial with the number of questions answered.\n## Where they show up\nPartials are excluded from the Completed count and from the completion rate, so your headline numbers stay honest. Use the All / Complete / Partial control to see them.\n## Resuming\nEach partial has a resume link in its drawer. Send it to the respondent and they pick up where they stopped, with their answers still there.\n## Reading them as signal\nA cluster of partials that all stop at the same question usually means that question is the problem — too personal, too vague, or too much work.\n> Partial responses are kept on every plan, Free included."
       },
       {
         "id": "export-responses",
         "title": "Export to CSV or Excel",
         "summary": "Getting the data out for a spreadsheet or another tool.",
-        "body": "Select Export above the responses table and choose CSV or Excel. The file downloads immediately.\n## What is in it\nOne row per response, one column per question, in canvas order, plus the submitted time and the completion status. Uploaded files appear as links.\n## Filters carry over\nThe export respects whatever filter is applied. Filter to complete responses from this month and that is exactly what you get.\n## Selected rows only\nIf you have selected rows with the checkboxes, the export offers those rows on their own."
+        "body": "Select Export above the responses table and choose CSV or Excel. The file downloads immediately.\n## What is in it\nOne row per response, one column per question, in canvas order, plus the submitted time and the completion status. Uploaded files appear as links.\n## Filters carry over\nThe export respects whatever filter is applied. Filter to complete responses from this month and that is exactly what you get.\n## Selected rows only\nIf you have selected rows with the checkboxes, the export offers those rows on their own.\n## CSV and Excel\nCSV is on every plan. Excel, and having a copy of every response emailed to you, are on Pro and Business.\n## Extra columns\nForms with calculations get a column for each result, and forms that take payment get a Payment column with the amount and whether it was paid."
       },
       {
         "id": "bulk-actions",
@@ -241,7 +241,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "id": "invite",
         "title": "Invite someone to a form",
         "summary": "Adding a collaborator, and what happens on their side.",
-        "body": "Open Collaborators from the form actions menu. Enter an email address, choose a role and send the invitation.\n## Pending invitations\nAn invitation that has not been accepted sits in the pending list, where you can resend or revoke it. Accepting it adds the person to the form — not to your whole account.\n## Per form, not per account\nCollaboration is scoped to a single form. Somebody who edits your enquiry form has no access to anything else you have built until you invite them to that too.\n## Removing\nRemove a collaborator and they lose access immediately. Anything they wrote stays."
+        "body": "Open Collaborators from the form actions menu. Enter an email address, choose a role and send the invitation.\n## Pending invitations\nAn invitation that has not been accepted sits in the pending list, where you can resend or revoke it. Accepting it adds the person to the form — not to your whole account.\n## Per form, not per account\nCollaboration is scoped to a single form. Somebody who edits your enquiry form has no access to anything else you have built until you invite them to that too.\n## Removing\nRemove a collaborator and they lose access immediately. Anything they wrote stays.\n## How many people\nOn Free, three people can work on each form besides you. On Pro and Business there is no limit. On Business you can also add a team, who work on every one of your forms without being invited to each — see Add your team."
       },
       {
         "id": "roles",
@@ -267,13 +267,13 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "id": "claim-handle",
         "title": "Claim your Formkit link",
         "summary": "Turning formkit.app/f/enquiry into formkit.app/your-name/enquiry.",
-        "body": "Formkit is person first. Your account is you, and you can claim a handle for yourself in Settings → Companies, on the personal link card.\n## What changes\nEvery form you publish as yourself moves to formkit.app/your-handle/form-name. Forms published under a company use that company's handle instead.\n## Rules\nHandles are unique across Formkit and across your own account, so a company cannot take the handle you are using. Letters, numbers and hyphens only.\n## Releasing it\nRelease a handle and your links fall back to formkit.app/f/form-name. The handle becomes available to somebody else, so release one only when you are sure."
+        "body": "Formkit is person first. Your account is you, and you can claim a handle for yourself in Settings → Companies, on the personal link card.\n## What changes\nEvery form you publish as yourself moves to formkit.app/your-handle/form-name. Forms published under a company use that company's handle instead.\n## Rules\nHandles are unique across Formkit and across your own account, so a company cannot take the handle you are using. Letters, numbers and hyphens only.\n## Releasing it\nRelease a handle and your links fall back to formkit.app/f/form-name. The handle becomes available to somebody else, so release one only when you are sure.\n## Your own domain (Pro)\nOn Pro and Business you can put your forms on a domain of your own, like forms.acme.com, as well as your formkit.app link — see Use your own domain."
       },
       {
         "id": "add-company",
         "title": "Add a company",
         "summary": "Companies are optional, and you can have as many as you need.",
-        "body": "Most people never add one. Add a company when you publish on behalf of something that is not you: a studio, a client project, a side business.\n## Creating one\nSettings → Companies → Add company. Give it a name, and optionally a logo, a handle and brand colours. Each company gets its own link, its own logo and its own theme defaults.\n## Switching\nThe company list shows how many forms each one has. Select a company to edit its details.\n## Removing\nRemoving a company sends its forms back to you. Nothing is deleted, and the links change to your personal handle."
+        "body": "Most people never add one. Add a company when you publish on behalf of something that is not you: a studio, a client project, a side business.\n## Creating one\nSettings → Companies → Add company. Give it a name, and optionally a logo, a handle and brand colours. Each company gets its own link, its own logo and its own theme defaults.\n## Switching\nThe company list shows how many forms each one has. Select a company to edit its details.\n## Removing\nRemoving a company sends its forms back to you. Nothing is deleted, and the links change to your personal handle.\n## How many\nFree has one company, Pro up to five, and Business as many as you need. Companies you already have are never removed on a downgrade; you just cannot add more until you are back under the limit."
       },
       {
         "id": "publish-under",
@@ -325,7 +325,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "id": "data",
         "title": "Data, retention and deletion",
         "summary": "What Formkit stores, and how to get rid of it.",
-        "body": "## What is stored\nResponses, uploaded files, the forms themselves and the email log of everything Formkit has sent on your behalf.\n## Deleting responses\nDelete individual responses from the drawer, or in bulk from the responses table. Deletion is immediate and permanent — there is no bin to restore from.\n## Deleting a form\nDeleting a form deletes its responses with it. The confirmation says how many you are about to lose.\n## Deleting your account\nSettings → Account → Delete account removes your account, your forms, your responses and your uploaded files. Type the confirmation phrase and it cannot be undone.\n> Read the privacy notice for the full picture of what is held and for how long."
+        "body": "## What is stored\nResponses, uploaded files, the forms themselves and the email log of everything Formkit has sent on your behalf.\n## Deleting responses\nDelete individual responses from the drawer, or in bulk from the responses table. Deletion is immediate and permanent — there is no bin to restore from.\n## Deleting a form\nDeleting a form deletes its responses with it. The confirmation says how many you are about to lose.\n## Deleting your account\nSettings → Account → Delete account removes your account, your forms, your responses and your uploaded files. Type the confirmation phrase and it cannot be undone.\n> Read the privacy notice for the full picture of what is held and for how long.\n## Automatic deletion (Business)\nOn Business, Settings → Controls → Data retention erases responses — and the files uploaded with them — once they reach an age you choose, from 30 days to two years. It runs every hour and cannot be undone, so export first if you need a copy.\n## Who did what (Business)\nBusiness accounts also get an audit log of publishing, team changes, API keys and sign-in rules, kept for a year."
       },
       {
         "id": "spam",
@@ -345,13 +345,51 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "id": "plans-overview",
         "title": "Free, Pro and Business",
         "summary": "What each plan includes, and how a form decides which features it has.",
-        "body": "Formkit has three plans. Free is the whole product for one person, with no time limit; Pro and Business add to it.\n## Free\nUnlimited forms and responses, every question type, pages and logic, themes, your own formkit.app link, embedding, notifications and confirmation emails, CSV export, core analytics, two collaborators on each form and 5 Ask Formkit credits a month.\n## Pro — $3 a month, or $35 a year\nYour own domain, no “Made with Formkit”, emails from your own domain, custom fonts and CSS, partial responses, sources, devices and drop-off, calculations, hidden fields, answer piping and redirects, webhooks, Zapier, Make, Slack and Google Sheets, payments with your own Stripe, Excel export, and 50 AI credits.\n## Business — $10 a month, or $99 a year\nEverything in Pro, plus a team with unlimited seats, several companies and brands, shared templates, approval before publishing, an audit log, data retention rules, API access, sign-in with your company’s Google or Microsoft, priority support and 200 AI credits.\n## Whose plan counts\nA form uses its owner’s plan. If a Pro owner invites you to their form, you work on it with Pro features, whatever plan you are on yourself.\n> Features that are part of a paid plan show a small Pro or Business label. Using one on Free opens a short sheet to upgrade."
+        "body": "Formkit has three plans. Free is the whole product for one person, with no time limit; Pro and Business add to it.\n## Free\nUnlimited forms and responses, every question type, pages and logic, themes, your own formkit.app link, embedding, notifications and confirmation emails, partial responses, drop-off by question, CSV export, three collaborators on each form, one company, 20 MB uploads, 30 days of version history and 5 Ask Formkit credits a month.\n## Pro — $3 a month, or $35 a year\nEverything in Free, plus your own domain, no “Made with Formkit”, emails from your own domain, custom fonts and CSS, where people come from and their devices, calculations, hidden fields, answer piping and redirects, webhooks, Zapier, Make, Slack and Google Sheets, payments with your own Stripe, Excel export, unlimited collaborators, up to five companies, 150 MB uploads, a year of version history and 50 AI credits.\n## Business — $10 a month, or $99 a year\nEverything in Pro, plus a team with unlimited seats, unlimited companies and brands, shared templates, approval before publishing, an audit log, data retention rules, API access, sign-in with your company’s Google or Microsoft, priority support, 250 MB uploads, all of your version history and 200 AI credits.\n## Whose plan counts\nA form uses its owner’s plan. If a Pro owner invites you to their form, you work on it with Pro features, whatever plan you are on yourself.\n> Features that are not on your plan still show in the app, with a small Pro or Business label. Select it to see what it does and upgrade."
       },
       {
         "id": "billing",
         "title": "Paying, changing and cancelling",
         "summary": "Checkout, receipts, switching plans and what a downgrade does.",
         "body": "Upgrade from Settings → Plan, or from any Pro label in the app. Payment is handled by Polar, who act as the merchant of record: they take the card, add any sales tax or VAT, and send the receipt.\n## Receipts and your card\nSettings → Plan → Invoices and billing opens Polar’s page for your account, with every receipt and the card on file.\n## Switching plans\nMove between Pro and Business, or between monthly and yearly, from the same page. Polar works out the difference for the rest of the period.\n## Cancelling\nCancel any time. The plan stays on until the end of the period you have paid for and is not charged again.\n## What a downgrade does\nNothing is deleted. Features outside your new plan stop — a custom domain goes back to your formkit.app link, the “Made with Formkit” credit comes back — and everything you built or collected stays yours and exportable. Upgrade again and they come back as they were."
+      }
+    ]
+  },
+  {
+    "id": "brand",
+    "name": "Branding and smarter forms",
+    "icon": "sparkles",
+    "desc": "Pro: your own domain and sender, fonts and CSS, and forms that fill themselves in, add up and send people on.",
+    "articles": [
+      {
+        "id": "custom-domain",
+        "title": "Use your own domain",
+        "summary": "Put your forms on forms.yourcompany.com.",
+        "body": "Settings → Companies → Custom domains. Enter a subdomain you own, like forms.acme.com, and choose whether it is for you or one of your companies.\n## The DNS record\nFormkit shows one CNAME record to add where your domain's DNS is managed. It usually takes a few minutes, occasionally a few hours. Formkit checks every ten minutes, or select Check now.\n## What changes\nOnce it is live, share links for that identity use your domain: forms.acme.com/intake. The domain's home page lists the identity's open forms. Your formkit.app links keep working.\n## If the plan ends\nNothing breaks: visits to your domain are sent on to the matching formkit.app link.\n> Custom domains are part of Pro."
+      },
+      {
+        "id": "email-domain",
+        "title": "Send emails from your own domain",
+        "summary": "Confirmation emails from hello@yourcompany.com.",
+        "body": "Settings → Notifications → Send from your own domain. Enter the address and the name people should see.\n## Verifying\nFormkit shows the DNS records to add — a few TXT and MX records. When they are in place the domain shows as Live, and confirmation emails to the people who answer your forms come from your address.\n## Replies\nReplies still go to the reply-to address set on each form.\n> Sending from your own domain is part of Pro."
+      },
+      {
+        "id": "hidden-fields",
+        "title": "Hidden fields and pre-filled answers",
+        "summary": "Carry a campaign, an ID or an answer in through the link.",
+        "body": "Give a question a key in its settings — say, source. A link with ?source=newsletter fills that question in for the person answering.\n## Hidden fields\nAdd a Hidden field from the Smart group. People never see it, but its value is saved with the response: a campaign name, a customer ID, a referral code. Set a default value for when the link has none.\n## Pre-filling visible questions\nAny question with a key can be pre-filled the same way — the person sees the answer and can change it.\n> Hidden fields and pre-filled answers are part of Pro."
+      },
+      {
+        "id": "calculations",
+        "title": "Calculations and scoring",
+        "summary": "Add up answers into a total, a score or a price.",
+        "body": "Give a choice question's options points in its settings, or use number, rating and scale questions as they are.\n## Writing a calculation\nIn the Logic tab, under Calculations, give it a name and a formula over question keys — quality + value * 2 — with + − × ÷, brackets, and min, max, round and abs. Each calculation can use the ones above it.\n## Using the result\nResults are worked out when the form is sent, saved with the response, shown in the inbox and exported as columns. Quote them on the thank-you screen with {{total}}, or charge the amount with payments.\n> Calculations are part of Pro."
+      },
+      {
+        "id": "piping-redirects",
+        "title": "Quote answers, and send people on",
+        "summary": "“Thanks {{name}}” — and a page of yours after.",
+        "body": "Once a question has a key, write {{key}} in any later question, help text, page name, the welcome screen or the thank-you screen, and it is replaced with the person's answer.\n## Redirecting after\nIn Settings → Submission, a redirect address sends people straight to a page of yours when they finish. Keys work there too: https://acme.com/thanks?name={{name}}.\n> Answer piping and redirects are part of Pro."
       }
     ]
   },

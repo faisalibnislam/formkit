@@ -6382,3 +6382,14 @@ html.fk-own-bar::-webkit-scrollbar {
   height: 30px;
   margin-top: -15px;
 }
+
+/* On a phone a settings row keeps its words readable: a switch still sits
+   beside them, anything wider drops underneath. */
+@media (max-width: 560px) {
+  .fk-setpanel .fk-proprow {
+    flex-wrap: wrap;
+  }
+  .fk-setpanel .fk-proprow > div:first-child {
+    min-width: 62% !important;
+  }
+}
