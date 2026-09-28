@@ -1,8 +1,9 @@
 "use client";
 
+import { useViewer } from "@/lib/seed";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { Clock, Sparkles } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
 import { periodFor, type SkyPeriod } from "@/components/brand/AppSky";
@@ -21,7 +22,7 @@ type Pref = "sync" | SkyPeriod;
 
 export function GeneralSection() {
   const toast = useToast();
-  const viewer = useQuery(api.users.viewer, {});
+  const viewer = useViewer();
   const flags = useFlags();
   const save = useMutation(api.users.setPreferences);
   const [clock, setClock] = useState<{ hour: number; label: string } | null>(null);

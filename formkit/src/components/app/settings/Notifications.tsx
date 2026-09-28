@@ -1,5 +1,6 @@
 "use client";
 
+import { useViewer } from "@/lib/seed";
 import { useState, useSyncExternalStore } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { Mail } from "lucide-react";
@@ -31,7 +32,7 @@ type Values = {
 };
 
 export function NotificationsSection() {
-  const viewer = useQuery(api.users.viewer, {});
+  const viewer = useViewer();
   const forms = useQuery(api.forms.list, { filter: "all" });
   const [scope, setScope] = useState("all");
 

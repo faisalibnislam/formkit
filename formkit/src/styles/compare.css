@@ -129,3 +129,17 @@
   font-size: 13px !important;
   line-height: 1.35;
 }
+
+/* The products by their own logos. */
+.fk-cmp-pick button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.fk-cmp-pick button[aria-checked="true"] img {
+  filter: brightness(0) invert(1);
+}
+.fk-cmp-cols img,
+.fk-cmp-cols svg {
+  display: block;
+}

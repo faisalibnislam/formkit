@@ -1,5 +1,6 @@
 "use client";
 
+import { useViewer } from "@/lib/seed";
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
@@ -38,7 +39,7 @@ type Company = FunctionReturnType<typeof api.companies.list>[number];
 
 export function CompanySection() {
   const toast = useToast();
-  const viewer = useQuery(api.users.viewer, {});
+  const viewer = useViewer();
   const companies = useQuery(api.companies.list, {});
   const add = useMutation(api.companies.add);
   const setPrefs = useMutation(api.users.setPreferences);
@@ -52,7 +53,9 @@ export function CompanySection() {
   if (!viewer || !companies) return <PageSkeleton kind="panel" />;
   const selected = companies.find((c) => c._id === open) ?? null;
   const cap = plan?.limits.companies ?? null;
-  const full = cap !== null && companies.length >= cap && brandsGate.locked;
+  const full = cap !== null && companies.length >= cap;
+  // Free goes to Pro for five; Pro goes to Business for as many as you like.
+  const next = brandsGate.locked ? "brands" : "brands.unlimited";
 
   return (
     <>
@@ -90,14 +93,16 @@ export function CompanySection() {
 
       <Panel
         title="Companies"
-        lede="Optional — a studio, a side project, a client you invoice through. Each one claims its own link and carries its own logo and colour. One company on Free and Pro; as many as you need on Business."
+        lede="Optional — a studio, a side project, a client you invoice through. Each one claims its own link and carries its own logo and colour. One company on Free, five on Pro, as many as you need on Business."
         aside={
           <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-            {full && <ProChip plan="business" onClick={() => openUpgrade({ feature: "brands" })} />}
+            {full && (
+              <ProChip plan={next === "brands" ? "pro" : "business"} onClick={() => openUpgrade({ feature: next })} />
+            )}
             <Button
               variant="secondary"
               iconLeft={<Plus size={16} strokeWidth={1.8} aria-hidden />}
-              onClick={() => (full ? openUpgrade({ feature: "brands" }) : setAdding(true))}
+              onClick={() => (full ? openUpgrade({ feature: next }) : setAdding(true))}
             >
               Add a company
             </Button>

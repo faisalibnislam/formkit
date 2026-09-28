@@ -1,10 +1,9 @@
 "use client";
 
+import { useViewer } from "@/lib/seed";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "convex/react";
 import { BarChart3, GitBranch, MessageSquarePlus, Palette, PenLine, Sparkles, Wand2 } from "lucide-react";
-import { api } from "../../../convex/_generated/api";
 import { Segmented } from "@/components/ui";
 import { useAskMaybe } from "./ai/AskProvider";
 import { AskCanvas, AskComposer, AskCredits, AskTarget, AskThread } from "./ai/AskParts";
@@ -38,7 +37,7 @@ const ABILITIES = [
 
 export function AskFormkit() {
   const router = useRouter();
-  const viewer = useQuery(api.users.viewer, {});
+  const viewer = useViewer();
   const ask = useAskMaybe();
   // The narrow layout follows the work: a new result or a request in flight
   // shows the canvas, until the person switches back themselves.

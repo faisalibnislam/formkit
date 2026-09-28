@@ -48,16 +48,8 @@ export const FOOTER_COLUMNS = [
       { label: "Building with AI", href: "/help/ai-what" },
     ],
   },
-  {
-    heading: "ACCOUNT",
-    links: [
-      { label: "Sign in", href: "/signin" },
-      { label: "Privacy", href: "/privacy" },
-      { label: "Terms", href: "/terms" },
-    ],
-  },
 ] as const;
 
 /** Two honest product facts that several pages state rather than hide. */
-export const UPLOAD_CAP_MB = 10;
+export const UPLOAD_CAP_MB = 20;
 export const LANGUAGE = "English (US)";

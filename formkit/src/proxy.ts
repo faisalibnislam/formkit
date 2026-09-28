@@ -87,6 +87,10 @@ export const proxy = convexAuthNextjsMiddleware(async (request, { convexAuth }) 
   const custom = await customDomain(request);
   if (custom) return custom;
 
+  // The app layout reads this to fetch the page's first data on the server
+  // (src/lib/seedServer.ts). The auth middleware passes these headers on.
+  request.headers.set("x-fk-path", request.nextUrl.pathname);
+
   const view = request.nextUrl.searchParams.get("view");
   if (view && VIEWS[view] && request.nextUrl.pathname.startsWith("/app")) {
     return nextjsMiddlewareRedirect(request, VIEWS[view]);

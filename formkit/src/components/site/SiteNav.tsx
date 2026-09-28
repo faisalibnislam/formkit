@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronDown, LayoutGrid, LifeBuoy, LogOut, Menu, X } from "lucide-react";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useQuery } from "convex/react";
-import { api } from "@convex/_generated/api";
+import { useViewer } from "@/lib/seed";
 import { Logo } from "@/components/brand/Logo";
 import { NAV_LINKS, type NavKey } from "@/lib/site";
 
@@ -32,7 +31,7 @@ export function SiteNav({ current }: { current?: NavKey }) {
   // The section links, on a screen too narrow to show them in the bar.
   const [sectionsOpen, setSectionsOpen] = useState(false);
 
-  const viewer = useQuery(api.users.viewer);
+  const viewer = useViewer();
   const { signOut } = useAuthActions();
   const router = useRouter();
 
@@ -185,7 +184,12 @@ export function SiteNav({ current }: { current?: NavKey }) {
             aria-expanded={menuOpen}
             aria-label="Account menu"
           >
-            <span className="fk-nav-initials">{initials}</span>
+            {viewer.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img className="fk-nav-initials fk-nav-avatar" src={viewer.image} alt="" />
+            ) : (
+              <span className="fk-nav-initials">{initials}</span>
+            )}
             <span className="fk-nav-name">{viewer.name}</span>
             <span className="fk-nav-caret">
               <ChevronDown size={15} strokeWidth={1.8} aria-hidden />

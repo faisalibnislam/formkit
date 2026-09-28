@@ -43,9 +43,9 @@ export const PLANS: Record<
     tagline: "Everything you need to run a form.",
     price: { month: 0, year: 0 },
     aiCredits: 5,
-    uploadMb: 10,
+    uploadMb: 20,
     historyDays: 30,
-    collaborators: 2,
+    collaborators: 3,
     companies: 1,
   },
   pro: {
@@ -53,10 +53,10 @@ export const PLANS: Record<
     tagline: "Your brand, your domain, your tools.",
     price: { month: 3, year: 35 },
     aiCredits: 50,
-    uploadMb: 100,
+    uploadMb: 150,
     historyDays: 365,
-    collaborators: 2,
-    companies: 1,
+    collaborators: null,
+    companies: 5,
   },
   business: {
     name: "Business",
@@ -79,8 +79,7 @@ export const FEATURES = {
   "design.fonts": { plan: "pro", label: "Custom fonts", group: "Your brand" },
   "design.css": { plan: "pro", label: "Custom CSS", group: "Your brand" },
   // Pro — responses
-  "forms.partials": { plan: "pro", label: "Partial responses and save-and-resume", group: "Responses" },
-  "analytics.full": { plan: "pro", label: "Sources, devices and drop-off", group: "Responses" },
+  "analytics.full": { plan: "pro", label: "Where people come from, and their devices", group: "Responses" },
   "exports.xlsx": { plan: "pro", label: "Excel export", group: "Responses" },
   "exports.copy": { plan: "pro", label: "Email a copy of every response", group: "Responses" },
   "ai.brief": { plan: "pro", label: "Ask Formkit from a brief, document or form", group: "Responses" },
@@ -90,13 +89,16 @@ export const FEATURES = {
   "logic.piping": { plan: "pro", label: "Earlier answers in later questions", group: "Smarter forms" },
   "forms.redirect": { plan: "pro", label: "Send people to your page after", group: "Smarter forms" },
   // Pro — connections
+  // Pro — people and brands
+  collaborators: { plan: "pro", label: "Unlimited collaborators on every form", group: "Teams" },
+  brands: { plan: "pro", label: "Up to 5 companies and brands", group: "Teams" },
   "connect.webhooks": { plan: "pro", label: "Webhooks, Zapier and Make", group: "Connections" },
   "connect.slack": { plan: "pro", label: "Slack", group: "Connections" },
   "connect.sheets": { plan: "pro", label: "Google Sheets", group: "Connections" },
   payments: { plan: "pro", label: "Payments with your own Stripe", group: "Connections" },
   // Business
   team: { plan: "business", label: "A team with unlimited seats", group: "Teams" },
-  brands: { plan: "business", label: "Several companies and brands", group: "Teams" },
+  "brands.unlimited": { plan: "business", label: "Unlimited companies and brands", group: "Teams" },
   "templates.shared": { plan: "business", label: "Templates shared with the team", group: "Teams" },
   approvals: { plan: "business", label: "Approval before publishing", group: "Teams" },
   audit: { plan: "business", label: "Audit log", group: "Control" },

@@ -1,5 +1,6 @@
 "use client";
 
+import { useSeededQuery } from "@/lib/seed";
 import { useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery } from "convex/react";
@@ -25,13 +26,13 @@ import { openUpgrade, upgradeOnPlanError, useGate } from "@/components/plan/useP
 type Row = NonNullable<ReturnType<typeof useTemplates>>[number];
 
 function useTemplates() {
-  return useQuery(api.templates.list, {});
+  return useSeededQuery(api.templates.list, {});
 }
 
 export function TemplateLibrary() {
   const toast = useToast();
   const templates = useTemplates();
-  const forms = useQuery(api.forms.list, { filter: "all" });
+  const forms = useSeededQuery(api.forms.list, { filter: "all" });
   const remove = useMutation(api.templates.remove);
   const duplicate = useMutation(api.templates.duplicate);
   const setShared = useMutation(api.templates.setShared);

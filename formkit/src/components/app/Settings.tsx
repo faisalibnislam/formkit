@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Bell, CircleUser, CreditCard, Download, ShieldCheck, SlidersHorizontal, Store, UsersRound, Users } from "lucide-react";
 import { PillTabs } from "@/components/ui";
+import { Scroller } from "./Scroller";
 import { AccountSection } from "./settings/Account";
 import { CompanySection } from "./settings/Company";
 import { GeneralSection } from "./settings/General";
@@ -88,7 +89,7 @@ export function Settings() {
 
   return (
     <div className="fk-settings">
-      <div className="fk-settings-tabs">
+      <Scroller className="fk-settings-tabs-row fk-no-scrollbar" shellClassName="fk-settings-tabs">
         <PillTabs
           ariaLabel="Settings section"
           value={tab}
@@ -99,7 +100,7 @@ export function Settings() {
             icon: <t.icon size={16} strokeWidth={1.8} aria-hidden />,
           }))}
         />
-      </div>
+      </Scroller>
 
       {tab === "account" && <AccountSection />}
       {tab === "plan" && <PlanSection />}

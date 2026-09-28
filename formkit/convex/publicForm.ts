@@ -50,10 +50,10 @@ async function customLook(ctx: QueryCtx, form: Doc<"forms">) {
 }
 
 /**
- * Partial responses need the platform flag and the owner's plan (Pro and up).
+ * Partial responses are on every plan, behind the platform flag.
  */
 async function partialsOn(ctx: QueryCtx, ownerId: Id<"users">) {
-  return (await flagOn(ctx, "forms.partials", ownerId)) && (await hasFeature(ctx, ownerId, "forms.partials"));
+  return await flagOn(ctx, "forms.partials", ownerId);
 }
 
 /**

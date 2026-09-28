@@ -368,7 +368,7 @@ function MobileAnswer() {
                     <span className="fk-m-drop-name">
                       {attached ? "northstar-brand-2026.pdf · 2.4 MB" : "Select a file"}
                     </span>
-                    <span className="fk-m-drop-hint">Up to 10 MB · .pdf .png .docx</span>
+                    <span className="fk-m-drop-hint">Up to 20 MB · .pdf .png .docx</span>
                   </span>
                 </button>
               </>

@@ -1,8 +1,9 @@
 "use client";
 
+import { useViewer } from "@/lib/seed";
 import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { KeyRound, LogOut, RotateCcw, ShieldCheck } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
@@ -179,7 +180,7 @@ export function SuspendedGate({ onSignOut }: { onSignOut: () => void }) {
  * passes through to whatever the page does for guests.
  */
 export function SessionGate({ children }: { children: ReactNode }) {
-  const viewer = useQuery(api.users.viewer, {});
+  const viewer = useViewer();
   const { signOut } = useAuthActions();
   const router = useRouter();
   const leave = () => {

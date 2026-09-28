@@ -1,5 +1,6 @@
 "use client";
 
+import { useSeededQuery } from "@/lib/seed";
 import { useMutation, useQuery } from "convex/react";
 import { GitBranch, Plus, Trash2, X } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
@@ -40,7 +41,7 @@ const ACTIONS = [
 
 export function LogicTab({ formId }: { formId: Id<"forms"> }) {
   const toast = useToast();
-  const form = useQuery(api.forms.get, { formId });
+  const form = useSeededQuery(api.forms.get, { formId });
   const rules = useQuery(api.logic.list, { formId });
   const add = useMutation(api.logic.add);
   const update = useMutation(api.logic.update);

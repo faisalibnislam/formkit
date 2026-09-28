@@ -7,6 +7,8 @@ import { SHARE_IMAGE, SITE_URL } from "@/lib/site";
 import "./globals.css";
 import { Suspense } from "react";
 import { NavProgress } from "@/components/site/NavProgress";
+import { SeedProvider } from "@/lib/seed";
+import { seedViewer } from "@/lib/seedServer";
 
 /**
  * Outfit is the single typeface: UI, display and the large-light numerals.
@@ -35,7 +37,9 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image", images: [SHARE_IMAGE] },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // Who is signed in, fetched here so the first paint already shows them.
+  const first = await seedViewer();
   return (
     <ConvexAuthNextjsServerProvider>
       {/* English (US) only, deliberately — the language picker was removed
@@ -46,7 +50,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <NavProgress />
           </Suspense>
           <ConvexClientProvider>
-            <ToastProvider>{children}</ToastProvider>
+            <SeedProvider seeds={first.seeds} clock={first.clock}>
+              <ToastProvider>{children}</ToastProvider>
+            </SeedProvider>
           </ConvexClientProvider>
         </body>
       </html>

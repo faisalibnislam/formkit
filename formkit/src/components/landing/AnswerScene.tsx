@@ -339,7 +339,7 @@ export function AnswerScene() {
                           color: "var(--color-text-tertiary)",
                         }}
                       >
-                        Up to 10 MB · .pdf .png .docx
+                        Up to 20 MB · .pdf .png .docx
                       </span>
                     </span>
                   </button>

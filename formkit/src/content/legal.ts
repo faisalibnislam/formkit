@@ -32,7 +32,7 @@ export const PRIVACY: LegalSection[] = [
     paras: ["Three things, and nothing else:"],
     bullets: [
       "Your account. A name, an email address, a hashed password, and a company name if you choose to add one. A company is optional and most people never add one.",
-      "Your forms and their answers. Questions, themes, settings, every response, and any file somebody uploads — up to 10 MB per file.",
+      "Your forms and their answers. Questions, themes, settings, every response, and any file somebody uploads — up to 20 MB per file on Free, more on paid plans.",
       "Technical records. Sign-in times, the pages you opened in the app, the browser and rough location (city level) a request came from, and errors. We keep these to work out what broke and to spot someone attacking the service.",
     ],
   },

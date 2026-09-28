@@ -1,8 +1,9 @@
 "use client";
 
+import { useSeededQuery } from "@/lib/seed";
 import { useState } from "react";
 import Link from "next/link";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import {
   Archive,
   ArchiveRestore,
@@ -76,7 +77,7 @@ const EMPTY: Record<Filter, { title: string; description: string }> = {
 };
 
 function useFormsList(filter: Filter, term: string) {
-  return useQuery(api.forms.list, { filter, search: term || undefined });
+  return useSeededQuery(api.forms.list, { filter, search: term || undefined });
 }
 
 function markFor(status: string) {

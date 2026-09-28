@@ -13,6 +13,7 @@ const previewAliases = {
   "@convex-dev/auth/react": "./scripts/preview/auth-react.tsx",
   "@convex-dev/auth/nextjs": "./scripts/preview/auth-nextjs.tsx",
   "@convex-dev/auth/nextjs/server": "./scripts/preview/auth-nextjs-server.tsx",
+  "@/lib/seedServer": "./scripts/preview/seed-server.ts",
 };
 
 const nextConfig: NextConfig = preview

@@ -1,9 +1,8 @@
 "use client";
 
+import { useViewer } from "@/lib/seed";
 import Link from "next/link";
-import { useQuery } from "convex/react";
 import { ArrowRight } from "lucide-react";
-import { api } from "@convex/_generated/api";
 
 /**
  * The help centre's way on: into the product. Signed out, it offers an
@@ -11,7 +10,7 @@ import { api } from "@convex/_generated/api";
  * somebody who already has one to sign up.
  */
 export function HelpCta() {
-  const viewer = useQuery(api.users.viewer, {});
+  const viewer = useViewer();
   const signedIn = Boolean(viewer);
   return (
     <div className="fk-help-cta">

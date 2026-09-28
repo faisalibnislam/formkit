@@ -73,7 +73,7 @@ export const TEMPLATES: FormTemplate[] = [
       },
       {
         q: "What file types can clients upload?",
-        a: "Anything you allow. The question can list accepted extensions, and each file can be up to 10 MB.",
+        a: "Anything you allow. The question can list accepted extensions, and each file can be up to 20 MB (150 MB on Pro).",
       },
       {
         q: "Can the response go to a specific person?",
@@ -119,7 +119,7 @@ export const TEMPLATES: FormTemplate[] = [
       },
       {
         q: "Can I ask for the current site analytics?",
-        a: "Add a file upload question. Up to 10 MB per file, and you can restrict it to the formats you want.",
+        a: "Add a file upload question. Up to 20 MB per file on Free, 150 MB on Pro, and you can restrict it to the formats you want.",
       },
       {
         q: "Does it work for a redesign as well as a new build?",

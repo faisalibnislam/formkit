@@ -1,0 +1,18 @@
+import { chromium } from "playwright";
+const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome", args:["--no-sandbox","--disable-http2"] });
+const ctx = await b.newContext({ viewport: { width: 1280, height: 800 } });
+const p = await ctx.newPage();
+if (process.env.FK_ROUTE) await ctx.route("**/*", async (route) => { try { const r = await route.fetch(); await route.fulfill({ response: r }); } catch (e) { await route.abort(); } });
+const url = process.argv[2];
+const cdp = await ctx.newCDPSession(p);
+let i=0; const shots=[];
+await cdp.send("Page.startScreencast", { format: "jpeg", quality: 50, everyNthFrame: 1 });
+cdp.on("Page.screencastFrame", async (f) => { shots.push({t: Date.now(), d: f.data}); await cdp.send("Page.screencastFrameAck", { sessionId: f.sessionId }).catch(()=>{}); });
+const t0=Date.now();
+await p.goto(url, { waitUntil: "load" });
+await p.waitForTimeout(Number(process.env.FK_WAIT||3500));
+await cdp.send("Page.stopScreencast");
+const fs = await import("fs");
+shots.forEach((s,k)=>fs.writeFileSync("/tmp/claude-0/-home-user-formkit/3933dab0-083b-51ba-8960-e7850f3c4d36/scratchpad/fr/"+String(k).padStart(3,"0")+"-"+(s.t-t0)+".jpg", Buffer.from(s.d,"base64")));
+console.log(shots.length);
+await b.close();

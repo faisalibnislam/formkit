@@ -164,7 +164,7 @@ async function roomForAnother(ctx: MutationCtx, form: Doc<"forms">) {
       .withIndex("by_form", (q) => q.eq("formId", form._id))
       .collect()
   );
-  if (on.length >= cap) await requireFeature(ctx, form.ownerId, "team");
+  if (on.length >= cap) await requireFeature(ctx, form.ownerId, "collaborators");
 }
 
 export const invite = mutation({

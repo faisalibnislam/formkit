@@ -44,11 +44,11 @@ export const COMPARE_ROWS: CompareRow[] = [
   },
   {
     label: "Partial responses kept",
-    cells: [n("Submitted only"), y("Partials shown"), p("On Pro, from $3")],
+    cells: [n("Submitted only"), y("Partials shown"), y("On every plan")],
   },
   {
     label: "Drop-off by question",
-    cells: [n("Summary charts"), y("Completion reporting"), p("Per question, on Pro")],
+    cells: [n("Summary charts"), y("Completion reporting"), y("Per question, every plan")],
   },
   {
     label: "Version history with restore",
@@ -60,7 +60,7 @@ export const COMPARE_ROWS: CompareRow[] = [
   },
   {
     label: "Collaborators on the free tier",
-    cells: [y("Editors"), p("Paid seats"), y("Two per form, three roles")],
+    cells: [y("Editors"), p("Paid seats"), y("Three per form, unlimited on Pro")],
   },
 ];
 
@@ -103,7 +103,7 @@ export const RIVALS: Rival[] = [
       },
       {
         q: "Which one is better for a long form?",
-        a: "Both support pages. On Pro, Formkit keeps partial responses and shows you the question people abandon on, which matters more the longer the form gets.",
+        a: "Both support pages. On every plan, Formkit keeps partial responses and shows you the question people abandon on, which matters more the longer the form gets.",
       },
     ],
   },

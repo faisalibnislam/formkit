@@ -144,11 +144,11 @@ export function CollaboratorsDialog({ formId, onClose }: { formId: Id<"forms">; 
                 Invite someone to this form
                 {cap !== null && (
                   <span className="fk-proprow-hint" style={{ fontWeight: 400 }}>
-                    {active.length + pending.length} of {cap} people — unlimited on Business
+                    {active.length + pending.length} of {cap} people — unlimited on Pro
                   </span>
                 )}
                 {cap !== null && active.length + pending.length >= cap && (
-                  <ProChip plan="business" onClick={() => openUpgrade({ feature: "team" })} />
+                  <ProChip onClick={() => openUpgrade({ feature: "collaborators" })} />
                 )}
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

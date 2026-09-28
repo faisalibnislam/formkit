@@ -1,8 +1,9 @@
 "use client";
 
+import { useViewer } from "@/lib/seed";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useAction, useQuery } from "convex/react";
+import { useAction } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "../../../../convex/_generated/api";
 import { FEATURES, PLANS, type Feature, type Interval, type PlanId, type PlanSummary } from "../../../../convex/model/plans";
@@ -17,7 +18,7 @@ const date = (at: number) => new Date(at).toLocaleDateString("en-US", { day: "nu
 
 /** Settings → Plan: what this account is on, what it has used, and changing it. */
 export function PlanSection() {
-  const viewer = useQuery(api.users.viewer, {});
+  const viewer = useViewer();
 
   if (!viewer) return <PageSkeleton kind="panel" />;
   return <PlanBody viewer={viewer} />;

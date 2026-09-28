@@ -1,8 +1,9 @@
 "use client";
 
+import { useSeedClock, useSeededQuery } from "@/lib/seed";
 import { useState } from "react";
 import Link from "next/link";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { useFlag } from "./useFlags";
 import type { FunctionReturnType } from "convex/server";
 import {
@@ -86,13 +87,16 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
   const record = useMutation(api.exports.record);
   const [range, setRange] = useState<Range>("30");
   const [picked, setPicked] = useState<string>("all");
-  const [today] = useState(() => midnight(Date.now()));
+  // The server's reading of the reader's midnight, so both draw the same range
+  // on the first paint; the browser's own clock otherwise.
+  const seedClock = useSeedClock();
+  const [today] = useState(() => seedClock?.midnight ?? midnight(Date.now()));
   const [custom, setCustom] = useState(() => ({
     from: ymd(new Date(new Date(today).getFullYear(), new Date(today).getMonth(), 1).getTime()),
     to: ymd(today),
   }));
   // Names for the picker only — the light list, not every form's questions.
-  const forms = useQuery(api.forms.picker, formId ? "skip" : {});
+  const forms = useSeededQuery(api.forms.picker, formId ? "skip" : {});
 
   const scope = formId ?? (picked !== "all" ? (picked as Id<"forms">) : undefined);
   const span = (() => {
@@ -106,7 +110,7 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
     const [lo, hi] = a <= b ? [a, b] : [b, a];
     return { from: Math.max(lo, hi - 365 * DAY), to: hi + DAY };
   })();
-  const fresh = useQuery(api.analytics.overview, { formId: scope, from: span.from, to: span.to });
+  const fresh = useSeededQuery(api.analytics.overview, { formId: scope, from: span.from, to: span.to });
   // Changing the range keeps the last figures up until the new ones land.
   const data = useLastDefined(fresh);
 
@@ -329,9 +333,7 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
                 <section className="fk-panel">
                   <h3>Question drop-off</h3>
                   <p className="fk-panel-lede">Share of people who leave on each question.</p>
-                  {!data.full ? (
-                    <LockedNote feature="analytics.full">See the question people give up on, and how many leave there.</LockedNote>
-                  ) : data.dropOff.length === 0 ? (
+                  {data.dropOff.length === 0 ? (
                     <p className="fk-quiet">This form has no questions yet.</p>
                   ) : (
                     <div className="fk-droprows">

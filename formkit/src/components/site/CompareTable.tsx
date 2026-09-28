@@ -3,6 +3,18 @@
 import { useState } from "react";
 import { Check, Minus, X } from "lucide-react";
 import { COMPARE_ROWS, COLUMNS, type Cell } from "@/content/compare";
+import { Logo } from "@/components/brand/Logo";
+
+/** Each product by its own logo; the name stays for screen readers. */
+export function ProductLogo({ name, height = 22 }: { name: (typeof COLUMNS)[number]; height?: number }) {
+  if (name === "Formkit") return <Logo size={height} />;
+  const src = name === "Google Forms" ? "/brands/google-forms.svg" : "/brands/typeform-ink.svg";
+  // Typeform's letters fill their box; Google's leave room. Evened out by eye.
+  const h = Math.round(name === "Typeform" ? height * 0.8 : height);
+  // Both wordmarks are about six times wider than tall.
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={src} alt={name} height={h} width={Math.round(h * 6.2)} style={{ display: "block", height: h, width: "auto" }} />;
+}
 
 /**
  * The comparison matrix.
@@ -89,7 +101,7 @@ export function CompareTable({ columns }: { columns?: (0 | 1 | 2)[] }) {
                   background: COLUMNS[i] === "Formkit" ? "var(--blue-50)" : undefined,
                 }}
               >
-                {COLUMNS[i]}
+                <ProductLogo name={COLUMNS[i]} />
               </th>
             ))}
           </tr>
@@ -154,15 +166,23 @@ function CompareList({ shown }: { shown: (0 | 1 | 2)[] }) {
               aria-checked={rival === i}
               onClick={() => setRival(i)}
             >
-              {COLUMNS[i]}
+              <ProductLogo name={COLUMNS[i]} height={16} />
             </button>
           ))}
         </div>
       )}
       <div className="fk-cmp-cols" aria-hidden>
         <span />
-        {rival !== undefined && <span>{COLUMNS[rival]}</span>}
-        {formkit !== undefined && <span data-us>Formkit</span>}
+        {rival !== undefined && (
+          <span>
+            <ProductLogo name={COLUMNS[rival]} height={15} />
+          </span>
+        )}
+        {formkit !== undefined && (
+          <span data-us>
+            <ProductLogo name="Formkit" height={15} />
+          </span>
+        )}
       </div>
       <ul>
         {COMPARE_ROWS.map((row) => (

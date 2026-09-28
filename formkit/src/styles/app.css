@@ -4585,8 +4585,11 @@
   .fk-settings-tabs {
     display: block;
     max-width: 100%;
-    overflow-x: auto;
   }
+}
+.fk-settings-tabs-row {
+  max-width: 100%;
+  overflow-x: auto;
 }
 .fk-settings {
   max-width: 920px;
@@ -6321,4 +6324,61 @@ html.fk-own-bar::-webkit-scrollbar {
     transition: opacity 0.1s ease;
     transform: scaleX(0.6);
   }
+}
+
+
+/* A row that scrolls sideways, with arrows at the ends that have more. */
+.fk-scroller {
+  position: relative;
+}
+.fk-scroller-arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-top: -18px;
+  border: 0;
+  border-radius: 50%;
+  background: #ffffff;
+  color: var(--neutral-900);
+  box-shadow: 0 6px 18px rgba(4, 30, 60, 0.22), 0 0 0 1px rgba(4, 30, 60, 0.06);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.fk-scroller-arrow:hover {
+  transform: scale(1.06);
+}
+.fk-scroller-arrow[data-side="left"] {
+  left: 6px;
+}
+.fk-scroller-arrow[data-side="right"] {
+  right: 6px;
+}
+/* The header's tabs: the shell takes the row's bleed, the arrows sit on the
+   tabs rather than in the sky above them. */
+.fk-dock-shell {
+  margin: 0 calc(-1 * clamp(16px, 3.5vw, 40px));
+}
+.fk-dock-shell > .fk-dock {
+  margin-left: 0;
+  margin-right: 0;
+}
+.fk-dock-shell > .fk-scroller-arrow {
+  top: auto;
+  bottom: 30px;
+  margin-top: 0;
+}
+.fk-dock-shell > .fk-scroller-arrow[data-side="left"] {
+  left: 10px;
+}
+.fk-dock-shell > .fk-scroller-arrow[data-side="right"] {
+  right: 10px;
+}
+.fk-settings-tabs > .fk-scroller-arrow {
+  width: 30px;
+  height: 30px;
+  margin-top: -15px;
 }

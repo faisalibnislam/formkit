@@ -1,9 +1,11 @@
 "use client";
 
+import { Scroller } from "./Scroller";
+import { useSeededQuery } from "@/lib/seed";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import {
   Bookmark,
   ChartPie,
@@ -61,19 +63,20 @@ const TABS = [
 export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string }) {
   const router = useRouter();
   const toast = useToast();
-  const form = useQuery(api.forms.get, { formId });
-  const pending = useQuery(api.forms.unpublishedChanges, { formId });
+  const form = useSeededQuery(api.forms.get, { formId });
+  const pending = useSeededQuery(api.forms.unpublishedChanges, { formId });
   const update = useMutation(api.forms.update);
 
-  const [title, setTitle] = useState("");
+  // Starts from the server's copy, so the first paint shows the real title.
+  const [title, setTitle] = useState(() => form?.title ?? "");
   const [actionsOpen, setActionsOpen] = useState(false);
   useEscape(actionsOpen, () => setActionsOpen(false));
   const [dialog, setDialog] = useState<
     null | "share" | "versions" | "people" | "template" | "close" | "publish"
   >(null);
-  const known = useRef<string | null>(null);
+  const known = useRef<string | null>(form?._id ?? null);
   const saved = useSaveStatus(form?.updatedAt);
-  const counts = useQuery(api.comments.counts, { formId });
+  const counts = useSeededQuery(api.comments.counts, { formId });
   const others = usePresence(formId);
   usePresenceBeat(formId);
 
@@ -324,7 +327,7 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
 
       </div>
 
-      <div className="fk-dock">
+      <Scroller className="fk-dock" shellClassName="fk-dock-shell">
         {TABS.map((t) => (
           <ClientTab
             key={t.id}
@@ -339,7 +342,7 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
             )}
           </ClientTab>
         ))}
-      </div>
+      </Scroller>
 
       {dialog === "share" && <ShareDialog formId={formId} onClose={() => setDialog(null)} />}
       {dialog === "versions" && <VersionsDialog formId={formId} onClose={() => setDialog(null)} />}

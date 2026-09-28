@@ -1,5 +1,6 @@
 "use client";
 
+import { useSeededQuery } from "@/lib/seed";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
@@ -170,7 +171,7 @@ function Responses({
   const exportRows = useExporter();
   const excel = useFlag("exports.xlsx");
   const excelGate = useGate("exports.xlsx");
-  const data = useQuery(api.responses.list, { formId });
+  const data = useSeededQuery(api.responses.list, { formId });
   const loaded = useFirstLoad(data);
   const setStatus = useMutation(api.responses.setStatus);
   const remove = useMutation(api.responses.remove);

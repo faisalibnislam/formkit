@@ -1,14 +1,13 @@
 "use client";
 
+import { useViewer } from "@/lib/seed";
 import { useCallback } from "react";
-import { useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
-import { api } from "../../../convex/_generated/api";
 import { FEATURES, type Feature, type PlanId, type PlanSummary } from "../../../convex/model/plans";
 
 /** The signed-in account's plan, or undefined while it loads. */
 export function usePlan(): PlanSummary | undefined {
-  const viewer = useQuery(api.users.viewer, {});
+  const viewer = useViewer();
   return (viewer?.plan ?? undefined) as PlanSummary | undefined;
 }
 

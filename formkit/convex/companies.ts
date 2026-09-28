@@ -44,14 +44,14 @@ export const add = mutation({
     const user = await requireUser(ctx);
     const name = args.name.trim();
     if (!name) throw new Error("A company needs a name.");
-    // One company on Free and Pro; several brands are Business.
+    // One company on Free, five on Pro, as many as you like on Business.
     const cap = PLANS[planOf(user)].companies;
     if (cap !== null) {
       const have = await ctx.db
         .query("companies")
         .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
         .collect();
-      if (have.length >= cap) await requireFeature(ctx, user, "brands");
+      if (have.length >= cap) await requireFeature(ctx, user, cap < PLANS.pro.companies! ? "brands" : "brands.unlimited");
     }
     return await ctx.db.insert("companies", {
       ownerId: user._id,

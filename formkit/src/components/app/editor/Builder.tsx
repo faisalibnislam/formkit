@@ -1,5 +1,6 @@
 "use client";
 
+import { useSeededQuery } from "@/lib/seed";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { DragEvent, PointerEvent } from "react";
 import { useMutation, useQuery } from "convex/react";
@@ -105,7 +106,7 @@ function scrollToBlock(id: string) {
 
 export function Builder({ formId }: { formId: Id<"forms"> }) {
   const toast = useToast();
-  const form = useQuery(api.forms.get, { formId });
+  const form = useSeededQuery(api.forms.get, { formId });
   const rules = useQuery(api.logic.list, { formId });
   const commentCounts = useQuery(api.comments.counts, { formId });
   const others = usePresence(formId);

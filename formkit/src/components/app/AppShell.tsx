@@ -1,5 +1,7 @@
 "use client";
 
+import { Scroller } from "./Scroller";
+import { useSeedClock, useSeeded, useSeededQuery } from "@/lib/seed";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -164,8 +166,11 @@ function AppFrame({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { signOut } = useAuthActions();
 
-  const viewer = useQuery(api.users.viewer, {});
-  const flags = useQuery(api.flags.mine, {});
+  // Drawn from the server's copy until the live answer arrives (lib/seed);
+  // anything that writes waits for the live one.
+  const liveViewer = useQuery(api.users.viewer, {});
+  const viewer = useSeeded(api.users.viewer, {}, liveViewer);
+  const flags = useSeededQuery(api.flags.mine, {});
   useAppTheme(viewer?.appTheme, Boolean(flags?.["app.dark"]), viewer !== undefined && flags !== undefined);
   // `?viewAs=` is staff only; for anyone else it is ignored.
   const supportUser = viewer?.staffRole ? (search.get("viewAs") as Id<"users"> | null) : null;
@@ -178,28 +183,28 @@ function AppFrame({ children }: { children: ReactNode }) {
   // this one, and where a new sign-in alert is set off.
   const touched = useRef(false);
   useEffect(() => {
-    if (!viewer || touched.current) return;
+    if (!liveViewer || touched.current) return;
     touched.current = true;
     void touch({ device: deviceLabel() }).catch(() => {});
-  }, [viewer, touch]);
+  }, [liveViewer, touch]);
 
   // Invitations sent to this address before the account existed become live
   // on the way in.
   const accepted = useRef(false);
   useEffect(() => {
-    if (!viewer || accepted.current) return;
+    if (!liveViewer || accepted.current) return;
     accepted.current = true;
     void acceptPending({}).catch(() => {});
     void acceptTeam({}).catch(() => {});
     // Forms made before question counts were stored get them now, so the
     // forms list can stop reading their questions.
     void backfillCounts({}).catch(() => {});
-  }, [viewer, acceptPending, acceptTeam, backfillCounts]);
+  }, [liveViewer, acceptPending, acceptTeam, backfillCounts]);
   // Counts only: the full list reads every form's questions, and would recount
   // on every edit in the builder.
-  const formsList = useQuery(api.forms.summary, {});
-  const inbox = useQuery(api.inbox.list, {});
-  const newResponses = useQuery(api.responses.unreadCount, {});
+  const formsList = useSeededQuery(api.forms.summary, {});
+  const inbox = useSeededQuery(api.inbox.list, {});
+  const newResponses = useSeededQuery(api.responses.unreadCount, {});
   useInboxAlerts(inbox);
 
   // Ask Formkit being turned on or off while the app is open is news.
@@ -218,7 +223,7 @@ function AppFrame({ children }: { children: ReactNode }) {
   // Its figure only shows on the Analytics tab, where the page asks for the
   // same thing — so it is one subscription there and none anywhere else.
   const analytics = useQuery(api.analytics.overview, pathname?.startsWith("/app/analytics") ? {} : "skip");
-  const templates = useQuery(api.templates.list, {});
+  const templates = useSeededQuery(api.templates.list, {});
 
   const [createOpen, setCreateOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
@@ -242,7 +247,10 @@ function AppFrame({ children }: { children: ReactNode }) {
      today's date during SSR hydrates into a mismatch for everyone who is not
      in the server's timezone — which is very nearly everyone — and React then
      throws away the tree and rebuilds it. Both are read after mount instead. */
-  const [clock, setClock] = useState<{ hour: number; today: string } | null>(null);
+  // The server works it out in the account's timezone, so the first paint
+  // already has the right greeting and sky; the browser then keeps it fresh.
+  const serverClock = useSeedClock();
+  const [clock, setClock] = useState<{ hour: number; today: string } | null>(serverClock);
   useEffect(() => {
     const read = () => {
       const at = new Date();
@@ -255,6 +263,14 @@ function AppFrame({ children }: { children: ReactNode }) {
         }),
       });
     };
+    // The server reads this to draw the next visit's greeting and sky in the
+    // browser's own timezone.
+    try {
+      const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (zone) document.cookie = `fk_tz=${encodeURIComponent(zone)}; path=/; max-age=31536000; samesite=lax`;
+    } catch {
+      /* the account's timezone is the fallback */
+    }
     // Re-read each minute, so a morning greeting becomes an afternoon one.
     const first = window.setTimeout(read, 0);
     const every = window.setInterval(read, 60_000);
@@ -670,7 +686,7 @@ function AppFrame({ children }: { children: ReactNode }) {
             </div>
 
             {showDock && inSettings && (
-              <div className="fk-dock">
+              <Scroller className="fk-dock" shellClassName="fk-dock-shell">
                 {settingsDock.map((d) => (
                   <ClientTab
                     key={d.key}
@@ -683,10 +699,10 @@ function AppFrame({ children }: { children: ReactNode }) {
                     {d.key === settingsTab && <TabSummary label={d.label} value={d.value} />}
                   </ClientTab>
                 ))}
-              </div>
+              </Scroller>
             )}
             {showDock && !inSettings && (
-              <div className="fk-dock">
+              <Scroller className="fk-dock" shellClassName="fk-dock-shell">
                 {dock.map((d) => (
                   <ClientTab
                     key={d.key}
@@ -701,7 +717,7 @@ function AppFrame({ children }: { children: ReactNode }) {
                     )}
                   </ClientTab>
                 ))}
-              </div>
+              </Scroller>
             )}
           </>
         )}

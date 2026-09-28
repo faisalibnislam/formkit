@@ -1,9 +1,10 @@
 "use client";
 
+import { useSeededQuery } from "@/lib/seed";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import {
   ArrowRight,
   CircleCheck,
@@ -63,12 +64,12 @@ export function Dashboard() {
   const router = useRouter();
   const toast = useToast();
   const [creating, setCreating] = useState(false);
-  const templates = useQuery(api.templates.list, {});
+  const templates = useSeededQuery(api.templates.list, {});
   const create = useMutation(api.forms.create);
-  const forms = useQuery(api.forms.list, { filter: "all" });
+  const forms = useSeededQuery(api.forms.list, { filter: "all" });
   // The totals and the newest few — not every response ever sent.
-  const responses = useQuery(api.responses.recent, {});
-  const analytics = useQuery(api.analytics.overview, {});
+  const responses = useSeededQuery(api.responses.recent, {});
+  const analytics = useSeededQuery(api.analytics.overview, {});
   const sweep = useMutation(api.forms.sweepClosing);
 
   // A closing rule that has elapsed takes effect where the owner reads their

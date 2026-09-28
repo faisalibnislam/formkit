@@ -1,5 +1,6 @@
 "use client";
 
+import { useViewer } from "@/lib/seed";
 import { useState } from "react";
 import { useAction, useConvex, useMutation, useQuery } from "convex/react";
 import { useFlag } from "../useFlags";
@@ -181,7 +182,7 @@ function EmailLog() {
 
 function EmailCopy() {
   const toast = useToast();
-  const viewer = useQuery(api.users.viewer, {});
+  const viewer = useViewer();
   const save = useMutation(api.users.setPreferences);
   const gate = useGate("exports.copy");
   const [draft, setDraft] = useState<string | null>(null);

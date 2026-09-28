@@ -1,5 +1,6 @@
 "use client";
 
+import { useSeededQuery, useViewer } from "@/lib/seed";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAction, useMutation, useQuery } from "convex/react";
@@ -96,10 +97,10 @@ function Row({ label, hint, children }: { label: string; hint?: string; children
 export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
   const toast = useToast();
   const router = useRouter();
-  const form = useQuery(api.forms.get, { formId });
+  const form = useSeededQuery(api.forms.get, { formId });
   const redirectGate = useGate("forms.redirect", form?.ownerPlan?.features);
   const pipeGate = useGate("logic.piping", form?.ownerPlan?.features);
-  const viewer = useQuery(api.users.viewer, {});
+  const viewer = useViewer();
   const log = useQuery(api.notifications.log, { formId });
   const update = useMutation(api.forms.update);
   const setClosing = useMutation(api.forms.setClosing);

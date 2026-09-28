@@ -1,8 +1,9 @@
 "use client";
 
+import { useSeededQuery, useViewer } from "@/lib/seed";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import {
   AlignCenter,
   AlignLeft,
@@ -89,8 +90,8 @@ function PropRow({ label, hint, children }: { label: string; hint?: string; chil
 
 export function DesignTab({ formId }: { formId: Id<"forms"> }) {
   const toast = useToast();
-  const form = useQuery(api.forms.get, { formId });
-  const viewer = useQuery(api.users.viewer, {});
+  const form = useSeededQuery(api.forms.get, { formId });
+  const viewer = useViewer();
   const update = useMutation(api.forms.update);
   const uploadUrl = useMutation(api.users.generateUploadUrl);
 

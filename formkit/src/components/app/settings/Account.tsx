@@ -1,5 +1,6 @@
 "use client";
 
+import { useViewer as useSeededViewer } from "@/lib/seed";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -33,7 +34,7 @@ import { PageSkeleton } from "../Skeleton";
 
 type Viewer = NonNullable<ReturnType<typeof useViewer>>;
 function useViewer() {
-  return useQuery(api.users.viewer, {});
+  return useSeededViewer();
 }
 
 export function AccountSection() {

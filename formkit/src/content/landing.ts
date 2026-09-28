@@ -311,7 +311,7 @@ export const FEATURES = [
     icon: "users",
     bg: "var(--blue-300)",
     title: "Collaborators",
-    body: "Invite two people to any form as Editor, Commenter or Viewer, or your whole team on Business. Comments stay on the question they are about.",
+    body: "Invite three people to any form as Editor, Commenter or Viewer — as many as you like on Pro, or your whole team on Business. Comments stay on the question they are about.",
     chip: "Three roles",
   },
   {
@@ -332,7 +332,7 @@ export const FEATURES = [
     icon: "shield",
     bg: "var(--neutral-150)",
     title: "Spam protection",
-    body: "A check people never see, plus limits on how fast answers can arrive. Uploads go up to 10 MB, or 100 MB on Pro.",
+    body: "A check people never see, plus limits on how fast answers can arrive. Uploads go up to 20 MB, 150 MB on Pro and 250 MB on Business.",
     chip: "Invisible check",
   },
   {
@@ -367,6 +367,6 @@ export const LANDING_FAQS = [
   },
   {
     q: "How big can uploads be?",
-    a: "Each file can be up to 10 MB, and a question can say which file types it takes.",
+    a: "Each file can be up to 20 MB — 150 MB on Pro, 250 MB on Business — and a question can say which file types it takes.",
   },
 ];
