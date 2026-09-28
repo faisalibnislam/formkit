@@ -10,7 +10,7 @@ import {
 import { api, internal } from "./_generated/api";
 import { Doc, Id } from "./_generated/dataModel";
 import { requireUser } from "./model/identity";
-import { formFor } from "./model/forms";
+import { brandOf, formFor } from "./model/forms";
 import {
   fill,
   renderConfirmation,
@@ -136,16 +136,15 @@ export const forResponse = internalQuery({
     const vars = variables(response, form.title);
     const rows = rowsOf(response);
 
-    const brandName =
-      form.brand === "me"
-        ? (owner.name ?? "Formkit")
-        : ((await ctx.db.get(form.brand as Id<"companies">))?.name ?? owner.name ?? "Formkit");
+    const brand = await brandOf(ctx, form);
+    const brandName = brand.name;
 
     return {
       userId: owner._id,
       formId: form._id,
       formTitle: form.title,
       brandName,
+      brand,
       partial: response.partial,
       respondentEmail: response.respondentEmail ?? null,
       notification: {
@@ -276,6 +275,7 @@ export const onResponse = internalAction({
           message: job.confirmation.message,
           rows: job.confirmation.rows,
           brandName: job.brandName,
+          brand: job.brand,
         }),
       });
       await ctx.runMutation(internal.notifications.record, {
@@ -368,6 +368,7 @@ export const testFor = internalQuery({
     }));
 
     const to = which === "notification" ? addresses(settings.to)[0] : settings.replyTo;
+    const brand = await brandOf(ctx, form);
     if (!to) throw new Error("Add an address to send to before sending a test.");
 
     return {
@@ -390,7 +391,8 @@ export const testFor = internalQuery({
               subject: fill(settings.confirmSubject, vars),
               message: fill(settings.confirmBody, vars),
               rows: settings.confirmAttach ? rows : [],
-              brandName: user.name ?? "Formkit",
+              brandName: brand.name,
+              brand,
             }),
     };
   },

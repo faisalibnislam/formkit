@@ -4,7 +4,7 @@ import { internal } from "./_generated/api";
 import { closedReason, notifyResponse, tellFormTeam } from "./model/inbox";
 import { Doc, Id } from "./_generated/dataModel";
 import { QueryCtx } from "./_generated/server";
-import { shouldAutoClose, themeLogos } from "./model/forms";
+import { brandOf, shouldAutoClose, themeLogos } from "./model/forms";
 import { passwordMatches, securityOf } from "./model/security";
 import { flagOn } from "./model/flags";
 import { accessOf } from "./model/access";
@@ -51,23 +51,6 @@ async function resolve(
   return form;
 }
 
-async function brandOf(ctx: QueryCtx, form: Doc<"forms">) {
-  const identity =
-    form.brand === "me"
-      ? await ctx.db.get(form.ownerId)
-      : await ctx.db.get(form.brand as Id<"companies">);
-  return {
-    name: (identity as { name?: string } | null)?.name ?? "Formkit",
-    logoUrl:
-      identity && "logoId" in identity && identity.logoId
-        ? await ctx.storage.getUrl(identity.logoId)
-        : null,
-    color: (identity as { brandColor?: string } | null)?.brandColor ?? null,
-    // A company can switch the "Made with Formkit" credit off; a person's own
-    // forms always carry it.
-    badge: (identity as { badge?: boolean } | null)?.badge !== false,
-  };
-}
 
 /** Everything the runner needs to show the questions. */
 async function payload(ctx: QueryCtx, form: Doc<"forms">) {

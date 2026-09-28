@@ -54,7 +54,7 @@ type Content = {
   subject: string;
   heading: string;
   lede: string;
-  rows: { form: string; line: string }[];
+  rows: { form: string; line: string; count: number }[];
 } | null;
 
 export const content = internalQuery({
@@ -72,7 +72,7 @@ export const content = internalQuery({
     ).filter((f) => !f.deletedAt && notifyDefaults(f.notify, user.email!, user.emailPrefs)[kind]);
     if (!forms.length) return null;
 
-    const rows: { form: string; line: string }[] = [];
+    const rows: { form: string; line: string; count: number }[] = [];
     let total = 0;
     for (const f of forms) {
       const responses = (
@@ -85,7 +85,7 @@ export const content = internalQuery({
       total += responses.length;
       const completed = responses.filter((r) => !r.partial).length;
       const partial = responses.length - completed;
-      let line = `${responses.length} new · ${completed} completed${partial ? ` · ${partial} partial` : ""}`;
+      let line = `${completed} completed${partial ? ` · ${partial} partial` : ""}`;
       if (kind === "weekly") {
         const starts = (
           await ctx.db
@@ -118,7 +118,7 @@ export const content = internalQuery({
         const q = worst && blocks.find((b) => b._id === worst[0]);
         if (q && worst[1] >= 2) line += ` · most who left stopped at “${q.title ?? "a question"}”`;
       }
-      rows.push({ form: f.title, line });
+      rows.push({ form: f.title, line, count: responses.length });
     }
     if (!total) return null;
     const settings = notifyDefaults(undefined, user.email, user.emailPrefs);

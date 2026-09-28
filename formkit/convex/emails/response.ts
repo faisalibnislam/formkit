@@ -1,18 +1,15 @@
-import { escapeHtml, renderEmailShell } from "./authCode";
+import { answers, button, C, EMAIL_SITE, facts, list, paragraph, quote, renderShell, safeColor, type Brand } from "./kit";
 
 /**
- * The two emails a response sets off: the owner's notification, and the
- * confirmation the person who answered gets back.
+ * Every email apart from the sign-in codes: a response's notification and
+ * confirmation, exports, invitations, sign-in alerts, digests and comments.
  *
- * Both are written by the customer in Settings → Notifications, so the subject
- * and message arrive here as their text with `{{variables}}` still in it. The
- * answers table below is Formkit's, not theirs.
+ * The notification and confirmation text is the customer's own, written in
+ * Settings → Notifications, and arrives here with `{{variables}}` still in it.
+ * The design around it is Formkit's.
  */
 
-const INK = "#21282E";
-const PAPER = "#f7fbff";
-const MUTED = "#6d747a";
-const RING = "#e0e2e4";
+const SETTINGS = `${EMAIL_SITE}/app/settings?tab=notifications`;
 
 export type Vars = {
   name: string;
@@ -28,30 +25,6 @@ export function fill(text: string, vars: Vars) {
   );
 }
 
-export function answersTable(rows: { question: string; value: string }[]) {
-  if (!rows.length) return "";
-  const cells = rows
-    .map(
-      ({ question, value }) => `
-      <tr>
-        <td style="padding:12px 0 0;font-size:12.5px;line-height:1.5;color:${MUTED};">${escapeHtml(question)}</td>
-      </tr>
-      <tr>
-        <td style="padding:2px 0 12px;font-size:14.5px;line-height:1.6;color:${INK};box-shadow:inset 0 -1px 0 ${RING};">${
-          value ? escapeHtml(value) : `<span style="color:${MUTED};">Not answered</span>`
-        }</td>
-      </tr>`,
-    )
-    .join("");
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;padding:4px 20px 8px;border-radius:20px;background:${PAPER};border:1px solid ${RING};">${cells}</table>`;
-}
-
-function button(label: string, href: string) {
-  return `<div style="margin-top:22px;">
-    <a href="${escapeHtml(href)}" style="display:inline-block;padding:13px 22px;border-radius:999px;background:${INK};color:#ffffff;font-size:14.5px;font-weight:500;text-decoration:none;">${escapeHtml(label)}</a>
-  </div>`;
-}
-
 export function renderNotification({
   subject,
   message,
@@ -65,33 +38,50 @@ export function renderNotification({
   link?: string;
   partial?: boolean;
 }) {
-  const body = `${answersTable(rows)}${link ? button("Open the response", link) : ""}`;
-  return renderEmailShell({
+  const answered = rows.filter((r) => r.value).length;
+  return renderShell({
+    eyebrow: partial ? "Partial response" : "New response",
     heading: subject,
     lede: partial ? `${message} They stopped partway through.` : message,
-    body,
-    footer: "You are getting this because you own this form in Formkit.",
+    body: `${
+      rows.length
+        ? `<div style="font-size:13px;font-weight:500;color:${C.muted};margin:0 0 10px;">${answered} of ${rows.length} ${rows.length === 1 ? "question" : "questions"} answered</div>${answers(rows)}`
+        : ""
+    }${link ? button("Open the response", link) : ""}`,
+    reason: "You are getting this because you own this form in Formkit.",
+    links: [{ label: "Notification settings", href: SETTINGS }],
   });
 }
 
+/** What somebody gets back after answering — in the form owner's colours. */
 export function renderConfirmation({
   subject,
   message,
   rows,
   brandName,
+  brand,
 }: {
   subject: string;
   message: string;
   rows: { question: string; value: string }[];
   brandName: string;
+  brand?: Partial<Brand>;
 }) {
-  return renderEmailShell({
+  const b: Brand = {
+    name: brand?.name ?? brandName,
+    logoUrl: brand?.logoUrl ?? null,
+    color: safeColor(brand?.color),
+    badge: brand?.badge !== false,
+  };
+  return renderShell({
+    brand: b,
+    eyebrow: "Received",
     heading: subject,
     lede: message,
     body: rows.length
-      ? `<p style="margin:0 0 4px;font-size:13.5px;color:${MUTED};">A copy of what you sent:</p>${answersTable(rows)}`
-      : "",
-    footer: `Sent by ${brandName} with Formkit. Reply to this email to reach them.`,
+      ? `<div style="font-size:13px;font-weight:500;color:${C.muted};margin:4px 0 10px;">A copy of what you sent</div>${answers(rows)}`
+      : paragraph("Nothing else to do — this is just to say it arrived.", { muted: true }),
+    reason: `Sent by ${b.name}. Reply to this email to reach them.`,
   });
 }
 
@@ -104,10 +94,19 @@ export function renderExport({
   count: number;
   filename: string;
 }) {
-  return renderEmailShell({
+  return renderShell({
+    eyebrow: "Export",
     heading: "Your export is attached",
-    lede: `${count} ${count === 1 ? "response" : "responses"} from ${formTitle}.`,
-    body: `<p style="margin:0;font-size:14.5px;line-height:1.6;color:${INK};">The file is called ${escapeHtml(filename)}. It opens in Numbers, Excel, Google Sheets, or anything else that reads a spreadsheet.</p>`,
+    lede: `${count.toLocaleString("en-US")} ${count === 1 ? "response" : "responses"} from ${formTitle}.`,
+    body: `${facts([
+      ["File", filename],
+      ["Form", formTitle],
+      ["Responses", count.toLocaleString("en-US")],
+    ])}${paragraph("It opens in Numbers, Excel, Google Sheets, or anything else that reads a spreadsheet.", {
+      muted: true,
+      top: 18,
+    })}`,
+    reason: "You asked Formkit to email this export.",
   });
 }
 
@@ -125,29 +124,40 @@ export function renderInvite({
   note?: string;
   link: string;
 }) {
+  const as = role === "editor" ? "Editor" : role === "commenter" ? "Commenter" : "Viewer";
   const can =
     role === "editor"
       ? "You can edit its questions and read its responses."
       : role === "commenter"
         ? "You can read it and leave comments."
         : "You can read it and its responses.";
-  return renderEmailShell({
+  return renderShell({
+    eyebrow: "Invitation",
     heading: `${inviter} added you to ${formTitle}`,
-    lede: `As ${role === "editor" ? "an Editor" : role === "commenter" ? "a Commenter" : "a Viewer"}. ${can}`,
-    body: `${
-      note
-        ? `<p style="margin:0 0 4px;padding:14px 18px;border-radius:18px;background:${PAPER};font-size:14.5px;line-height:1.6;color:${INK};">${escapeHtml(note)}</p>`
-        : ""
-    }<p style="margin:14px 0 0;font-size:14px;line-height:1.6;color:${MUTED};">Sign in — or make an account — with this email address, and the form is waiting in your list.</p>${button("Open the form", link)}`,
+    lede: `As ${as === "Editor" ? "an" : "a"} ${as}. ${can}`,
+    body: `${note ? quote(note, inviter) : ""}${paragraph(
+      "Sign in — or make an account — with this email address, and the form is waiting in your list.",
+      { top: note ? 22 : 0 },
+    )}${button("Open the form", link)}`,
+    reason: `${inviter} shared a form with this address on Formkit.`,
   });
 }
 
 /** Settings → Security → Sign-in alerts. */
 export function renderSignInAlert({ device, when, link }: { device: string; when: string; link: string }) {
-  return renderEmailShell({
-    heading: "A new sign-in to your Formkit account",
-    lede: `${device}, ${when}.`,
-    body: `<p style="margin:0;font-size:14.5px;line-height:1.6;color:${INK};">If this was you, there is nothing to do. If it was not, change your password now and sign out every other device from Settings → Account.</p>${button("Review your sessions", link)}`,
+  return renderShell({
+    eyebrow: "Security",
+    heading: "A new sign-in to your account",
+    lede: "If this was you, there is nothing to do.",
+    body: `${facts([
+      ["Device", device],
+      ["When", when],
+    ])}${paragraph(
+      "If it was not you, change your password now and sign out every other device from Settings → Account.",
+      { top: 20 },
+    )}${button("Review your sessions", link)}`,
+    reason: "Sign-in alerts are on for your Formkit account.",
+    links: [{ label: "Security settings", href: `${EMAIL_SITE}/app/settings` }],
   });
 }
 
@@ -160,32 +170,33 @@ export function renderDigest({
 }: {
   heading: string;
   lede: string;
-  rows: { form: string; line: string }[];
+  rows: { form: string; line: string; count?: number }[];
   link: string;
 }) {
-  const table = rows
-    .map(
-      (r) => `
-      <tr><td style="padding:12px 0 0;font-size:14.5px;font-weight:500;color:${INK};">${escapeHtml(r.form)}</td></tr>
-      <tr><td style="padding:2px 0 12px;font-size:13.5px;line-height:1.6;color:${MUTED};box-shadow:inset 0 -1px 0 ${RING};">${escapeHtml(r.line)}</td></tr>`,
-    )
-    .join("");
-  return renderEmailShell({
+  return renderShell({
+    eyebrow: heading.toLowerCase().includes("week") ? "Weekly report" : "Daily summary",
     heading,
     lede,
-    body: `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">${table}</table>${button("Open your responses", link)}`,
+    body: `${list(
+      rows.map((r) => ({
+        title: r.form,
+        line: r.line,
+        figure: r.count !== undefined ? `${r.count.toLocaleString("en-US")} new` : undefined,
+      })),
+    )}${button("Open your responses", link)}`,
+    reason: "You chose to get this summary in Formkit.",
+    links: [{ label: "Notification settings", href: SETTINGS }],
   });
 }
 
 /** A reply or @mention nobody opened in the app within ten minutes. */
-export function renderCommentEmail({ heading, quote, link }: { heading: string; quote: string; link: string }) {
-  return renderEmailShell({
+export function renderCommentEmail({ heading, quote: text, link }: { heading: string; quote: string; link: string }) {
+  return renderShell({
+    eyebrow: "Comment",
     heading,
     lede: "You have not seen this in Formkit yet.",
-    body: `${
-      quote
-        ? `<p style="margin:0;padding:14px 18px;border-radius:18px;background:${PAPER};font-size:14.5px;line-height:1.6;color:${INK};white-space:pre-wrap;">${escapeHtml(quote.slice(0, 1200))}</p>`
-        : ""
-    }${button("Open the comment", link)}<p style="margin:16px 0 0;font-size:13px;line-height:1.6;color:${MUTED};">Turn these emails off under Settings → Notifications.</p>`,
+    body: `${text ? quote(text.slice(0, 1200)) : ""}${button("Open the comment", link)}`,
+    reason: "Sent because you were mentioned or replied to on a form.",
+    links: [{ label: "Turn these emails off", href: SETTINGS }],
   });
 }

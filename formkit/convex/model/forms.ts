@@ -110,6 +110,25 @@ export async function themeLogos(ctx: QueryCtx, theme: unknown) {
   );
 }
 
+/** The identity a form is published under, as its respondents see it. */
+export async function brandOf(ctx: QueryCtx, form: Doc<"forms">) {
+  const identity =
+    form.brand === "me"
+      ? await ctx.db.get(form.ownerId)
+      : await ctx.db.get(form.brand as Id<"companies">);
+  return {
+    name: (identity as { name?: string } | null)?.name ?? "Formkit",
+    logoUrl:
+      identity && "logoId" in identity && identity.logoId
+        ? await ctx.storage.getUrl(identity.logoId)
+        : null,
+    color: (identity as { brandColor?: string } | null)?.brandColor ?? null,
+    // A company can switch the "Made with Formkit" credit off; a person's own
+    // forms always carry it.
+    badge: (identity as { badge?: boolean } | null)?.badge !== false,
+  };
+}
+
 /** Who a form is published under: its name and lead logo. */
 export async function formIdentity(ctx: QueryCtx, form: Doc<"forms">) {
   if (form.brand === "me") {

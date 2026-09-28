@@ -20,6 +20,7 @@ import type * as crons from "../crons.js";
 import type * as digests from "../digests.js";
 import type * as email from "../email.js";
 import type * as emails_authCode from "../emails/authCode.js";
+import type * as emails_kit from "../emails/kit.js";
 import type * as emails_response from "../emails/response.js";
 import type * as exports from "../exports.js";
 import type * as flags from "../flags.js";
@@ -71,6 +72,7 @@ declare const fullApi: ApiFromModules<{
   "digests": typeof digests,
   "email": typeof email,
   "emails/authCode": typeof emails_authCode,
+  "emails/kit": typeof emails_kit,
   "emails/response": typeof emails_response,
   "exports": typeof exports,
   "flags": typeof flags,
