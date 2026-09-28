@@ -11,7 +11,7 @@ import { relativeTime } from "@/components/app/bits";
  * Admin → Plans and revenue. Who is on which plan, what it is worth each
  * month, how that has moved, and where more of it could come from.
  *
- * Plans are an ordinal scale — Free, Pro, Business — drawn in one blue from
+ * Plans are an ordinal scale - Free, Pro, Business - drawn in one blue from
  * light to dark (validated: monotone lightness, visible steps).
  */
 
@@ -77,7 +77,7 @@ function StackedSignups({ data }: { data: { month: string; free: number; pro: nu
             <span
               key={d.month}
               className="fk-rev-bar"
-              data-rev-tip={`${monthLabel(d.month, true)} · ${total} sign-ups — ${d.free} Free, ${d.pro} Pro, ${d.business} Business`}
+              data-rev-tip={`${monthLabel(d.month, true)} · ${total} sign-ups: ${d.free} Free, ${d.pro} Pro, ${d.business} Business`}
             >
               <span className="fk-rev-stack" style={{ height: `${total ? Math.max(3, (total / peak) * 100) : 0}%` }}>
                 {(["business", "pro", "free"] as const).map((p) =>
@@ -160,10 +160,10 @@ export function AdminRevenue() {
                     {PLAN_NAME[p.plan]}
                   </th>
                   <td>{p.total.toLocaleString()}</td>
-                  <td>{p.plan === "free" ? "—" : p.monthly}</td>
-                  <td>{p.plan === "free" ? "—" : p.yearly}</td>
-                  <td>{p.plan === "free" ? "—" : p.comped}</td>
-                  <td>{p.plan === "free" ? "—" : usd(p.mrr)}</td>
+                  <td>{p.plan === "free" ? "-" : p.monthly}</td>
+                  <td>{p.plan === "free" ? "-" : p.yearly}</td>
+                  <td>{p.plan === "free" ? "-" : p.comped}</td>
+                  <td>{p.plan === "free" ? "-" : usd(p.mrr)}</td>
                 </tr>
               ))}
             </tbody>
@@ -269,7 +269,7 @@ export function AdminRevenue() {
         </h3>
         <p className="fk-panel-lede">
           {data.potential.activeFree.toLocaleString()} of {data.potential.freeTotal.toLocaleString()} Free accounts are
-          active — a live form or an edit in the last 30 days.
+          active: a live form or an edit in the last 30 days.
         </p>
         <div className="fk-rev-scenarios">
           {data.potential.scenarios.map((s) => (
@@ -395,7 +395,7 @@ export function AdminRevenue() {
                   </span>
                   <span className="fk-row-side fk-rev-delta" data-dir={e.delta > 0 ? "up" : e.delta < 0 ? "down" : undefined}>
                     {e.delta > 0 ? <ArrowUpRight size={14} aria-hidden /> : e.delta < 0 ? <ArrowDownRight size={14} aria-hidden /> : null}
-                    {e.delta === 0 ? "—" : `${usd(Math.abs(e.delta))}/mo`}
+                    {e.delta === 0 ? "-" : `${usd(Math.abs(e.delta))}/mo`}
                   </span>
                 </div>
               ))}

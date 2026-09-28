@@ -149,7 +149,7 @@ export async function notifyResponse(ctx: MutationCtx, form: Doc<"forms">, respo
   }
 }
 
-/** Everyone on a form — owner and active collaborators — except one person. */
+/** Everyone on a form - owner and active collaborators - except one person. */
 export async function peopleOn(ctx: MutationCtx, form: Doc<"forms">, except?: Id<"users">) {
   const rows = await ctx.db
     .query("collaborators")
@@ -166,7 +166,7 @@ export function nameOf(user: Doc<"users"> | null) {
 }
 
 /**
- * Something happened to a form as a whole — it went live, came down, or
+ * Something happened to a form as a whole - it went live, came down, or
  * closed. The owner and its Editors hear about it, except whoever did it.
  */
 export async function tellFormTeam(

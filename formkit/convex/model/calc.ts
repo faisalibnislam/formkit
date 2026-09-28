@@ -11,8 +11,8 @@
  * those numbers and earlier calculations. The same code runs in the browser,
  * for the thank-you screen, and on the server, which is the one kept.
  *
- * Formulas are parsed by hand — numbers, keys, + − × ÷, brackets, and
- * min/max/round — never evaluated as code.
+ * Formulas are parsed by hand - numbers, keys, + − × ÷, brackets, and
+ * min/max/round - never evaluated as code.
  */
 
 export type CalcBlock = {
@@ -110,7 +110,7 @@ const FUNCS: Record<string, (args: number[]) => number> = {
 };
 
 /**
- * Evaluates a formula against named numbers. Returns null — never throws —
+ * Evaluates a formula against named numbers. Returns null - never throws -
  * for anything that does not parse, so a half-typed formula reads as "not
  * yet" rather than breaking the form.
  */
@@ -188,7 +188,7 @@ export function unknownKeys(formula: string, known: Set<string>) {
 }
 
 /**
- * Every calculation, in order — each can use the questions and the ones
+ * Every calculation, in order - each can use the questions and the ones
  * before it.
  */
 export function computeAll(vars: CalcVar[], blocks: CalcBlock[], answers: Record<string, CalcAnswer | undefined>) {

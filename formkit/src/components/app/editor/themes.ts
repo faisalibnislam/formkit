@@ -2,7 +2,7 @@
  * The theme a published form is painted with.
  *
  * The presets come from the design system, with one change: every dark value is
- * `#21282E`. That is Formkit's one dark colour — the handoff bundle still
+ * `#21282E`. That is Formkit's one dark colour - the handoff bundle still
  * carried `#2c3034` and `#1c2023` from an earlier pass, and they were retired.
  */
 
@@ -24,8 +24,8 @@ export type Theme = {
   flow: "classic" | "conversational";
   showLogo: boolean;
   /**
-   * Up to three logos that sit beside the lead one — the logo of whoever the
-   * form is published under — separated by a ×.
+   * Up to three logos that sit beside the lead one - the logo of whoever the
+   * form is published under - separated by a ×.
    */
   logos: { name: string; storageId?: string }[];
   logoAlign: "left" | "center" | "right";

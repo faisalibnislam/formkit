@@ -123,7 +123,7 @@ export function DeactivatedGate({ restoreUntil, onSignOut }: { restoreUntil: num
   return (
     <Frame>
       <Head icon={<RotateCcw size={20} strokeWidth={1.8} />} title="Your account is deactivated">
-        Everything is still here — forms, responses and templates.
+        Everything is still here: forms, responses and templates.
       </Head>
       <div className="fk-gate-note">
         <strong>
@@ -174,7 +174,7 @@ export function SuspendedGate({ onSignOut }: { onSignOut: () => void }) {
 }
 
 /**
- * Put in front of anything a signed-in person uses — the app, the admin
+ * Put in front of anything a signed-in person uses - the app, the admin
  * console, onboarding, join links. A session that owes its two-factor code,
  * or an account inside its restore window, sees that screen instead; a guest
  * passes through to whatever the page does for guests.

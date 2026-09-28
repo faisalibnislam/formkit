@@ -54,7 +54,7 @@
   position: relative;
   justify-content: flex-end;
 }
-/* The record dock below is the navigation — there is deliberately no second
+/* The record dock below is the navigation - there is deliberately no second
    row of tabs in the bar. */
 .fk-app-menu {
   position: relative;
@@ -263,8 +263,8 @@
 
 /* ---------- hero ---------- */
 
-/* No z-index here, deliberately. A menu opened from the hero — the publish
-   caret's, for one — has to paint over the record dock below it, and any
+/* No z-index here, deliberately. A menu opened from the hero - the publish
+   caret's, for one - has to paint over the record dock below it, and any
    z-index on this element makes it a stacking context that traps the menu
    underneath the dock however high the menu's own z-index goes. Nothing
    between a menu and .fk-app-head may create a stacking context. */
@@ -381,7 +381,7 @@
 
 /* ---------- the record dock ---------- */
 
-/* LOCKED GEOMETRY — see ClientTab in src/components/app/ds.tsx.
+/* LOCKED GEOMETRY - see ClientTab in src/components/app/ds.tsx.
 
    The dock is the last thing in the sky band and the band carries no padding
    below it, so the tabs meet the band's bottom edge exactly however tall the
@@ -718,7 +718,7 @@
 }
 
 /* A field type, waiting to be dragged onto the form. The grip and the tinted
-   mark are the whole affordance — it has to look liftable. */
+   mark are the whole affordance - it has to look liftable. */
 .fk-fieldtile {
   display: flex;
   align-items: center;
@@ -796,7 +796,7 @@
 }
 
 /* The gap between two blocks IS the way to add one. Collapsed it is only
-   breathing room; under the pointer — or under something being dragged — it
+   breathing room; under the pointer - or under something being dragged - it
    opens into a rule and a button, so where a drop will land is shown rather
    than guessed. */
 .fk-insert {
@@ -2887,7 +2887,7 @@
 /* ---------- the published form ---------- */
 
 /* Sized in container units: in the preview's phone frame the form reads the
-   frame, and on its own page — with no container around it — the viewport. */
+   frame, and on its own page - with no container around it - the viewport. */
 .fk-live {
   min-height: 100dvh;
   padding: clamp(34px, 5cqi, 64px) clamp(20px, 5cqi, 40px) 80px;
@@ -2949,7 +2949,7 @@
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.06);
 }
-/* A field no person sees. Not display:none — some scripts skip those. */
+/* A field no person sees. Not display:none - some scripts skip those. */
 .fk-live-trap {
   position: absolute;
   left: -9999px;
@@ -3629,7 +3629,7 @@
 }
 
 /* Filter chips: an outline each, and the one in force filled with the one
-   dark. Never a segmented control — this run can grow. */
+   dark. Never a segmented control - this run can grow. */
 .fk-filters {
   display: flex;
   align-items: center;
@@ -6224,7 +6224,7 @@ html.fk-own-bar::-webkit-scrollbar {
   width: 100%;
 }
 
-/* Loading skeletons (Skeleton.tsx) — a slow sheen, never a spinner. */
+/* Loading skeletons (Skeleton.tsx) - a slow sheen, never a spinner. */
 @keyframes fk-skel-sheen {
   0% {
     background-position: 100% 0;
@@ -6317,7 +6317,7 @@ html.fk-own-bar::-webkit-scrollbar {
 .fk-navbar[data-state="loading"] {
   opacity: 1;
   transform: scaleX(0.82);
-  /* Quick to a third, then a long crawl — it never looks stuck, never finishes early. */
+  /* Quick to a third, then a long crawl - it never looks stuck, never finishes early. */
   transition:
     transform 7s cubic-bezier(0.08, 0.82, 0.17, 1),
     opacity 0.1s ease;

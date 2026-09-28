@@ -6,7 +6,7 @@ import { fieldType } from "./fieldTypes";
 /**
  * What a question looks like, drawn in the builder canvas.
  *
- * These are not live controls — they are the shape of the answer, so the person
+ * These are not live controls - they are the shape of the answer, so the person
  * building the form recognises it without opening a preview.
  */
 export function QuestionPreview({
@@ -100,7 +100,7 @@ export function QuestionPreview({
   if (shape === "hidden") {
     return (
       <div className="fk-ghost" style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 18px", fontSize: 14, color: "var(--color-text-tertiary)" }}>
-        Never shown — filled from the link, or its default
+        Never shown. Filled from the link, or its default
       </div>
     );
   }

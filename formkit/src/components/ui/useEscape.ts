@@ -8,7 +8,7 @@ import { useEffect, useRef } from "react";
  * whatever was focused when it opened, so a keyboard user is never stranded.
  *
  * Listens in the capture phase and stops the event, so one press closes the
- * topmost thing only — a menu inside a drawer closes, the drawer stays.
+ * topmost thing only - a menu inside a drawer closes, the drawer stays.
  */
 export function useEscape(open: boolean, close: () => void) {
   const closeRef = useRef(close);
@@ -38,7 +38,7 @@ export function useEscape(open: boolean, close: () => void) {
 
 /**
  * The dark button tips are CSS, shown on hover and focus. Escape hides the one
- * showing — without moving the pointer — until the pointer leaves the button or
+ * showing - without moving the pointer - until the pointer leaves the button or
  * focus moves off it. Mounted once, by the app shell.
  */
 export function useTipEscape() {

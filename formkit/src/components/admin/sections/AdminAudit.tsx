@@ -24,7 +24,7 @@ export function AdminAudit() {
           <div key={a._id} className="fk-row" data-static="true">
             <span className="fk-row-main">
               <span className="fk-row-title">
-                {a.actorName} — {a.action}
+                {a.actorName}: {a.action}
                 {a.subject ? `: ${a.subject}` : ""}
               </span>
               <span className="fk-row-meta">

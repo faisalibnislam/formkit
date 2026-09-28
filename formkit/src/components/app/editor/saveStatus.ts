@@ -6,8 +6,8 @@ import { useEffect, useState, useSyncExternalStore } from "react";
  * What the editor header says about saving: "Saving…", "Saved just now",
  * "Saved 4 min ago", or that the last write failed.
  *
- * One module-level store, because a write can start anywhere in the editor —
- * a question card, the inspector, the design panel — and the header is not a
+ * One module-level store, because a write can start anywhere in the editor -
+ * a question card, the inspector, the design panel - and the header is not a
  * parent of any of them. `tracked()` wraps a mutation call so that nothing has
  * to remember to report on itself.
  */
@@ -64,7 +64,7 @@ export function useSaveStatus(fallbackAt?: number) {
   }, [s.savedAt]);
 
   if (s.pending > 0) return { tone: "busy" as const, label: "Saving…" };
-  if (s.failed) return { tone: "error" as const, label: "Not saved — check your connection" };
+  if (s.failed) return { tone: "error" as const, label: "Not saved. Check your connection" };
   const at = s.savedAt ?? fallbackAt ?? null;
   if (at === null || now === null) return { tone: "idle" as const, label: "" };
   return { tone: "idle" as const, label: `Saved ${ago(now - at)}` };

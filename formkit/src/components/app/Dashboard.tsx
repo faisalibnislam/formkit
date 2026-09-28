@@ -43,7 +43,7 @@ const START_STEPS = [
 /**
  * The dashboard answers one question: what is happening with my forms.
  *
- * Nothing here is invented — every number comes from the account's own data, and
+ * Nothing here is invented - every number comes from the account's own data, and
  * an account with nothing in it says so rather than showing a demo.
  */
 
@@ -67,7 +67,7 @@ export function Dashboard() {
   const templates = useSeededQuery(api.templates.list, {});
   const create = useMutation(api.forms.create);
   const forms = useSeededQuery(api.forms.list, { filter: "all" });
-  // The totals and the newest few — not every response ever sent.
+  // The totals and the newest few - not every response ever sent.
   const responses = useSeededQuery(api.responses.recent, {});
   const analytics = useSeededQuery(api.analytics.overview, {});
   const sweep = useMutation(api.forms.sweepClosing);

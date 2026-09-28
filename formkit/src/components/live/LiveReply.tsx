@@ -40,7 +40,7 @@ export function LiveReply({ responseId, token }: { responseId: Id<"responses">; 
         <div className="fk-live-reply" aria-live="polite">
           <div className="fk-live-reply-wait">
             <Mail size={17} strokeWidth={1.8} aria-hidden style={{ display: "inline-block" }} />
-            Your reply is taking a moment — we’ll email it to you as well.
+            Your reply is taking a moment. We’ll email it to you as well.
           </div>
         </div>
       ) : null;
@@ -64,7 +64,7 @@ export function LiveReply({ responseId, token }: { responseId: Id<"responses">; 
     <div className="fk-live-reply" aria-live="polite">
       <div className="fk-live-reply-label">
         <Sparkles size={14} strokeWidth={1.8} aria-hidden />
-        A reply for you{byEmail ? " — we’ve emailed you a copy" : ""}
+        A reply for you{byEmail ? ". We’ve emailed you a copy" : ""}
       </div>
       <div className="fk-live-reply-text">{r.text}</div>
       {r.signature && <div className="fk-live-reply-text fk-live-reply-sig">{r.signature}</div>}

@@ -27,7 +27,7 @@ function AuditPanel() {
   return (
     <Panel
       title="Audit log"
-      lede="Who did what on the account — publishing, team changes, keys, sign-in rules — kept for a year."
+      lede="Who did what on the account (publishing, team changes, keys, sign-in rules), kept for a year."
       aside={gate.locked ? chip("audit") : null}
     >
       {gate.locked || !data?.enabled ? (
@@ -42,7 +42,7 @@ function AuditPanel() {
                 <span className="fk-row-main">
                   <span className="fk-row-title">
                     {r.action}
-                    {r.subject ? ` — ${r.subject}` : ""}
+                    {r.subject ? `: ${r.subject}` : ""}
                   </span>
                   <span className="fk-row-meta">
                     {r.who} · {fullTime(r.at)}
@@ -78,14 +78,14 @@ function RetentionPanel() {
   return (
     <Panel
       title="Data retention"
-      lede="Erase responses — and the files uploaded with them — once they reach a certain age. Useful when you should not keep personal data longer than you need it."
+      lede="Erase responses, and the files uploaded with them, once they reach a certain age. Useful when you should not keep personal data longer than you need it."
       aside={gate.locked ? chip("retention") : null}
     >
       <Row
         label="Keep responses for"
         hint={
           data?.days
-            ? `Anything older than ${label(data.days)} is erased every hour. This cannot be undone — export first if you need a copy.`
+            ? `Anything older than ${label(data.days)} is erased every hour. This cannot be undone, so export first if you need a copy.`
             : "Kept until you delete them."
         }
       >
@@ -183,7 +183,7 @@ function ApiPanel() {
       {fresh && (
         <Modal
           title="Your new API key"
-          description="Copy it now — Formkit keeps only a fingerprint and cannot show it again."
+          description="Copy it now. Formkit keeps only a fingerprint and cannot show it again."
           onClose={() => setFresh(null)}
           width={560}
           footer={<Button onClick={() => setFresh(null)}>Done</Button>}
@@ -224,7 +224,7 @@ function SsoPanel() {
   return (
     <Panel
       title="Single sign-on"
-      lede="People with an address at your company's domain sign in with Google or Microsoft — the password form turns them away — so whoever leaves your directory loses access here too."
+      lede="People with an address at your company's domain sign in with Google or Microsoft, and the password form turns them away. Whoever leaves your directory loses access here too."
       aside={gate.locked ? chip("sso") : null}
     >
       {data && available.length === 0 && (
@@ -307,7 +307,7 @@ function SsoPanel() {
                 hint={
                   sso.enforce
                     ? `Everyone at @${sso.domain} signs in with ${sso.providers.map((p) => PROVIDER_NAME[p]).join(" or ")}.`
-                    : "Off — people can still use a password."
+                    : "Off. People can still use a password."
                 }
               >
                 <Switch

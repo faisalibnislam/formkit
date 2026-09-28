@@ -4,7 +4,7 @@
  *
  * A rule is one or more groups of conditions. Each group joins its own
  * conditions with AND or OR; the groups are joined by the rule's `join`.
- * Older rules have a flat list of conditions and no groups — read as one
+ * Older rules have a flat list of conditions and no groups - read as one
  * group joined by `join`.
  *
  * A condition reads an answer, a calculation's result, or (Business) an AI
@@ -67,7 +67,7 @@ export function groupsOf(rule: Pick<Rule, "join" | "conditions" | "groups">): Gr
   return [{ join: rule.join, conditions: rule.conditions }];
 }
 
-/** Every condition in a rule, flattened — for editors, checks and the map. */
+/** Every condition in a rule, flattened - for editors, checks and the map. */
 export function conditionsOf(rule: Pick<Rule, "join" | "conditions" | "groups">) {
   return groupsOf(rule).flatMap((g) => g.conditions);
 }

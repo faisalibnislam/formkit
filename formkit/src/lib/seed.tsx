@@ -11,13 +11,13 @@ import { seedKey, type Clock, type Seeds } from "./seedKey";
  *
  * Convex queries only arrive once the browser has connected, so a page drawn
  * on the server used to show the signed-out nav, an evening sky and empty
- * cards, then swap in the real ones a moment later — the flicker. The server
+ * cards, then swap in the real ones a moment later - the flicker. The server
  * now fetches the handful of queries a page opens with (see seedServer.ts)
  * and hands them down here; each seeded query shows that value until its live
  * subscription answers, which is the same data, so nothing moves.
  *
- * Seeds are only ever a stand-in for the first render. Anything that acts —
- * a mutation in an effect — waits for the live value.
+ * Seeds are only ever a stand-in for the first render. Anything that acts -
+ * a mutation in an effect - waits for the live value.
  */
 
 type Ctx = { seeds: Seeds; clock: Clock | null };

@@ -11,7 +11,7 @@ export type LegalSection = {
   title: string;
   paras?: string[];
   bullets?: string[];
-  /** Blocks of code, shown after the text — the API docs use these. */
+  /** Blocks of code, shown after the text - the API docs use these. */
   code?: string[];
 };
 
@@ -23,7 +23,7 @@ export const PRIVACY: LegalSection[] = [
     title: "What this covers",
     paras: [
       "Formkit is a form builder. You write questions, share a link, and the answers come back to you. This policy explains what we do with two different sets of data: the information about you as a Formkit user, and the answers your respondents send through your forms.",
-      "The two are treated differently, and the difference matters. Your account is ours to look after. The answers in your forms are yours — we hold them on your behalf and do not use them for anything of our own.",
+      "The two are treated differently, and the difference matters. Your account is ours to look after. The answers in your forms are yours. We hold them on your behalf and do not use them for anything of our own.",
     ],
   },
   {
@@ -32,7 +32,7 @@ export const PRIVACY: LegalSection[] = [
     paras: ["Three things, and nothing else:"],
     bullets: [
       "Your account. A name, an email address, a hashed password, and a company name if you choose to add one. A company is optional and most people never add one.",
-      "Your forms and their answers. Questions, themes, settings, every response, and any file somebody uploads — up to 20 MB per file on Free, more on paid plans.",
+      "Your forms and their answers. Questions, themes, settings, every response, and any file somebody uploads (up to 20 MB per file on Free, more on paid plans).",
       "Technical records. Sign-in times, the pages you opened in the app, the browser and rough location (city level) a request came from, and errors. We keep these to work out what broke and to spot someone attacking the service.",
     ],
   },
@@ -49,7 +49,7 @@ export const PRIVACY: LegalSection[] = [
     title: "The answers belong to you",
     paras: [
       "When somebody fills in your form, you decide what was asked and what happens next; we store it and show it back to you. In data-protection language you are the controller and we are the processor.",
-      "That means two practical things. If a respondent asks us to delete their answer, we will point them to you — it is your record to delete. And if you ask for something sensitive, it is on you to have a reason and to say so on the form.",
+      "That means two practical things. If a respondent asks us to delete their answer, we will point them to you, because it is your record to delete. And if you ask for something sensitive, it is on you to have a reason and to say so on the form.",
     ],
   },
   {
@@ -57,7 +57,7 @@ export const PRIVACY: LegalSection[] = [
     title: "Who else touches it",
     paras: [
       "A small number of companies handle data for us because they run the machines: our hosting provider, our email delivery provider and our error-tracking tool. They are bound to use it only to provide that service.",
-      "Formkit staff can reach your account for support — to answer a ticket, look into a report, or investigate abuse. When they do, it is logged, and a support view is read-only: staff can see what you see and change nothing.",
+      "Formkit staff can reach your account for support: to answer a ticket, look into a report, or investigate abuse. When they do, it is logged, and a support view is read-only: staff can see what you see and change nothing.",
     ],
   },
   {
@@ -65,7 +65,7 @@ export const PRIVACY: LegalSection[] = [
     title: "How long we keep it",
     bullets: [
       "Responses stay until you delete them. Deleting a form moves it to Deleted, where it sits for 60 days before it goes for good.",
-      "Close your account and everything — forms, responses, uploads — is removed within 30 days. Backups age out within 90.",
+      "Close your account and everything (forms, responses, uploads) is removed within 30 days. Backups age out within 90.",
       "Technical records are kept for 12 months, then deleted.",
     ],
   },
@@ -105,7 +105,7 @@ export const PRIVACY: LegalSection[] = [
     id: "changes-and-contact",
     title: "Changes, and how to reach us",
     paras: [
-      "If we change anything that affects you, we will tell you in the app and by email before it takes effect — not quietly, and not after the fact.",
+      "If we change anything that affects you, we will tell you in the app and by email before it takes effect. Not quietly, and not after the fact.",
       "Questions, requests and complaints go to privacy@formkit.app. We answer within five working days.",
     ],
   },
@@ -136,7 +136,7 @@ export const TERMS: LegalSection[] = [
     title: "What you may not do",
     paras: ["A short list, and we enforce it:"],
     bullets: [
-      "Ask for card numbers, bank details or passwords in a question. A form that takes payment does it through its payment step, where Stripe — not Formkit — handles the card.",
+      "Ask for card numbers, bank details or passwords in a question. A form that takes payment does it through its payment step, where Stripe handles the card, not Formkit.",
       "Send unsolicited email, or use a form as the landing page for a spam campaign.",
       "Impersonate somebody else, or run a form designed to trick people into handing over credentials.",
       "Upload malware, or use a form to distribute it.",
@@ -157,7 +157,7 @@ export const TERMS: LegalSection[] = [
     title: "The people who answer",
     paras: [
       "You decide what to ask, so you carry the duties that go with it: telling respondents who you are, why you are asking, and what happens to their answers; and having a lawful reason to hold what they send.",
-      "Formkit gives you the tools — a description, a closing message, a confirmation email, an export and a delete button. Using them well is your part.",
+      "Formkit gives you the tools: a description, a closing message, a confirmation email, an export and a delete button. Using them well is your part.",
     ],
   },
   {
@@ -190,14 +190,14 @@ export const TERMS: LegalSection[] = [
     id: "liability",
     title: "Where our responsibility ends",
     paras: [
-      "Formkit is provided as it is. We do not warrant that it will be uninterrupted or free of faults, and we are not liable for lost profits, lost data or business you did not win because a form was down. Where the law lets us cap liability, it is capped at what you paid us in the twelve months before the claim, which on the Free plan is nothing — and nothing in this page limits liability we cannot lawfully limit, including for death, personal injury or fraud.",
+      "Formkit is provided as it is. We do not warrant that it will be uninterrupted or free of faults, and we are not liable for lost profits, lost data or business you did not win because a form was down. Where the law lets us cap liability, it is capped at what you paid us in the twelve months before the claim, which on the Free plan is nothing. Nothing in this page limits liability we cannot lawfully limit, including for death, personal injury or fraud.",
     ],
   },
   {
     id: "ending-it",
     title: "Ending it",
     paras: [
-      "You can close your account whenever you like, from Settings. We can end this agreement if you break the rules above, or if we shut the service down — in which case we will give you at least 60 days to export everything.",
+      "You can close your account whenever you like, from Settings. We can end this agreement if you break the rules above, or if we shut the service down. In that case we will give you at least 60 days to export everything.",
     ],
   },
   {
@@ -216,7 +216,7 @@ export const TERMS_FOOT =
 /**
  * The data processing agreement. Business accounts accept it with the plan;
  * anyone may read it. Like the rest of this file it is plain English and has
- * not been through a lawyer — have it reviewed before relying on it.
+ * not been through a lawyer - have it reviewed before relying on it.
  */
 export const DPA: LegalSection[] = [
   {
@@ -241,7 +241,7 @@ export const DPA: LegalSection[] = [
     id: "instructions",
     title: "We act only on your instructions",
     paras: [
-      "We process the data only to provide Formkit as you configure it — your forms, settings, connections and exports are your instructions. We do not sell it, use it to advertise, or use your responses to train AI models. If we ever believe an instruction breaks data-protection law, we will tell you.",
+      "We process the data only to provide Formkit as you configure it. Your forms, settings, connections and exports are your instructions. We do not sell it, use it to advertise, or use your responses to train AI models. If we ever believe an instruction breaks data-protection law, we will tell you.",
     ],
   },
   {
@@ -266,11 +266,11 @@ export const DPA: LegalSection[] = [
     title: "Subprocessors",
     paras: ["We use these companies to run Formkit. Each is bound to protect the data at least as well as this agreement requires:"],
     bullets: [
-      "Convex — database, file storage and back-end hosting.",
-      "Vercel — hosting for the website and the forms.",
-      "Resend — delivery of the emails Formkit sends.",
-      "Polar — billing for Formkit plans (your account details only, never your responses).",
-      "Google — the AI features, only when you use Ask Formkit: your prompts and the form, and responses only when you ask it to summarise them.",
+      "Convex: database, file storage and back-end hosting.",
+      "Vercel: hosting for the website and the forms.",
+      "Resend: delivery of the emails Formkit sends.",
+      "Polar: billing for Formkit plans (your account details only, never your responses).",
+      "Google: the AI features, only when you use Ask Formkit: your prompts and the form, and responses only when you ask it to summarise them.",
     ],
   },
   {
@@ -284,14 +284,14 @@ export const DPA: LegalSection[] = [
     id: "your-own-services",
     title: "Services you connect yourself",
     paras: [
-      "Webhooks, Slack, Google Sheets and Stripe payments send data where you tell them to. Those services are yours to choose, and your agreement with them — not this one — covers what they do with it.",
+      "Webhooks, Slack, Google Sheets and Stripe payments send data where you tell them to. Those services are yours to choose, and your agreement with them, not this one, covers what they do with it.",
     ],
   },
   {
     id: "helping-you",
     title: "Helping you with requests and incidents",
     bullets: [
-      "Requests from the people who answered your forms — to see, correct or delete their answers — can be handled by you in the app. If one comes to us, we pass it to you.",
+      "Requests from the people who answered your forms to see, correct or delete their answers can be handled by you in the app. If one comes to us, we pass it to you.",
       "If we learn of a breach affecting your data, we will tell you without undue delay, and within 72 hours, with what we know and what we are doing.",
       "We will give you the information you reasonably need for a data-protection impact assessment or to answer a regulator.",
     ],
@@ -307,7 +307,7 @@ export const DPA: LegalSection[] = [
     id: "deletion",
     title: "Deletion at the end",
     paras: [
-      "You can export and delete your data at any time. When you close your account, everything — forms, responses, uploads — is removed within 30 days, and backups age out within 90.",
+      "You can export and delete your data at any time. When you close your account, everything (forms, responses, uploads) is removed within 30 days, and backups age out within 90.",
     ],
   },
   {

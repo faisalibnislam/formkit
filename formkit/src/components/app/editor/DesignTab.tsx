@@ -60,7 +60,7 @@ import { useSettingsDraft } from "./useSettingsDraft";
 
 /**
  * Design: the theme, the type, the layout, and which identity the form goes
- * out under — with a preview that repaints as anything changes.
+ * out under - with a preview that repaints as anything changes.
  */
 
 type Section = "theme" | "colors" | "type" | "layout" | "branding" | "css";
@@ -362,7 +362,7 @@ export function DesignTab({ formId }: { formId: Id<"forms"> }) {
               label="Your brand font"
               hint={
                 theme.customFont
-                  ? `${theme.customFont.name} — used for headings and text on the live form`
+                  ? `${theme.customFont.name}, used for headings and text on the live form`
                   : "Upload a font file of your own (WOFF2, WOFF, TTF or OTF, up to 2 MB)"
               }
             >
@@ -422,7 +422,7 @@ export function DesignTab({ formId }: { formId: Id<"forms"> }) {
         {section === "css" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <p className="fk-proprow-hint" style={{ margin: 0 }}>
-              CSS for the published form only — it cannot reach the rest of the page. Start from the form&rsquo;s own classes:
+              CSS for the published form only. It cannot reach the rest of the page. Start from the form&rsquo;s own classes:
               .fk-live-q, .fk-live-q-title, .fk-live-q-help, .fk-live-choice, .fk-live-progress, .fk-live-foot.
             </p>
             {cssGate.locked && (
@@ -515,7 +515,7 @@ export function DesignTab({ formId }: { formId: Id<"forms"> }) {
                 <div className="fk-proprow-hint" style={{ marginTop: 10, wordBreak: "break-all" }}>
                   {identity?.handle
                     ? `formkit.app/${identity.handle}/${form.slug}`
-                    : `formkit.app/f/${form.slug} — no link claimed yet`}
+                    : `formkit.app/f/${form.slug} (no link claimed yet)`}
                 </div>
               </div>
             )}
@@ -540,7 +540,7 @@ export function DesignTab({ formId }: { formId: Id<"forms"> }) {
                   {identity?.logoUrl
                     ? "From Settings → Companies"
                     : identity?.kind === "company"
-                      ? "No logo yet — add one in Settings → Companies"
+                      ? "No logo yet. Add one in Settings → Companies"
                       : "Your own forms carry your name. A company can carry a logo."}
                 </span>
               </span>
@@ -761,7 +761,7 @@ export function DesignTab({ formId }: { formId: Id<"forms"> }) {
                 opacity: 0.62,
               }}
             >
-              {form.welcome?.message || "A few questions — it should take about two minutes."}
+              {form.welcome?.message || "A few questions. It should take about two minutes."}
             </p>
 
             <div style={{ marginTop: 38, display: "flex", flexDirection: "column", gap: 26 }}>

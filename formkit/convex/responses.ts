@@ -14,7 +14,7 @@ import { formFor } from "./model/forms";
  * their own, and carry a resume link the owner can send back.
  *
  * A response sent from the builder's preview is kept too, badged Preview, and
- * left out of every count — it is the owner trying their own form, not an
+ * left out of every count - it is the owner trying their own form, not an
  * answer.
  */
 
@@ -31,7 +31,7 @@ async function ownForms(ctx: QueryCtx, userId: Id<"users">) {
   ).filter((f) => !f.deletedAt);
 }
 
-/** Every response in scope — one form, or every form the person owns. */
+/** Every response in scope - one form, or every form the person owns. */
 async function scope(ctx: QueryCtx, formId: Id<"forms"> | undefined) {
   const user = await requireUser(ctx);
   if (formId) {
@@ -187,7 +187,7 @@ export const recent = query({
     const user = await requireUser(ctx);
     const forms = await ownForms(ctx, user._id);
     const titles = new Map(forms.map((f) => [f._id as string, f.title]));
-    // Newest first, stopping at the first response from before this week —
+    // Newest first, stopping at the first response from before this week -
     // the week's count and the latest few come from one short walk.
     const since = Date.now() - 7 * DAY;
     const newest: Doc<"responses">[] = [];
@@ -229,7 +229,7 @@ export const get = query({
 /**
  * Everyone who has answered, once each. People are matched on their email;
  * someone who never gave one is matched on their name within the same form.
- * Partial respondents are included — they are people too, and often the ones
+ * Partial respondents are included - they are people too, and often the ones
  * most worth following up.
  */
 async function collectContacts(ctx: QueryCtx, formId: Id<"forms"> | undefined) {
@@ -559,7 +559,7 @@ export const contactsForExport = query({
   },
 });
 
-/** How many responses an export would hold — Settings → Exports says so. */
+/** How many responses an export would hold - Settings → Exports says so. */
 export const count = query({
   args: {
     formId: v.optional(v.id("forms")),

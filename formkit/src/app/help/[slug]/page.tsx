@@ -31,7 +31,7 @@ export async function generateMetadata(
       type: "article",
       siteName: "Formkit",
       url: `${SITE_URL}/help/${article.id}`,
-      title: `${article.title} — Formkit help`,
+      title: `${article.title} | Formkit help`,
       description: article.summary,
     },
   };

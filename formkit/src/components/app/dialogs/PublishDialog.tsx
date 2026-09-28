@@ -27,7 +27,7 @@ export function PublishDialog({
   formId: Id<"forms">;
   onClose: () => void;
   onVersions: () => void;
-  /** After a first publish — the share panel is the natural next step. */
+  /** After a first publish - the share panel is the natural next step. */
   onPublished?: () => void;
 }) {
   const toast = useToast();

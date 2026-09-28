@@ -26,7 +26,7 @@ export function aiIntent(raw: string, context: { hasForm: boolean; hasDraft: boo
   const wantsNew = has(/\b(new|another|different|second|separate) (form|survey|questionnaire)\b/);
   const createAsk = KIND.test(p) && ASKS.test(t) && !has(/\b(this|that|these|the|my) (form|one|survey)\b/);
 
-  // A draft on the table is changed, not replaced — unless a new one is asked for.
+  // A draft on the table is changed, not replaced - unless a new one is asked for.
   if (context.hasDraft && !wantsNew && !isTalk(t, p, words)) {
     if (!createAsk || has(/\b(it|this|that|instead)\b/)) return "revise";
   }

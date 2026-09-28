@@ -7,13 +7,13 @@ import { requireUser } from "./model/identity";
 import { hasFeature, requireFeature } from "./model/plans";
 
 /**
- * Pro: the confirmation a respondent gets comes from the owner's own domain —
- * "Studio Nine <hello@studionine.co>" — instead of Formkit's. The domain is
+ * Pro: the confirmation a respondent gets comes from the owner's own domain -
+ * "Studio Nine <hello@studionine.co>" - instead of Formkit's. The domain is
  * added to Resend, which gives the DNS records that prove it is theirs, and
  * checked until Resend reports it verified.
  *
  * Uses the same Resend key as the rest of Formkit's mail (AUTH_RESEND_KEY),
- * which needs full access for this — a sending-only key cannot add domains.
+ * which needs full access for this - a sending-only key cannot add domains.
  */
 
 type ResendRecord = { record?: string; name: string; type: string; value: string; priority?: number };

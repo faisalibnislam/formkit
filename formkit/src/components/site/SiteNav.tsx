@@ -18,7 +18,7 @@ const NARROW_AFTER = 60;
  *
  * 1. The bar narrows to the content grid past 60px of scroll.
  * 2. It lifts away while an element marked `data-nav-hide` sits under it. The
- *    guard is computed from the bar's RESTING footprint, never its live rect —
+ *    guard is computed from the bar's RESTING footprint, never its live rect -
  *    reading the live rect while hidden collapses the test, the bar animates
  *    back in, and (since the handler only runs on scroll) it comes to rest on
  *    top of the very section it was avoiding.
@@ -118,12 +118,12 @@ export function SiteNav({ current }: { current?: NavKey }) {
       className="fk-nav"
       data-narrow={narrow}
       data-hidden={hidden}
-      aria-label="Formkit — form builder"
+      aria-label="Formkit form builder"
     >
       <Link
         href={signedIn ? "/app" : "/"}
         className="fk-nav-logo"
-        aria-label={signedIn ? "Formkit — go to your dashboard" : "Formkit — home"}
+        aria-label={signedIn ? "Formkit, go to your dashboard" : "Formkit home"}
       >
         <Logo size={19} tone="current" />
       </Link>

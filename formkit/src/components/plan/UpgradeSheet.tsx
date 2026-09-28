@@ -81,7 +81,7 @@ export function UpgradeSheet() {
           onChange={setInterval}
           options={[
             { value: "month", label: "Monthly" },
-            { value: "year", label: `Yearly — save up to ${bestSavingPercent()}%` },
+            { value: "year", label: `Yearly, save up to ${bestSavingPercent()}%` },
           ]}
         />
       </div>

@@ -2,7 +2,7 @@
  * The landing page's content.
  *
  * One continuous story on Client onboarding / Maya Okafor / Northstar website
- * redesign — 8 of 11 questions, 72.5%, 2 minutes ago — reused across every
+ * redesign - 8 of 11 questions, 72.5%, 2 minutes ago - reused across every
  * section, so the page reads as one form travelling through the product.
  *
  * The four brand marks (Northstar, Merrow, Velto, Fieldnote) are invented and
@@ -81,7 +81,7 @@ export const HERO_ROWS = [
 
 export const LOGIC_LINES = [
   { k: "When", v: "Have we worked together before?" },
-  { k: "Is", v: "Yes — existing client" },
+  { k: "Is", v: "Yes, existing client" },
   { k: "Then", v: "Skip to Scope" },
 ];
 
@@ -152,7 +152,7 @@ export const BRAND_CHOICES = [
 export const LIVE_QUESTIONS = [
   "Which brand are you submitting this brief for?",
   "Anything we should read first?",
-  "Thanks, Maya — that's everything.",
+  "Thanks, Maya. That's everything.",
 ];
 
 export const INBOX_ROWS = [
@@ -283,7 +283,7 @@ export const FEATURES = [
     icon: "link",
     bg: "var(--blue-200)",
     title: "Your own link",
-    body: "Take formkit.app/your-name, or a name for each company — or, on Pro, your own domain like forms.acme.com.",
+    body: "Take formkit.app/your-name, or a name for each company. On Pro, use your own domain like forms.acme.com.",
     chip: "Handles · custom domains",
   },
   {
@@ -297,7 +297,7 @@ export const FEATURES = [
     icon: "chart-line",
     bg: "var(--green-200)",
     title: "Analytics",
-    body: "Views, starts, finishes and average time over 7, 30 or 90 days — and on Pro, where people came from and the question they stop on.",
+    body: "Views, starts, finishes and average time over 7, 30 or 90 days. On Pro, also where people came from and the question they stop on.",
     chip: "7 · 30 · 90 days",
   },
   {
@@ -311,7 +311,7 @@ export const FEATURES = [
     icon: "users",
     bg: "var(--blue-300)",
     title: "Collaborators",
-    body: "Invite three people to any form as Editor, Commenter or Viewer — as many as you like on Pro, or your whole team on Business. Comments stay on the question they are about.",
+    body: "Invite three people to any form as Editor, Commenter or Viewer. Invite as many as you like on Pro, or your whole team on Business. Comments stay on the question they are about.",
     chip: "Three roles",
   },
   {
@@ -347,7 +347,7 @@ export const FEATURES = [
 export const LANDING_FAQS = [
   {
     q: "Is Formkit free?",
-    a: "Yes — unlimited forms and unlimited responses, free for as long as you like. Pro, at $3 a month, adds your own domain, branding and integrations; Business, at $10 a month, adds your team.",
+    a: "Yes. Unlimited forms and unlimited responses, free for as long as you like. Pro, at $3 a month, adds your own domain, branding and integrations; Business, at $10 a month, adds your team.",
   },
   {
     q: "Can I use my own branding?",
@@ -367,6 +367,6 @@ export const LANDING_FAQS = [
   },
   {
     q: "How big can uploads be?",
-    a: "Each file can be up to 20 MB — 150 MB on Pro, 250 MB on Business — and a question can say which file types it takes.",
+    a: "Each file can be up to 20 MB (150 MB on Pro, 250 MB on Business), and a question can say which file types it takes.",
   },
 ];

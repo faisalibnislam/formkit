@@ -29,7 +29,7 @@ export async function generateMetadata(
       type: "article",
       siteName: "Formkit",
       url: `${SITE_URL}/templates/${t.slug}`,
-      title: `${title} — Formkit`,
+      title: `${title} | Formkit`,
       description: t.meta,
     },
     twitter: { card: "summary_large_image", images: [SHARE_IMAGE], title, description: t.meta },
@@ -63,7 +63,7 @@ export default async function TemplateDetailPage(props: PageProps<"/templates/[s
                 {
                   "@type": "HowToStep",
                   name: "Use the template",
-                  text: "Open the template in Formkit. It becomes your own draft — nothing stays linked to the original.",
+                  text: "Open the template in Formkit. It becomes your own draft. Nothing stays linked to the original.",
                 },
                 {
                   "@type": "HowToStep",
@@ -253,7 +253,7 @@ export default async function TemplateDetailPage(props: PageProps<"/templates/[s
               </h2>
               <ol className="fk-tpl-how">
                 <li>
-                  <strong>Use this template</strong> makes a copy in your account — yours to change, and nothing you
+                  <strong>Use this template</strong> makes a copy in your account. It is yours to change, and nothing you
                   do touches the original.
                 </li>
                 <li>

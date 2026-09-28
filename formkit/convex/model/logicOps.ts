@@ -1,5 +1,5 @@
 /**
- * The operators a condition can use, per kind of question — shared by the
+ * The operators a condition can use, per kind of question - shared by the
  * Logic tab and the server, which checks rules the AI writes against it.
  * What each operator means is in `logicEval.ts`.
  *
@@ -44,7 +44,7 @@ export function operatorGroup(type: string | undefined | null, title: string | u
   return "text";
 }
 
-/** Operators that take no value — the rule reads complete without one. */
+/** Operators that take no value - the rule reads complete without one. */
 export const VALUELESS = new Set(["is-empty", "is-not-empty", "yes", "no"]);
 
 type Q = {
@@ -65,7 +65,7 @@ const range = (from: number, to: number) =>
 
 /**
  * What a condition's value is picked with, for the question it reads: its own
- * options, Yes / No, the points of a scale, or typed text — and whether the
+ * options, Yes / No, the points of a scale, or typed text - and whether the
  * answer is compared as a number.
  */
 export function valueControl(q: Q): ValueControl {

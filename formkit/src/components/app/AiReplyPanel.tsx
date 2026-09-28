@@ -34,8 +34,8 @@ type Insight = {
 };
 
 /**
- * Business: in a response, the reply the AI wrote for this person — what it
- * said, whether it was emailed, how they rated it — with edit, resend and
+ * Business: in a response, the reply the AI wrote for this person - what it
+ * said, whether it was emailed, how they rated it - with edit, resend and
  * write-again; and above it, what the AI read in the response.
  */
 export function AiReplyPanel({
@@ -88,7 +88,7 @@ export function AiReplyPanel({
           {reply.status === "pending" && <p className="fk-resp-ai-note">Being written…</p>}
           {reply.status === "skipped" && (
             <p className="fk-resp-ai-note">
-              Not written — {reply.reason === "allowance" ? "the month’s AI replies had run out, so they got your usual confirmation." : (reply.reason ?? "it was skipped.")}
+              Not written: {reply.reason === "allowance" ? "the month’s AI replies had run out, so they got your usual confirmation." : (reply.reason ?? "it was skipped.")}
             </p>
           )}
           {reply.status === "failed" && (
@@ -131,7 +131,7 @@ export function AiReplyPanel({
                   Emailed {fullTime(reply.emailedAt)}
                 </span>
               ) : reply.emailState && reply.emailState !== "sent" ? (
-                <span>Not emailed{reply.emailState === "no-address" ? " — no email address" : ""}</span>
+                <span>Not emailed{reply.emailState === "no-address" ? ", no email address" : ""}</span>
               ) : null}
               {reply.rating && (
                 <span>

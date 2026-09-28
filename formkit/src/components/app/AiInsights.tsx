@@ -15,7 +15,7 @@ import { errorText } from "./settings/bits";
 import { relativeTime } from "./bits";
 
 /**
- * Business: what the AI read across a form's responses — for forms with AI
+ * Business: what the AI read across a form's responses - for forms with AI
  * replies. How people feel, what they want, which topics come up and how
  * promising each is, who to follow up, and how the replies landed; with a
  * written report on demand.
@@ -41,7 +41,7 @@ export function AiInsights({ formId, from, to }: { formId: Id<"forms">; from: nu
       <section className="fk-panel">
         <h3>AI insights</h3>
         <LockedNote feature="ai.insights">
-          How people feel, what they want and which responses are worth a call — read by AI from every response.
+          How people feel, what they want and which responses are worth a call, read by AI from every response.
         </LockedNote>
       </section>
     );
@@ -118,7 +118,7 @@ export function AiInsights({ formId, from, to }: { formId: Id<"forms">; from: nu
             <StatCard
               icon={<Gauge size={16} strokeWidth={1.9} aria-hidden />}
               label="Average lead score"
-              value={data.averageScore ?? "—"}
+              value={data.averageScore ?? "-"}
               caption="Out of 100, by your goal"
             />
             <StatCard
@@ -130,7 +130,7 @@ export function AiInsights({ formId, from, to }: { formId: Id<"forms">; from: nu
             <StatCard
               icon={<ThumbsUp size={16} strokeWidth={1.9} aria-hidden />}
               label="Replies found helpful"
-              value={rated ? `${pct(data.replies.helpful, rated)}%` : "—"}
+              value={rated ? `${pct(data.replies.helpful, rated)}%` : "-"}
               caption={rated ? `${rated} rated` : "Nobody has rated one yet"}
             />
           </div>
@@ -225,7 +225,7 @@ export function AiInsights({ formId, from, to }: { formId: Id<"forms">; from: nu
                   <span>
                     {data.replies.failed > 0 && `${data.replies.failed} failed`}
                     {data.replies.failed > 0 && data.replies.skipped > 0 && " · "}
-                    {data.replies.skipped > 0 && `${data.replies.skipped} skipped — out of replies`}
+                    {data.replies.skipped > 0 && `${data.replies.skipped} skipped because replies ran out`}
                   </span>
                 )}
               </div>

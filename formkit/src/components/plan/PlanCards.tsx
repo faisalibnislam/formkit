@@ -3,7 +3,7 @@ import { Check } from "lucide-react";
 import { PLANS, REPLY_PACK, type Interval, type PlanId } from "../../../convex/model/plans";
 
 /**
- * The three plans side by side. Presentational only — no hooks — so the
+ * The three plans side by side. Presentational only - no hooks - so the
  * marketing site renders it on the server and the app inside its sheets; the
  * caller supplies each card's button.
  */
@@ -40,9 +40,9 @@ export const PLAN_POINTS: Record<PlanId, { lead?: string; points: string[] }> = 
   business: {
     lead: "Everything in Pro, and",
     points: [
-      `AI replies to every response — ${PLANS.business.aiReplies} a month, then $${REPLY_PACK.price} per ${REPLY_PACK.replies}`,
+      `AI replies to every response: ${PLANS.business.aiReplies} a month, then $${REPLY_PACK.price} per ${REPLY_PACK.replies}`,
       "AI insights: sentiment, intent and lead scores",
-      `AI logic that reads answers — ${PLANS.business.aiChecks.toLocaleString("en-US")} checks a month`,
+      `AI logic that reads answers, ${PLANS.business.aiChecks.toLocaleString("en-US")} checks a month`,
       "Quizzes and exams with a timer, marking and results",
       "A team with unlimited seats",
       "Unlimited companies and brands",
@@ -127,7 +127,7 @@ export function PlanCards({
                   : interval === "month"
                     ? `or $${plan.price.year} a year`
                     : `$${(plan.price.year / 12).toFixed(2)} a month, billed yearly${
-                        saving && saving / (plan.price.month * 12) >= 0.1 ? ` — save $${saving}` : ""
+                        saving && saving / (plan.price.month * 12) >= 0.1 ? `, save $${saving}` : ""
                       }`}
               </div>
             </header>

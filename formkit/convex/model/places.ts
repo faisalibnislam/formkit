@@ -3,7 +3,7 @@ import type { QueryCtx } from "../_generated/server";
 
 /**
  * Limited places (Pro): an option can be picked by so many people and no more
- * — "Workshop A, 20 places". Counted from complete responses, so a place is
+ * - "Workshop A, 20 places". Counted from complete responses, so a place is
  * taken when the form is sent, not when it is ticked.
  */
 

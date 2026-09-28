@@ -23,7 +23,7 @@ import {
  *
  * Nothing here is reachable without a staff role, and every destructive or
  * account-touching action is written to the audit log with who did it. The
- * console is unlinked from the product — `who()` is what decides whether
+ * console is unlinked from the product - `who()` is what decides whether
  * formkit.app/admin shows anything at all.
  */
 
@@ -282,7 +282,7 @@ export const usersPage = query({
   },
 });
 
-/** One person, for the side panel — whether or not they are on the current page. */
+/** One person, for the side panel - whether or not they are on the current page. */
 export const user = query({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
@@ -831,7 +831,7 @@ export const noteSession = mutation({
 
 /**
  * A per-person permission snapshots the role grant at the first change. Once
- * somebody is customised, later changes to their role no longer reach them —
+ * somebody is customised, later changes to their role no longer reach them -
  * the team screen says so next to their name.
  */
 export const setStaffPermission = mutation({

@@ -118,7 +118,7 @@ export function nextMonthLabel() {
 /**
  * Always in the tree, whether or not the account has Ask Formkit: with no
  * userId it provides nothing. Wrapping the app only once the account had
- * loaded would change the tree's shape and rebuild the whole page — the
+ * loaded would change the tree's shape and rebuild the whole page - the
  * tabs visibly blinking a moment after every load.
  */
 export function AskProvider({
@@ -222,7 +222,7 @@ export function AskProvider({
         {
           id: nextId(),
           from: "user",
-          text: sending?.kind === "form" ? `${text} — based on ${sending.label}` : text,
+          text: sending?.kind === "form" ? `${text} (based on ${sending.label})` : text,
           note: sending && sending.kind !== "form" ? sending.label : undefined,
         },
       ]);
@@ -272,7 +272,7 @@ export function AskProvider({
                 : `${n} ${n === 1 ? "question" : "questions"}, ${paged ? "across a few pages" : "on one page"}. ${
                     result.note ?? "Open it in the builder, or tell me what to change."
                   }`,
-              result.revised ? "Free — changing a draft never costs a credit" : `${result.limit - result.used} of ${result.limit} credits left`,
+              result.revised ? "Free. Changing a draft never costs a credit" : `${result.limit - result.used} of ${result.limit} credits left`,
             );
             break;
           }
@@ -281,7 +281,7 @@ export function AskProvider({
             reveal(result.items.length);
             say(
               `Added ${result.items.length} ${result.items.length === 1 ? "question" : "questions"} to ${result.title}, at the end.`,
-              "Free — refining never costs a credit",
+              "Free. Refining never costs a credit",
             );
             break;
           case "rules":
@@ -330,7 +330,7 @@ export function AskProvider({
       setCanvas(null);
       setTarget(id);
       setDrawerOpen(false);
-      toast("Form created", { detail: `${draft.title} — ${n} ${n === 1 ? "question" : "questions"}` });
+      toast("Form created", { detail: `${draft.title}: ${n} ${n === 1 ? "question" : "questions"}` });
       say(`${draft.title} is in your forms as a draft. Ask me for logic, a theme or a different tone.`);
       router.push(`/app/forms/${id}`);
     } catch (e) {

@@ -181,7 +181,7 @@ async function payload(ctx: QueryCtx, form: Doc<"forms">) {
       requireEmail: s.requireEmail,
       editAfter: s.editAfter,
       multiple: s.multiple,
-      /** Unfinished answers are kept, with a link back — a flag on the owner's account. */
+      /** Unfinished answers are kept, with a link back - a flag on the owner's account. */
       partials: await partialsOn(ctx, form.ownerId),
     },
     // A hidden field without the plan is left out entirely.
@@ -207,7 +207,7 @@ async function payload(ctx: QueryCtx, form: Doc<"forms">) {
       /** Quiz: what the question is worth, when it counts. */
       marks: quiz && marked(b) ? (b.marks ?? 1) : null,
     })),
-    /** Business: the quiz's settings the form itself needs — never the answers. */
+    /** Business: the quiz's settings the form itself needs - never the answers. */
     quiz: quizPublic,
     /** Business: an AI-written reply follows, and where it goes. */
     aiReply:
@@ -301,7 +301,7 @@ export const startQuiz = mutation({
         .query("responses")
         .withIndex("by_form_device", (q) => q.eq("formId", formId).eq("deviceId", deviceId))
         .collect();
-      if (done.some((r) => !r.partial && !r.preview)) throw new ConvexError("You’ve already taken this quiz — it allows one attempt.");
+      if (done.some((r) => !r.partial && !r.preview)) throw new ConvexError("You’ve already taken this quiz. It allows one attempt.");
     }
     const startedAt = Date.now();
     const attemptId = await ctx.db.insert("quizAttempts", { formId, startedAt, deviceId });
@@ -339,8 +339,8 @@ export const uploadUrl = mutation({
 });
 
 /**
- * Coming back to a response: a partial the person left, or — when the form
- * allows editing after submit — one they finished.
+ * Coming back to a response: a partial the person left, or - when the form
+ * allows editing after submit - one they finished.
  */
 export const resume = query({
   args: { token: v.string() },
@@ -537,7 +537,7 @@ async function store(
 }
 
 /**
- * Submitting. A partial is a real record — it keeps what was answered before
+ * Submitting. A partial is a real record - it keeps what was answered before
  * the person left, and carries a token so they can be sent back to it. The
  * token, not a response id, is what lets a record be replaced.
  */
@@ -652,7 +652,7 @@ export const submit = mutation({
         if (again) throw new ConvexError("You have already answered this form. Thank you.");
       }
 
-      // Business: a quiz taken once per person — by device and by email.
+      // Business: a quiz taken once per person - by device and by email.
       const quiz = await quizOf(ctx, form);
       if (quiz && existing && !existing.partial) throw new ConvexError("Answers to a quiz can’t be changed once sent.");
       if (quiz?.oneAttempt && !existing) {
@@ -666,7 +666,7 @@ export const submit = mutation({
             !r.preview &&
             ((args.deviceId && r.deviceId === args.deviceId) || (email && r.respondentEmail === email)),
         );
-        if (again) throw new ConvexError("You’ve already taken this quiz — it allows one attempt.");
+        if (again) throw new ConvexError("You’ve already taken this quiz. It allows one attempt.");
       }
     }
 
@@ -675,8 +675,8 @@ export const submit = mutation({
 });
 
 /**
- * The builder's preview sends through the real form too — the answers land in
- * the inbox marked as a preview — whatever state the form is in.
+ * The builder's preview sends through the real form too - the answers land in
+ * the inbox marked as a preview - whatever state the form is in.
  */
 export const submitPreview = mutation({
   args: {

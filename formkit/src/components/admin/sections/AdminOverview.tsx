@@ -77,7 +77,7 @@ export function AdminOverview() {
             {[
               { label: "Active", n: stats.standing.active, color: "var(--green-400)" },
               { label: "Suspended", n: stats.standing.suspended, color: "var(--red-400)" },
-              { label: "Leaving — in their 30 days", n: stats.standing.deleting, color: "var(--yellow-400)" },
+              { label: "Leaving, in their 30 days", n: stats.standing.deleting, color: "var(--yellow-400)" },
             ].map((row) => (
               <div key={row.label}>
                 <div className="fk-admin-standing-row">

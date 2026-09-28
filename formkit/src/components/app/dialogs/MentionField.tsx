@@ -5,7 +5,7 @@ import { Fragment, useRef, useState, type KeyboardEvent, type ReactNode } from "
 /**
  * A comment box that knows who is on the form. Typing @ offers them; picking
  * one writes "@Name" into the text. Whoever is still named that way when the
- * comment is sent is mentioned — so deleting the name un-mentions them, and
+ * comment is sent is mentioned - so deleting the name un-mentions them, and
  * typing a name out in full works as well as picking it.
  */
 

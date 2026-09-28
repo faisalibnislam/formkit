@@ -105,7 +105,7 @@ function MobileHero() {
       <div className="fk-m-hero-body">
         <p className="fk-m-hero-eyebrow">
           <span>Form builder</span>
-          Build forms, add logic, read the responses — free.
+          Build forms, add logic, read the responses. Free.
         </p>
         <h1 className="fk-m-hero-head">
           What will your next{" "}
@@ -213,7 +213,7 @@ function MobileAsk() {
         </div>
       </div>
       <Plate eyebrow="ASK" title="Start with what you need to know.">
-        Eleven questions, written once. Each answer type decides what the respondent sees — drag to
+        Eleven questions, written once. Each answer type decides what the respondent sees. Drag to
         reorder, split into pages, publish when it reads right.
       </Plate>
     </section>
@@ -259,8 +259,8 @@ function MobileShape() {
           </div>
           <div className="fk-m-switch" role="radiogroup" aria-label="Have we worked together before?">
             {[
-              { on: true, label: "Yes — existing client" },
-              { on: false, label: "No — new client" },
+              { on: true, label: "Yes, existing client" },
+              { on: false, label: "No, new client" },
             ].map((o) => (
               <button
                 key={o.label}

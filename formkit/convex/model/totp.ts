@@ -1,6 +1,6 @@
 /**
  * Time-based one-time passwords (RFC 6238), the six-digit codes authenticator
- * apps show. Written out in full — SHA-1, HMAC, base32 — so it runs the same
+ * apps show. Written out in full - SHA-1, HMAC, base32 - so it runs the same
  * in every Convex runtime without depending on which parts of Web Crypto a
  * query or mutation may call.
  */

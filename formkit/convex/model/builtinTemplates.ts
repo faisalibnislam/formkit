@@ -2,7 +2,7 @@
  * The thirteen templates Formkit ships with.
  *
  * These are the real questions a new form is built from. The marketing copy for
- * the same six lives in `src/content/templates.ts` — that file describes them
+ * the same six lives in `src/content/templates.ts` - that file describes them
  * to a visitor, this one defines them. The slugs match, so `/templates/<slug>`
  * and "Use this template" land on the same form. The marketing site shows six
  * of them; the app's library has all thirteen.
@@ -66,7 +66,7 @@ export const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
       button: "Start",
     },
     thanks: {
-      title: "Thank you — we have everything",
+      title: "Thank you, we have everything",
       message: "We will come back to you with a proposal within two working days.",
     },
     blocks: [
@@ -83,7 +83,7 @@ export const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
       }),
       page("Practicalities"),
       f("file", "Anything we should read first?", {
-        help: "A brief, a deck, a moodboard — up to 10 MB.",
+        help: "A brief, a deck, a moodboard. Up to 10 MB.",
       }),
       f("scale", "Where does the budget sit?", { scaleMin: 1, scaleMax: 5 }),
       f("date", "When does this need to be live?"),
@@ -174,7 +174,7 @@ export const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
       button: "Start",
     },
     thanks: {
-      title: "Thanks — we will be in touch",
+      title: "Thanks, we will be in touch",
       message: "Someone will reply within one working day.",
     },
     blocks: [
@@ -332,7 +332,7 @@ export const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
         required: true,
         options: ["Under $3,000", "$3,000–$10,000", "$10,000–$25,000", "Over $25,000"],
       }),
-      f("file", "Existing brand assets", { help: "Logos, type, guidelines — whatever you have" }),
+      f("file", "Existing brand assets", { help: "Logos, type, guidelines, whatever you have" }),
     ],
   },
   {
@@ -523,16 +523,16 @@ export const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
       f("dropdown", "Product", {
         required: true,
         options: [
-          "Print run — business cards",
-          "Print run — posters",
-          "Print run — booklets",
+          "Print run: business cards",
+          "Print run: posters",
+          "Print run: booklets",
           "Custom job",
         ],
       }),
       f("number", "Quantity", { required: true }),
       f("dropdown", "Paper stock", {
         required: true,
-        options: ["Uncoated 300gsm", "Coated 350gsm", "Recycled 300gsm", "Not sure — advise me"],
+        options: ["Uncoated 300gsm", "Coated 350gsm", "Recycled 300gsm", "Not sure, advise me"],
       }),
       f("long-text", "Specification and notes", { help: "Sizes, finishes, anything unusual" }),
       f("file", "Artwork", { help: "PDF preferred, up to 10 MB", accept: [".pdf", ".ai", ".png"] }),

@@ -23,7 +23,7 @@ async function load(host: string) {
 export async function generateMetadata({ params }: PageProps<"/domain/[host]">): Promise<Metadata> {
   const { host } = await params;
   const data = await load(decodeURIComponent(host));
-  return { title: data ? `${data.name} — forms` : "Forms", robots: { index: false } };
+  return { title: data ? `${data.name}: forms` : "Forms", robots: { index: false } };
 }
 
 export default async function DomainHome({ params }: PageProps<"/domain/[host]">) {

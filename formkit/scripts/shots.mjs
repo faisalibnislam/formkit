@@ -1,7 +1,7 @@
 /**
  * Render every application screen and write it to `preview-shots/`.
  *
- * Run `npm run preview` first — this drives that server, so the screens are
+ * Run `npm run preview` first - this drives that server, so the screens are
  * drawn from the fixtures in `scripts/preview/` rather than from a backend.
  * It reports console errors and horizontal overflow alongside each shot,
  * because both are invisible in a screenshot and fatal in the product.
@@ -101,7 +101,7 @@ for (const [name, route] of SCREENS) {
   if (overflow > 0) notes.push(`overflows ${overflow}px`);
   if (errors.length) notes.push(`${errors.length} console errors`);
   if (notes.length) bad++;
-  console.log(`${notes.length ? "✗" : "✓"} ${name.padEnd(20)} ${route}${notes.length ? "  — " + notes.join(", ") : ""}`);
+  console.log(`${notes.length ? "✗" : "✓"} ${name.padEnd(20)} ${route}${notes.length ? " - " + notes.join(", ") : ""}`);
   for (const e of errors.slice(0, 3)) console.log(`    ${e}`);
 }
 

@@ -1,6 +1,6 @@
 /**
- * The app header's sky, following the viewer's clock — morning, afternoon or
- * evening — or pinned from Settings → Appearance. Evening is the Night Sky the
+ * The app header's sky, following the viewer's clock - morning, afternoon or
+ * evening - or pinned from Settings → Appearance. Evening is the Night Sky the
  * public pages use; morning and afternoon are drawn in CSS from the design
  * file, never a photograph (the photographic band is retired).
  *

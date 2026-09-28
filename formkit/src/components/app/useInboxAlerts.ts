@@ -14,8 +14,8 @@ import { useToast } from "@/components/ui/Toast";
  * browser has been allowed them and the tab is in the background, and the
  * unread count in the tab's title.
  *
- * Browser alerts are a per-browser choice — the permission itself belongs to
- * the browser — so the switch is kept in this browser, not on the account.
+ * Browser alerts are a per-browser choice - the permission itself belongs to
+ * the browser - so the switch is kept in this browser, not on the account.
  */
 
 type Inbox = FunctionReturnType<typeof api.inbox.list>;
@@ -72,7 +72,7 @@ export function useInboxAlerts(inbox: Inbox | undefined) {
     }
     const fresh = inbox.items.filter((i) => !i.read && !seen.current!.has(i._id));
     for (const id of ids) seen.current.add(id);
-    // Several at once — a burst of responses — become one toast.
+    // Several at once - a burst of responses - become one toast.
     if (fresh.length > 1) {
       toast(`${fresh.length} new notifications`, {
         detail: fresh[0]!.title,

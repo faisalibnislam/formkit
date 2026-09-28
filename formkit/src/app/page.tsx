@@ -4,7 +4,7 @@ import { JsonLd, faqPage, organization } from "@/components/site/JsonLd";
 import { LANDING_FAQS } from "@/content/landing";
 import { SHARE_IMAGE, SITE_URL } from "@/lib/site";
 
-const TITLE = "Formkit — the free form builder for client-facing work";
+const TITLE = "Formkit: the free form builder for client-facing work";
 const DESCRIPTION =
   "Formkit is a free online form builder: drag-and-drop questions, conditional logic, your own branding and link, a response inbox with partials, analytics and CSV or Excel export.";
 

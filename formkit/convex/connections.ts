@@ -16,8 +16,8 @@ import { csv } from "./model/sheet";
  *   "<t>.<body>">). Zapier's and Make's "catch hook" URLs are webhooks too.
  *   A failed delivery is tried again after a minute, then after ten.
  * - Slack: a short summary to an incoming-webhook URL.
- * - Google Sheets: a private link the sheet pulls from — =IMPORTDATA() for
- *   CSV, or a small Apps Script for faster refreshes — so Google never needs
+ * - Google Sheets: a private link the sheet pulls from - =IMPORTDATA() for
+ *   CSV, or a small Apps Script for faster refreshes - so Google never needs
  *   to grant Formkit access to anything.
  *
  * Everything follows the form owner's plan; without it nothing is sent and
@@ -362,7 +362,7 @@ function slackText(p: Payload) {
     const money = moneyText(pay.amount, pay.currency);
     return `${who} paid ${money} for *${p.form.title}*`;
   }
-  const head = p.event === "response.test" ? `Test from Formkit — ${p.form.title}` : `New response to *${p.form.title}*`;
+  const head = p.event === "response.test" ? `Test from Formkit: ${p.form.title}` : `New response to *${p.form.title}*`;
   return [head, ...lines].join("\n\n");
 }
 
@@ -407,7 +407,7 @@ async function sendOne(
     attempt,
     ok,
     status,
-    detail: test ? `Test${detail ? ` — ${detail}` : ""}` : detail,
+    detail: test ? `Test${detail ? `: ${detail}` : ""}` : detail,
   });
   return { ok, status, detail };
 }

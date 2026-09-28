@@ -4,7 +4,7 @@ Forms people actually finish. Next.js 16 on the front, Convex for data and auth,
 Resend for email, Vercel for hosting.
 
 Formkit is free. There are no plans, no prices and no billing anywhere in the
-product — see `PRODUCT_DECISIONS.md` in the handoff for the rest of the standing
+product - see `PRODUCT_DECISIONS.md` in the handoff for the rest of the standing
 decisions before changing anything.
 
 ## Running it
@@ -16,7 +16,7 @@ npm run dev
 ```
 
 `npx convex dev` needs to reach `api.convex.dev`. Where it cannot, run
-`node scripts/convex-codegen.mjs` instead — it writes `convex/_generated/` from
+`node scripts/convex-codegen.mjs` instead - it writes `convex/_generated/` from
 the modules on disk so the app typechecks and builds offline. Run it after
 adding a Convex module.
 
@@ -29,9 +29,9 @@ Two different places hold secrets, and it matters which.
 | Key | Value |
 | --- | --- |
 | `NEXT_PUBLIC_CONVEX_URL` | The Convex deployment the browser connects to |
-| `NEXT_PUBLIC_SITE_URL` | `https://formkit.app` — canonicals, Open Graph, sitemap |
+| `NEXT_PUBLIC_SITE_URL` | `https://formkit.app` - canonicals, Open Graph, sitemap |
 
-**The Convex deployment** — these are server-side and never reach the browser,
+**The Convex deployment** - these are server-side and never reach the browser,
 so they are set with `npx convex env set`, not in `.env.local`:
 
 Two of them are Convex Auth's own signing keys, and nothing works without
@@ -87,10 +87,10 @@ deploy` hands the resulting deployment URL to the inner `npm run build` as
 Production and preview point at different Convex deployments on purpose, so a
 preview build never writes to production data. Both `CONVEX_DEPLOY_KEY` and
 `NEXT_PUBLIC_CONVEX_URL` are set per target and the two must name the same
-deployment — change one and change the other.
+deployment - change one and change the other.
 
 Environment variables do not travel between Convex deployments. A new
-deployment starts with none — including `JWT_PRIVATE_KEY` and `JWKS` — so the
+deployment starts with none - including `JWT_PRIVATE_KEY` and `JWKS` - so the
 whole list above has to be set again on it before anyone can sign up.
 
 To push Convex by hand instead:
@@ -103,11 +103,11 @@ npx convex deploy
 
 ```
 convex/            schema, queries, mutations, actions
-  model/           shared helpers — identity, handles, forms, built-in templates
+  model/           shared helpers - identity, handles, forms, built-in templates
   emails/          the one HTML shell every email is rendered into
 src/app/           routes: marketing, /app (signed in), /admin, the published form
 src/components/
-  site/            public chrome — nav, footer, legal, help
+  site/            public chrome - nav, footer, legal, help
   landing/         the scroll story; one rAF loop, no React state
   app/             the signed-in application
   admin/           the staff console
@@ -119,7 +119,7 @@ src/styles/        tokens copied from the design system, then one file per area
 ## Looking at the signed-in app
 
 The application is drawn almost entirely from Convex queries, so it cannot be
-looked at without a backend — which is how it came to be written without ever
+looked at without a backend - which is how it came to be written without ever
 being rendered. `scripts/preview/` swaps the Convex hooks for fixtures:
 
 ```bash
@@ -151,14 +151,14 @@ are in `../project/shots/`.
 ## Things worth knowing before changing them
 
 - **The record dock is the app's navigation.** The tabs along the bottom of the
-  sky band are it — there is deliberately no second row of tabs in the bar
+  sky band are it - there is deliberately no second row of tabs in the bar
   above. `ClientTab` in `src/components/app/ds.tsx` is a locked design: the
   active tab's concave bottom shoulders are a radial-gradient square parked
   outside each corner, because `border-radius` cannot express a concave corner.
   The dock is the last thing in the band and the band carries no padding below
   it, so the tabs meet its edge however tall the active one grows.
 - **A builder card is always `draggable`.** `onCardPointerDown` decides whether
-  the press may start a drag — it arms `gripArm` unless the pointer landed on a
+  the press may start a drag - it arms `gripArm` unless the pointer landed on a
   control, and `onDragStart` cancels the drag when the flag is unset. Setting
   `draggable` from state on mousedown does not work: the browser reads the
   attribute before that state lands. What is being dragged is held in a ref as
@@ -178,7 +178,7 @@ are in `../project/shots/`.
   from `getBoundingClientRect()` makes the bar flicker as it hides itself.
 - **The landing hero leans toward the pointer.** The floating form parts, and
   the pill in the headline, bob on a clock of their own and tilt in 3D toward
-  the cursor — `floaties()` in `scrollEngine.ts`, on its own rAF loop because
+  the cursor - `floaties()` in `scrollEngine.ts`, on its own rAF loop because
   the scroll loop parks itself once everything has settled. The stage needs its
   `perspective`, and everything stops under `prefers-reduced-motion`.
 - **Nothing between a menu and `.fk-app-head` may carry a `z-index`.** Any that
@@ -195,4 +195,4 @@ are in `../project/shots/`.
   has no on/off switch, Collaborators owns people, and a claimed handle owns the
   shape of the URL. Do not fold them together.
 - **Ask Formkit is an allow-list, off by default.** An account without it has no
-  AI surface at all — no launcher, no locked state, no mention in settings.
+  AI surface at all - no launcher, no locked state, no mention in settings.

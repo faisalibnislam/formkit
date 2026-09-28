@@ -12,7 +12,7 @@ import { sourceLabel } from "./source";
 /**
  * The public link. It fetches the form, asks for its password when it has one,
  * shows the closed or not-yet-published screens, and otherwise hands over to
- * the runner — which the builder's preview uses too.
+ * the runner - which the builder's preview uses too.
  */
 
 const DEVICE_KEY = "fk.device";

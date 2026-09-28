@@ -15,7 +15,7 @@ import { PageSkeleton } from "./Skeleton";
  *
  * This page exists only for an account on the allow-list; the shell does not
  * link to it otherwise, and the server refuses. There is no locked state here
- * on purpose — an account without access should never learn the feature exists.
+ * on purpose - an account without access should never learn the feature exists.
  */
 
 const SUGGESTIONS = [

@@ -172,7 +172,7 @@ export function AnalyticsScene() {
                     0
                   </span>
                 </span>
-                {/* Colour never lands on the numeral — the state rides in the disc. */}
+                {/* Colour never lands on the numeral - the state rides in the disc. */}
                 <span
                   style={{
                     display: "inline-flex",

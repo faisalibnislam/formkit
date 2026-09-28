@@ -6,7 +6,7 @@ import { useEffect, useRef } from "react";
  * The app's own page scrollbar: a thin thumb on the right edge, pale at rest,
  * darker while the page moves or is dragged, with no track to fill the sky
  * band's edge. The browser's bar is hidden only while this one is mounted, and
- * only for a mouse — touch screens keep their own overlay bar, which already
+ * only for a mouse - touch screens keep their own overlay bar, which already
  * behaves this way.
  *
  * Everything is written straight to the element on scroll; nothing re-renders.

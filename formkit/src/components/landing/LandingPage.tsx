@@ -19,7 +19,7 @@ import { MobileLanding } from "./MobileLanding";
 import { createEngine, UNPIN_AT, type Engine } from "./scrollEngine";
 
 /**
- * The marketing home: one continuous scroll story around a single form —
+ * The marketing home: one continuous scroll story around a single form -
  * ASK → SHAPE → ANSWER → UNDERSTAND → ACT.
  *
  * The scroll choreography is an imperative effect writing to the DOM, not React

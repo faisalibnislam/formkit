@@ -26,7 +26,7 @@ export function PlanSection() {
 
 /**
  * Arriving from the pricing page (`?upgrade=pro&interval=year`) opens the
- * checkout for that plan straight away — once, and only if it is an upgrade.
+ * checkout for that plan straight away - once, and only if it is an upgrade.
  */
 function useUpgradeFromLink(current: PlanId, go: (plan: Exclude<PlanId, "free">, interval: Interval) => void) {
   const search = useSearchParams();
@@ -65,7 +65,7 @@ function PlanBody({ viewer }: { viewer: NonNullable<FunctionReturnType<typeof ap
   const status = plan.comped
     ? "Given to you by Formkit, free of charge."
     : plan.id === "free"
-      ? "Free for as long as you like — no card on file."
+      ? "Free for as long as you like, with no card on file."
       : plan.cancelAtPeriodEnd && plan.endsAt
         ? `Cancelled. ${plan.name} stays on until ${date(plan.endsAt)}, and you will not be charged again.`
         : plan.status === "past_due" && plan.endsAt
@@ -76,13 +76,13 @@ function PlanBody({ viewer }: { viewer: NonNullable<FunctionReturnType<typeof ap
     <>
       {search.get("replies") === "added" && (
         <div className="fk-plan-welcome" role="status">
-          <strong>Thank you — your AI replies are on their way.</strong> They appear below as soon as Polar confirms
+          <strong>Thank you. Your AI replies are on their way.</strong> They appear below as soon as Polar confirms
           the payment, and roll over until used.
         </div>
       )}
       {welcome && welcome !== "free" && (
         <div className="fk-plan-welcome" role="status">
-          <strong>Thank you — welcome to {PLANS[welcome].name}.</strong>{" "}
+          <strong>Thank you, and welcome to {PLANS[welcome].name}.</strong>{" "}
           {plan.id === welcome
             ? "Everything in it is on now."
             : "Polar is confirming the payment; your plan switches over in a moment, no need to refresh."}
@@ -187,8 +187,8 @@ function PlanBody({ viewer }: { viewer: NonNullable<FunctionReturnType<typeof ap
             {(Object.keys(FEATURES) as Feature[]).map((f) => (
               <tr key={f}>
                 <th scope="row">{FEATURES[f].label}</th>
-                <td aria-label="Not included">—</td>
-                <td>{FEATURES[f].plan === "pro" ? "✓" : "—"}</td>
+                <td aria-label="Not included">-</td>
+                <td>{FEATURES[f].plan === "pro" ? "✓" : "-"}</td>
                 <td>✓</td>
               </tr>
             ))}

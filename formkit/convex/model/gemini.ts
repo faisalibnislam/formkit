@@ -148,7 +148,11 @@ export function voice(input: string) {
     .replace(/\bColor(s|ed|ing|ful)?\b/g, (m) => `Colour${m.slice(5)}`)
     .replace(/\bfavorite(s)?\b/g, (m) => `favourite${m.slice(8)}`)
     .replace(/\bcenter(s|ed)?\b/g, (m) => `centre${m.slice(6)}`)
-    .replace(/\bi\b/g, "I");
+    .replace(/\bi\b/g, "I")
+    // No em dashes in anything a person reads: a comma does the same job.
+    .replace(/\s*—\s*/g, ", ")
+    .replace(/\s+–\s+/g, ", ")
+    .replace(/,\s*([.,;:!?])/g, "$1");
   out = out.replace(/(^|[.!?]\s+|\n\s*)([a-z])/g, (m, pre: string, ch: string) => pre + ch.toUpperCase());
   return out.trim();
 }

@@ -11,8 +11,8 @@ type Key = "theme" | "notify" | "welcome" | "thanks" | "security";
 /**
  * One of a form's settings objects, changed here and saved a moment later.
  *
- * What was changed shows straight away — a colour dragged through the picker
- * repaints the preview on every step — and the keys that changed are merged on
+ * What was changed shows straight away - a colour dragged through the picker
+ * repaints the preview on every step - and the keys that changed are merged on
  * the server in one write once the changes pause. A key stops being held
  * locally as soon as the server reads back the same value.
  */

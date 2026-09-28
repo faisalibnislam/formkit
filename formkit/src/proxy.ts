@@ -16,15 +16,15 @@ import { api } from "../convex/_generated/api";
  * formkit.app/admin is unlinked and gated by who you are: staff get the
  * console, a signed-in customer is sent to their dashboard, and a stranger to
  * the marketing site. The customer-versus-staff half of that is decided inside
- * the admin route itself, since only Convex knows the staff role — here we only
+ * the admin route itself, since only Convex knows the staff role - here we only
  * keep signed-out visitors away from anything authenticated.
  */
 const isSignedInOnly = createRouteMatcher(["/app(.*)", "/admin(.*)", "/onboarding(.*)"]);
 const isAuthPage = createRouteMatcher(["/signin", "/signup"]);
 
 /**
- * `/app?view=…` is how links into auth and onboarding are written — from
- * emails and the marketing site — so each lands on its own page.
+ * `/app?view=…` is how links into auth and onboarding are written - from
+ * emails and the marketing site - so each lands on its own page.
  */
 const VIEWS: Record<string, string> = {
   signin: "/signin",

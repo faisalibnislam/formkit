@@ -1,6 +1,6 @@
 /* The landing page on a phone (MobileLanding.tsx), shown at 820px and below.
-   Every section is one of the page frame's rounded, ringed cards — the frame
-   rules in landing.css cover `.fk-mob > section` — and nothing here pins,
+   Every section is one of the page frame's rounded, ringed cards - the frame
+   rules in landing.css cover `.fk-mob > section` - and nothing here pins,
    scrolls sideways at page level, or relies on the scroll engine. */
 
 .fk-m-sec {

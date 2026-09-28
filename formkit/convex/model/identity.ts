@@ -4,7 +4,7 @@ import { Doc, Id } from "../_generated/dataModel";
 import { MutationCtx, QueryCtx } from "../_generated/server";
 import { PLANS, planOfId } from "./plans";
 
-/** The signed-in person, or null. Never throws — callers decide what a guest sees. */
+/** The signed-in person, or null. Never throws - callers decide what a guest sees. */
 export async function currentUser(ctx: QueryCtx | MutationCtx): Promise<Doc<"users"> | null> {
   const userId = await getAuthUserId(ctx);
   if (userId === null) return null;
@@ -78,7 +78,7 @@ export const ROLE_DEFAULTS: Record<string, string[]> = {
 
 /**
  * Two layers: `rolePerms` sets what a role can do, and a per-person override
- * snapshots the role grant at the moment of the first change — once somebody is
+ * snapshots the role grant at the moment of the first change - once somebody is
  * customised, later role changes no longer reach them.
  */
 export async function staffPermissions(

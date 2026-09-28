@@ -119,7 +119,7 @@ export function Field({
 
 type InputProps = InputHTMLAttributes<HTMLInputElement> & {
   icon?: ReactNode;
-  /** Sits after the field — a unit, or the shortcut that opens it. */
+  /** Sits after the field - a unit, or the shortcut that opens it. */
   trailing?: ReactNode;
   invalid?: boolean;
   inputSize?: "sm" | "md";
@@ -247,7 +247,7 @@ export type SelectOption = { value: string; label: string; note?: string };
 /**
  * The app's own dropdown, never the operating system's.
  *
- * It measures on open and flips above — or right-aligns — when the menu would
+ * It measures on open and flips above - or right-aligns - when the menu would
  * leave the viewport, re-measuring on scroll and resize. Do not hardcode
  * `top: 100%` back into the menu.
  */
@@ -272,7 +272,7 @@ export function Select({
   /** A filter box at the top of the menu, for long lists. */
   searchable?: boolean;
   searchPlaceholder?: string;
-  /** Per-option styling — a font list shows each name in its own face. */
+  /** Per-option styling - a font list shows each name in its own face. */
   optionStyle?: (o: SelectOption) => CSSProperties | undefined;
   onOpen?: () => void;
 }) {
@@ -406,7 +406,7 @@ export function Select({
 
       {open && rect && (
         /* In a portal, placed from the trigger's own box: a menu that stays
-           in the page is trapped under whatever stacking context it is in —
+           in the page is trapped under whatever stacking context it is in -
            the dock paints over one that opens upward beneath it. */
         <Portal>
         <div
@@ -493,7 +493,7 @@ function isLight(hex: string) {
 
 /**
  * A colour: a row of swatches, the system picker behind an eyedropper, and a
- * hex field that only commits six valid digits — anything else says so in
+ * hex field that only commits six valid digits - anything else says so in
  * red and changes nothing.
  */
 export function ColorField({

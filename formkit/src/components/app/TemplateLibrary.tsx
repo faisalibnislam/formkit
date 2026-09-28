@@ -96,7 +96,7 @@ export function TemplateLibrary() {
               <Bookmark size={18} strokeWidth={1.8} />
             </span>
             <p>
-              Build a form the way you like it, then save it here — open the form, then choose Save as
+              Build a form the way you like it, then save it here: open the form and choose Save as
               template from its menu.
             </p>
             {firstForm && (

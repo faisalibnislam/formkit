@@ -52,7 +52,7 @@ export default defineSchema({
   ...authTables,
 
   /**
-   * `authTables.users` is extended rather than replaced — Convex Auth writes
+   * `authTables.users` is extended rather than replaced - Convex Auth writes
    * name/email/image, and everything below is Formkit's own.
    */
   users: defineTable({
@@ -89,7 +89,7 @@ export default defineSchema({
     planComp: v.optional(v.union(v.literal("pro"), v.literal("business"))),
     /** Pro: no "Made with Formkit" on forms published under the person's own name. */
     hideBadge: v.optional(v.boolean()),
-    /** When the current paid plan began — for tenure and cohort figures. */
+    /** When the current paid plan began - for tenure and cohort figures. */
     planSince: v.optional(v.number()),
     /** Business: AI replies and AI logic checks used this month ("2026-09"). */
     aiReplyPeriod: v.optional(v.string()),
@@ -389,7 +389,7 @@ export default defineSchema({
     key: v.optional(v.string()),
     /** Pro: points for each option, in the same order as `options`. */
     scores: v.optional(v.array(v.number())),
-    /** Quiz: the right answer(s) — options, or accepted typed answers. */
+    /** Quiz: the right answer(s) - options, or accepted typed answers. */
     answerKey: v.optional(v.array(v.string())),
     /** Quiz: what the question is worth; 1 when not set. */
     marks: v.optional(v.number()),
@@ -398,7 +398,7 @@ export default defineSchema({
     /** Pro: how many people can pick each option, in the same order as `options`; 0 is no limit. */
     limits: v.optional(v.array(v.number())),
     /**
-     * Business: a hidden field filled by AI from another answer — "the budget
+     * Business: a hidden field filled by AI from another answer - "the budget
      * in dollars, as a number" read out of a free-text reply.
      */
     extract: v.optional(v.object({ from: v.id("blocks"), what: v.string() })),
@@ -539,7 +539,7 @@ export default defineSchema({
         emailedAt: v.optional(v.number()),
         emailState: v.optional(v.string()),
         rating: v.optional(v.union(v.literal("up"), v.literal("down"))),
-        /** Which allowance paid for it — handed back if the reply fails. */
+        /** Which allowance paid for it - handed back if the reply fails. */
         charged: v.optional(v.union(v.literal("monthly"), v.literal("pack"))),
         /** The AI thinks a person should follow this one up. */
         needsHuman: v.optional(v.boolean()),
@@ -837,7 +837,7 @@ export default defineSchema({
   }).index("by_key", ["key"]),
 
   /**
-   * Pro: a domain of the customer's own (forms.acme.com) for one identity —
+   * Pro: a domain of the customer's own (forms.acme.com) for one identity -
    * the person or one of their companies. Added to the Vercel project, then
    * checked until its DNS points at Formkit.
    */
@@ -942,7 +942,7 @@ export default defineSchema({
     .index("by_hash", ["hash"]),
 
   /**
-   * Pro: where a form's new responses go — a signed webhook (Zapier and
+   * Pro: where a form's new responses go - a signed webhook (Zapier and
    * Make catch these too), a Slack channel, or a Google Sheet that pulls from
    * a private link.
    */

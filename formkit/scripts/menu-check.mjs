@@ -7,7 +7,7 @@
  * A menu can have the highest z-index in the stylesheet and still be buried:
  * any ancestor between it and the page that carries a z-index of its own makes
  * a stacking context, and the menu is then trapped inside it. That is not
- * visible in the markup and it is not visible in the CSS — the only honest test
+ * visible in the markup and it is not visible in the CSS - the only honest test
  * is to open the thing and ask the browser what is actually at that point.
  */
 import { chromium } from "playwright";

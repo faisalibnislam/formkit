@@ -30,7 +30,7 @@
 
 /* Pinned (scroll-driven) sections are the exception: the section stays
    full-bleed and transparent and the rounding, tint and ring live on the
-   sticky shell inside it. Never give that shell height:auto — its children are
+   sticky shell inside it. Never give that shell height:auto - its children are
    absolutely positioned, so it collapses to 0 and overflow:hidden erases it. */
 .fk-page > section.fk-pinned {
   margin: 0;
@@ -174,7 +174,7 @@
   color: #ffffff;
 }
 
-/* A box that scrolls sideways — a wide comparison table, the permission matrix.
+/* A box that scrolls sideways - a wide comparison table, the permission matrix.
 
    `overflow-x: auto` alone is not enough: a table wider than the box still
    inflates the document's scroll width in Chromium, and the whole page ends up

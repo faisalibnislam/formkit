@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 
 /**
  * Placeholders in the shape of what is coming, shown the moment a page is
- * asked for and until its data arrives — so a click always changes the screen
+ * asked for and until its data arrives - so a click always changes the screen
  * at once, and nothing jumps when the real content lands.
  *
  * Server-safe (no hooks), so a route's loading.tsx can render it.

@@ -12,7 +12,7 @@ import { MULTI, VALUELESS, opLabel, valueControl } from "./operators";
 
 /**
  * The whole of a form's logic at a glance: its pages in order, what each rule
- * does to which question, where people can skip to and where they can end —
+ * does to which question, where people can skip to and where they can end -
  * with the mistakes worth fixing listed underneath. The tester runs the same
  * rules the live form runs, on answers picked here.
  */
@@ -107,7 +107,7 @@ export function logicChecks(form: Form, rules: Rule[]): Check[] {
         out.push({
           level: "warn",
           rule: r._id,
-          text: `${name} jumps back or onto the same page — a jump only ever moves forward, so it does nothing.`,
+          text: `${name} jumps back or onto the same page. A jump only ever moves forward, so it does nothing.`,
         });
       }
     }
@@ -221,7 +221,7 @@ function FlowMap({ form, rules }: { form: Form; rules: Rule[] }) {
                       <span key={r._id} className="fk-lmap-effect">
                         <CornerDownRight size={13} strokeWidth={1.8} aria-hidden />
                         {ACTION_WORD[r.action] ?? r.action} <Words rule={r} byId={byId} />
-                        {r.action === "hide-options" && r.options?.length ? ` — hides ${r.options.join(", ")}` : ""}
+                        {r.action === "hide-options" && r.options?.length ? `, hiding ${r.options.join(", ")}` : ""}
                       </span>
                     ))}
                   </li>
@@ -264,7 +264,7 @@ function FlowMap({ form, rules }: { form: Form; rules: Rule[] }) {
 function Words({ rule, byId }: { rule: Rule; byId: Map<string, Block> }) {
   const conds = conditionsOf(rule);
   const first = conds[0];
-  if (!first) return <>—</>;
+  if (!first) return <>…</>;
   const say = (c: typeof first) => {
     if (c.source === "ai") return `AI: ${c.value || "…"} (${c.operator === "no" ? "no" : "yes"})`;
     if (c.source === "calc") return `{{${c.ref}}} ${opLabel(c.operator)} ${c.value ?? ""}`;
@@ -398,7 +398,7 @@ function Tester({ form, rules }: { form: Form; rules: Rule[] }) {
             <span>
               <Sparkles size={13} strokeWidth={1.8} aria-hidden style={{ display: "inline-block", marginRight: 6 }} />
               {c.text}
-              {c.q ? <em> — about “{title(c.q)}”</em> : null}
+              {c.q ? <em> (about “{title(c.q)}”)</em> : null}
             </span>
             <Select
               size="sm"

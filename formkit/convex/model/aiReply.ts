@@ -60,7 +60,7 @@ export async function queueReply(ctx: MutationCtx, form: Doc<"forms">, responseI
       await notify(ctx, owner._id, {
         kind: "ai",
         title: "You’ve used this month’s AI replies",
-        body: `New responses get your usual confirmation until next month. Add ${REPLY_PACK.replies} more for $${REPLY_PACK.price} — they roll over until used.`,
+        body: `New responses get your usual confirmation until next month. Add ${REPLY_PACK.replies} more for $${REPLY_PACK.price} . They roll over until used.`,
         href: "/app/settings?tab=plan",
         action: "Add AI replies",
         icon: "sparkles",

@@ -34,7 +34,7 @@ export function ContactSupport({ variant = "secondary" }: { variant?: "primary" 
           title="Contact support"
           description={
             data?.priority
-              ? "Your plan has priority support — a person replies within one business day."
+              ? "Your plan has priority support. A person replies within one business day."
               : "A person reads every message. Replies arrive in your notifications."
           }
           onClose={() => setShow(false)}

@@ -6,7 +6,7 @@ import { formFor } from "./model/forms";
 
 /**
  * A record of every export, so Settings → Exports can list what was taken and
- * fetch the same rows again. Only what is needed to rebuild the file is kept —
+ * fetch the same rows again. Only what is needed to rebuild the file is kept -
  * never the rows themselves.
  */
 

@@ -9,11 +9,11 @@ import { useToast } from "@/components/ui/Toast";
 import { errorText } from "@/components/app/settings/bits";
 
 const KEYS = [
-  ["pro_month", "Pro, monthly — $3"],
-  ["pro_year", "Pro, yearly — $35"],
-  ["business_month", "Business, monthly — $10"],
-  ["business_year", "Business, yearly — $99"],
-  ["replies_100", "AI replies, 100 — $5 one-off"],
+  ["pro_month", "Pro, monthly, $3"],
+  ["pro_year", "Pro, yearly, $35"],
+  ["business_month", "Business, monthly, $10"],
+  ["business_year", "Business, yearly, $99"],
+  ["replies_100", "AI replies, 100 for a one-off $5"],
 ] as const;
 
 /**
@@ -37,10 +37,10 @@ export function AdminBilling() {
   return (
     <>
       <div className="fk-grid" data-cols="stats-sm">
-        <StatCard label="Paying accounts" value={status ? status.counts.paying.toLocaleString() : "—"} />
-        <StatCard label="Monthly revenue" value={status ? `$${status.mrr.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"} caption="Yearly plans counted by the month" />
-        <StatCard label="On Pro" value={status ? status.counts.pro.toLocaleString() : "—"} />
-        <StatCard label="On Business" value={status ? status.counts.business.toLocaleString() : "—"} caption={status?.counts.comped ? `${status.counts.comped} given free` : undefined} />
+        <StatCard label="Paying accounts" value={status ? status.counts.paying.toLocaleString() : "-"} />
+        <StatCard label="Monthly revenue" value={status ? `$${status.mrr.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "-"} caption="Yearly plans counted by the month" />
+        <StatCard label="On Pro" value={status ? status.counts.pro.toLocaleString() : "-"} />
+        <StatCard label="On Business" value={status ? status.counts.business.toLocaleString() : "-"} caption={status?.counts.comped ? `${status.counts.comped} given free` : undefined} />
       </div>
 
       <section className="fk-panel">
@@ -49,7 +49,7 @@ export function AdminBilling() {
         </h3>
         <p className="fk-panel-lede">
           Formkit bills through Polar, which handles payment, tax and receipts. The secrets go in the Convex dashboard,
-          under the production deployment&rsquo;s Settings → Environment Variables — never here.
+          under the production deployment&rsquo;s Settings → Environment Variables, never here.
           {status?.server === "sandbox"
             ? " Running against Polar’s sandbox: remove POLAR_SERVER when you are ready to take real payments."
             : " To test with Polar’s sandbox first, add POLAR_SERVER with the value sandbox."}
@@ -68,15 +68,15 @@ export function AdminBilling() {
             Add the secret Polar shows in Convex as <code className="fk-admin-code">POLAR_WEBHOOK_SECRET</code>
           </Step>
           <Step done={KEYS.every(([k]) => products[k])} title="3. The products">
-            Once the token is in, “Create them in Polar” below makes any that are missing — the four plans and the
-            pack of AI replies — at the listed prices. Ones already made are kept. Or paste the ids of products you
+            Once the token is in, “Create them in Polar” below makes any that are missing (the four plans and the
+            pack of AI replies) at the listed prices. Ones already made are kept. Or paste the ids of products you
             made in Polar yourself.
           </Step>
         </div>
         {status?.lastEvent && (
           <p className="fk-admin-quiet" style={{ margin: "16px 0 0" }}>
             Last webhook: {status.lastEvent.type}, {new Date(status.lastEvent.at).toLocaleString("en-US")}
-            {status.lastEvent.matched ? "" : " — no account matched it"}
+            {status.lastEvent.matched ? "" : ". No account matched it."}
           </p>
         )}
       </section>

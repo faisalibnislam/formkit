@@ -2,7 +2,7 @@
 
 /* The Formkit Design System tokens, copied verbatim from the handoff bundle at
    _ds/formkit-design-system-e346e922-…/tokens/. Link these rather than
-   re-deriving values — see the handoff README under "Design tokens". */
+   re-deriving values - see the handoff README under "Design tokens". */
 @import "../styles/tokens/colors.css";
 @import "../styles/tokens/typography.css";
 @import "../styles/tokens/spacing.css";
@@ -35,7 +35,7 @@
    Fonts at runtime, and it still declares the retired JetBrains Mono. */
 :root {
   --font-sans: var(--font-outfit), "Helvetica Neue", Arial, sans-serif;
-  /* No monospace anywhere in Formkit — a standing instruction. Every existing
+  /* No monospace anywhere in Formkit - a standing instruction. Every existing
      var(--font-mono) reference resolves to the sans stack. */
   --font-mono: var(--font-sans);
 }
@@ -51,7 +51,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* A link signals itself with colour, weight or a pill — never a line. */
+/* A link signals itself with colour, weight or a pill - never a line. */
 a {
   color: var(--blue-700);
   text-decoration: none;
@@ -103,7 +103,7 @@ a:hover {
   display: none;
 }
 
-/* Skip link — visually hidden until focused. */
+/* Skip link - visually hidden until focused. */
 .fk-skip {
   position: absolute;
   left: -9999px;

@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     type: "website",
     siteName: "Formkit",
     url: `${SITE_URL}/compare`,
-    title: `${TITLE} — Formkit`,
+    title: `${TITLE} | Formkit`,
     description: DESCRIPTION,
   },
 };
@@ -81,7 +81,7 @@ export default function ComparePage() {
               }}
             >
               Google Forms, Typeform and Formkit all collect answers well. This is what
-              each one gives you for free, stated plainly — no attack language, no
+              each one gives you for free, stated plainly, without attack language or
               invented specifications.
             </p>
           </div>

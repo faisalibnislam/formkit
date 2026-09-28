@@ -1,7 +1,7 @@
 /**
  * The field library, in the order it reads on the left of the builder.
  *
- * `type` matches `questionType` in the Convex schema exactly — adding one here
+ * `type` matches `questionType` in the Convex schema exactly - adding one here
  * without adding it there will not save. Labels and groups follow the design
  * system's FIELD_TYPES.
  */

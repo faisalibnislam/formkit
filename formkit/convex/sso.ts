@@ -9,8 +9,8 @@ import { audit } from "./model/team";
 /**
  * Business: single sign-on, the practical way. A company proves it owns its
  * email domain with a DNS TXT record; after that, anyone with an address at
- * that domain signs in with Google or Microsoft — the password form refuses
- * them — so leaving the company's directory means losing access here too.
+ * that domain signs in with Google or Microsoft - the password form refuses
+ * them - so leaving the company's directory means losing access here too.
  *
  * Google and Microsoft sign-in need their OAuth apps set on the deployment
  * (AUTH_GOOGLE_ID / AUTH_GOOGLE_SECRET, AUTH_MICROSOFT_ENTRA_ID_ID /

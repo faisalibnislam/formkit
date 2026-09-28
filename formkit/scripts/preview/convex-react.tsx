@@ -3,7 +3,7 @@
 /**
  * Stands in for `convex/react` while `FK_PREVIEW=1`.
  *
- * Only the hooks the application actually calls are here — `useQuery`,
+ * Only the hooks the application actually calls are here - `useQuery`,
  * `useMutation`, `useAction` and `useConvex`. Queries read the fixtures;
  * mutations log and resolve, so a click does not throw.
  */
@@ -26,7 +26,7 @@ function nameOf(reference: unknown) {
  * A Convex query resolves over a socket in the browser, so it has nothing to
  * give during SSR and nothing on the first client render either. Handing the
  * fixtures over any sooner would make the harness server-render data the
- * product never server-renders — which hides real hydration bugs and invents
+ * product never server-renders - which hides real hydration bugs and invents
  * fake ones.
  */
 export function useQuery(reference: unknown, ..._args: unknown[]) {

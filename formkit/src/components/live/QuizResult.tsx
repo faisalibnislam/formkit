@@ -6,7 +6,7 @@ import { api } from "../../../convex/_generated/api";
 import type { FunctionReturnType } from "convex/server";
 
 /**
- * Business: a quiz taker's mark — on the thank-you screen when results are
+ * Business: a quiz taker's mark - on the thank-you screen when results are
  * instant, and on their own results page (/q/…) whenever they are out.
  */
 

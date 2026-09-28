@@ -43,8 +43,8 @@ export function upgradeOnPlanError(e: unknown) {
  * Whether a feature is available here, and a guard for acting on it: a locked
  * feature opens the upgrade sheet instead of running.
  *
- * `features`, when given, is the feature set that applies in this place — the
- * form owner's plan inside a form — instead of the viewer's own.
+ * `features`, when given, is the feature set that applies in this place - the
+ * form owner's plan inside a form - instead of the viewer's own.
  */
 export function useGate(feature: Feature, features?: Record<string, boolean> | null) {
   const plan = usePlan();

@@ -7,7 +7,7 @@ import { requireUser } from "./model/identity";
 import { hasFeature, requireFeature } from "./model/plans";
 
 /**
- * Custom domains (Pro): forms.acme.com for one identity — the person, or one
+ * Custom domains (Pro): forms.acme.com for one identity - the person, or one
  * of their companies. The domain is added to the Vercel project that serves
  * Formkit, and checked until its DNS points here. From then on
  * forms.acme.com/<slug> is that identity's form at <slug>, and its share
@@ -151,8 +151,8 @@ export const add = mutation({
     if (!identity.handle) {
       throw new ConvexError(
         owner === "me"
-          ? "Claim your own Formkit link first — the domain shows the forms published under it."
-          : `Claim a Formkit link for ${identity.name} first — the domain shows the forms published under it.`,
+          ? "Claim your own Formkit link first. The domain shows the forms published under it."
+          : `Claim a Formkit link for ${identity.name} first. The domain shows the forms published under it.`,
       );
     }
     const taken = await ctx.db

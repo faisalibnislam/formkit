@@ -7,7 +7,7 @@ import { planSummary, requireFeature } from "./model/plans";
  * Everything the chrome needs to render: the person, their companies, whether
  * they are staff, and whether Ask Formkit exists for them at all.
  *
- * When AI access is false there is no AI surface anywhere — no launcher, no
+ * When AI access is false there is no AI surface anywhere - no launcher, no
  * drawer, no locked state, no mention in Settings. Do not add a request or
  * upsell affordance back; that was removed deliberately.
  */

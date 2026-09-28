@@ -92,7 +92,7 @@ export function shouldAutoClose(form: Doc<"forms">, now: number) {
 }
 
 /**
- * A question as a template or a version stores it — everything but the
+ * A question as a template or a version stores it - everything but the
  * identity fields, which are re-made when it is inserted back into a form.
  */
 export type StoredBlock = Omit<Doc<"blocks">, "_id" | "_creationTime" | "formId" | "order">;

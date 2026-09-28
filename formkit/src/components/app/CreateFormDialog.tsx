@@ -13,7 +13,7 @@ import { TemplateIcon } from "./TemplateIcon";
 /**
  * Creating a form: a name, and blank or a template to start from. Which
  * identity it publishes under follows the account's defaults and is changed
- * later under Design → Branding — it is not asked for here.
+ * later under Design → Branding - it is not asked for here.
  */
 export function CreateFormDialog({
   onClose,

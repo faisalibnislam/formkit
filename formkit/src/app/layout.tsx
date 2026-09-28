@@ -24,8 +24,8 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Formkit — forms people actually finish",
-    template: "%s — Formkit",
+    default: "Formkit: forms people actually finish",
+    template: "%s | Formkit",
   },
   description:
     "Build a form, brand it, publish it at your own link, and read the answers in one place. Free to start, with unlimited forms and responses.",
@@ -42,7 +42,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const first = await seedViewer();
   return (
     <ConvexAuthNextjsServerProvider>
-      {/* English (US) only, deliberately — the language picker was removed
+      {/* English (US) only, deliberately - the language picker was removed
           rather than left in place offering translations that do not exist. */}
       <html lang="en-US" className={outfit.variable} suppressHydrationWarning>
         <body>

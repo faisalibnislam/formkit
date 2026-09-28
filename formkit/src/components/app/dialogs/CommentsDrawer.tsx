@@ -174,7 +174,7 @@ export function CommentsDrawer({
                 }}
               >
                 <MentionField
-                  placeholder="Reply — type @ to mention someone"
+                  placeholder="Reply, or type @ to mention someone"
                   label="Reply"
                   people={people}
                   value={replies[c._id] ?? ""}
@@ -257,7 +257,7 @@ export function CommentsDrawer({
           <div style={{ fontSize: 13, color: "var(--color-text-tertiary)" }}>Commenting on {label(blockId)}</div>
           <MentionField
             multiline
-            placeholder="Add a comment — type @ to mention someone"
+            placeholder="Add a comment. Type @ to mention someone"
             label="Add a comment"
             people={people}
             value={draft}

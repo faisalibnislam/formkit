@@ -23,7 +23,7 @@ import { useToast } from "@/components/ui/Toast";
  * Four steps after verification: about you, your company (optional), what you
  * will collect, and notifications. Answers write through to Settings.
  *
- * A company is optional and most people never add one — the step can be left
+ * A company is optional and most people never add one - the step can be left
  * empty and passed over, and "I work on my own" does exactly that.
  */
 const USES = [
@@ -193,7 +193,7 @@ export function Onboarding() {
         {step === 1 && (
           <>
             <StepHead title="Your company, if you have one">
-              Optional. Without one, forms go out under your own name — which is how most people
+              Optional. Without one, forms go out under your own name. That is how most people
               use Formkit.
             </StepHead>
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>

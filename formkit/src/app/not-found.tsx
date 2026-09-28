@@ -72,7 +72,7 @@ export default function NotFound() {
             }}
           >
             The link is wrong, or the page moved. If you were opening someone&rsquo;s form,
-            check the address against the one they sent — a changed handle or slug is the
+            check the address against the one they sent. A changed handle or slug is the
             usual cause.
           </p>
 

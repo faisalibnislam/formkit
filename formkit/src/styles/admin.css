@@ -352,8 +352,8 @@
   font-weight: 500;
 }
 
-/* A command or URL to copy. In Outfit like everything else — there is no
-   monospace anywhere in Formkit — set apart by a pale pill instead. */
+/* A command or URL to copy. In Outfit like everything else - there is no
+   monospace anywhere in Formkit - set apart by a pale pill instead. */
 .fk-admin-code {
   display: inline;
   padding: 2px 8px;
@@ -439,7 +439,7 @@
 .fk-rev-stack > i:first-child {
   border-radius: 4px 4px 0 0;
 }
-/* The hover label: month and value, above the bar — only where there is a
+/* The hover label: month and value, above the bar - only where there is a
    pointer to hover with, so it never widens a phone's page. */
 @media (hover: hover) {
 .fk-rev-bar:hover::after {

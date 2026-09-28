@@ -281,7 +281,7 @@ function BriefModal({ onClose }: { onClose: () => void }) {
   return (
     <Modal
       title="Paste a brief"
-      description="An email, a scope document, notes from a call — anything that describes what you need."
+      description="An email, a scope document, notes from a call. Anything that describes what you need."
       onClose={onClose}
       footer={
         <>
@@ -455,7 +455,7 @@ export function AskCanvas({ inline }: { inline?: boolean }) {
             </div>
           );
         })}
-        <p className="fk-ask-quiet">A few seconds — every question is written from scratch.</p>
+        <p className="fk-ask-quiet">A few seconds. Every question is written from scratch.</p>
       </div>
     );
   }
@@ -537,7 +537,7 @@ export function AskCanvas({ inline }: { inline?: boolean }) {
                 };
                 return (
                   <span key={i} className="fk-ask-help">
-                    <strong>{r.name}</strong> — {r.action} “{name(r.target)}” when “{name(r.when)}”{" "}
+                    <strong>{r.name}</strong>: {r.action} “{name(r.target)}” when “{name(r.when)}”{" "}
                     {r.operator.replace(/-/g, " ")}
                     {r.value ? ` ${r.value}` : ""}
                   </span>

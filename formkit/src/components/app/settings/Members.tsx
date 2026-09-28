@@ -51,7 +51,7 @@ export function MembersSection() {
     <>
       <Panel
         title="People you share with"
-        lede="Every form belongs to you. Access is granted one form at a time — open a form and use Share. Changing someone's role here changes it on every form you have shared with them."
+        lede="Every form belongs to you. Access is granted one form at a time. Open a form and use Share. Changing someone's role here changes it on every form you have shared with them."
       >
         {data && people.length === 0 ? (
           <p className="fk-setpanel-empty">Nobody else can see your forms. Open a form and use Share to invite someone.</p>

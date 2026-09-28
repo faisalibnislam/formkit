@@ -120,7 +120,7 @@ function ExportPanel() {
           value={to}
           onChange={(e) => setTo(e.target.value)}
           aria-label="Where to email the export"
-          placeholder="Or email it — leave blank to send it to yourself"
+          placeholder="Or email it. Leave blank to send it to yourself"
           icon={<Mail size={17} strokeWidth={1.8} aria-hidden />}
           wrapStyle={{ flex: 1, minWidth: 220 }}
         />
@@ -191,7 +191,7 @@ function EmailCopy() {
   return (
     <Panel
       title="Email a copy"
-      lede="Send every new response straight to an inbox as it arrives — every answer, not just a notice."
+      lede="Send every new response straight to an inbox as it arrives, with every answer and not just a notice."
       aside={gate.locked ? <ProChip /> : null}
     >
       <Row label="Email each response">

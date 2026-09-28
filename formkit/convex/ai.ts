@@ -46,12 +46,12 @@ export type { Draft, DraftItem, DraftRule };
  * Ask Formkit, on Gemini.
  *
  * Access is an admin-granted allow-list, off by default. An account without it
- * has no AI surface anywhere in the product — this module refuses, and the app
+ * has no AI surface anywhere in the product - this module refuses, and the app
  * never renders a locked state or an upsell. That was decided deliberately;
  * please do not add one back.
  *
  * Only building a new form spends a credit, and only once the model has
- * answered with something usable — a refused, failed or unreadable call costs
+ * answered with something usable - a refused, failed or unreadable call costs
  * nothing. Adding questions, rewriting them, writing logic, picking a theme,
  * reading responses and talking are free.
  *
@@ -480,7 +480,7 @@ function chatFallback(t: string, left: number, limit: number, formTitle: string 
   const p = ` ${t.toLowerCase()} `;
   if (/how many credits|credits left|what do you cost|how much/.test(p)) {
     return left > 0
-      ? `You have ${left} of ${limit} form credits left this month. Building a new form spends one — adding questions, rewriting them, writing logic, picking a theme and reading responses are all free.`
+      ? `You have ${left} of ${limit} form credits left this month. Building a new form spends one. Adding questions, rewriting them, writing logic, picking a theme and reading responses are all free.`
       : `You have used all ${limit} form credits this month. Changing forms you already have is still free, and the count resets on the first.`;
   }
   if (/^\s*(thanks|thank you|cheers|ta|nice one|great|perfect|cool)\b/.test(p)) return "Any time.";
@@ -611,7 +611,7 @@ State what is true and what they can do next.
 Facts you may use: they have ${left} of ${seat.limit} monthly form credits left. Building a new form spends one credit; adding questions, rewriting questions, writing logic rules, picking a theme and summarising responses are free. Credits reset on the first of the month. There are no plans and nothing to pay.
 ${seat.form ? `They are working on the form "${seat.form.title}".` : "No form is selected; they can pick one from the menu above the chat."}
 You can: write a whole form from a sentence, a pasted brief or a document; add questions; rewrite questions in another tone; write show, hide and require rules; pick one of the ten themes; read what the responses say.
-You cannot: publish, send email, delete questions or change settings — those are done in the builder.
+You cannot: publish, send email, delete questions or change settings. Those are done in the builder.
 If they greet you or ask what you do, answer briefly and invite them to describe a form. Do not write a form here.`;
   const turns = [
     ...history.slice(-8).map((h) => ({ role: h.from === "user" ? ("user" as const) : ("model" as const), parts: [{ text: h.text.slice(0, 1500) }] })),
@@ -718,11 +718,11 @@ async function logic(ctx: ActionCtx, text: string, form: Snapshot): Promise<AskR
   if (!fields.some((f) => ["single-choice", "multi-choice", "dropdown", "yes-no", "rating", "scale", "number"].includes(f.type ?? ""))) {
     return {
       kind: "say",
-      text: "Logic needs a question to branch on — a choice, a yes / no, a rating or a number. Add one and ask me again.",
+      text: "Logic needs a question to branch on: a choice, a yes / no, a rating or a number. Add one and ask me again.",
     };
   }
   const system = `You write conditional logic for a Formkit form. Reply with JSON matching the schema: at most four rules.
-A rule reads one question and shows, hides or requires another, which comes after it. Name both questions by their exact wording, as listed. For a choice or yes / no question the value is one of its options exactly ("Yes" or "No" for yes / no). Operators by kind — choice: is, is-not, is-empty, is-not-empty; number: at-least, at-most, greater, less, is-empty; text: contains, is, is-empty, is-not-empty.
+A rule reads one question and shows, hides or requires another, which comes after it. Name both questions by their exact wording, as listed. For a choice or yes / no question the value is one of its options exactly ("Yes" or "No" for yes / no). Operators by kind. Choice: is, is-not, is-empty, is-not-empty; number: at-least, at-most, greater, less, is-empty; text: contains, is, is-empty, is-not-empty.
 Only write rules that make sense for the people answering. If nothing sensible can be written, return no rules.
 ${VOICE}`;
   const { text: raw } = await generate({
@@ -736,7 +736,7 @@ ${VOICE}`;
     .filter((r): r is DraftRule => r !== null && r.target > r.when)
     .slice(0, 4);
   if (!rules.length) {
-    return { kind: "say", text: "I could not find a rule worth adding — every question here seems to apply to everyone." };
+    return { kind: "say", text: "I could not find a rule worth adding. Every question here seems to apply to everyone." };
   }
   await ctx.runMutation(internal.ai.addRules, {
     formId: form.id,
@@ -768,7 +768,7 @@ ${VOICE}`;
 async function theme(ctx: ActionCtx, text: string, form: Snapshot): Promise<AskResult> {
   const system = `You pick a theme for a Formkit form from a fixed list. Reply with JSON matching the schema.
 Themes: ${THEME_PRESETS.map((t) => `${t.id}: ${t.name}, background ${t.bg}, accent ${t.primary}${t.bg === "#21282E" ? ", dark" : ""}`).join("; ")}.
-Set useBrandColour to true only when they ask for their own or their brand's colour${form.brandColor ? "" : " — this form has no brand colour, so always false"}.`;
+Set useBrandColour to true only when they ask for their own or their brand's colour${form.brandColor ? "" : ". This form has no brand colour, so always false"}.`;
   const { text: raw } = await generate({
     system,
     turns: [{ role: "user", parts: [{ text: `Form: "${form.title}". What they want: ${text}` }] }],
@@ -836,7 +836,7 @@ ${VOICE}`;
       return { blockId: f.id, before: f.title!, after };
     })
     .filter((x): x is { blockId: Id<"blocks">; before: string; after: string } => x !== null);
-  if (!items.length) return { kind: "say", text: "These questions already read that way — I would only be changing them for the sake of it." };
+  if (!items.length) return { kind: "say", text: "These questions already read that way. I would only be changing them for the sake of it." };
   return { kind: "diff", formId: form.id, title: form.title, mode: clean(parsed?.mode, 40).toLowerCase() || "as asked", items };
 }
 
@@ -871,7 +871,7 @@ async function insight(
     { k: "Finished", v: `${finish}%`, n: `${data.partial} stopped part of the way` },
     {
       k: "Median time to finish",
-      v: data.medianMs ? `${minutes}m ${seconds}s` : "—",
+      v: data.medianMs ? `${minutes}m ${seconds}s` : "-",
       n: data.medianMs > 240_000 ? "long enough that some people will drop out" : "short enough to hold attention",
     },
   ];
@@ -879,7 +879,7 @@ async function insight(
 
   const system = `You read the responses to a Formkit form and say what they show. Reply with JSON matching the schema.
 summary: two or three sentences, the most useful thing first, with numbers where they help. findings: up to three short observations, each with a label (k), a value (v) and a one-line note (n).
-Say only what the data supports. No names or personal details — there are none in the data.
+Say only what the data supports. No names or personal details; there are none in the data.
 ${VOICE}`;
   try {
     const { text: raw } = await generate({

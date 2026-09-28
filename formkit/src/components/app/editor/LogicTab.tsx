@@ -3,7 +3,7 @@
 import { useSeededQuery } from "@/lib/seed";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { useState } from "react";
-import { Check, Flag, GitBranch, Plus, Sparkles, Trash2, X } from "lucide-react";
+import { Check, Flag, Plus, Sparkles, Trash2, X } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
 import type { Doc, Id } from "../../../../convex/_generated/dataModel";
 import { Button, IconButton, Segmented, Select, Switch } from "@/components/ui";
@@ -21,11 +21,11 @@ import { LogicMap } from "./LogicMap";
 
 /**
  * Conditional logic. Show, hide or require a question, jump ahead, hide some
- * of a question's options, or finish on a particular ending — based on the
+ * of a question's options, or finish on a particular ending - based on the
  * answers so far. Rules run top to bottom.
  *
  * A rule is one or more groups of conditions: each group joins its own with
- * AND or OR, and the groups are joined the same way — "(a and b) or c". A
+ * AND or OR, and the groups are joined the same way - "(a and b) or c". A
  * condition reads an answer, a calculation's result, or (Business) asks the
  * AI a yes-or-no question about an answer.
  *
@@ -95,7 +95,7 @@ export function LogicTab({ formId }: { formId: Id<"forms"> }) {
         <div style={{ flex: 1, minWidth: 240 }}>
           <h3 style={{ margin: "0 0 6px" }}>Conditional logic</h3>
           <p className="fk-panel-lede" style={{ margin: 0 }}>
-            Show, hide or require a question, skip ahead, hide options or pick the ending — based on the answers so
+            Show, hide or require a question, skip ahead, hide options or pick the ending, based on the answers so
             far. Rules run top to bottom.
           </p>
         </div>
@@ -105,26 +105,12 @@ export function LogicTab({ formId }: { formId: Id<"forms"> }) {
       {questions.length < 2 && (
         <div className="fk-note">
           <span>
-            Logic needs at least two questions — one to answer, one to affect. Add another under
+            Logic needs at least two questions: one to answer, one to affect. Add another under
             Build.
           </span>
         </div>
       )}
 
-      {rules && rules.length === 0 && questions.length >= 2 && (
-        <section className="fk-panel">
-          <div className="fk-nothing" style={{ background: "transparent", padding: "34px 12px" }}>
-            <span className="fk-nothing-mark">
-              <GitBranch size={20} strokeWidth={1.8} aria-hidden />
-            </span>
-            <h3>No rules yet.</h3>
-            <p style={{ maxWidth: "40ch" }}>
-              Most forms do not need any. Add one when a question only matters to some people.
-            </p>
-            <div style={{ marginTop: 14 }}>{addButton}</div>
-          </div>
-        </section>
-      )}
 
       {questions.length >= 2 && <DescribeRule formId={formId} form={form} />}
 
@@ -411,13 +397,13 @@ function RuleCard({ rule, index, form }: { rule: Rule; index: number; form: Form
           {ACTIONS.find((a) => a.value === rule.action)?.label}
         </span>
         {rule.action === "ending" ? (
-          <span className="fk-rchip">{ending?.name || "—"}</span>
+          <span className="fk-rchip">{ending?.name || "…"}</span>
         ) : (
-          <span className="fk-rchip">{target?.title || "—"}</span>
+          <span className="fk-rchip">{target?.title || "…"}</span>
         )}
         {rule.action === "hide-options" && (
           <span className="fk-rchip" data-tone="ink">
-            {rule.options?.length ? rule.options.join(", ") : "—"}
+            {rule.options?.length ? rule.options.join(", ") : "…"}
           </span>
         )}
       </div>
@@ -570,15 +556,15 @@ function ConditionWords({ c, form }: { c: Condition; form: Form }) {
       <>
         <span className="fk-rchip" data-tone="ai">
           <Sparkles size={12} strokeWidth={2} aria-hidden style={{ display: "inline-block", marginRight: 4 }} />
-          {c.value || "—"}
+          {c.value || "…"}
         </span>
         <span className="fk-rw">about</span>
-        <span className="fk-rchip">{q?.title || "—"}</span>
+        <span className="fk-rchip">{q?.title || "…"}</span>
         <span className="fk-rw">{c.operator === "no" ? "is no" : "is yes"}</span>
       </>
     );
   }
-  const subject = c.source === "calc" ? `{{${c.ref ?? "result"}}}` : q?.title || "—";
+  const subject = c.source === "calc" ? `{{${c.ref ?? "result"}}}` : q?.title || "…";
   const valued = !VALUELESS.has(c.operator) && (c.source === "calc" || valueControl(q).kind !== "none");
   const value = MULTI.has(c.operator) ? (c.value ?? "").split("|").filter(Boolean).join(", ") : c.value;
   return (
@@ -587,8 +573,8 @@ function ConditionWords({ c, form }: { c: Condition; form: Form }) {
       <span className="fk-rw">{opLabel(c.operator)}</span>
       {valued && (
         <span className="fk-rchip" data-tone="ink">
-          {value || "—"}
-          {c.operator === "between" ? ` and ${c.value2 || "—"}` : ""}
+          {value || "…"}
+          {c.operator === "between" ? ` and ${c.value2 || "…"}` : ""}
         </span>
       )}
     </>
@@ -739,8 +725,8 @@ function ConditionRow({
           </div>
         </div>
         <p className="fk-rule-note">
-          The AI reads the answer when its page is finished and answers yes or no. If it can’t — or your monthly AI checks
-          run out — the form goes with what you chose to assume.
+          The AI reads the answer when its page is finished and answers yes or no. If it can’t, or your monthly AI checks
+          run out, the form goes with what you chose to assume.
         </p>
       </div>
     );
@@ -907,7 +893,7 @@ function ConditionRow({
           {badPattern
             ? "That pattern isn’t valid, so it will never match."
             : bad
-              ? `This needs a number — “${(c.value ?? "").trim()}” will never match. Type 18 and pick “is at least”.`
+              ? `This needs a number. “${(c.value ?? "").trim()}” will never match. Type 18 and pick “is at least”.`
               : "Answers to this question are read as numbers, so “is at least” and “is at most” work here."}
         </p>
       )}
@@ -916,7 +902,7 @@ function ConditionRow({
 }
 
 /**
- * Pro: other endings a rule can finish on — a different thank-you for
+ * Pro: other endings a rule can finish on - a different thank-you for
  * people who qualify and people who don't, or a page of their own.
  */
 function Endings({ formId, form, rules }: { formId: Id<"forms">; form: Form; rules: Rule[] }) {
@@ -942,7 +928,7 @@ function Endings({ formId, form, rules }: { formId: Id<"forms">; form: Form; rul
         {gate.locked && <ProChip onClick={() => openUpgrade({ feature: "logic.advanced" })} />}
       </div>
       <p className="fk-panel-lede">
-        A different last screen for different people — one for those who qualify and one for those who don’t, say.
+        A different last screen for different people, say one for those who qualify and one for those who don’t.
         Finish on one with a rule’s “End with”. Everyone else sees the usual thank-you screen.
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -1019,7 +1005,7 @@ function Endings({ formId, form, rules }: { formId: Id<"forms">; form: Form; rul
               {
                 id: crypto.randomUUID().slice(0, 8),
                 name: `Ending ${endings.length + 1}`,
-                title: "Thanks — you’re all set",
+                title: "Thanks, you’re all set",
                 message: "",
               },
             ]),
@@ -1033,7 +1019,7 @@ function Endings({ formId, form, rules }: { formId: Id<"forms">; form: Form; rul
 }
 
 /**
- * Pro: named formulas over question keys — a quiz score, a quote, a total.
+ * Pro: named formulas over question keys - a quiz score, a quote, a total.
  * Worked out when a response is sent, kept with it, and quotable on the
  * thank-you screen as {{name}}.
  */
@@ -1072,7 +1058,7 @@ function Calculations({
       </p>
       {keyed.length === 0 && (
         <p className="fk-proprow-hint" style={{ margin: "0 0 12px" }}>
-          Give questions a key first — select one in Build and fill in Key.
+          Give questions a key first. Select one in Build and fill in Key.
         </p>
       )}
       {keyed.length > 0 && (

@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 /**
- * "Was this helpful?" — acknowledges either answer and says what happens next,
+ * "Was this helpful?" - acknowledges either answer and says what happens next,
  * rather than thanking you and moving on.
  */
 export function HelpFeedback({ articleId }: { articleId: string }) {
@@ -50,7 +50,7 @@ export function HelpFeedback({ articleId }: { articleId: string }) {
           }}
         >
           {answer === "yes"
-            ? "Good — thank you. That tells us to leave this one alone."
+            ? "Good, thank you. That tells us to leave this one alone."
             : "Noted. This article is on the list to rewrite; if you tell support what you were trying to do, we will cover it."}
         </p>
       )}

@@ -9,7 +9,7 @@ import { seedKey, type Clock, type Seeds } from "./seedKey";
 /**
  * Server half of seed.tsx: fetch a page's opening queries with the visitor's
  * own token, so the first paint already shows their data. Everything here is
- * best effort — a failure just leaves that query to load in the browser as
+ * best effort - a failure just leaves that query to load in the browser as
  * before.
  */
 
@@ -40,14 +40,14 @@ export async function seedQueries(queries: [AnyQuery, Record<string, unknown>?][
   return out;
 }
 
-/** The signed-in person, and their hour and date, for every page — once per request. */
+/** The signed-in person, and their hour and date, for every page - once per request. */
 export const seedViewer = cache(async (): Promise<{ seeds: Seeds; clock: Clock | null }> => {
   const t = await token();
   if (!t) return { seeds: { [seedKey(api.users.viewer, {})]: null }, clock: null };
   const seeds = await seedQueries([[api.users.viewer, {}]], t);
   const viewer = seeds[seedKey(api.users.viewer, {})] as { timezone?: string | null } | null | undefined;
-  // The zone this browser reported last visit — the clock the page will
-  // read — or else the account's own.
+  // The zone this browser reported last visit - the clock the page will
+  // read - or else the account's own.
   let zone: string | null = null;
   try {
     zone = decodeURIComponent((await cookies()).get("fk_tz")?.value ?? "") || null;

@@ -26,7 +26,7 @@ function money(amount: number, currency: string) {
 
 /**
  * Back from Stripe. The page asks the server, which asks Stripe, whether the
- * payment went through — the address alone proves nothing.
+ * payment went through - the address alone proves nothing.
  */
 export function PayDone({
   responseId,
@@ -131,7 +131,7 @@ export function PayDone({
         </h1>
         <p className="fk-live-lede">
           {paid
-            ? `Thank you — ${money(result.amount, result.currency)} for ${result.formTitle}. Stripe will email your receipt.`
+            ? `Thank you. ${money(result.amount, result.currency)} for ${result.formTitle}. Stripe will email your receipt.`
             : `Your answers to ${result.formTitle} are saved, but the ${money(result.amount, result.currency)} payment has not gone through.`}
         </p>
         {problem && <p className="fk-live-err">{problem}</p>}

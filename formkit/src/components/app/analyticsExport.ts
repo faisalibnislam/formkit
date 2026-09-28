@@ -23,7 +23,7 @@ export function signed(value: number | null | undefined, suffix = "%") {
 }
 
 export function duration(seconds: number | null) {
-  if (seconds === null) return "—";
+  if (seconds === null) return "-";
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return m ? `${m}m ${String(s).padStart(2, "0")}s` : `${s}s`;

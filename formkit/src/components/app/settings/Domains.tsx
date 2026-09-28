@@ -22,7 +22,7 @@ export function DnsRecords({ records }: { records: { type: string; name: string;
       setCopied(text);
       window.setTimeout(() => setCopied(null), 1500);
     } catch {
-      toast("Copy that by hand — the browser blocked it");
+      toast("Copy that by hand. The browser blocked it");
     }
   };
   return (
@@ -86,7 +86,7 @@ export function DomainsPanel({
   return (
     <Panel
       title="Custom domains"
-      lede="Put your forms on a domain of your own — forms.acme.com/intake instead of formkit.app/acme/intake. The formkit.app link keeps working too."
+      lede="Put your forms on a domain of your own: forms.acme.com/intake instead of formkit.app/acme/intake. The formkit.app link keeps working too."
       aside={gate.locked ? <ProChip onClick={() => openUpgrade({ feature: "domains" })} /> : null}
     >
       {data && !data.configured && !gate.locked && (
@@ -214,7 +214,7 @@ export function EmailDomainPanel() {
   return (
     <Panel
       title="Send from your own domain"
-      lede="Confirmation emails to the people who answer come from your address — Studio Nine <hello@studionine.co> — instead of Formkit's."
+      lede="Confirmation emails to the people who answer come from your address, like Studio Nine <hello@studionine.co>, instead of Formkit's."
       aside={gate.locked ? <ProChip onClick={() => openUpgrade({ feature: "email.domain" })} /> : null}
     >
       {row ? (

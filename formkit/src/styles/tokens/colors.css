@@ -1,7 +1,7 @@
 :root{
 /* ---------- neutral scale (cool paper grey, soft charcoal ink) ---------- */
 --neutral-0:#ffffff;
---neutral-25:#fcfcfc;   /* card white — a hair off pure */
+--neutral-25:#fcfcfc;   /* card white - a hair off pure */
 --neutral-50:#fafafa;
 --neutral-100:#f4f4f4;  /* chip fills, sunken recesses, chart tracks */
 --neutral-150:#ededee;
@@ -12,7 +12,7 @@
 --neutral-600:#6d747a;
 --neutral-700:#4d5358;
 --neutral-800:#3a3f44;
---neutral-900:#21282E;  /* primary ink + dark pill — Formkit’s one dark */
+--neutral-900:#21282E;  /* primary ink + dark pill - Formkit’s one dark */
 --neutral-950:#21282E;
 
 /* The page itself: a tinted white, cooled by the sky accent rather than a
@@ -172,7 +172,7 @@
 }
 
 /* Hero scope: drop on the sky band. The band is a LIGHT ground, so ink here is
-   charcoal, not white — white on it measures 1.6-3.4:1. Reserve white for
+   charcoal, not white - white on it measures 1.6-3.4:1. Reserve white for
    display-scale type, which opts in explicitly. */
 .fk-on-hero{
 --color-text-primary:var(--neutral-950);
@@ -185,6 +185,6 @@
 }
 
 /* Night Sky is the only Formkit background. The photographic sky band above is
-   retired — this override wins for every existing and future var(--gradient-hero)
+   retired - this override wins for every existing and future var(--gradient-hero)
    reference. Do not reintroduce the old band. */
 :root{--gradient-hero:linear-gradient(180deg,#062a52 0%,#0a3d6f 20%,#115791 42%,#1c74b0 64%,#3693ca 84%,#59acd9 100%);}

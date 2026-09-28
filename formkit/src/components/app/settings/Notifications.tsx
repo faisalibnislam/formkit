@@ -14,7 +14,7 @@ import { PageSkeleton } from "../Skeleton";
 import { EmailDomainPanel } from "./Domains";
 
 /**
- * Settings → Notifications. "Every form" sets the account's defaults — what
+ * Settings → Notifications. "Every form" sets the account's defaults - what
  * it is emailed about, and the recipient and wording every form starts from.
  * Picking one form changes just that form, the same settings its own
  * Settings tab shows.

@@ -23,7 +23,7 @@ export function createEngine(root: HTMLElement) {
   const one = <T extends Element = HTMLElement>(sel: string) =>
     root.querySelector<T>(sel);
 
-  /** Skip a write when the value has not changed — fewer style recalcs a frame. */
+  /** Skip a write when the value has not changed - fewer style recalcs a frame. */
   const written = new Map<Element, Map<string, string>>();
   const set = (el: Element | null, prop: string, value: string) => {
     if (!el) return;

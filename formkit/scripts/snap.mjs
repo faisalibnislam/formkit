@@ -5,7 +5,7 @@
  *   node scripts/snap.mjs "/app/forms/f1?tab=design" out.png [steps.js|-] [width]
  *
  * `steps.js` is the body of an async function that receives the Playwright
- * page as `p` — click a tab, open a menu — before the picture is taken. Page
+ * page as `p` - click a tab, open a menu - before the picture is taken. Page
  * errors are printed, so a snap doubles as a smoke test of that state.
  */
 import { chromium } from "playwright";

@@ -9,7 +9,7 @@ import { useToast } from "@/components/ui/Toast";
 /**
  * Feature flags: on or off, and when on, the share of accounts that get it.
  *
- * The list is fixed — each flag is read somewhere in the product, and a flag
+ * The list is fixed - each flag is read somewhere in the product, and a flag
  * nothing reads would be a switch that does nothing. Raising the rollout keeps
  * everyone who already had it; lowering it takes the most recent away first.
  */

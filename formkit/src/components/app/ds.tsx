@@ -7,7 +7,7 @@ import type { CSSProperties, ReactNode } from "react";
 /**
  * The design system's data and navigation components, ported.
  *
- * These are the pieces the signed-in application is drawn from — the record
+ * These are the pieces the signed-in application is drawn from - the record
  * tabs docked under the sky band, the metric cards, the tick meter and the
  * account capsule. They are ports of
  * `_ds/formkit-design-system-e346e922-…/_ds_bundle.js`, not approximations of
@@ -251,7 +251,7 @@ export function FormCard({
 
 /* ---------- ClientTab ---------- */
 
-/*  LOCKED DESIGN — the record tabs docked along the bottom of the sky band.
+/*  LOCKED DESIGN - the record tabs docked along the bottom of the sky band.
     Do not alter the geometry without an explicit instruction (project notes,
     "ClientTab is a locked design"). Signed off by Faisal.
 
@@ -270,7 +270,7 @@ export function FormCard({
     last tab's flare is clipped by its scroll box. */
 export const COLLAR = 20; /* bottom padding on an inactive tab */
 export const MIN_WIDTH = 216; /* below this the name truncates, so the dock scrolls */
-export const SHOULDER = 20; /* radius of the bottom corner flare — LOCKED */
+export const SHOULDER = 20; /* radius of the bottom corner flare - LOCKED */
 
 function Shoulder({ side }: { side: "left" | "right" }) {
   const style: CSSProperties = {

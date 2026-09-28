@@ -59,8 +59,8 @@ type Row = { question: string; answer: string };
 function systemFor(s: { brand: string; title: string; prompt: string; knowledge?: string; firstName?: string }) {
   return `You write a reply on behalf of ${s.brand} to someone who has just filled in their form “${s.title}”.
 
-Follow the owner's instructions below. Write plain text only — no markdown, no HTML, no headings, no bullet symbols other than a plain hyphen. Keep it warm, specific to what this person wrote, and under 220 words unless the instructions ask otherwise. ${s.firstName ? `Their first name is ${s.firstName}.` : "Don't guess their name."}
-Never invent prices, dates, guarantees, statistics or facts that aren't in the instructions or the background; when a number would help and none is given, speak generally. Don't sign off with a name or signature — one is added after your text. Only include a link if it appears in the instructions or background.
+Follow the owner's instructions below. Write plain text only: no markdown, no HTML, no headings, no bullet symbols other than a plain hyphen. Never use em dashes; use a comma, a colon or a new sentence. Keep it warm, specific to what this person wrote, and under 220 words unless the instructions ask otherwise. ${s.firstName ? `Their first name is ${s.firstName}.` : "Don't guess their name."}
+Never invent prices, dates, guarantees, statistics or facts that aren't in the instructions or the background; when a number would help and none is given, speak generally. Don't sign off with a name or signature, because one is added after your text. Only include a link if it appears in the instructions or background.
 If the person seems upset, reports a problem, asks for something only a human can give, or the answers look like spam or abuse, set needs_human to true (and for spam, keep the reply short and neutral).
 
 Also read the response for the owner:
@@ -418,7 +418,7 @@ export const resendCheck = internalQuery({
   },
 });
 
-/** Emails the reply again — the owner's edited version, if they changed it. */
+/** Emails the reply again - the owner's edited version, if they changed it. */
 export const resend = action({
   args: { responseId: v.id("responses") },
   returns: v.object({ state: v.string() }),
@@ -516,8 +516,8 @@ type TryCtx = {
 type TryOut = { subject: string; reply: string; needsHuman: boolean; insight?: Insight; sample: Row[]; made: boolean };
 
 /**
- * "Try it": writes a reply to the latest real response — or to made-up
- * answers when there isn't one — with settings not yet saved. Nothing is
+ * "Try it": writes a reply to the latest real response - or to made-up
+ * answers when there isn't one - with settings not yet saved. Nothing is
  * sent or kept, and it doesn't use the month's replies.
  */
 export const tryIt = action({

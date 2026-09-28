@@ -7,7 +7,7 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
  * A flag is on or off platform-wide, and when on it reaches a percentage of
  * accounts. Which accounts is decided by a stable hash of the flag and the
  * account, so raising the rollout from 20% to 50% keeps the first 20% and
- * adds more — nobody flickers in and out as the number moves.
+ * adds more - nobody flickers in and out as the number moves.
  *
  * A flag nobody has touched in the console keeps its default, which is what
  * the product did before flags existed. Adding a key here without code that

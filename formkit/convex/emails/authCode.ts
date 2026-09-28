@@ -19,9 +19,9 @@ export function renderAuthCodeEmail({
     eyebrow: "Your code",
     heading,
     lede,
-    preheader: `${token} — ${lede}`,
+    preheader: `${token}: ${lede}`,
     body: `${code(token, minutes)}${paragraph(
-      "Formkit will never ask you for this code by email, phone or message. If you did not ask for it, you can ignore this email — nothing changes without the code.",
+      "Formkit will never ask you for this code by email, phone or message. If you did not ask for it, you can ignore this email. Nothing changes without the code.",
       { muted: true, top: 20 },
     )}`,
     reason: "Sent because this address was entered on Formkit.",

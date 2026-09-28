@@ -18,7 +18,7 @@ const executablePath = process.env.FK_CHROMIUM || "/opt/pw-browsers/chromium-119
 
 /** The fixture's blocks, in the order `scripts/preview/fixtures.ts` lists them. */
 const START = ["b1", "b2", "b3", "b4", "b5", "b6"];
-/** Which of those are question cards — a page break is not one. */
+/** Which of those are question cards - a page break is not one. */
 const CARDS = ["b1", "b2", "b4", "b5", "b6"];
 
 /** Where the blocks end up when the block at `from` is dropped on `slot`. */

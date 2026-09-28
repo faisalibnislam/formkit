@@ -12,8 +12,8 @@ import { useToast } from "@/components/ui/Toast";
 import { fullTime, relativeTime } from "@/components/app/bits";
 
 /**
- * Users. A filtered, paged list — a table on a wide screen, cards on a narrow
- * one — and a side panel for whoever is open: their numbers, Ask Formkit,
+ * Users. A filtered, paged list - a table on a wide screen, cards on a narrow
+ * one - and a side panel for whoever is open: their numbers, Ask Formkit,
  * a message into their bell, the emails Formkit sent them, their standing, and
  * deletion, which asks for their email typed out because it destroys every
  * form and response they own.
@@ -545,7 +545,7 @@ function UserPanel({
   );
 }
 
-/** Free, Pro or Business — with how it is paid, or that staff gave it. */
+/** Free, Pro or Business - with how it is paid, or that staff gave it. */
 function PlanBadge({ plan }: { plan: { id: "free" | "pro" | "business"; comp: string | null; interval: string | null; status: string | null } }) {
   const name = plan.id === "free" ? "Free" : plan.id === "pro" ? "Pro" : "Business";
   const how = plan.id === "free" ? null : plan.comp ? "given" : plan.interval === "year" ? "yearly" : "monthly";

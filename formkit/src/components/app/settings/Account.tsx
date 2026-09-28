@@ -254,7 +254,7 @@ function Password({ email }: { email: string }) {
 
   async function submit() {
     setError("");
-    if (!current) return setError("Enter your current password first — we need it before changing anything.");
+    if (!current) return setError("Enter your current password first. We need it before changing anything.");
     if (next.length < 10) return setError("Use at least 10 characters.");
     if (next !== again) return setError("The new passwords do not match. Check the confirmation.");
     setBusy(true);
@@ -356,7 +356,7 @@ function Security({ viewer }: { viewer: Viewer }) {
         label="Two-factor authentication"
         hint={
           tf?.on
-            ? `On — a code from your authenticator app at sign-in. ${tf.recoveryLeft} recovery ${tf.recoveryLeft === 1 ? "code" : "codes"} left.`
+            ? `On. A code from your authenticator app at sign-in. ${tf.recoveryLeft} recovery ${tf.recoveryLeft === 1 ? "code" : "codes"} left.`
             : "A code from your authenticator app at sign-in"
         }
       >
@@ -543,7 +543,7 @@ function EnableTwoFactor({ email, onClose }: { email: string; onClose: () => voi
   return (
     <Modal
       title="Turn on two-factor"
-      description="Scan the code with an authenticator app — 1Password, Google Authenticator, Authy — then type the six digits it shows."
+      description="Scan the code with an authenticator app (1Password, Google Authenticator, Authy), then type the six digits it shows."
       onClose={onClose}
       width={520}
       footer={

@@ -16,7 +16,7 @@ import { tracked } from "./saveStatus";
 
 /**
  * Business: an AI-written reply to everyone who answers this form, from the
- * owner's own instructions — shown on the thank-you screen, emailed, or both.
+ * owner's own instructions - shown on the thank-you screen, emailed, or both.
  */
 
 type Form = NonNullable<FunctionReturnType<typeof api.forms.get>>;
@@ -36,7 +36,7 @@ const EXAMPLE = `You're replying for our digital agency.
 - Thank them by first name.
 - Look closely at the challenges they describe and respond positively and helpfully.
 - Share one or two useful insights or facts that relate to their situation.
-- Explain briefly how our agency could help — websites, SEO and paid ads — and invite them to book a free 20-minute call.
+- Explain briefly how our agency could help with websites, SEO and paid ads, and invite them to book a free 20-minute call.
 Keep it friendly, specific to what they wrote, and under 180 words.`;
 
 const DEFAULTS: Settings = { enabled: false, prompt: "", delivery: "both", style: "branded" };
@@ -82,7 +82,7 @@ export function AiReplySection({ formId, form }: { formId: Id<"forms">; form: Fo
           {gate.locked && <ProChip plan="business" onClick={() => openUpgrade({ feature: "ai.reply" })} />}
         </div>
         <p className="fk-panel-lede">
-          Everyone who answers gets a reply written for them — from your instructions and what they told you. Without it,
+          Everyone who answers gets a reply written for them, from your instructions and what they told you. Without it,
           they get your usual confirmation, as set under Notifications.
         </p>
 
@@ -127,7 +127,7 @@ export function AiReplySection({ formId, form }: { formId: Id<"forms">; form: Fo
             <DraftArea
               rows={4}
               value={stored.knowledge ?? ""}
-              placeholder="Your services, prices, opening hours, links, answers to common questions. The AI never makes these up — it only uses what’s here."
+              placeholder="Your services, prices, opening hours, links, answers to common questions. The AI never makes these up. It only uses what’s here."
               onCommit={(knowledge) => void put({ knowledge })}
             />
           </Field>
@@ -138,7 +138,7 @@ export function AiReplySection({ formId, form }: { formId: Id<"forms">; form: Fo
             <div style={{ fontSize: 14 }}>Where the reply goes</div>
             <div className="fk-proprow-hint">
               {emails && !hasEmailQuestion
-                ? "Email needs an email question on the form — add one under Build."
+                ? "Email needs an email question on the form. Add one under Build."
                 : stored.delivery === "form"
                   ? "Shown on the thank-you screen as soon as it’s written."
                   : stored.delivery === "email"
@@ -222,7 +222,7 @@ export function AiReplySection({ formId, form }: { formId: Id<"forms">; form: Fo
           <div style={{ flex: 1, minWidth: 220 }}>
             <h3 style={{ margin: "0 0 6px" }}>Try it</h3>
             <p className="fk-panel-lede" style={{ margin: 0 }}>
-              Writes a reply to your latest response — or to made-up answers if there isn’t one yet. Nothing is sent, and it
+              Writes a reply to your latest response, or to made-up answers if there isn’t one yet. Nothing is sent, and it
               doesn’t use this month’s replies.
             </p>
           </div>

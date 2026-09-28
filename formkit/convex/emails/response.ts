@@ -53,7 +53,7 @@ export function renderNotification({
   });
 }
 
-/** What somebody gets back after answering — in the form owner's colours. */
+/** What somebody gets back after answering - in the form owner's colours. */
 export function renderConfirmation({
   subject,
   message,
@@ -80,7 +80,7 @@ export function renderConfirmation({
     lede: message,
     body: rows.length
       ? `<div style="font-size:13px;font-weight:500;color:${C.muted};margin:4px 0 10px;">A copy of what you sent</div>${answers(rows)}`
-      : paragraph("Nothing else to do — this is just to say it arrived.", { muted: true }),
+      : paragraph("Nothing else to do. This is just to say it arrived.", { muted: true }),
     reason: `Sent by ${b.name}. Reply to this email to reach them.`,
   });
 }
@@ -110,7 +110,7 @@ export function renderExport({
   });
 }
 
-/** "Maya added you to Client Onboarding" — an invitation to work on a form. */
+/** "Maya added you to Client Onboarding" - an invitation to work on a form. */
 export function renderInvite({
   inviter,
   formTitle,
@@ -136,7 +136,7 @@ export function renderInvite({
     heading: `${inviter} added you to ${formTitle}`,
     lede: `As ${as === "Editor" ? "an" : "a"} ${as}. ${can}`,
     body: `${note ? quote(note, inviter) : ""}${paragraph(
-      "Sign in — or make an account — with this email address, and the form is waiting in your list.",
+      "Sign in, or make an account, with this email address, and the form is waiting in your list.",
       { top: note ? 22 : 0 },
     )}${button("Open the form", link)}`,
     reason: `${inviter} shared a form with this address on Formkit.`,
@@ -215,7 +215,7 @@ export function renderTeamInvite({ inviter, role, link }: { inviter: string; rol
     heading: `${inviter} added you to their team`,
     lede: `As ${as}. ${can}`,
     body: `${paragraph(
-      "Sign in — or make an account — with this email address, and the team's forms are waiting under Shared.",
+      "Sign in, or make an account, with this email address, and the team's forms are waiting under Shared.",
     )}${button("Open Formkit", link)}`,
     reason: `${inviter} added this address to their team on Formkit.`,
   });

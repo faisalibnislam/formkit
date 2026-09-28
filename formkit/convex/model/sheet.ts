@@ -130,7 +130,7 @@ export function xlsx(sheets: Sheet[]): Uint8Array {
 /**
  * A cell is quoted whenever a comma, a quote or a newline would break it. An
  * answer that a spreadsheet would read as a formula is prefixed with an
- * apostrophe — respondents write these cells, not the owner. A phone number
+ * apostrophe - respondents write these cells, not the owner. A phone number
  * like +44 7700 900100 is left alone.
  */
 function csvCell(raw: string) {

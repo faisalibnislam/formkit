@@ -50,12 +50,12 @@ import { SETTINGS_TABS, settingsHref, settingsTabOf } from "./Settings";
  *
  * The header decides what it shows from the URL rather than from a prop a page
  * passes up, so a page renders only its body. Inside a form the header is the
- * editor's own — title, status, publish — which `EditorHeader` draws.
+ * editor's own - title, status, publish - which `EditorHeader` draws.
  *
  * The record dock along the band's bottom edge is the navigation; there is no
  * second row of tabs in the bar above it. The dock is the last thing in the
  * band and the band carries no padding below it, so the tabs meet its bottom
- * edge however tall the active one grows — the active tab carries a summary row
+ * edge however tall the active one grows - the active tab carries a summary row
  * its neighbours do not, and a reserved constant would clip it.
  *
  * Ask Formkit appears only when the account has been allowed it. An account
@@ -92,7 +92,7 @@ function greeting(hour: number) {
 /**
  * What stands in front of the app: a session that still owes its two-factor
  * code, or an account deleted inside its 30-day window, sees that screen and
- * nothing else — every other query would refuse it anyway.
+ * nothing else - every other query would refuse it anyway.
  */
 export function AppShell({ children }: { children: ReactNode }) {
   return (
@@ -221,7 +221,7 @@ function AppFrame({ children }: { children: ReactNode }) {
     aiWas.current = aiNow;
   }, [aiNow, toastAccess]);
   // Its figure only shows on the Analytics tab, where the page asks for the
-  // same thing — so it is one subscription there and none anywhere else.
+  // same thing - so it is one subscription there and none anywhere else.
   const analytics = useQuery(api.analytics.overview, pathname?.startsWith("/app/analytics") ? {} : "skip");
   const templates = useSeededQuery(api.templates.list, {});
 
@@ -245,7 +245,7 @@ function AppFrame({ children }: { children: ReactNode }) {
 
   /* The clock is the reader's, not the server's. Rendering the greeting or
      today's date during SSR hydrates into a mismatch for everyone who is not
-     in the server's timezone — which is very nearly everyone — and React then
+     in the server's timezone - which is very nearly everyone - and React then
      throws away the tree and rebuilds it. Both are read after mount instead. */
   // The server works it out in the account's timezone, so the first paint
   // already has the right greeting and sky; the browser then keeps it fresh.
@@ -441,7 +441,7 @@ function AppFrame({ children }: { children: ReactNode }) {
 
   /**
    * The chrome leads with the person. A second line names the company when
-   * there is one and counts them when there are several — nothing when solo.
+   * there is one and counts them when there are several - nothing when solo.
    */
   const orgLine = viewer?.companies.length
     ? viewer.companies.length === 1
@@ -466,7 +466,7 @@ function AppFrame({ children }: { children: ReactNode }) {
         ? ""
         : counts.all
           ? `${counts.all} forms, ${live} of them collecting right now.`
-          : "No forms yet — create one, or lift a template.",
+          : "No forms yet. Create one, or start from a template.",
     },
     responses: {
       eyebrow: orgLine,
@@ -555,7 +555,7 @@ function AppFrame({ children }: { children: ReactNode }) {
               )}
             </span>
 
-            <Link href="/app" className="fk-app-home" aria-label="Formkit — go to dashboard">
+            <Link href="/app" className="fk-app-home" aria-label="Formkit, go to dashboard">
               {/* A narrow phone has room for the mark or the actions, not both. */}
               <span className="fk-app-logo-full">
                 <Logo tone="inverse" />

@@ -14,7 +14,7 @@ import { send } from "./notifications";
  * People on a form.
  *
  * This is the second of the three separate things sharing means. Collaborators
- * owns *people* — who can edit, comment or read. The public link belongs to the
+ * owns *people* - who can edit, comment or read. The public link belongs to the
  * Share panel, and the shape of that link belongs to a claimed handle. None of
  * the three is a switch inside another.
  *

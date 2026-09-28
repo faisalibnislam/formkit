@@ -173,7 +173,7 @@ export function FieldSettings({
   // A key is useful with any of the three; it is locked only when all are.
   const keyLocked = pipingGate.locked && hiddenGate.locked && calcGate.locked;
   const title = (id?: Id<"blocks">) =>
-    fields.find((f) => f._id === id)?.title || (id ? "Untitled question" : "—");
+    fields.find((f) => f._id === id)?.title || (id ? "Untitled question" : "…");
 
   const mine = rules.filter(
     (r) => r.targetId === block._id || conditionsOf(r).some((c) => c.blockId === block._id),
@@ -191,8 +191,8 @@ export function FieldSettings({
       } Apply one below, or manage them all on the Logic page.`;
     }
     return mine.length === 1
-      ? "One rule from the Logic page involves this question. Use the trash button to unapply it — the rule itself stays on the Logic page."
-      : `${mine.length} rules from the Logic page involve this question. Use the trash button to unapply one — the rule itself stays on the Logic page.`;
+      ? "One rule from the Logic page involves this question. Use the trash button to unapply it. The rule itself stays on the Logic page."
+      : `${mine.length} rules from the Logic page involve this question. Use the trash button to unapply one. The rule itself stays on the Logic page.`;
   })();
 
   const gotoLogic = () => router.push(`${pathname}?tab=logic`);
@@ -332,7 +332,7 @@ export function FieldSettings({
             ))}
           </div>
           <div className="fk-proprow-hint" style={{ marginTop: 6 }}>
-            For quizzes, scores and quotes — add them up under Logic → Calculations.
+            For quizzes, scores and quotes. Add them up under Logic → Calculations.
           </div>
         </div>
       )}
@@ -352,7 +352,7 @@ export function FieldSettings({
         <>
           <PropertyRow
             label="Maximum size"
-            hint={plan?.id === "business" ? "Set by your plan" : "Set by your plan — larger on Pro and Business"}
+            hint={plan?.id === "business" ? "Set by your plan" : "Set by your plan. Larger on Pro and Business"}
           >
             <span className="fk-static-pill">{plan?.limits.uploadMb ?? 10} MB</span>
           </PropertyRow>
@@ -438,7 +438,7 @@ export function FieldSettings({
                   <DraftPill
                     value={limits[i] ? String(limits[i]) : ""}
                     aria-label={`Places for ${o || `option ${i + 1}`}`}
-                    title="Places — leave empty for no limit"
+                    title="Places. Leave empty for no limit"
                     placeholder="∞"
                     inputMode="numeric"
                     wrapStyle={{ flex: "0 0 64px", width: 64 }}
@@ -518,7 +518,7 @@ export function FieldSettings({
                   <span className="fk-rw">{opLabel(c?.operator)}</span>
                   {!VALUELESS.has(c?.operator ?? "") && (
                     <span className="fk-rchip" data-tone="ink">
-                      {c?.value || "—"}
+                      {c?.value || "…"}
                     </span>
                   )}
                   {extra > 0 && (
@@ -634,7 +634,7 @@ export function FieldSettings({
 
 /**
  * Business: a hidden field the AI fills with a fact pulled out of an earlier
- * answer — a budget from a paragraph, a company name from an email.
+ * answer - a budget from a paragraph, a company name from an email.
  */
 function FillWithAi({ block, fields }: { block: Block; fields: Block[] }) {
   const toast = useToast();
@@ -703,7 +703,7 @@ function FillWithAi({ block, fields }: { block: Block; fields: Block[] }) {
 
 /**
  * Business, on a quiz: the right answer to this question and what it is
- * worth. Questions without a key — a written answer — are marked by hand.
+ * worth. Questions without a key - a written answer - are marked by hand.
  */
 function QuizKey({ block }: { block: Block }) {
   const toast = useToast();
@@ -729,7 +729,7 @@ function QuizKey({ block }: { block: Block }) {
       {choice ? (
         <>
           <div className="fk-proprow-hint" style={{ margin: "0 0 8px" }}>
-            {block.type === "multi-choice" ? "Pick every right option — all of them, and only them, score." : "Pick the right answer."}
+            {block.type === "multi-choice" ? "Pick every right option. Only an answer with all of them, and nothing else, scores." : "Pick the right answer."}
           </div>
           <span className="fk-optpicks">
             {options.map((o) => {
@@ -768,7 +768,7 @@ function QuizKey({ block }: { block: Block }) {
         <span style={{ flex: 1, fontSize: 13.5 }}>Marks</span>
         <DraftPill
           value={block.marks !== undefined ? String(block.marks) : key.length ? "1" : ""}
-          placeholder={choice || typed ? "1" : "0 — not marked"}
+          placeholder={choice || typed ? "1" : "0, not marked"}
           inputMode="decimal"
           wrapStyle={{ width: 110 }}
           onCommit={(v) => void save({ marks: v.trim() === "" ? (choice || typed ? 1 : 0) : Math.max(0, Number(v) || 0) })}

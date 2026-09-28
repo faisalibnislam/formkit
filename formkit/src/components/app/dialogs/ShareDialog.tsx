@@ -13,7 +13,7 @@ import { useToast } from "@/components/ui/Toast";
  * Share owns the public link and nothing else: the URL, the QR code, the
  * embed snippet and the claimed-handle note.
  *
- * There is no on/off switch here — whether a form collects is decided by
+ * There is no on/off switch here - whether a form collects is decided by
  * Publish (and Close), and the shape of the link by a claimed handle. A third
  * control in this panel is what made the three read as one thing, and it was
  * removed deliberately.

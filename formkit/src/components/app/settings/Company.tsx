@@ -93,7 +93,7 @@ export function CompanySection() {
 
       <Panel
         title="Companies"
-        lede="Optional — a studio, a side project, a client you invoice through. Each one claims its own link and carries its own logo and colour. One company on Free, five on Pro, as many as you need on Business."
+        lede="Optional: a studio, a side project, a client you invoice through. Each one claims its own link and carries its own logo and colour. One company on Free, five on Pro, as many as you need on Business."
         aside={
           <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
             {full && (

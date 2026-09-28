@@ -34,10 +34,10 @@ export function AdminAi() {
   return (
     <>
       <div className="fk-grid" data-cols="stats-sm">
-        <StatCard label="Accounts with it on" value={stats ? stats.aiAllowed.toLocaleString() : "—"} />
-        <StatCard label="Credits used this month" value={stats ? stats.aiUsed.toLocaleString() : "—"} caption={`of ${(stats?.aiCapacity ?? 0).toLocaleString()} they could spend`} />
-        <StatCard label="Out of credits" value={stats ? stats.aiOutOfCredits.toLocaleString() : "—"} />
-        <StatCard label="AI forms built" value={stats ? stats.aiFormsBuilt.toLocaleString() : "—"} caption="Last 30 days" />
+        <StatCard label="Accounts with it on" value={stats ? stats.aiAllowed.toLocaleString() : "-"} />
+        <StatCard label="Credits used this month" value={stats ? stats.aiUsed.toLocaleString() : "-"} caption={`of ${(stats?.aiCapacity ?? 0).toLocaleString()} they could spend`} />
+        <StatCard label="Out of credits" value={stats ? stats.aiOutOfCredits.toLocaleString() : "-"} />
+        <StatCard label="AI forms built" value={stats ? stats.aiFormsBuilt.toLocaleString() : "-"} caption="Last 30 days" />
       </div>
 
       <section className="fk-panel">

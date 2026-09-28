@@ -42,19 +42,19 @@ function readableError(err: unknown, fallback: string) {
     return "That email and password do not match an account. Check the address, or reset the password.";
   }
   if (/already.*exist|Account.*exists/i.test(raw)) {
-    return "There is already an account on that address — sign in instead, or reset the password.";
+    return "There is already an account on that address. Sign in instead, or reset the password.";
   }
   if (/Passwords need at least/i.test(raw)) return raw.replace(/^.*Error:\s*/, "");
   if (/Could not verify code|InvalidVerificationCode/i.test(raw)) {
     return "That code did not match. Check the six digits, or send a new one.";
   }
-  // The code was real but belonged to another address — a different message,
+  // The code was real but belonged to another address - a different message,
   // because retyping the digits will not help.
   if (/sent to a different address|matching `email`/i.test(raw)) {
     return "That code was sent to a different address. Check the email above, or send a new code.";
   }
   if (/expired/i.test(raw)) {
-    return "That code has expired. Send a new one — they last fifteen minutes.";
+    return "That code has expired. Send a new one; codes last fifteen minutes.";
   }
   if (/could not send the code/i.test(raw)) {
     return "Formkit could not send the code. Try again in a moment.";
@@ -85,7 +85,7 @@ export function AuthCard({ initialView }: { initialView: View }) {
 
   /** Where to land after a successful sign-in. */
   const landing = useCallback(() => {
-    // Where the person was going before they were asked to sign in — only ever
+    // Where the person was going before they were asked to sign in - only ever
     // a path on this site.
     const next = params.get("next");
     if (next && next.startsWith("/") && !next.startsWith("//")) return next;
@@ -147,7 +147,7 @@ export function AuthCard({ initialView }: { initialView: View }) {
     run(async () => {
       await signIn("password", { email: address, code, flow: "email-verification" });
       router.push("/onboarding");
-    }, "That code was not accepted. Only the newest code works and they last fifteen minutes — send a new one and use that.");
+    }, "That code was not accepted. Only the newest code works and they last fifteen minutes. Send a new one and use that.");
 
   const onSendReset = async () => {
     const ok = await run(async () => {
@@ -479,7 +479,7 @@ export function AuthCard({ initialView }: { initialView: View }) {
           {view === "reactivate" && (
             <>
               <Head title="Your account is deactivated">
-                Everything is still here — forms, responses and templates.
+                Everything is still here: forms, responses and templates.
               </Head>
               <div
                 style={{

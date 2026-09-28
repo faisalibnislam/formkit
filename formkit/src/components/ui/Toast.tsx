@@ -10,7 +10,7 @@ import {
 } from "react";
 
 /**
- * Toasts. Plain, short, a little dry — they state what happened, and name the
+ * Toasts. Plain, short, a little dry - they state what happened, and name the
  * fix when something failed.
  */
 type Tone = "default" | "error";

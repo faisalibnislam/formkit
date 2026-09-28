@@ -8,8 +8,8 @@ import { csv, xlsx, XLSX_TYPE, type Sheet } from "../../../convex/model/sheet";
 import { useToast } from "@/components/ui/Toast";
 
 /**
- * Downloads. Excel means a real .xlsx — Excel opens it without asking whether
- * to trust it — and CSV carries a byte-order mark so accented names survive
+ * Downloads. Excel means a real .xlsx - Excel opens it without asking whether
+ * to trust it - and CSV carries a byte-order mark so accented names survive
  * being double-clicked open.
  */
 

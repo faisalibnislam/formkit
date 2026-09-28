@@ -121,7 +121,7 @@
 }
 
 /* The wordmark: a ghost layer and a white copy revealed left to right.
-   Both layers need display:flex to centre — the Logo renders a display:block
+   Both layers need display:flex to centre - the Logo renders a display:block
    SVG, so text-align cannot reach it and the two layers desynchronise. */
 .fk-foot-mark {
   position: relative;

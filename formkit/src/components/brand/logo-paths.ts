@@ -3,7 +3,7 @@
  *
  * Real client artwork, path data lifted verbatim from the design system bundle
  * (components/core/Logo.jsx) and painted in currentColor so one component
- * serves every tone with no network fetch. The wordmark is artwork, not type —
+ * serves every tone with no network fetch. The wordmark is artwork, not type -
  * never re-space or recolour it.
  */
 

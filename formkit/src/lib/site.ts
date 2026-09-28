@@ -14,7 +14,7 @@ export const SHARE_IMAGE = {
   url: "/og-image.jpg",
   width: 1200,
   height: 630,
-  alt: "Formkit — What will your next form do? Design the questions, branch the journey, read what comes back.",
+  alt: "Formkit: What will your next form do? Design the questions, branch the journey, read what comes back.",
 };
 
 /** Routes the public navigation offers, in order. */

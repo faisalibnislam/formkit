@@ -11,7 +11,7 @@ import { FormRunner, type OpenForm, type SubmitArgs } from "@/components/live/Fo
 import { themeOf } from "../editor/themes";
 
 /**
- * Preview runs the real form — the same runner as the public link — inside a
+ * Preview runs the real form - the same runner as the public link - inside a
  * desktop, tablet or phone frame. Sending it records a response, marked as a
  * preview, so the whole path can be checked end to end. Nothing here needs
  * the form to be published.

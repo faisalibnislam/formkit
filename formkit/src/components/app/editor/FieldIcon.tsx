@@ -29,7 +29,7 @@ import type { ComponentType } from "react";
 /**
  * The mark for a field type.
  *
- * `fieldTypes.ts` names an icon the way the design system does — as a string —
+ * `fieldTypes.ts` names an icon the way the design system does - as a string -
  * so the two stay comparable. This is the one place that turns a name into the
  * drawing, and an unknown name falls back to the plain sheet rather than
  * rendering nothing.

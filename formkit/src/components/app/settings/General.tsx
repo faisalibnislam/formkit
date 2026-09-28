@@ -15,7 +15,7 @@ import { PageSkeleton } from "../Skeleton";
 
 /**
  * Settings → Preferences. The AI card exists only for an account that has
- * been allowed Ask Formkit — nobody else sees a word about it here.
+ * been allowed Ask Formkit - nobody else sees a word about it here.
  */
 
 type Pref = "sync" | SkyPeriod;
@@ -51,7 +51,7 @@ export function GeneralSection() {
       {viewer.ai.allowed && (
         <Panel
           title="Form building with AI"
-          lede={`Describe a form in a sentence and Formkit writes it — ${left} of ${viewer.ai.limit} left this month. Rewriting questions, logic rules and themes are free.`}
+          lede={`Describe a form in a sentence and Formkit writes it. ${left} of ${viewer.ai.limit} left this month. Rewriting questions, logic rules and themes are free.`}
           aside={<Badge tone="success">On</Badge>}
         >
           <div className="fk-setpanel-actions">

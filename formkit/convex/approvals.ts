@@ -10,7 +10,7 @@ import { publishNow } from "./forms";
 /**
  * Business: approvals before publishing. With them on, an editor's Publish
  * becomes "Ask for approval"; the owner and the team's admins hear about it
- * and approve — which publishes — or send it back with a note.
+ * and approve - which publishes - or send it back with a note.
  */
 
 export const setEnabled = mutation({

@@ -2,7 +2,7 @@
  * The six built-in form templates.
  *
  * Each gets its own indexable route (`/templates/<slug>`) rather than the hash
- * routing the prototype used — the handoff calls that the highest-value SEO
+ * routing the prototype used - the handoff calls that the highest-value SEO
  * task in the build.
  */
 
@@ -69,7 +69,7 @@ export const TEMPLATES: FormTemplate[] = [
     faqs: [
       {
         q: "Can I use this for retainer clients too?",
-        a: 'Yes. The "have we worked together before" rule exists for exactly that — returning clients skip the three brand questions and answer eight instead of eleven.',
+        a: 'Yes. The "have we worked together before" rule exists for exactly that. Returning clients skip the three brand questions and answer eight instead of eleven.',
       },
       {
         q: "What file types can clients upload?",
@@ -77,7 +77,7 @@ export const TEMPLATES: FormTemplate[] = [
       },
       {
         q: "Can the response go to a specific person?",
-        a: "Yes. A routing rule can send the email to a different address depending on how a question was answered — by project type, for instance.",
+        a: "Yes. A routing rule can send the email to a different address depending on how a question was answered, by project type for instance.",
       },
     ],
   },
@@ -110,7 +110,7 @@ export const TEMPLATES: FormTemplate[] = [
     ],
     who: [
       "Web designers and agencies taking on a build where the client has not yet decided who writes the copy or who owns the site afterwards. Those two questions cause more delay than any technical decision.",
-      "If you quote from this form, the quote holds — because the scope is written down before you price it.",
+      "If you quote from this form, the quote holds, because the scope is written down before you price it.",
     ],
     faqs: [
       {
@@ -174,7 +174,7 @@ export const TEMPLATES: FormTemplate[] = [
     logic: true,
     blurb:
       "Enough to know whether an enquiry is worth a call, without making a good lead fill in a form they resent.",
-    meta: "A free lead qualification form template: the problem, the timeline, the budget range, who else is involved and how they found you — with routing to the right person.",
+    meta: "A free lead qualification form template: the problem, the timeline, the budget range, who else is involved and how they found you, with routing to the right person.",
     lead: "Eight questions across two pages. Routing rules send each enquiry to the right inbox based on what they picked, so nothing sits unclaimed.",
     questions: [
       q("What is your name?", "Name", "user"),
@@ -188,12 +188,12 @@ export const TEMPLATES: FormTemplate[] = [
     ],
     who: [
       'Anyone whose contact page currently says "get in touch" and produces enquiries with no detail in them. Eight questions is the point where you learn enough to prepare for a call without losing people.',
-      "The budget question is a scale rather than a text field on purpose — a range is easier to answer honestly than a number.",
+      "The budget question is a scale rather than a text field on purpose. A range is easier to answer honestly than a number.",
     ],
     faqs: [
       {
         q: "Will asking about budget put people off?",
-        a: "A range framed as a scale is far easier to answer than an open field. If you would rather not ask, delete the question — the rest of the form stands on its own.",
+        a: "A range framed as a scale is far easier to answer than an open field. If you would rather not ask, delete the question. The rest of the form stands on its own.",
       },
       {
         q: "Can different enquiry types go to different people?",
@@ -213,9 +213,9 @@ export const TEMPLATES: FormTemplate[] = [
     pages: "2",
     logic: true,
     blurb:
-      "Sessions, dietary needs, accessibility and guests — the four things you will otherwise chase by email.",
+      "Sessions, dietary needs, accessibility and guests: the four things you would otherwise chase by email.",
     meta: "A free event registration form template: attendee details, session choices, dietary requirements, accessibility needs and guests, with a confirmation email.",
-    lead: "Nine questions over two pages, ending with a confirmation email that gives the attendee something to keep. Close the form when you are full — the link keeps working and shows your closing message.",
+    lead: "Nine questions over two pages, ending with a confirmation email that gives the attendee something to keep. Close the form when you are full. The link keeps working and shows your closing message.",
     questions: [
       q("What is your name?", "Name", "user"),
       q("Which email should we send the ticket to?", "Email", "at-sign"),
@@ -229,7 +229,7 @@ export const TEMPLATES: FormTemplate[] = [
     ],
     who: [
       "Workshops, meet-ups, launches and anything with a headcount. The accessibility and dietary questions are here because they are the two most often forgotten and the two most expensive to fix late.",
-      "Pair it with a QR code on printed material — every published form has one.",
+      "Pair it with a QR code on printed material. Every published form has one.",
     ],
     faqs: [
       {
@@ -280,7 +280,7 @@ export const TEMPLATES: FormTemplate[] = [
       },
       {
         q: "Can I summarise the responses?",
-        a: "Ask Formkit can summarise a batch of responses. That costs nothing — only creating a new form spends a credit.",
+        a: "Ask Formkit can summarise a batch of responses. That costs nothing. Only creating a new form spends a credit.",
       },
       {
         q: "What if somebody abandons it halfway?",

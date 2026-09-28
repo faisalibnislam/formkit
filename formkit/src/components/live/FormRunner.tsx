@@ -19,14 +19,14 @@ import { applyLogic, conditionsOf, type Rule as LogicRule } from "../../../conve
 import { LogoLockup } from "./LogoLockup";
 
 /**
- * The form, as somebody answering it sees it — on the public link, and in the
+ * The form, as somebody answering it sees it - on the public link, and in the
  * builder's preview, which runs this same component.
  *
  * Things that matter here and are easy to get wrong:
  *  - Leaving keeps what was answered. The partial is saved on the way out and
  *    carries a token, so the owner can send the person back to it.
  *  - Logic is evaluated on every answer, and a hidden question is never
- *    required — otherwise a form can become impossible to finish.
+ *    required - otherwise a form can become impossible to finish.
  *  - Required means required: the page will not advance, and the message says
  *    which question is waiting.
  *  - Classic puts a page of questions on screen; conversational asks one at a
@@ -165,7 +165,7 @@ export function FormRunner({
   mode: "live" | "preview";
   /** Show the closed screen instead of the questions. */
   closed?: boolean;
-  /** Answers already given — a partial being finished, or a response being changed. */
+  /** Answers already given - a partial being finished, or a response being changed. */
   resume?: { token: string; answers: Record<string, Answer>; editing: boolean };
   onSubmit: (args: SubmitArgs) => Promise<Submitted>;
   /** Opens the payment page for a response that owes one; the live form only. */
@@ -180,7 +180,7 @@ export function FormRunner({
     answers: { blockId: string; text: string }[];
   }) => Promise<{ judged: Record<string, boolean>; extracted: Record<string, string> }>;
   upload: (file: File) => Promise<Id<"_storage">>;
-  /** What scrolls — the window, or the preview's own frame. */
+  /** What scrolls - the window, or the preview's own frame. */
   scrollRoot?: RefObject<HTMLElement | null>;
 }) {
   const theme = themeOf(data.theme);
@@ -344,7 +344,7 @@ export function FormRunner({
     return () => window.removeEventListener("pagehide", save);
   }, [answers, done, mode, onSubmit, data.rules.partials]);
 
-  // A redirect after submitting, on the live form only — with {{keys}} filled in.
+  // A redirect after submitting, on the live form only - with {{keys}} filled in.
   const endingNow = done?.ending ? data.endings?.find((e) => e.id === done.ending) : undefined;
   const finalRedirect = endingNow ? endingNow.redirect : data.thanks?.redirect;
   const redirectTo = finalRedirect
@@ -423,8 +423,8 @@ export function FormRunner({
   }
 
   /**
-   * Business: asks the AI about the answers just given — its yes-or-no
-   * conditions and the hidden fields it fills — and works the rules out
+   * Business: asks the AI about the answers just given - its yes-or-no
+   * conditions and the hidden fields it fills - and works the rules out
    * again with what it said. Never holds anyone up for long: after a few
    * seconds, or on any failure, the form goes on with the fallbacks.
    */
@@ -1112,7 +1112,7 @@ function Control({
           <option value="">Choose one</option>
           {offered.map(({ o, left }) => (
             <option key={o} value={o} disabled={left !== null && left <= 0}>
-              {placeNote(left) ? `${o} — ${placeNote(left)}` : o}
+              {placeNote(left) ? `${o} (${placeNote(left)})` : o}
             </option>
           ))}
         </select>
@@ -1174,8 +1174,8 @@ function Control({
           <span style={{ flex: 1, minWidth: 0 }}>
             {value?.fileName ??
               (block.accept?.length
-                ? `Choose a ${block.accept.join(" ")} file — up to ${capMb} MB`
-                : `Choose a file — up to ${capMb} MB`)}
+                ? `Choose a ${block.accept.join(" ")} file, up to ${capMb} MB`
+                : `Choose a file, up to ${capMb} MB`)}
           </span>
           <input
             type="file"

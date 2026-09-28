@@ -72,7 +72,7 @@ export const overview = query({
     formId: v.optional(v.id("forms")),
     /** Legacy: the last so many days, to now. */
     days: v.optional(v.number()),
-    /** The first moment in range — the viewer's local midnight. */
+    /** The first moment in range - the viewer's local midnight. */
     from: v.optional(v.number()),
     /** The end of the range, exclusive. */
     to: v.optional(v.number()),
@@ -96,11 +96,11 @@ export const overview = query({
             .collect()
         ).filter((f) => !f.deletedAt);
     const ids = new Set(forms.map((f) => f._id as string));
-    // Sources and devices are Pro — the form owner's plan for one form, the
+    // Sources and devices are Pro - the form owner's plan for one form, the
     // viewer's own across all of theirs. Drop-off is on every plan.
     const full = await hasFeature(ctx, args.formId ? forms[0]!.ownerId : user._id, "analytics.full");
 
-    // Only the two windows being compared — never every response ever sent.
+    // Only the two windows being compared - never every response ever sent.
     const inWindows = (
       args.formId
         ? await ctx.db
@@ -167,7 +167,7 @@ export const overview = query({
     }
 
     /* Where people leave: for each question, the share of everyone who began
-       that stopped on it — the first question after the last they answered. */
+       that stopped on it - the first question after the last they answered. */
     const dropOff = args.formId
       ? await (async () => {
           const blocks = (

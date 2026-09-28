@@ -1,5 +1,5 @@
 /**
- * Night Sky — the animated background behind every public hero.
+ * Night Sky - the animated background behind every public hero.
  *
  * Faisal's standing instruction: the photographic sky band is retired. Any hero
  * that wants a ground uses this component inside a
@@ -13,7 +13,7 @@
 
 const STAR_TINTS = ["#f2f6fd", "#e3ecf8", "#cfdcee"] as const;
 
-/** mulberry32 — small, fast, deterministic. */
+/** mulberry32 - small, fast, deterministic. */
 function seeded(seed: number) {
   let a = seed >>> 0;
   return () => {

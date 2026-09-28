@@ -51,7 +51,7 @@ export function AskDock() {
           type="button"
           className="fk-ask-launch"
           data-calm={calm || ask.thread.length > 0 ? "true" : undefined}
-          aria-label={`Ask Formkit — ${ask.left} form ${ask.left === 1 ? "credit" : "credits"} left`}
+          aria-label={`Ask Formkit, ${ask.left} form ${ask.left === 1 ? "credit" : "credits"} left`}
           onClick={() => {
             opened.current = true;
             setCalm(true);

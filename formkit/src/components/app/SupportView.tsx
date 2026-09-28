@@ -18,7 +18,7 @@ export function SupportBanner({ who }: { who: string }) {
     <div className="fk-support-banner" role="status">
       <Eye size={16} strokeWidth={1.8} aria-hidden />
       <span>
-        Support view of <strong>{who}</strong> — read-only. Nothing here can be changed.
+        Support view of <strong>{who}</strong>, read-only. Nothing here can be changed.
       </span>
       <Link href="/admin?section=users" className="fk-support-leave">
         <LogOut size={14} strokeWidth={1.8} aria-hidden />

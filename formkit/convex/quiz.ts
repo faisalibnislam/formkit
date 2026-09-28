@@ -13,8 +13,8 @@ import { button, facts, paragraph, renderShell, safeColor, type Brand } from "./
  * Business: quizzes and exams.
  *
  * Questions carry an answer key and marks; a response is marked as it
- * arrives (see model/quiz.ts), and anything without a key — a written answer
- * — waits for the owner to mark it. A timer, kept by the server, sends the
+ * arrives (see model/quiz.ts), and anything without a key - a written answer
+ * - waits for the owner to mark it. A timer, kept by the server, sends the
  * quiz when time is up. Results show straight away, or are held until the
  * owner releases them, now or at a set time; either way people can be
  * emailed a link to their results page.
@@ -277,7 +277,7 @@ export const emailResult = internalAction({
     const job = await ctx.runQuery(internal.quiz.emailJob, { responseId });
     if (!job) return null;
     const brand: Brand = { name: job.brand.name, logoUrl: job.brand.logoUrl, color: safeColor(job.brand.color), badge: job.brand.badge };
-    const verdict = job.passed === null ? "" : job.passed ? " — you passed" : " — not a pass this time";
+    const verdict = job.passed === null ? "" : job.passed ? ". You passed" : ". Not a pass this time";
     const subject = `Your results: ${job.title}`;
     const link = `${SITE}/q/${job.token}`;
     const first = (job.name ?? "").trim().split(/\s+/)[0];

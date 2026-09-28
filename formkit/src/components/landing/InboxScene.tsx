@@ -9,7 +9,7 @@ import { ANSWER_ROWS, COMPLETION_TICKS, DROP_ROWS, INBOX_ROWS } from "@/content/
  * UNDERSTAND. The completed answer has become a row in the inbox, with its
  * detail, its attachment and the figures it moved.
  *
- * Avatars render initials, as the app itself does — there is no photography in
+ * Avatars render initials, as the app itself does - there is no photography in
  * this system.
  */
 const BADGE_TONE: Record<string, { bg: string; ink: string }> = {
@@ -243,7 +243,7 @@ export function InboxScene() {
                   color: "var(--neutral-800)",
                 }}
               >
-                Note added · &ldquo;Budget fits the March slot — send the scope by Friday.&rdquo;
+                Note added · &ldquo;Budget fits the March slot. Send the scope by Friday.&rdquo;
               </div>
             )}
           </div>

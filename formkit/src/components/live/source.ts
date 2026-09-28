@@ -1,6 +1,6 @@
 /**
- * Where a respondent came from, named the way the owner thinks about it —
- * "Direct link", "Instagram", "Embedded on acme.com" — rather than as a raw
+ * Where a respondent came from, named the way the owner thinks about it -
+ * "Direct link", "Instagram", "Embedded on acme.com" - rather than as a raw
  * referrer URL. Read once, in the browser, and sent with the view, the start
  * and the response alike so Analytics can line them up.
  */

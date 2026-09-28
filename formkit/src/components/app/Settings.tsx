@@ -52,7 +52,7 @@ const ALIAS: Record<string, SettingsTab> = {
 export const SETTINGS_TABS: { value: SettingsTab; label: string; meta: string; icon: typeof CircleUser }[] = [
   { value: "account", label: "Account", meta: "Profile and password", icon: CircleUser },
   { value: "plan", label: "Plan", meta: "Plan, usage and billing", icon: CreditCard },
-  { value: "company", label: "Companies", meta: "Optional — links, logos and brands", icon: Store },
+  { value: "company", label: "Companies", meta: "Optional: links, logos and brands", icon: Store },
   { value: "team", label: "Team", meta: "People on every form, approvals", icon: UsersRound },
   { value: "general", label: "Preferences", meta: "Dashboard appearance", icon: SlidersHorizontal },
   { value: "members", label: "Sharing", meta: "People with access", icon: Users },
@@ -77,7 +77,7 @@ export function Settings() {
 
   /* The section is read from the URL rather than held in state, so the account
      menu's "Companies and branding" lands on that section even from inside
-     Settings — a soft navigation does not remount this component. */
+     Settings - a soft navigation does not remount this component. */
   const tab = settingsTabOf(search.get("tab"));
 
   // On a phone the tab strip scrolls; keep the open section's tab in view.

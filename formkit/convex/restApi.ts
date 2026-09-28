@@ -15,7 +15,7 @@ import { hasFeature } from "./model/plans";
  *   GET /api/v1/forms/{id}/responses?after=<ms>&limit=<1-100>
  *   GET /api/v1/responses/{id}
  *
- * Authorization: Bearer fk_live_… — a key made in Settings → Controls. Keys
+ * Authorization: Bearer fk_live_… - a key made in Settings → Controls. Keys
  * belong to one account and read only that account's forms.
  */
 

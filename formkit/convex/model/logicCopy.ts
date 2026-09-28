@@ -2,7 +2,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { Condition } from "./logicEval";
 
 /**
- * A rule carried to another form — a template, a copy — points at questions
+ * A rule carried to another form - a template, a copy - points at questions
  * by their position, and is re-pointed at the new form's questions on arrival.
  */
 

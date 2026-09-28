@@ -6,8 +6,8 @@ import { hasFeature } from "./plans";
  * Claimed links.
  *
  * A handle moves a form's public link from `formkit.app/f/<slug>` to
- * `formkit.app/<handle>/<slug>`. There is one claim path for every identity —
- * the person and each of their companies — keyed the same way, so the same name
+ * `formkit.app/<handle>/<slug>`. There is one claim path for every identity -
+ * the person and each of their companies - keyed the same way, so the same name
  * cannot be taken twice.
  *
  * Build public URLs with `formUrl()`. Never concatenate `formkit.app/f/`.
@@ -52,7 +52,7 @@ export function normaliseHandle(raw: string) {
 export function handleProblem(handle: string): string | null {
   if (handle.length < 3) return "A link needs at least three characters.";
   if (handle.length > 32) return "A link can be at most 32 characters.";
-  if (RESERVED.has(handle)) return `“${handle}” is reserved by Formkit — try another name.`;
+  if (RESERVED.has(handle)) return `“${handle}” is reserved by Formkit. Try another name.`;
   if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(handle)) {
     return "Use letters, numbers and dashes, starting and ending with a letter or number.";
   }
@@ -82,7 +82,7 @@ export async function claimHandle(
     const mine =
       existing.userId === userId &&
       (companyId ? existing.companyId === companyId : existing.ownerType === "user");
-    if (!mine) throw new Error(`“${handle}” is taken — try another name.`);
+    if (!mine) throw new Error(`“${handle}” is taken. Try another name.`);
     return handle;
   }
 

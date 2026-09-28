@@ -17,7 +17,7 @@ import { DraftPill } from "./Draft";
 import { tracked } from "./saveStatus";
 
 /**
- * Business: the form as a quiz or exam — marks, a timer, one attempt, and
+ * Business: the form as a quiz or exam - marks, a timer, one attempt, and
  * results shown straight away or released later.
  */
 
@@ -97,7 +97,7 @@ export function QuizSection({ formId, form }: { formId: Id<"forms">; form: Form 
           {gate.locked && <ProChip plan="business" onClick={() => openUpgrade({ feature: "quiz" })} />}
         </div>
         <p className="fk-panel-lede">
-          Mark every response as it arrives. Set the right answers and marks on each question under Build — written answers
+          Mark every response as it arrives. Set the right answers and marks on each question under Build. Written answers
           wait for you to mark them by hand.
         </p>
         <div className="fk-proprow">
@@ -158,7 +158,7 @@ export function QuizSection({ formId, form }: { formId: Id<"forms">; form: Form 
                   ? "On the thank-you screen, as soon as they send."
                   : stored.releaseAt
                     ? `Held until ${fullTime(stored.releaseAt)}, or until you release them.`
-                    : "Held until you release them — for exams you mark first."}
+                    : "Held until you release them. Good for exams you mark first."}
               </div>
             </div>
             <Segmented
@@ -244,8 +244,8 @@ export function QuizSection({ formId, form }: { formId: Id<"forms">; form: Form 
           </div>
           <div className="fk-grid" data-cols="stats-sm" style={{ marginTop: 16 }}>
             <StatCard label="Taken" value={summary.count.toLocaleString("en-US")} tone="sunken" />
-            <StatCard label="Average" value={summary.average === null ? "—" : `${summary.average}%`} tone="sunken" />
-            <StatCard label="Passed" value={summary.passRate === null ? "—" : `${summary.passRate}%`} tone="sunken" />
+            <StatCard label="Average" value={summary.average === null ? "-" : `${summary.average}%`} tone="sunken" />
+            <StatCard label="Passed" value={summary.passRate === null ? "-" : `${summary.passRate}%`} tone="sunken" />
             <StatCard
               label="To mark by hand"
               value={summary.toMark.toLocaleString("en-US")}
@@ -271,7 +271,7 @@ export function QuizSection({ formId, form }: { formId: Id<"forms">; form: Form 
                         ) : null}
                       </span>
                       <span className="fk-droprow-pct" style={{ whiteSpace: "nowrap" }}>
-                        {q.right === null ? (q.keyed ? "—" : "by hand") : `${q.right}%`}
+                        {q.right === null ? (q.keyed ? "-" : "by hand") : `${q.right}%`}
                       </span>
                     </div>
                   ))}

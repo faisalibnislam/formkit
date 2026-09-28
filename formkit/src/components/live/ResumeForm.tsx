@@ -6,8 +6,8 @@ import type { Answer } from "./FormRunner";
 import { LiveForm } from "./LiveForm";
 
 /**
- * Coming back to a form: one somebody left half-answered, or — where the form
- * allows it — one they sent and want to change.
+ * Coming back to a form: one somebody left half-answered, or - where the form
+ * allows it - one they sent and want to change.
  *
  * The token resolves to the response itself, so the answers are put back
  * rather than asked for again, and finishing replaces that record instead of

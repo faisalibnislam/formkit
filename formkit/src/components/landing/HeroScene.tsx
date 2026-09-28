@@ -31,7 +31,7 @@ export function HeroScene() {
           <p className="fk-hero-eyebrow">
             <span>Form builder</span>
             <span style={{ opacity: 0.82 }}>
-              Build forms, add logic, read the responses — free.
+              Build forms, add logic, read the responses. Free.
             </span>
           </p>
 
@@ -93,8 +93,8 @@ export function HeroScene() {
             <h2 style={{ whiteSpace: "nowrap" }}>Start with what you need to know.</h2>
           </div>
           <p>
-            Eleven questions, written once. Each answer type decides what the respondent sees —
-            drag to reorder, split into pages, publish when it reads right.
+            Eleven questions, written once. Each answer type decides what the respondent sees.
+            Drag to reorder, split into pages, publish when it reads right.
           </p>
         </div>
       </div>

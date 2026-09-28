@@ -45,11 +45,11 @@ import { PageSkeleton } from "../Skeleton";
  * Dragging, of which there are two kinds: a field type dragged in from the
  * library, and a block dragged to a new place. Both land either on an insert
  * point between two blocks or on a card, whose top or bottom half says
- * whether the drop goes before or after it — a line shows which.
+ * whether the drop goes before or after it - a line shows which.
  *
  * A card is ALWAYS `draggable`, and `onCardPointerDown` decides whether the
  * press that began may start a drag. Do not go back to setting `draggable`
- * from state on mousedown — the browser reads the attribute before that state
+ * from state on mousedown - the browser reads the attribute before that state
  * lands, and the drag never starts. Every drag also writes something into
  * `dataTransfer`, because Firefox refuses to begin one that carries nothing.
  */
@@ -157,7 +157,7 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
   const [pageOver, setPageOver] = useState<number | null>(null);
 
   /* Armed by a press that may start a drag, and read synchronously inside
-     onDragStart — state would not have landed by the time the browser asks. */
+     onDragStart - state would not have landed by the time the browser asks. */
   const gripArm = useRef(false);
 
   function onCardPointerDown(e: PointerEvent<HTMLElement>) {
@@ -235,8 +235,8 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
 
   const order = () => blocks.map((b) => b._id);
 
-  /* Every drop names a slot between two blocks — an insert point directly, or
-     a card's top or bottom half — so where the block lands is never a guess. */
+  /* Every drop names a slot between two blocks - an insert point directly, or
+     a card's top or bottom half - so where the block lands is never a guess. */
   async function dropAtSlot(slot: number) {
     const inFlight = payload.current;
     onDragFinished();
@@ -491,7 +491,7 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
                 onCommit={(button) => patchWelcome({ button: button || "Start" })}
               />
               <span className="fk-proprow-hint" style={{ flex: 1, minWidth: 180 }}>
-                Only you see this note — it never appears on the form. This page stands alone:
+                Only you see this note. It never appears on the form. This page stands alone:
                 people read it, press the button, and the questions start on page 02.
               </span>
             </div>

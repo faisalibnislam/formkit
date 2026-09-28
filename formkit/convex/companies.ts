@@ -119,7 +119,7 @@ export const remove = mutation({
 
 /**
  * One claim path for every identity's link. `owner` is "me" for the person, or
- * a company id — the same name cannot be taken twice across an account, and a
+ * a company id - the same name cannot be taken twice across an account, and a
  * handle already held elsewhere is refused.
  */
 export const claim = mutation({
@@ -156,7 +156,7 @@ export const release = mutation({
 /**
  * The company's logo.
  *
- * The same one-use upload URL as an avatar — `users.generateUploadUrl` issues
+ * The same one-use upload URL as an avatar - `users.generateUploadUrl` issues
  * it, since a person may only upload for their own account either way.
  */
 export const setLogo = mutation({

@@ -7,11 +7,11 @@ import { conditionsOf } from "./model/logicEval";
 /**
  * Conditional logic. Rules read like sentences: when someone answers this way,
  * skip ahead, or show or hide another question. The first rule that matches
- * wins, and rules are scoped to their form — a rule written against one form's
+ * wins, and rules are scoped to their form - a rule written against one form's
  * questions never appears on another.
  *
  * Operators are type-aware. A number question offers "is at least" as well as
- * "is greater than", because "18 or older" must include 18 — the original set
+ * "is greater than", because "18 or older" must include 18 - the original set
  * only had "is greater than" and quietly excluded it.
  */
 export const OPERATORS: Record<string, { value: string; label: string }[]> = {
@@ -195,7 +195,7 @@ export const remove = mutation({
 });
 
 /**
- * Unapplying a rule from a question clears that question from it — it never
+ * Unapplying a rule from a question clears that question from it - it never
  * deletes the rule, which stays on the Logic page.
  *
  * If the question was the affected side, only the target clears. If it was the

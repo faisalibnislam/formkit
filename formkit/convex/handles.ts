@@ -7,7 +7,7 @@ import { handleProblem, handleTaken, normaliseHandle } from "./model/handles";
  * Is this name free?
  *
  * Claiming lives in `companies.claim`, which is the one claim path for every
- * identity — the person and each of their companies. This only answers the
+ * identity - the person and each of their companies. This only answers the
  * question the field asks while somebody types, and it names the fix rather
  * than saying "invalid".
  */
@@ -33,7 +33,7 @@ export const check = query({
       (companyId ? existing.companyId === companyId : existing.ownerType === "user");
 
     if (existing && !mine) {
-      return { handle, ok: false, problem: `“${handle}” is taken — try another name.` };
+      return { handle, ok: false, problem: `“${handle}” is taken. Try another name.` };
     }
     return { handle, ok: true, problem: null };
   },

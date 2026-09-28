@@ -9,7 +9,7 @@ import { PLAN_POINTS, bestSavingPercent } from "@/components/plan/PlanCards";
 /**
  * The plan cards at the top of /pricing, with the monthly / yearly switch.
  * They rise out of the hero; Pro is the ink card. A paid plan's button goes
- * to Settings → Plan, which opens Polar's checkout — through sign-in first for
+ * to Settings → Plan, which opens Polar's checkout - through sign-in first for
  * someone who is not signed in.
  */
 
@@ -85,7 +85,7 @@ export function PricingPlans() {
                 {id === "free"
                   ? "No card, no trial, no time limit"
                   : interval === "year"
-                    ? `${money(plan.price.year)} billed once a year${saved > 0 ? ` — you save ${money(saved)}` : ""}`
+                    ? `${money(plan.price.year)} billed once a year${saved > 0 ? `, so you save ${money(saved)}` : ""}`
                     : `Billed monthly, or ${money(plan.price.year)} a year`}
               </p>
 

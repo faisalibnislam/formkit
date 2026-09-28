@@ -29,7 +29,7 @@ export function closeWhenLabel(closing: Closing, responses: number, zone: string
     bits.push(
       closing.closeAt <= Date.now()
         ? `Its closing time, ${formatIn(closing.closeAt, zone)}, has passed`
-        : `Closes ${formatIn(closing.closeAt, zone)} — ${untilLabel(closing.closeAt)}`,
+        : `Closes ${formatIn(closing.closeAt, zone)}, ${untilLabel(closing.closeAt)}`,
     );
   }
   if (closing?.closeAfter) {
@@ -119,8 +119,8 @@ export function ClosingRules({
             <Clock size={15} strokeWidth={1.8} aria-hidden />
             <span>
               {untilLabel(at!) === "already passed"
-                ? "That time has passed — it closes on the next check."
-                : `Closes ${formatIn(at!, zone)} — ${untilLabel(at!)}.`}
+                ? "That time has passed. It closes on the next check."
+                : `Closes ${formatIn(at!, zone)}, ${untilLabel(at!)}.`}
             </span>
           </div>
         </>
@@ -152,7 +152,7 @@ export function ClosingRules({
           </label>
           <div className="fk-proprow-hint" style={{ flex: 1, minWidth: 190, paddingBottom: 14, margin: 0 }}>
             {left > 0
-              ? `${responses.toLocaleString("en-US")} of ${limit.toLocaleString("en-US")} collected — it closes after ${left.toLocaleString("en-US")} more.`
+              ? `${responses.toLocaleString("en-US")} of ${limit.toLocaleString("en-US")} collected. It closes after ${left.toLocaleString("en-US")} more.`
               : "The limit is already met, so it closes on the next check."}
           </div>
         </div>

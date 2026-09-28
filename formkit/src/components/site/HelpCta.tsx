@@ -19,7 +19,7 @@ export function HelpCta() {
         <strong>{signedIn ? "Back to your forms" : "Try it on a form of your own"}</strong>
         <span>
           {signedIn
-            ? "Everything in this article is a click or two away in the builder — or ask us directly."
+            ? "Everything in this article is a click or two away in the builder. Or ask us directly."
             : "Free to start, with unlimited forms and responses. No card needed."}
         </span>
       </div>

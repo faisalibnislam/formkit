@@ -47,7 +47,7 @@ function useCopy() {
       setCopied(text);
       window.setTimeout(() => setCopied(null), 1500);
     } catch {
-      toast("Copy that by hand — the browser blocked it");
+      toast("Copy that by hand. The browser blocked it");
     }
   };
   return { copied, copy };
@@ -219,13 +219,13 @@ export function ConnectionsSection({
                   <button type="button" className="fk-linkbtn" onClick={() => setScript(c.feed)}>
                     Use the Apps Script instead
                   </button>
-                  . Anyone with the link can read the responses, so keep it private —{" "}
+                  . Anyone with the link can read the responses, so keep it private.{" "}
                   <button
                     type="button"
                     className="fk-linkbtn"
                     onClick={async () => {
                       await rotate({ connectionId: c._id });
-                      toast("New link made", { detail: "The old one no longer works — update your sheet." });
+                      toast("New link made", { detail: "The old one no longer works. Update your sheet." });
                     }}
                   >
                     make a new link
@@ -241,7 +241,7 @@ export function ConnectionsSection({
                 {c.recent.map((d, i) => (
                   <div key={i} className="fk-connect-logrow">
                     <span className="fk-chip" style={{ background: d.ok ? "var(--green-100)" : "var(--red-100)" }}>
-                      {d.status || "—"}
+                      {d.status || "-"}
                     </span>
                     <span>{fullTime(d.at)}</span>
                     {d.attempt > 1 && <span className="fk-proprow-hint">try {d.attempt}</span>}
@@ -255,7 +255,7 @@ export function ConnectionsSection({
       })}
 
       <p className="fk-proprow-hint" style={{ margin: "14px 0 0" }}>
-        A delivery that fails is tried again after a minute, then after ten. Webhooks are signed —{" "}
+        A delivery that fails is tried again after a minute, then after ten. Webhooks are signed. Here is{" "}
         <a href="/api-docs#webhooks" target="_blank" className="fk-linkbtn">
           how to check the signature
         </a>
@@ -296,7 +296,7 @@ export function ConnectionsSection({
             <Field label="Name" help="Only you see this.">
               <Input
                 value={label}
-                placeholder={adding === "slack" ? "#new-leads" : "Zapier — add to CRM"}
+                placeholder={adding === "slack" ? "#new-leads" : "Zapier: add to CRM"}
                 onChange={(e) => setLabel(e.target.value)}
               />
             </Field>
@@ -307,7 +307,7 @@ export function ConnectionsSection({
       {secret && (
         <Modal
           title="Webhook added"
-          description="This is the secret that signs every delivery. Copy it now — it is not shown again."
+          description="This is the secret that signs every delivery. Copy it now. It is not shown again."
           onClose={() => setSecret(null)}
           width={520}
           footer={<Button onClick={() => setSecret(null)}>Done</Button>}
@@ -401,8 +401,8 @@ export function PaymentsSection({
         {gate.locked && <ProChip onClick={() => openUpgrade({ feature: "payments" })} />}
       </div>
       <p className="fk-panel-lede">
-        After someone sends the form, they go on to pay through your own Stripe account. The money goes straight to you —
-        Formkit takes nothing.
+        After someone sends the form, they go on to pay through your own Stripe account. The money goes straight to you,
+        and Formkit takes nothing.
       </p>
 
       {!data.account ? (
@@ -431,7 +431,7 @@ export function PaymentsSection({
                     const r = await connect({ key });
                     setKey("");
                     toast(r.name ? `Connected to ${r.name}` : "Stripe connected", {
-                      detail: r.live ? undefined : "This is a test key — no real money moves.",
+                      detail: r.live ? undefined : "This is a test key, so no real money moves.",
                     });
                   } catch (e) {
                     if (!upgradeOnPlanError(e)) toast(errorText(e, "That key did not connect."));

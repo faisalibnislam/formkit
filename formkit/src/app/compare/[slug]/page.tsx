@@ -19,7 +19,7 @@ export async function generateMetadata(
   const { slug } = await props.params;
   const r = rivalBySlug(slug);
   if (!r) return {};
-  const title = `Formkit vs ${r.name} — an honest comparison`;
+  const title = `Formkit vs ${r.name}: an honest comparison`;
   return {
     title,
     description: r.meta,

@@ -29,7 +29,7 @@ import { useGate } from "@/components/plan/usePlan";
 
 /**
  * Analytics. Every number is counted from stored data inside the range picked
- * — there is no modelled curve here, and a form nobody has opened says so.
+ * - there is no modelled curve here, and a form nobody has opened says so.
  * Each figure is compared with the same length of time just before it.
  */
 
@@ -96,7 +96,7 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
     from: ymd(new Date(new Date(today).getFullYear(), new Date(today).getMonth(), 1).getTime()),
     to: ymd(today),
   }));
-  // Names for the picker only — the light list, not every form's questions.
+  // Names for the picker only - the light list, not every form's questions.
   const forms = useSeededQuery(api.forms.picker, formId ? "skip" : {});
 
   const scope = formId ?? (picked !== "all" ? (picked as Id<"forms">) : undefined);
@@ -248,7 +248,7 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
         <StatCard
           icon={<Percent size={16} strokeWidth={1.9} aria-hidden />}
           label="Completion rate"
-          value={data?.completionRate === null || data?.completionRate === undefined ? "—" : `${data.completionRate}%`}
+          value={data?.completionRate === null || data?.completionRate === undefined ? "-" : `${data.completionRate}%`}
           delta={signed(data?.change.completionRate, "pts")}
           deltaTone={(data?.change.completionRate ?? 0) >= 0 ? "up" : "down"}
           tone="ink"

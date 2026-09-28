@@ -105,7 +105,7 @@ function schedule(f: Row) {
   }
   if (f.closesAfter) {
     const left = Math.max(0, f.closesAfter - f.responses);
-    bits.push(`${f.closesAt ? "or" : "Closes"} after ${f.closesAfter.toLocaleString()} responses — ${left.toLocaleString()} to go`);
+    bits.push(`${f.closesAt ? "or" : "Closes"} after ${f.closesAfter.toLocaleString()} responses, ${left.toLocaleString()} to go`);
   }
   return {
     chip: f.closesAt

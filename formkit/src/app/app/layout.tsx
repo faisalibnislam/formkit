@@ -9,7 +9,7 @@ import type { Id } from "../../../convex/_generated/dataModel";
 import { api } from "../../../convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: { default: "Formkit", template: "%s — Formkit" },
+  title: { default: "Formkit", template: "%s | Formkit" },
   robots: { index: false, follow: false },
 };
 

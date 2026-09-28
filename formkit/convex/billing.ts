@@ -8,7 +8,7 @@ import { PLANS, REPLY_PACK, planOf, planIncludes, type Interval, type PlanId } f
 /**
  * Billing, through Polar (polar.sh) as the merchant of record.
  *
- * Four products — Pro and Business, each monthly and yearly — live in Polar;
+ * Four products - Pro and Business, each monthly and yearly - live in Polar;
  * their ids are kept in the `platform` table (Admin → Billing creates them).
  * Checkout is a Polar-hosted page opened with the account's id as the
  * external customer id, so every webhook can be tied back to the account
@@ -479,8 +479,8 @@ export const staffCheck = internalQuery({
 });
 
 /**
- * Creates whichever products Polar doesn't have yet — the four plans and the
- * pack of AI replies — at the listed prices, and remembers their ids. Ones
+ * Creates whichever products Polar doesn't have yet - the four plans and the
+ * pack of AI replies - at the listed prices, and remembers their ids. Ones
  * already made are left alone: a new copy of a plan would change its id, and
  * people already paying for the old one would no longer be recognised.
  */
@@ -507,7 +507,7 @@ export const createProducts = action({
     }
     if (!have.replies_100) {
       const pack = await polar<{ id: string }>("/v1/products/", {
-        name: `Formkit AI replies — ${REPLY_PACK.replies}`,
+        name: `Formkit AI replies: ${REPLY_PACK.replies}`,
         description: `${REPLY_PACK.replies} more AI replies for Business forms. They roll over until used.`,
         prices: [{ amount_type: "fixed", price_amount: REPLY_PACK.price * 100, price_currency: "usd" }],
       });
@@ -548,7 +548,7 @@ export const saveProducts = mutation({
   },
 });
 
-/** A plan given by hand — a friend, a partner, a support gesture. */
+/** A plan given by hand - a friend, a partner, a support gesture. */
 export const compPlan = mutation({
   args: { userId: v.id("users"), plan: v.union(v.literal("pro"), v.literal("business"), v.null()) },
   returns: v.null(),

@@ -259,7 +259,7 @@ export const checkout = action({
       throw new ConvexError(
         res.data.error?.message
           ? `Stripe said: ${res.data.error.message}`
-          : "The payment page did not open. Your answers are saved — the form's owner has been told.",
+          : "The payment page did not open. Your answers are saved and the form's owner has been told.",
       );
     }
     await ctx.runMutation(internal.payments.markSession, {

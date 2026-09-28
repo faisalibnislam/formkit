@@ -26,7 +26,7 @@ import { csv, xlsx } from "./model/sheet";
 /**
  * What Formkit sends on a customer's behalf.
  *
- * Notification settings belong to the *form*, not the account — a support form
+ * Notification settings belong to the *form*, not the account - a support form
  * and a job application go to different people. The account's email only
  * supplies the first draft, which `notifyDefaults` fills in.
  *
@@ -73,7 +73,7 @@ export function notifyDefaults(stored: unknown, ownerEmail: string, prefs?: Acco
     routes: n.routes ?? [],
     confirm: !!n.confirm,
     replyTo: n.replyTo ?? ownerEmail,
-    confirmSubject: n.confirmSubject ?? "We have your answers — {{form_name}}",
+    confirmSubject: n.confirmSubject ?? "We have your answers to {{form_name}}",
     confirmBody:
       n.confirmBody ??
       "Thank you {{name}}. We have your answers and will come back to you shortly.",
@@ -462,7 +462,7 @@ export const excelAllowed = internalQuery({
 
 /**
  * Export by email. The same rows the Export button downloads, sent as a CSV
- * attachment — for exports too large to wait on, and for sending to somebody
+ * attachment - for exports too large to wait on, and for sending to somebody
  * who is not signed in.
  */
 export const exportByEmail = action({
@@ -501,7 +501,7 @@ export const exportByEmail = action({
       format === "xlsx"
         ? bytesToBase64(xlsx([{ name: data.title ?? "Responses", columns: data.columns, rows: data.rows }]))
         : toBase64("\uFEFF" + csv(data));
-    const subject = `Your export from Formkit — ${data.title ?? data.filename}`;
+    const subject = `Your export from Formkit: ${data.title ?? data.filename}`;
 
     const key = process.env.AUTH_RESEND_KEY;
     let result: { state: "sent" | "failed"; detail?: string };

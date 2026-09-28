@@ -18,7 +18,7 @@ import { useToast } from "@/components/ui/Toast";
  * nothing is orphaned.
  *
  * The cap is 5 MB and the reason is stated rather than the upload simply
- * failing. Uploads elsewhere in Formkit — a respondent's attachment — are
+ * failing. Uploads elsewhere in Formkit - a respondent's attachment - are
  * capped at 10 MB; a logo has no business being that large.
  */
 
@@ -33,7 +33,7 @@ export function ImageUpload({
   onUploaded,
   onCleared,
 }: {
-  /** What the picture looks like now — an avatar, or a logo plate. */
+  /** What the picture looks like now - an avatar, or a logo plate. */
   preview: ReactNode;
   hasImage: boolean;
   label: string;

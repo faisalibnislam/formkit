@@ -138,7 +138,7 @@ export const update = mutation({
     if (patch.key !== undefined) {
       const key = patch.key.trim().toLowerCase();
       if (key && !validKey(key)) {
-        throw new ConvexError("A key is lowercase letters, numbers and underscores, starting with a letter — like budget or first_name.");
+        throw new ConvexError("A key is lowercase letters, numbers and underscores, starting with a letter, like budget or first_name.");
       }
       if (key) {
         const clash = (
@@ -243,7 +243,7 @@ export const reorder = mutation({
 /**
  * Deleting a page takes the page break and every question after it, up to the
  * next page break, with the logic rules that point at any of them. Deleting
- * only the break — to merge its questions into the page above — is `remove`.
+ * only the break - to merge its questions into the page above - is `remove`.
  */
 export const removePage = mutation({
   args: { blockId: v.id("blocks") },

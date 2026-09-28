@@ -91,7 +91,7 @@ export const RIVALS: Rival[] = [
     faqs: [
       {
         q: "Is Formkit a replacement for Google Forms?",
-        a: "For client-facing work, yes. For a quick internal poll, Google Forms is genuinely hard to beat on speed — you are already signed in.",
+        a: "For client-facing work, yes. For a quick internal poll, Google Forms is genuinely hard to beat on speed. You are already signed in.",
       },
       {
         q: "Can I move my existing forms across?",
@@ -123,7 +123,7 @@ export const RIVALS: Rival[] = [
       },
       {
         q: "What about response limits?",
-        a: "Formkit does not cap responses. Typeform's free tier does — check their current figure, as it changes.",
+        a: "Formkit does not cap responses. Typeform's free tier does. Check their current figure, as it changes.",
       },
       {
         q: "Can I publish under my own domain?",

@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     type: "article",
     siteName: "Formkit",
     url: `${SITE_URL}/api-docs`,
-    title: `${TITLE} — Formkit`,
+    title: `${TITLE} | Formkit`,
     description: DESCRIPTION,
   },
 };

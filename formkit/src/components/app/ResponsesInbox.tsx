@@ -62,15 +62,15 @@ import { ProChip } from "@/components/plan/UpgradeSheet";
 import { useGate } from "@/components/plan/usePlan";
 
 /**
- * The response inbox, for one form or for everything, and — across every
- * form — the people behind the answers.
+ * The response inbox, for one form or for everything, and - across every
+ * form - the people behind the answers.
  *
  * A partial response is a real record: it keeps what was answered before the
  * person left, is counted on its own rather than folded into Completed, and
  * carries a link that puts them back where they stopped. A response sent from
  * the builder's preview is kept under Previews and counted nowhere.
  *
- * The list is one table across the full width — cards on a phone — and a
+ * The list is one table across the full width - cards on a phone - and a
  * response opens in a drawer over it.
  */
 
@@ -365,8 +365,8 @@ function Responses({
             title="No responses yet."
             description={
               previews
-                ? "Once people start filling out your form, their answers land here — newest first. What you sent from the preview is under Previews."
-                : "Once people start filling out your form, their answers land here — newest first."
+                ? "Once people start filling out your form, their answers land here, newest first. What you sent from the preview is under Previews."
+                : "Once people start filling out your form, their answers land here, newest first."
             }
           />
         </section>
@@ -505,7 +505,7 @@ function Responses({
                           />
                         </td>
                         <td className="fk-table-name">{who(r)}</td>
-                        <td className="fk-table-quiet">{r.respondentEmail ?? "—"}</td>
+                        <td className="fk-table-quiet">{r.respondentEmail ?? "-"}</td>
                         {!formId && <td>{r.formTitle}</td>}
                         <td className="fk-table-quiet">
                           {r.partial ? `${r.answeredCount} of ${r.totalCount}` : `${r.answeredCount}`}
@@ -618,7 +618,7 @@ function ResponseDrawer({
   const groups = useMemo(() => {
     const byBlock = new Map(response.answers.map((a) => [a.blockId as string, a]));
     const answerOf = (a: Row["answers"][number] | undefined) =>
-      a ? (a.fileName ?? (a.value || "—")) : "—";
+      a ? (a.fileName ?? (a.value || "-")) : "-";
     const out: { title: string; rows: { q: string; a: string; empty: boolean; file: boolean }[] }[] = [];
     let g: (typeof out)[number] = { title: "Answers", rows: [] };
     const used = new Set<string>();
@@ -863,7 +863,7 @@ function ResponseDrawer({
           rows={2}
           value={note}
           aria-label="A note for yourself"
-          placeholder="A note for yourself — nobody else sees this."
+          placeholder="A note for yourself. Nobody else sees this."
           onChange={(e) => setNote(e.target.value)}
           onBlur={() => {
             if (note !== (response.note ?? "")) void addNote({ responseId: response._id, note });
@@ -1020,7 +1020,7 @@ function Contacts({ onOpenPerson }: { onOpenPerson: (who: string) => void }) {
         </span>
       ))}
       {!c.unread && !c.partialOnly && c.tags.length === 0 && (
-        <span style={{ color: "var(--color-text-tertiary)" }}>—</span>
+        <span style={{ color: "var(--color-text-tertiary)" }}>-</span>
       )}
     </span>
   );
@@ -1066,7 +1066,7 @@ function Contacts({ onOpenPerson }: { onOpenPerson: (who: string) => void }) {
         <section className="fk-panel">
           <EmptyState
             title="No contacts yet."
-            description="Everyone who answers one of your forms with a name or an email appears here once — however many times they answer."
+            description="Everyone who answers one of your forms with a name or an email appears here once, however many times they answer."
           />
         </section>
       ) : rows.length === 0 ? (
@@ -1127,10 +1127,10 @@ function Contacts({ onOpenPerson }: { onOpenPerson: (who: string) => void }) {
                       if (e.key === "Enter") onOpenPerson(c.email ?? c.name ?? "");
                     }}
                   >
-                    <td className="fk-table-name">{c.name ?? "—"}</td>
-                    <td className="fk-table-quiet">{c.email ?? "—"}</td>
-                    <td className="fk-table-quiet">{c.phone ?? "—"}</td>
-                    <td>{c.company ?? "—"}</td>
+                    <td className="fk-table-name">{c.name ?? "-"}</td>
+                    <td className="fk-table-quiet">{c.email ?? "-"}</td>
+                    <td className="fk-table-quiet">{c.phone ?? "-"}</td>
+                    <td>{c.company ?? "-"}</td>
                     <td>{tagsOf(c)}</td>
                     <td className="fk-table-quiet">
                       {c.source}

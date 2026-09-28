@@ -112,7 +112,7 @@ export function CollaboratorsDialog({ formId, onClose }: { formId: Id<"forms">; 
       const { url } = await joinLink({ formId, role });
       await navigator.clipboard.writeText(url);
       toast("Invite link copied", {
-        detail: `${url.replace(/^https?:\/\//, "")} — joins as ${ROLES.find((r) => r.value === role)?.label}, expires in 7 days`,
+        detail: `${url.replace(/^https?:\/\//, "")} · joins as ${ROLES.find((r) => r.value === role)?.label}, expires in 7 days`,
       });
     } catch (e) {
       toast("The invite link was not copied", {
@@ -144,7 +144,7 @@ export function CollaboratorsDialog({ formId, onClose }: { formId: Id<"forms">; 
                 Invite someone to this form
                 {cap !== null && (
                   <span className="fk-proprow-hint" style={{ fontWeight: 400 }}>
-                    {active.length + pending.length} of {cap} people — unlimited on Pro
+                    {active.length + pending.length} of {cap} people. Unlimited on Pro
                   </span>
                 )}
                 {cap !== null && active.length + pending.length >= cap && (
@@ -175,7 +175,7 @@ export function CollaboratorsDialog({ formId, onClose }: { formId: Id<"forms">; 
               </div>
               <Textarea
                 rows={3}
-                placeholder="Adding you to the onboarding form — can you check the budget question?"
+                placeholder="Adding you to the onboarding form. Can you check the budget question?"
                 aria-label="A note with the invitation"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
@@ -329,7 +329,7 @@ export function CollaboratorsDialog({ formId, onClose }: { formId: Id<"forms">; 
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13.5, color: "var(--color-text-tertiary)", lineHeight: 1.55 }}>
             <Link2 size={15} strokeWidth={1.8} aria-hidden style={{ flex: "0 0 auto" }} />
-            <span>Sharing the form with the people answering it is a different thing — that lives under Share.</span>
+            <span>Sharing the form with the people answering it is a different thing. That lives under Share.</span>
           </div>
         </div>
       )}

@@ -67,7 +67,7 @@ function notifyDefaults(stored: unknown, email: string): Notify {
     routes: n.routes ?? [],
     confirm: !!n.confirm,
     replyTo: n.replyTo ?? email,
-    confirmSubject: n.confirmSubject ?? "We have your answers — {{form_name}}",
+    confirmSubject: n.confirmSubject ?? "We have your answers to {{form_name}}",
     confirmBody:
       n.confirmBody ?? "Thank you {{name}}. We have your answers and will come back to you shortly.",
     confirmAttach: n.confirmAttach !== false,
@@ -239,7 +239,7 @@ export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
 
           <Card
             title="Closing"
-            lede="A closed form keeps every response and stops accepting new ones. The link and embed still work — visitors see your message instead of the questions."
+            lede="A closed form keeps every response and stops accepting new ones. The link and embed still work, and visitors see your message instead of the questions."
           >
             <div className="fk-closestate" data-state={form.status === "closed" ? "closed" : scheduled ? "scheduled" : "open"}>
               <span className="fk-closestate-mark">
@@ -256,9 +256,9 @@ export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
                   {form.status === "closed"
                     ? "Closed"
                     : scheduled
-                      ? "Open — closing is scheduled"
+                      ? "Open, closing is scheduled"
                       : form.status === "draft"
-                        ? "A draft — not collecting yet"
+                        ? "A draft, not collecting yet"
                         : "Open and collecting"}
                 </span>
                 <span className="fk-proprow-hint" style={{ display: "block", fontSize: 13.5 }}>
@@ -624,7 +624,7 @@ export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
               label="Message"
               help={
                 pipeGate.locked
-                  ? "Quoting an answer with {{key}} — “Thanks {{name}}” — is part of Pro."
+                  ? "Quoting an answer with {{key}}, as in “Thanks {{name}}”, is part of Pro."
                   : "Quote an answer or a calculation by its key: “Thanks {{name}}, your total is {{total}}.”"
               }
             >

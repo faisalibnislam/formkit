@@ -15,7 +15,7 @@ const DEFAULT_NOTE = "This form is closed. Thank you to everyone who answered.";
 
 /**
  * Closing stops a form taking answers and keeps everything already sent. It can
- * close now, or be told when to close itself — on a date, or after so many
+ * close now, or be told when to close itself - on a date, or after so many
  * responses.
  *
  * Reopening switches off a closing rule that has already elapsed, or the form
@@ -93,7 +93,7 @@ export function CloseFormDialog({
           <span>
             <Link2 size={15} strokeWidth={1.8} aria-hidden />
             <span>
-              The share link and embed keep working — anyone who opens them sees your closing
+              The share link and embed keep working. Anyone who opens them sees your closing
               message.
             </span>
           </span>
@@ -116,7 +116,7 @@ export function CloseFormDialog({
               await tracked(
                 setClosing({ formId, closeNow: true, closing: { message: message.trim() || DEFAULT_NOTE } }),
               );
-              toast("Form closed", { detail: "The link still works — visitors see your closing message" });
+              toast("Form closed", { detail: "The link still works and visitors see your closing message" });
               onClose();
               onDone?.();
             }}

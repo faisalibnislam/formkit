@@ -5,8 +5,8 @@
  * the card with the white logo on it, the heading in white beneath, then a
  * white card, ink pill buttons, pale panels and the mark in the footer.
  *
- * Mail sent for a customer — the confirmation somebody gets after answering
- * their form — wears the customer's brand instead: their logo or name, their
+ * Mail sent for a customer - the confirmation somebody gets after answering
+ * their form - wears the customer's brand instead: their logo or name, their
  * colour on the buttons, and a small "Made with Formkit" unless their company
  * has switched that credit off.
  *
@@ -52,7 +52,7 @@ const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}
 /**
  * Text with any email address in it made a link of our own, in a colour that
  * reads where it sits. Left alone, Gmail and Apple Mail turn an address into
- * their own blue, underlined link — invisible on the night sky.
+ * their own blue, underlined link - invisible on the night sky.
  */
 function withLinks(text: string, color: string, weight = 500) {
   return e(text).replace(
@@ -197,7 +197,7 @@ function brandHead(brand: Brand, accent: string, { heading, eyebrow, lede }: { h
   const mark = brand.logoUrl
     ? `<img src="${e(brand.logoUrl)}" height="36" alt="${e(brand.name)}" style="display:block;height:36px;width:auto;max-width:200px;font-family:${FONT};font-size:18px;font-weight:600;color:${C.ink};" />`
     : `<div style="font-family:${FONT};font-size:19px;font-weight:600;letter-spacing:-0.3px;color:${C.ink};">${e(brand.name)}</div>`;
-  // Their colour, washed almost to white, behind the header — a nod to the
+  // Their colour, washed almost to white, behind the header - a nod to the
   // brand that keeps the heading readable whatever the colour is.
   const wash = brand.color ? tint(accent, 0.9) : C.panel;
   return `<tr>
@@ -220,7 +220,7 @@ function formkitFoot(reason?: string, links?: { label: string; href: string }[])
             <p style="margin:${reason ? "8px" : "14px"} 0 0;font-size:13px;line-height:1.6;color:${C.muted};">
               ${all.map((l) => `<a href="${e(l.href)}" style="color:${C.ink};text-decoration:none;font-weight:500;">${e(l.label)}</a>`).join(`<span style="color:${C.faint};">&nbsp;&nbsp;·&nbsp;&nbsp;</span>`)}
             </p>
-            <p style="margin:8px 0 0;font-size:12px;line-height:1.6;color:${C.faint};">Formkit — forms people actually finish.</p>
+            <p style="margin:8px 0 0;font-size:12px;line-height:1.6;color:${C.faint};">Formkit: forms people actually finish.</p>
           </td>
         </tr>
       </table>`;
@@ -290,7 +290,7 @@ export function answers(rows: { question: string; value: string }[], opts: { top
   });
 }
 
-/** Label and value pairs: "Device — Chrome on macOS". */
+/** Label and value pairs: "Device - Chrome on macOS". */
 export function facts(rows: [string, string][], opts: { top?: number } = {}) {
   const cells = rows
     .map(([k, v], i) => {
@@ -306,7 +306,7 @@ export function facts(rows: [string, string][], opts: { top?: number } = {}) {
   });
 }
 
-/** Somebody's own words — a comment, a note on an invitation. */
+/** Somebody's own words - a comment, a note on an invitation. */
 export function quote(text: string, who?: string, opts: { top?: number } = {}) {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:${opts.top ?? 0}px;">
   <tr>

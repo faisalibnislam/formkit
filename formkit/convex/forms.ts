@@ -198,8 +198,8 @@ export const backfillCounts = mutation({
 
 /**
  * What the app's header needs on every page: how many forms in each state and
- * the lifetime response total. Read from the form rows alone — never their
- * questions — so editing a question does not make every page recount.
+ * the lifetime response total. Read from the form rows alone - never their
+ * questions - so editing a question does not make every page recount.
  */
 export const summary = query({
   args: {},
@@ -232,7 +232,7 @@ export const summary = query({
   },
 });
 
-/** Titles to pick from — Ask Formkit's menus — without reading any questions. */
+/** Titles to pick from - Ask Formkit's menus - without reading any questions. */
 export const picker = query({
   args: {},
   handler: async (ctx) => {
@@ -321,7 +321,7 @@ export const create = mutation({
     const title = args.title?.trim() || template?.name || "Untitled form";
 
     // A new form defaults to the one company with "use branding" on, otherwise
-    // to the person — identity is person-first.
+    // to the person - identity is person-first.
     let brand = args.brand;
     if (!brand) {
       const companies = await ctx.db
@@ -340,7 +340,7 @@ export const create = mutation({
       status: "draft",
       welcome: template?.welcome ?? {
         title: "Let's start your project",
-        message: "A few questions — it should take about two minutes.",
+        message: "A few questions. It should take about two minutes.",
         button: "Start",
       },
       thanks: template?.thanks ?? {
@@ -419,8 +419,8 @@ async function themeAllowed(ctx: MutationCtx, ownerId: Id<"users">, next: unknow
 }
 
 /**
- * Merge keys into one of a form's settings objects — theme, notify, welcome,
- * thanks — on the server, so two quick changes to different keys never
+ * Merge keys into one of a form's settings objects - theme, notify, welcome,
+ * thanks - on the server, so two quick changes to different keys never
  * overwrite each other the way two whole-object writes would.
  */
 export const patchSettings = mutation({
@@ -513,7 +513,7 @@ export const setCalc = mutation({
     const clean = calc.slice(0, 20).map((c) => {
       const name = c.name.trim().toLowerCase();
       if (!validKey(name)) {
-        throw new ConvexError("A name is lowercase letters, numbers and underscores, starting with a letter — like total.");
+        throw new ConvexError("A name is lowercase letters, numbers and underscores, starting with a letter, like total.");
       }
       if (keys.has(name)) throw new ConvexError(`“${name}” is already a question's key.`);
       if (seen.has(name)) throw new ConvexError(`Two calculations are called “${name}”.`);
@@ -634,7 +634,7 @@ export const unpublish = mutation({
     await ctx.db.insert("activity", {
       formId,
       userId: user._id,
-      what: "unpublished the form — responses kept",
+      what: "unpublished the form (responses kept)",
       at: Date.now(),
     });
     return null;
@@ -869,7 +869,7 @@ export const versions = query({
   },
 });
 
-/** Restoring puts old questions back — and snapshots the current set first. */
+/** Restoring puts old questions back - and snapshots the current set first. */
 export const restoreVersion = mutation({
   args: { versionId: v.id("versions") },
   returns: v.null(),
@@ -909,7 +909,7 @@ export const restoreVersion = mutation({
   },
 });
 
-/** How many questions changed since the live version — drives the amber note. */
+/** How many questions changed since the live version - drives the amber note. */
 export const unpublishedChanges = query({
   args: { formId: v.id("forms") },
   returns: v.number(),

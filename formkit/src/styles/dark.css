@@ -3,8 +3,8 @@
 
    It works by inverting the ramps rather than restyling components: the app
    draws surfaces with the low steps and ink with the high ones, so swapping
-   them turns every card, chip, hairline and label at once. Inverse pieces —
-   the dark pill, toasts, the bulk bar — come out light, which is what they
+   them turns every card, chip, hairline and label at once. Inverse pieces -
+   the dark pill, toasts, the bulk bar - come out light, which is what they
    should be on a dark page.
 
    Two places keep the light ramp:

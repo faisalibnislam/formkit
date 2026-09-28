@@ -24,8 +24,8 @@ import { useToast } from "@/components/ui/Toast";
 import { useAskMaybe } from "./ai/AskProvider";
 
 /**
- * Cmd-K. Things to do first — make a form, and, inside the builder, publish
- * it or copy its link — then the person's own forms and the app's sections.
+ * Cmd-K. Things to do first - make a form, and, inside the builder, publish
+ * it or copy its link - then the person's own forms and the app's sections.
  * Arrow keys move, Enter runs, Escape closes. It does nothing clever with
  * ranking: the shortest honest thing that finds a form by name.
  */
@@ -97,7 +97,7 @@ export function CommandPalette({ onClose, onCreate }: { onClose: () => void; onC
               .writeText(`https://${editing.url}`)
               .then(() =>
                 toast("Link copied", {
-                  detail: editing.status === "published" ? editing.url : `${editing.url} — it opens once the form is published`,
+                  detail: editing.status === "published" ? editing.url : `${editing.url} (opens once the form is published)`,
                 }),
               )
               .catch(() => toast("Formkit could not reach the clipboard", { tone: "error" }));

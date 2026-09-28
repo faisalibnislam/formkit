@@ -181,7 +181,7 @@ export function AdminConsole() {
   const stats = useQuery(api.admin.overview, {});
   const noteSession = useMutation(api.admin.noteSession);
   const search = useSearchParams();
-  // The section lives in the address, so a link can land on one — the support
+  // The section lives in the address, so a link can land on one - the support
   // view's "Leave", or "Needs a look" jumping to a filtered list.
   const key = (search.get("section") as Key | null) ?? "overview";
   const setKey = useCallback((next: Key) => router.push(`/admin?section=${next}`, { scroll: false }), [router]);

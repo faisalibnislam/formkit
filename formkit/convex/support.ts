@@ -41,7 +41,7 @@ export const open = mutation({
     const recent = (await ctx.db.query("tickets").collect()).filter(
       (t) => t.userId === me._id && Date.now() - t.openedAt < 3600_000,
     );
-    if (recent.length >= 5) throw new ConvexError("That is a lot of tickets in an hour — we will get to the ones you sent.");
+    if (recent.length >= 5) throw new ConvexError("That is a lot of tickets in an hour. We will get to the ones you sent.");
     return await ctx.db.insert("tickets", {
       userId: me._id,
       fromName: me.name ?? me.email ?? "Customer",

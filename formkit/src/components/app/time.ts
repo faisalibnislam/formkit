@@ -2,8 +2,8 @@
  * Time zones and wall-clock times.
  *
  * A closing time is typed as a date and a time in a named zone, and stored as
- * one instant. Converting needs the zone's offset at that moment — which DST
- * moves — so it is read from Intl rather than assumed.
+ * one instant. Converting needs the zone's offset at that moment - which DST
+ * moves - so it is read from Intl rather than assumed.
  */
 
 const FALLBACK_ZONES = [

@@ -26,8 +26,8 @@ export function normaliseEmail(value: unknown) {
  * Checking that the code was sent to the address being claimed.
  *
  * This replaces the provider's default check, which compares the two raw
- * strings. The account's id is stored normalised — `auth.ts` lowercases and
- * trims it — so a raw comparison rejects a perfectly good code the moment
+ * strings. The account's id is stored normalised - `auth.ts` lowercases and
+ * trims it - so a raw comparison rejects a perfectly good code the moment
  * somebody types a capital or autofill leaves a trailing space. Both sides are
  * normalised here, and the message says what actually went wrong.
  */
@@ -68,7 +68,7 @@ export const ResendVerifyOTP = Email({
       }),
     });
     // Errors name the fix rather than failing silently.
-    if (error) throw new Error(`Formkit could not send the code — ${error.message}`);
+    if (error) throw new Error(`Formkit could not send the code: ${error.message}`);
   },
 });
 
@@ -94,6 +94,6 @@ export const ResendResetOTP = Email({
         lede: "Enter this code in Formkit, then choose a new password. If you did not ask for this, you can ignore it.",
       }),
     });
-    if (error) throw new Error(`Formkit could not send the code — ${error.message}`);
+    if (error) throw new Error(`Formkit could not send the code: ${error.message}`);
   },
 });

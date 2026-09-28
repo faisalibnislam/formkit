@@ -9,7 +9,7 @@ import { usePlan } from "@/components/plan/usePlan";
 import { FieldIcon } from "./FieldIcon";
 
 /**
- * "What do you want to ask?" — the field picker an insert point and the Add
+ * "What do you want to ask?" - the field picker an insert point and the Add
  * question button open. Typing narrows the list; Enter takes the first match.
  */
 export function FieldPicker({

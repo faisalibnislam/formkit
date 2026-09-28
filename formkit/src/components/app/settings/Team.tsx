@@ -42,7 +42,7 @@ export function TeamSection() {
     <>
       <Panel
         title="Team"
-        lede="Everyone on the team works on all of your forms — no inviting them form by form. Add as many people as you like."
+        lede="Everyone on the team works on all of your forms, with no inviting them form by form. Add as many people as you like."
         aside={team.locked ? chip("team") : null}
       >
         <div className="fk-domainadd">
@@ -137,7 +137,7 @@ export function TeamSection() {
         lede="Anyone who is not you or a team Admin asks before a form goes live. You and your Admins hear about it, and approving publishes it."
         aside={approvals.locked ? chip("approvals") : null}
       >
-        <Row label="Require approval" hint={data?.approvals ? "On — editors see “Ask for approval” instead of Publish." : "Off"}>
+        <Row label="Require approval" hint={data?.approvals ? "On. Editors see “Ask for approval” instead of Publish." : "Off"}>
           <Switch
             checked={!!data?.approvals}
             label="Require approval"
@@ -159,7 +159,7 @@ export function TeamSection() {
                   <span className="fk-row-title">{w.title}</span>
                   <span className="fk-row-meta">
                     {w.by} asked {relativeTime(w.at)}
-                    {w.note ? ` — “${w.note}”` : ""}
+                    {w.note ? `: “${w.note}”` : ""}
                   </span>
                 </span>
                 <span className="fk-row-side">

@@ -43,7 +43,8 @@ export const VOICE = `House style:
 - Sentence case: capitalise the first word and proper nouns only, never Title Case, never all lowercase.
 - British spelling: colour, organisation, summarise, personalise.
 - Plain, short and a little dry. Second person, addressed to the person answering.
-- No emoji, no exclamation marks, no sales words (fast, easy, simply, just, powerful, seamless).`;
+- No emoji, no exclamation marks, no sales words (fast, easy, simply, just, powerful, seamless).
+- Never use em dashes. Use a comma, a colon, brackets or a new sentence instead.`;
 
 export const FORM_RULES = `${VOICE}
 
@@ -290,7 +291,7 @@ export function describe(items: { kind: string; type?: string; title?: string; o
   let n = 0;
   return items
     .map((b) => {
-      if (b.kind === "pagebreak") return `— Page: ${b.pageName ?? "Untitled page"}`;
+      if (b.kind === "pagebreak") return `Page: ${b.pageName ?? "Untitled page"}`;
       n += 1;
       const opts = b.options?.length ? ` Options: ${b.options.join(" | ")}.` : "";
       return `${n}. [${b.type}${b.required ? ", required" : ""}] ${b.title ?? ""}${opts}`;

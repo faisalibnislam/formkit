@@ -6,14 +6,14 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
  * Free, Pro and Business: what each includes, and the one place that decides
  * whether an account has a feature.
  *
- * Free is the whole product for one person — every question type, logic,
+ * Free is the whole product for one person - every question type, logic,
  * publishing, embedding, notifications, CSV, unlimited responses. Pro is for
  * looking like your own brand and wiring Formkit into your tools. Business is
  * for teams and agencies.
  *
  * A form's features follow its owner's plan: a collaborator on a Pro owner's
  * form sees Pro features there, whatever their own plan. Nothing is ever
- * deleted on a downgrade — features simply stop, and come back on upgrade.
+ * deleted on a downgrade - features simply stop, and come back on upgrade.
  */
 
 export type PlanId = "free" | "pro" | "business";
@@ -85,25 +85,25 @@ export const REPLY_PACK = { price: 5, replies: 100 } as const;
 
 /** Every paid feature, the plan that first includes it, and how it is described. */
 export const FEATURES = {
-  // Pro — presentation
+  // Pro - presentation
   "brand.badge": { plan: "pro", label: "Remove “Made with Formkit”", group: "Your brand" },
   domains: { plan: "pro", label: "Custom domain", group: "Your brand" },
   "email.domain": { plan: "pro", label: "Send emails from your own domain", group: "Your brand" },
   "design.fonts": { plan: "pro", label: "Custom fonts", group: "Your brand" },
   "design.css": { plan: "pro", label: "Custom CSS", group: "Your brand" },
-  // Pro — responses
+  // Pro - responses
   "analytics.full": { plan: "pro", label: "Where people come from, and their devices", group: "Responses" },
   "exports.xlsx": { plan: "pro", label: "Excel export", group: "Responses" },
   "exports.copy": { plan: "pro", label: "Email a copy of every response", group: "Responses" },
   "ai.brief": { plan: "pro", label: "Ask Formkit from a brief, document or form", group: "Responses" },
-  // Pro — smarter forms
+  // Pro - smarter forms
   "logic.calc": { plan: "pro", label: "Calculations and scoring", group: "Smarter forms" },
   "logic.hidden": { plan: "pro", label: "Hidden fields and pre-filled answers", group: "Smarter forms" },
   "logic.piping": { plan: "pro", label: "Earlier answers in later questions", group: "Smarter forms" },
   "forms.redirect": { plan: "pro", label: "Send people to your page after", group: "Smarter forms" },
   "logic.advanced": { plan: "pro", label: "Several endings, hidden options and limited places", group: "Smarter forms" },
-  // Pro — connections
-  // Pro — people and brands
+  // Pro - connections
+  // Pro - people and brands
   collaborators: { plan: "pro", label: "Unlimited collaborators on every form", group: "Teams" },
   brands: { plan: "pro", label: "Up to 5 companies and brands", group: "Teams" },
   "connect.webhooks": { plan: "pro", label: "Webhooks, Zapier and Make", group: "Connections" },
@@ -120,11 +120,11 @@ export const FEATURES = {
   api: { plan: "business", label: "API access", group: "Control" },
   sso: { plan: "business", label: "Sign-in with your company’s Google or Microsoft", group: "Control" },
   "support.priority": { plan: "business", label: "Priority support", group: "Control" },
-  // Business — AI
+  // Business - AI
   "ai.reply": { plan: "business", label: "AI-written replies to every submission", group: "AI" },
   "ai.insights": { plan: "business", label: "AI insights on your submissions", group: "AI" },
   "logic.ai": { plan: "business", label: "AI decides: logic that reads answers, and facts pulled from them", group: "AI" },
-  // Business — quizzes
+  // Business - quizzes
   quiz: { plan: "business", label: "Quizzes and exams: marking, a timer and results", group: "Smarter forms" },
 } as const satisfies Record<string, { plan: Exclude<PlanId, "free">; label: string; group: string }>;
 

@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     type: "website",
     siteName: "Formkit",
     url: `${SITE_URL}/templates`,
-    title: "Free form templates — Formkit",
+    title: "Free form templates | Formkit",
     description:
       "Working forms, not starting points. Change every word, publish under your own link.",
   },
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
 const HOW = [
   {
     title: "Every question is written",
-    body: "Not a heading and three placeholders — the real wording, with the right answer type on each question and the pages already split.",
+    body: "Not a heading and three placeholders. The real wording, with the right answer type on each question and the pages already split.",
   },
   {
     title: "Change anything",
@@ -106,7 +106,7 @@ export default function TemplatesPage() {
                 textWrap: "pretty",
               }}
             >
-              Working forms rather than starting points — every question worded, every
+              Working forms rather than starting points. Every question worded, every
               answer type set, the pages already split. Change as much as you like, then
               publish under your own link.
             </p>

@@ -11,9 +11,9 @@ import { useToast } from "@/components/ui/Toast";
 import { relativeTime } from "./bits";
 
 /**
- * The bell. Everything that happened that concerns this person — someone
+ * The bell. Everything that happened that concerns this person - someone
  * added them to a form, replied to them, a form closed itself, responses came
- * in — plus announcements from Formkit. Opening a row marks it read.
+ * in - plus announcements from Formkit. Opening a row marks it read.
  */
 
 const DAY = 24 * 60 * 60 * 1000;

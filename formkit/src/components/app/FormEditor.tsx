@@ -10,7 +10,7 @@ import { FormSettingsTab } from "./editor/FormSettingsTab";
 import { LogicTab } from "./editor/LogicTab";
 
 /**
- * The editor body. Its header — title, publish, the dock of tabs — belongs to
+ * The editor body. Its header - title, publish, the dock of tabs - belongs to
  * the shell, which reads the same `?tab=` this does.
  */
 export function FormEditor({ formId }: { formId: Id<"forms"> }) {

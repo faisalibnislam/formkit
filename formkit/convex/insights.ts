@@ -7,7 +7,7 @@ import { hasFeature } from "./model/plans";
 import { generate, ModelError, parseJson, voice } from "./model/gemini";
 
 /**
- * Business: AI insights on a form's responses — for forms with AI replies,
+ * Business: AI insights on a form's responses - for forms with AI replies,
  * whose reply call also reads each response for its sentiment, intent,
  * topics, a lead score and urgency. The overview adds those up; the report
  * asks the AI to read across them and say what it sees.
@@ -217,7 +217,7 @@ export const report = action({
 """
 ${c.goal}
 """
-Write a short, concrete report for the owner: a one-sentence headline; up to 5 themes (title, one or two sentences of detail, and roughly what percentage of responses it covers); up to 3 opportunities; up to 3 risks or complaints worth attention; and up to 3 practical suggestions for the business or the form. Use plain, friendly language, no jargon, no markdown. Only draw on the data given; don't invent numbers beyond rough shares you can see.`,
+Write a short, concrete report for the owner: a one-sentence headline; up to 5 themes (title, one or two sentences of detail, and roughly what percentage of responses it covers); up to 3 opportunities; up to 3 risks or complaints worth attention; and up to 3 practical suggestions for the business or the form. Use plain, friendly language, no jargon, no markdown, and never use em dashes. Only draw on the data given; don't invent numbers beyond rough shares you can see.`,
         turns: [{ role: "user", parts: [{ text: JSON.stringify(c.items) }] }],
         schema: {
           type: "OBJECT",

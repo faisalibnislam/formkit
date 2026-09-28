@@ -10,7 +10,7 @@ import { HELP_ARTICLES, HELP_CATEGORIES } from "@/content/help";
 import { SHARE_IMAGE, SITE_URL } from "@/lib/site";
 
 const TITLE = "Help center";
-const DESCRIPTION = `Guides for building forms, sharing them and reading what comes back — ${HELP_ARTICLES.length} articles across ${HELP_CATEGORIES.length} categories.`;
+const DESCRIPTION = `Guides for building forms, sharing them and reading what comes back. ${HELP_ARTICLES.length} articles across ${HELP_CATEGORIES.length} categories.`;
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     type: "website",
     siteName: "Formkit",
     url: `${SITE_URL}/help`,
-    title: `${TITLE} — Formkit`,
+    title: `${TITLE} | Formkit`,
     description: DESCRIPTION,
   },
 };

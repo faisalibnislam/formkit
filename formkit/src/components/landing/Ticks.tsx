@@ -1,5 +1,5 @@
 /**
- * The app draws every measurement as a row of hairline ticks — filled ones in
+ * The app draws every measurement as a row of hairline ticks - filled ones in
  * colour, the remainder in --neutral-200. Everything on the landing page uses
  * it, so the marketing charts read as the product's own.
  *

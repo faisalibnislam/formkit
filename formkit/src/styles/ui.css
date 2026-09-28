@@ -1,6 +1,6 @@
 /* Formkit's control primitives, built to the design system.
    Every control is a pill; icon buttons are circles. Cards are white with no
-   border and carry --shadow-card — elevation separates a surface, not a stroke. */
+   border and carry --shadow-card - elevation separates a surface, not a stroke. */
 
 /* ---------- button ---------- */
 

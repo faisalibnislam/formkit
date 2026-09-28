@@ -31,7 +31,7 @@ import { JsonLd, breadcrumb, faqPage } from "@/components/site/JsonLd";
 import { SHARE_IMAGE, SITE_URL } from "@/lib/site";
 import { FEATURES, PLANS, type Feature, type PlanId } from "../../../convex/model/plans";
 
-const TITLE = "Pricing — Free, Pro and Business";
+const TITLE = "Pricing: Free, Pro and Business";
 const DESCRIPTION =
   "Formkit is free to start, with unlimited forms and responses. Pro ($3 a month) adds your own domain, branding and integrations; Business ($10 a month) adds your team.";
 
@@ -98,7 +98,7 @@ const FAQS = [
   },
   {
     q: "What does Pro add?",
-    a: "Looking like your own brand — a custom domain, no “Made with Formkit”, emails from your domain, your fonts and CSS — plus webhooks, Slack, Google Sheets, payments, smarter forms, unlimited collaborators and up to five companies.",
+    a: "Looking like your own brand (a custom domain, no “Made with Formkit”, emails from your domain, your fonts and CSS), plus webhooks, Slack, Google Sheets, payments, smarter forms, unlimited collaborators and up to five companies.",
   },
   {
     q: "Who is Business for?",
@@ -106,7 +106,7 @@ const FAQS = [
   },
   {
     q: "Can I switch between monthly and yearly?",
-    a: "Yes. Yearly works out cheaper — Pro is $35 instead of $36, Business $99 instead of $120. Change it from Settings → Plan whenever you like.",
+    a: "Yes. Yearly works out cheaper. Pro is $35 instead of $36, Business $99 instead of $120. Change it from Settings → Plan whenever you like.",
   },
   {
     q: "Can I cancel any time?",
@@ -114,7 +114,7 @@ const FAQS = [
   },
   {
     q: "What happens to my forms if I downgrade?",
-    a: "Nothing is deleted. Features outside your new plan simply stop — a custom domain goes back to your formkit.app link — and everything you built or collected stays yours and exportable.",
+    a: "Nothing is deleted. Features outside your new plan simply stop. A custom domain goes back to your formkit.app link, and everything you built or collected stays yours and exportable.",
   },
   {
     q: "Who handles the payment?",
@@ -306,7 +306,7 @@ export default function PricingPage() {
                   <h3>
                     <Webhook size={16} strokeWidth={1.8} aria-hidden /> Send answers anywhere
                   </h3>
-                  <p>Slack, Google Sheets, Zapier, Make or your own webhook — the moment a response lands.</p>
+                  <p>Slack, Google Sheets, Zapier, Make or your own webhook, the moment a response lands.</p>
                 </div>
               </div>
             </section>

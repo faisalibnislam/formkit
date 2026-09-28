@@ -13,7 +13,7 @@ const DAY = 24 * HOUR;
 /* Anchored to the top of the hour, not to the moment this module loaded.
    The server and the browser load it at different instants, and a relative
    time computed from each ("2 hours ago" against "3 hours ago") is a
-   hydration mismatch that belongs to the harness rather than to the app —
+   hydration mismatch that belongs to the harness rather than to the app -
    which never server-renders this data, because a real `useQuery` has nothing
    to give during SSR. */
 const now = Math.floor(Date.now() / HOUR) * HOUR;
@@ -46,7 +46,7 @@ const FORMS: Row[] = [
     _id: "f2",
     title: "Website Project Questionnaire",
     slug: "website-project-questionnaire",
-    description: "Scope, content and references — everything the proposal needs.",
+    description: "Scope, content and references - everything the proposal needs.",
     status: "published",
     brand: "c1",
     url: "formkit.app/studio-nine/website-project-questionnaire",
@@ -428,7 +428,7 @@ const BLOCKS = [
 
 const FORM_DETAIL = {
   ...FORMS[0],
-  welcome: { title: "Let's start your project", message: "A few questions — it should take about two minutes.", button: "Start" },
+  welcome: { title: "Let's start your project", message: "A few questions - it should take about two minutes.", button: "Start" },
   thanks: { title: "Thank you", message: "Your answers are in. We will be in touch." },
   theme: null,
   logos: [],
@@ -450,7 +450,7 @@ const FORM_DETAIL = {
   },
   endings: [
     { id: "e1", name: "Big project", title: "Let’s talk this week", message: "Projects like yours get a call from a partner within two days." },
-    { id: "e2", name: "Not a fit yet", title: "Thanks for asking", message: "We’re not the right studio for this one — here are a few we trust." },
+    { id: "e2", name: "Not a fit yet", title: "Thanks for asking", message: "We’re not the right studio for this one - here are a few we trust." },
   ],
 };
 
@@ -481,7 +481,7 @@ const STAFF_USERS = PEOPLE.slice(0, 6).map(([name, email], i) => ({
   plan: { id: i === 0 ? "pro" : "free", comp: null, billed: i === 0 ? "pro" : null, status: i === 0 ? "active" : null, interval: "year", endsAt: null },
 }));
 
-/** The form as the runner receives it — for the preview and the public link. */
+/** The form as the runner receives it - for the preview and the public link. */
 const RUNNER = {
   state: "open",
   formId: "f1",
@@ -616,7 +616,7 @@ export const QUERIES: Record<string, unknown> = {
   },
   "notifications:log": [
     { _id: "e1", subject: "New response to Client Onboarding", kind: "notification", to: "maya@studionine.co", form: "Client Onboarding", state: "sent", detail: null, at: now - 2 * HOUR },
-    { _id: "e2", subject: "We have your answers — Client Onboarding", kind: "confirmation", to: "john@email.com", form: "Client Onboarding", state: "sent", detail: null, at: now - 2 * HOUR },
+    { _id: "e2", subject: "We have your answers - Client Onboarding", kind: "confirmation", to: "john@email.com", form: "Client Onboarding", state: "sent", detail: null, at: now - 2 * HOUR },
     { _id: "e3", subject: "Your week on Formkit: 38 responses", kind: "weekly report", to: "maya@studionine.co", form: null, state: "sent", detail: null, at: now - 3 * DAY },
   ],
   "collaborators:sharedWithMe": [
@@ -697,7 +697,7 @@ export const QUERIES: Record<string, unknown> = {
         blocks: [
           ...RUNNER.blocks.slice(0, 2).map((b, i) => ({ ...b, key: i === 0 ? "name" : "email" })),
           { ...RUNNER.blocks[0]!, _id: "b1h", type: "hidden", title: "Where they came from", key: "utm_source", defaultValue: "direct", required: false },
-          { ...RUNNER.blocks[1]!, _id: "b2p", title: "Thanks {{name}} — where should the proposal for you go?", key: null },
+          { ...RUNNER.blocks[1]!, _id: "b2p", title: "Thanks {{name}} - where should the proposal for you go?", key: null },
           ...RUNNER.blocks.slice(2),
         ],
       };
@@ -736,7 +736,7 @@ export const QUERIES: Record<string, unknown> = {
         _id: "c1", blockId: "b2", author: "Ravi Menon", image: null, color: "#4b9d6e",
         body: "@Maya Ortiz should this say where the proposal comes from? People will look for our name in their inbox.",
         createdAt: now - 40 * 60 * 1000, mine: false, canDelete: true, resolved: false, mentions: ["Maya Ortiz"],
-        replies: [{ _id: "c2", blockId: "b2", author: "You", image: null, color: "#2e78bb", body: "Good call @Ravi Menon — adding a line of help text.", createdAt: now - 20 * 60 * 1000, mine: true, canDelete: true, mentions: ["Ravi Menon"] }],
+        replies: [{ _id: "c2", blockId: "b2", author: "You", image: null, color: "#2e78bb", body: "Good call @Ravi Menon - adding a line of help text.", createdAt: now - 20 * 60 * 1000, mine: true, canDelete: true, mentions: ["Ravi Menon"] }],
       },
       { _id: "c3", blockId: null, author: "Ben Carter", image: null, color: "#c4614f", body: "Looks ready from my side.", createdAt: now - DAY, mine: false, canDelete: true, resolved: true, mentions: [], replies: [] },
     ],
@@ -845,7 +845,7 @@ export const QUERIES: Record<string, unknown> = {
       { _id: "r6", name: "Aoife Byrne", at: now - 4 * DAY, score: 77, intent: "wants a website quote", urgency: "low", sentiment: "positive", summary: "Portfolio site with a client area, flexible on timing." },
     ],
     followUp: [
-      { _id: "r2", name: "Priya Shah", at: now - 5 * HOUR, score: 88, intent: "wants to book a call", urgency: "high", sentiment: "positive", summary: "Wants to start within a month — asked for a call this week." },
+      { _id: "r2", name: "Priya Shah", at: now - 5 * HOUR, score: 88, intent: "wants to book a call", urgency: "high", sentiment: "positive", summary: "Wants to start within a month - asked for a call this week." },
       { _id: "r9", name: "Ines Duarte", at: now - 8 * DAY, score: 34, intent: "complaint", urgency: "high", sentiment: "negative", summary: "Unhappy with a previous agency's slow site; worried about cost." },
     ],
     replies: { written: 168, emailed: 161, failed: 1, skipped: 3, helpful: 54, unhelpful: 4 },
@@ -858,7 +858,7 @@ export const QUERIES: Record<string, unknown> = {
         { title: "Slow, dated sites", detail: "A steady group describe sites that are slow on phones and bring in few enquiries. They're frustrated but motivated.", share: 21 },
         { title: "Price-sensitive enquiries", detail: "Some ask about cost before anything else and compare several agencies.", share: 14 },
       ],
-      opportunities: ["Offer a fixed-price booking-site package — it matches the most common and most promising request."],
+      opportunities: ["Offer a fixed-price booking-site package - it matches the most common and most promising request."],
       risks: ["People comparing agencies often go quiet; a same-day personal follow-up helps."],
       suggestions: ["Add a budget question with ranges so replies can be more specific.", "Put two short case studies in the reply background for booking projects."],
     },
@@ -1019,7 +1019,7 @@ export const QUERIES: Record<string, unknown> = {
     {
       _id: "c1",
       kind: "webhook",
-      label: "Zapier — add to HubSpot",
+      label: "Zapier - add to HubSpot",
       url: "https://hooks.zapier.com/hooks/catch/1234567/abcdef/",
       feed: null,
       enabled: true,

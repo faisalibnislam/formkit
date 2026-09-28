@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 /**
  * `FK_PREVIEW=1` swaps the Convex client for the fixture shims in
  * `scripts/preview/`, so the signed-in application can be rendered and looked
- * at without a backend. It is a development tool — `npm run preview` sets it,
+ * at without a backend. It is a development tool - `npm run preview` sets it,
  * nothing else does, and a normal build resolves the real modules.
  */
 const preview = process.env.FK_PREVIEW === "1";

@@ -32,7 +32,7 @@ function html(doc: ResponseDoc) {
           .join("")}</section>`,
     )
     .join("");
-  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(doc.name)} — ${esc(doc.formTitle)}</title>
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(doc.name)} · ${esc(doc.formTitle)}</title>
 <style>
   @page { margin: 18mm 16mm; }
   * { box-sizing: border-box; }

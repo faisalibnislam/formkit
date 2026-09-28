@@ -1,5 +1,5 @@
 /**
- * formkit.app/api/v1/… — the Business REST API. The work is done by the
+ * formkit.app/api/v1/… - the Business REST API. The work is done by the
  * Convex deployment's HTTP routes (convex/restApi.ts); this passes requests
  * through so the API has Formkit's own address.
  */
