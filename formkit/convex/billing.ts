@@ -469,40 +469,54 @@ export const adminStatus = query({
   },
 });
 
+/** Checks the caller is billing staff, and says which products already exist. */
 export const staffCheck = internalQuery({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx): Promise<Products> => {
     await requireStaff(ctx, "billing");
-    return null;
+    return (await platformValue<Products>(ctx, "polarProducts")) ?? {};
   },
 });
 
-/** Creates the four products in Polar at the plan prices and remembers their ids. */
+/**
+ * Creates whichever products Polar doesn't have yet — the four plans and the
+ * pack of AI replies — at the listed prices, and remembers their ids. Ones
+ * already made are left alone: a new copy of a plan would change its id, and
+ * people already paying for the old one would no longer be recognised.
+ */
 export const createProducts = action({
   args: {},
-  returns: v.null(),
-  handler: async (ctx): Promise<null> => {
-    await ctx.runQuery(internal.billing.staffCheck, {});
-    const made: Products = {};
+  returns: v.object({ made: v.array(v.string()), kept: v.array(v.string()) }),
+  handler: async (ctx): Promise<{ made: string[]; kept: string[] }> => {
+    const have: Products = await ctx.runQuery(internal.billing.staffCheck, {});
+    const next: Products = { ...have };
+    const made: string[] = [];
     for (const plan of ["pro", "business"] as const) {
       for (const interval of ["month", "year"] as const) {
+        const key = `${plan}_${interval}` as const;
+        if (have[key]) continue;
         const res = await polar<{ id: string }>("/v1/products/", {
           name: `Formkit ${PLANS[plan].name} (${interval === "month" ? "monthly" : "yearly"})`,
           description: PLANS[plan].tagline,
           recurring_interval: interval,
           prices: [{ amount_type: "fixed", price_amount: PLANS[plan].price[interval] * 100, price_currency: "usd" }],
         });
-        made[`${plan}_${interval}`] = res.id;
+        next[key] = res.id;
+        made.push(key);
       }
     }
-    const pack = await polar<{ id: string }>("/v1/products/", {
-      name: `Formkit AI replies — ${REPLY_PACK.replies}`,
-      description: `${REPLY_PACK.replies} more AI replies for Business forms. They roll over until used.`,
-      prices: [{ amount_type: "fixed", price_amount: REPLY_PACK.price * 100, price_currency: "usd" }],
-    });
-    made.replies_100 = pack.id;
-    await ctx.runMutation(internal.billing.storeProducts, { products: made });
-    return null;
+    if (!have.replies_100) {
+      const pack = await polar<{ id: string }>("/v1/products/", {
+        name: `Formkit AI replies — ${REPLY_PACK.replies}`,
+        description: `${REPLY_PACK.replies} more AI replies for Business forms. They roll over until used.`,
+        prices: [{ amount_type: "fixed", price_amount: REPLY_PACK.price * 100, price_currency: "usd" }],
+      });
+      next.replies_100 = pack.id;
+      made.push("replies_100");
+    }
+    // Saved after each run, so a failure part-way keeps what was made.
+    if (made.length) await ctx.runMutation(internal.billing.storeProducts, { products: next });
+    return { made, kept: Object.keys(have).filter((k) => have[k as keyof Products]) };
   },
 });
 

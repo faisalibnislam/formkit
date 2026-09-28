@@ -60,15 +60,17 @@ export function AdminBilling() {
             <code className="fk-admin-code">POLAR_ACCESS_TOKEN</code>
           </Step>
           <Step done={!!status?.secret} title="2. The webhook">
-            In Polar: Settings → Webhooks → Add endpoint, format Raw, with the <em>subscription</em> events and this URL:
+            In Polar: Settings → Webhooks → Add endpoint, format Raw, with the <em>subscription</em> events and{" "}
+            <em>order.paid</em> (reply packs are one-off orders), and this URL:
             <code className="fk-admin-code" style={{ display: "block", margin: "8px 0" }}>
               {status?.webhookUrl ?? "…"}
             </code>
             Add the secret Polar shows in Convex as <code className="fk-admin-code">POLAR_WEBHOOK_SECRET</code>
           </Step>
-          <Step done={KEYS.every(([k]) => products[k])} title="3. The four products">
-            Once the token is in, “Create them in Polar” below makes them at the plan prices. Or paste the ids of
-            products you made in Polar yourself.
+          <Step done={KEYS.every(([k]) => products[k])} title="3. The products">
+            Once the token is in, “Create them in Polar” below makes any that are missing — the four plans and the
+            pack of AI replies — at the listed prices. Ones already made are kept. Or paste the ids of products you
+            made in Polar yourself.
           </Step>
         </div>
         {status?.lastEvent && (
@@ -122,9 +124,13 @@ export function AdminBilling() {
             onClick={async () => {
               setCreating(true);
               try {
-                await createProducts({});
+                const { made } = await createProducts({});
                 setDraft(null);
-                toast("Four products created in Polar");
+                toast(
+                  made.length
+                    ? `${made.length} ${made.length === 1 ? "product" : "products"} created in Polar`
+                    : "Every product is already in Polar",
+                );
               } catch (e) {
                 toast(errorText(e, "Polar did not create them."));
               } finally {
@@ -132,7 +138,7 @@ export function AdminBilling() {
               }
             }}
           >
-            {creating ? "Creating…" : "Create them in Polar"}
+            {creating ? "Creating…" : KEYS.some(([k]) => products[k]) ? "Create the missing ones" : "Create them in Polar"}
           </Button>
         </div>
       </section>
