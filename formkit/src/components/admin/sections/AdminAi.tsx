@@ -10,12 +10,11 @@ import { StatCard } from "@/components/app/ds";
 import { useToast } from "@/components/ui/Toast";
 
 /**
- * The AI allow-list.
+ * Ask Formkit across the platform.
  *
- * Off is the default and it is a real off: an account without access sees no
- * launcher, no locked state and no mention of Ask Formkit anywhere. The
- * platform switch is a pause, never an "enable for all" — access is only ever
- * given to a named person. Every count here is of people who have access.
+ * It is on for every account, with monthly credits set by plan (Free's
+ * allowance is the default below). Staff can turn it off for one account, set
+ * a personal limit, grant extra credits, or pause it for everyone.
  */
 export function AdminAi() {
   const toast = useToast();
@@ -35,7 +34,7 @@ export function AdminAi() {
   return (
     <>
       <div className="fk-grid" data-cols="stats-sm">
-        <StatCard label="People with access" value={stats ? stats.aiAllowed.toLocaleString() : "—"} />
+        <StatCard label="Accounts with it on" value={stats ? stats.aiAllowed.toLocaleString() : "—"} />
         <StatCard label="Credits used this month" value={stats ? stats.aiUsed.toLocaleString() : "—"} caption={`of ${(stats?.aiCapacity ?? 0).toLocaleString()} they could spend`} />
         <StatCard label="Out of credits" value={stats ? stats.aiOutOfCredits.toLocaleString() : "—"} />
         <StatCard label="AI forms built" value={stats ? stats.aiFormsBuilt.toLocaleString() : "—"} caption="Last 30 days" />
@@ -44,7 +43,7 @@ export function AdminAi() {
       <section className="fk-panel">
         <h3>Platform</h3>
         <p className="fk-panel-lede">
-          Pausing stops every request at once and remembers who was allowed. It never turns Ask Formkit on for anyone.
+          Pausing stops every request at once, for everyone. Resuming brings it back with the credits people had left.
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div className="fk-admin-row">
@@ -61,7 +60,7 @@ export function AdminAi() {
           <div className="fk-admin-row">
             <span style={{ flex: 1 }}>
               {stats?.aiPaused ? "Paused for everyone" : "Running"}
-              <span className="fk-admin-sub">{stats?.aiPaused ? "Nobody can use it until you resume." : "Everyone on the list can use it."}</span>
+              <span className="fk-admin-sub">{stats?.aiPaused ? "Nobody can use it until you resume." : "Every account can use it, within its credits."}</span>
             </span>
             <Button
               variant={stats?.aiPaused ? "primary" : "secondary"}
@@ -77,8 +76,8 @@ export function AdminAi() {
           </div>
 
           <Field
-            label="Default monthly credits"
-            help="For anyone without a limit of their own. Apply to all also clears every personal limit."
+            label="Free plan monthly credits"
+            help="For Free accounts without a limit of their own (Pro gets 50, Business 200). Apply to all also clears every personal limit."
           >
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <Input
@@ -153,7 +152,7 @@ export function AdminAi() {
         <section className="fk-panel">
           <h3>Personal limits</h3>
           {ai && ai.overrides.length === 0 ? (
-            <p className="fk-admin-quiet" style={{ margin: 0 }}>Everyone shown is on the default of {def} a month.</p>
+            <p className="fk-admin-quiet" style={{ margin: 0 }}>Everyone shown is on their plan&rsquo;s allowance.</p>
           ) : (
             <div className="fk-rows">
               {(ai?.overrides ?? []).map((u) => (
@@ -183,9 +182,9 @@ export function AdminAi() {
 
       <section className="fk-panel" data-pad="none">
         <div style={{ padding: "22px 24px 12px" }}>
-          <h3 style={{ margin: 0 }}>Who has it</h3>
+          <h3 style={{ margin: 0 }}>Who is using it</h3>
           <p className="fk-panel-lede" style={{ margin: "6px 0 14px" }}>
-            Turn it on for somebody from their entry under Users.
+            Change someone&rsquo;s limit or turn it off for them here, or from their entry under Users.
           </p>
           <div className="fk-toolbar" style={{ flexWrap: "wrap" }}>
             <PillTabs
@@ -193,9 +192,9 @@ export function AdminAi() {
               value={show}
               onChange={setShow}
               tabs={[
-                { value: "on", label: "On" },
+                { value: "on", label: "Used this month" },
                 { value: "off", label: "Turned off" },
-                { value: "all", label: "All" },
+                { value: "all", label: "All with changes" },
               ]}
             />
             <span className="fk-toolbar-spacer" />
@@ -211,10 +210,10 @@ export function AdminAi() {
         {ai && ai.rows.length === 0 ? (
           <div style={{ padding: "8px 24px 24px" }}>
             <EmptyState
-              title={term ? "Nobody matches" : show === "on" ? "Nobody yet" : "Nobody here"}
+              title={term ? "Nobody matches" : show === "on" ? "Nobody yet this month" : "Nobody here"}
               description={
                 show === "on" && !term
-                  ? "Ask Formkit is off for every account until you turn it on for a named person."
+                  ? "Nobody has built a form with Ask Formkit since the first of the month."
                   : "Try another search or filter."
               }
             />

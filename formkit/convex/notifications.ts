@@ -11,6 +11,7 @@ import { api, internal } from "./_generated/api";
 import { Doc, Id } from "./_generated/dataModel";
 import { requireUser } from "./model/identity";
 import { brandOf, formFor } from "./model/forms";
+import { hasFeature } from "./model/plans";
 import {
   fill,
   renderConfirmation,
@@ -156,7 +157,7 @@ export const forResponse = internalQuery({
       },
       // Settings → Exports → Email a copy: the whole response, to one inbox.
       copy:
-        owner.emailCopy?.on && addresses(owner.emailCopy.to).length
+        owner.emailCopy?.on && addresses(owner.emailCopy.to).length && (await hasFeature(ctx, owner, "exports.copy"))
           ? {
               to: addresses(owner.emailCopy.to),
               subject: `${form.title}: ${vars.name}`,
@@ -398,6 +399,16 @@ export const testFor = internalQuery({
   },
 });
 
+/** Excel export follows the form owner's plan, or the viewer's for all forms. */
+export const excelAllowed = internalQuery({
+  args: { formId: v.optional(v.id("forms")) },
+  handler: async (ctx, { formId }) => {
+    const user = await requireUser(ctx);
+    const form = formId ? await ctx.db.get(formId) : null;
+    return await hasFeature(ctx, form?.ownerId ?? user._id, "exports.xlsx");
+  },
+});
+
 /**
  * Export by email. The same rows the Export button downloads, sent as a CSV
  * attachment — for exports too large to wait on, and for sending to somebody
@@ -419,9 +430,10 @@ export const exportByEmail = action({
     ctx,
     { formId, to, ids, includePartial, from, until, format: asked = "xlsx", what = "responses" },
   ): Promise<SendResult> => {
-    // With Excel export switched off for this account, the file goes as CSV.
+    // Excel needs the platform flag and a plan with it; otherwise the file goes as CSV.
     const flags: { "exports.xlsx": boolean } = await ctx.runQuery(api.flags.mine, {});
-    const format = asked === "xlsx" && !flags["exports.xlsx"] ? "csv" : asked;
+    const excelOk: boolean = await ctx.runQuery(internal.notifications.excelAllowed, { formId });
+    const format = asked === "xlsx" && !(flags["exports.xlsx"] && excelOk) ? "csv" : asked;
     const me: { _id: Id<"users">; email: string } | null = await ctx.runQuery(
       api.users.viewer,
       {},

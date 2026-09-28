@@ -3,6 +3,7 @@ import { query, type QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { requireUser } from "./model/identity";
 import { completionRate, formFor } from "./model/forms";
+import { hasFeature } from "./model/plans";
 
 /**
  * Analytics, computed from what is actually stored.
@@ -95,6 +96,9 @@ export const overview = query({
             .collect()
         ).filter((f) => !f.deletedAt);
     const ids = new Set(forms.map((f) => f._id as string));
+    // Sources, devices and drop-off are Pro — the form owner's plan for one
+    // form, the viewer's own across all of theirs.
+    const full = await hasFeature(ctx, args.formId ? forms[0]!.ownerId : user._id, "analytics.full");
 
     // Only the two windows being compared — never every response ever sent.
     const inWindows = (
@@ -164,7 +168,7 @@ export const overview = query({
 
     /* Where people leave: for each question, the share of everyone who began
        that stopped on it — the first question after the last they answered. */
-    const dropOff = args.formId
+    const dropOff = args.formId && full
       ? await (async () => {
           const blocks = (
             await ctx.db
@@ -229,11 +233,13 @@ export const overview = query({
       from,
       to,
       days,
+      /** False when the plan leaves out sources, devices and drop-off. */
+      full,
       ...now_,
       change,
       daily,
       dropOff,
-      sources: [...bySource.entries()]
+      sources: (full ? [...bySource.entries()] : [])
         .map(([name, s]) => ({
           name,
           views: s.views,
@@ -242,7 +248,7 @@ export const overview = query({
           completion: s.views ? Math.round((s.completed / s.views) * 1000) / 10 : null,
         }))
         .sort((a, b) => b.views - a.views || b.responses - a.responses),
-      devices: [...byDevice.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
+      devices: (full ? [...byDevice.entries()] : []).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
       /** Lifetime counters, which the dashboard and form list still show. */
       lifetime: {
         views: forms.reduce((n, f) => n + (f.views ?? 0), 0),

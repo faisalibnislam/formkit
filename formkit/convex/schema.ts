@@ -73,6 +73,8 @@ export default defineSchema({
     planEndsAt: v.optional(v.number()),
     planCancelAtPeriodEnd: v.optional(v.boolean()),
     planComp: v.optional(v.union(v.literal("pro"), v.literal("business"))),
+    /** Pro: no "Made with Formkit" on forms published under the person's own name. */
+    hideBadge: v.optional(v.boolean()),
     polarCustomerId: v.optional(v.string()),
     polarSubscriptionId: v.optional(v.string()),
 

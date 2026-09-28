@@ -21,6 +21,8 @@ import type { Id } from "../../../../convex/_generated/dataModel";
 import { Badge, Button, IconButton, Input, Modal, PillTabs, Select, Textarea } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 import { relativeTime } from "../bits";
+import { ProChip } from "@/components/plan/UpgradeSheet";
+import { openUpgrade, upgradeOnPlanError } from "@/components/plan/usePlan";
 
 /**
  * Collaborators owns people, and only people: who can edit, comment or read
@@ -66,6 +68,8 @@ function Face({ name, color, image, size = 40 }: { name: string; color: string; 
 
 export function CollaboratorsDialog({ formId, onClose }: { formId: Id<"forms">; onClose: () => void }) {
   const data = useQuery(api.collaborators.list, { formId });
+  const form = useQuery(api.forms.get, { formId });
+  const cap = form?.ownerPlan?.limits.collaborators ?? null;
   const activity = useQuery(api.collaborators.activity, { formId });
   const invite = useMutation(api.collaborators.invite);
   const resend = useMutation(api.collaborators.resend);
@@ -93,6 +97,7 @@ export function CollaboratorsDialog({ formId, onClose }: { formId: Id<"forms">; 
       setEmail("");
       setNote("");
     } catch (e) {
+      if (upgradeOnPlanError(e)) return;
       toast("That invitation did not go out", {
         detail: e instanceof Error ? e.message : undefined,
         tone: "error",
@@ -135,7 +140,17 @@ export function CollaboratorsDialog({ formId, onClose }: { formId: Id<"forms">; 
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           {manage && (
             <div className="fk-invite">
-              <div style={{ fontSize: 14, fontWeight: 500 }}>Invite someone to this form</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", fontSize: 14, fontWeight: 500 }}>
+                Invite someone to this form
+                {cap !== null && (
+                  <span className="fk-proprow-hint" style={{ fontWeight: 400 }}>
+                    {active.length + pending.length} of {cap} people — unlimited on Business
+                  </span>
+                )}
+                {cap !== null && active.length + pending.length >= cap && (
+                  <ProChip plan="business" onClick={() => openUpgrade({ feature: "team" })} />
+                )}
+              </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <Input
                   icon={<Mail size={17} strokeWidth={1.8} aria-hidden />}

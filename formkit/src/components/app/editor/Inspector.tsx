@@ -31,6 +31,7 @@ import {
 } from "./fieldTypes";
 import { VALUELESS, firstValue, opLabel } from "./operators";
 import { tracked } from "./saveStatus";
+import { usePlan } from "@/components/plan/usePlan";
 
 type Block = Doc<"blocks">;
 type Rule = Doc<"logicRules">;
@@ -141,6 +142,7 @@ export function FieldSettings({
   fields: Block[];
   rules: Rule[];
 }) {
+  const plan = usePlan();
   const router = useRouter();
   const pathname = usePathname();
   const toast = useToast();
@@ -247,8 +249,11 @@ export function FieldSettings({
 
       {block.type === "file" && (
         <>
-          <PropertyRow label="Maximum size" hint="The limit on every Formkit upload">
-            <span className="fk-static-pill">10 MB</span>
+          <PropertyRow
+            label="Maximum size"
+            hint={plan?.id === "business" ? "Set by your plan" : "Set by your plan — larger on Pro and Business"}
+          >
+            <span className="fk-static-pill">{plan?.limits.uploadMb ?? 10} MB</span>
           </PropertyRow>
           <div className="fk-proprow" data-stack="true">
             <div style={{ fontSize: 14, marginBottom: 7 }}>Accepted files</div>

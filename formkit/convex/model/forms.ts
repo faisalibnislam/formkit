@@ -1,6 +1,7 @@
 import { Doc, Id } from "../_generated/dataModel";
 import { MutationCtx, QueryCtx } from "../_generated/server";
 import { requireUser } from "./identity";
+import { hasFeature } from "./plans";
 
 /** Turns a title into the slug half of a public link. */
 export function slugify(title: string) {
@@ -145,9 +146,14 @@ export async function brandOf(ctx: QueryCtx, form: Doc<"forms">) {
         ? await ctx.storage.getUrl(identity.logoId)
         : null,
     color: (identity as { brandColor?: string } | null)?.brandColor ?? null,
-    // A company can switch the "Made with Formkit" credit off; a person's own
-    // forms always carry it.
-    badge: (identity as { badge?: boolean } | null)?.badge !== false,
+    // The "Made with Formkit" credit comes off only when its owner asked
+    // (per company, or once for their own forms) and their plan includes it.
+    badge: !(
+      (form.brand === "me"
+        ? (identity as { hideBadge?: boolean } | null)?.hideBadge === true
+        : (identity as { badge?: boolean } | null)?.badge === false) &&
+      (await hasFeature(ctx, form.ownerId, "brand.badge"))
+    ),
   };
 }
 

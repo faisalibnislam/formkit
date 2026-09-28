@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireUser } from "./model/identity";
+import { PLANS, planOf, requireFeature } from "./model/plans";
 import { claimHandle, releaseHandle } from "./model/handles";
 
 /**
@@ -43,6 +44,15 @@ export const add = mutation({
     const user = await requireUser(ctx);
     const name = args.name.trim();
     if (!name) throw new Error("A company needs a name.");
+    // One company on Free and Pro; several brands are Business.
+    const cap = PLANS[planOf(user)].companies;
+    if (cap !== null) {
+      const have = await ctx.db
+        .query("companies")
+        .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
+        .collect();
+      if (have.length >= cap) await requireFeature(ctx, user, "brands");
+    }
     return await ctx.db.insert("companies", {
       ownerId: user._id,
       name,
@@ -77,6 +87,7 @@ export const update = mutation({
     const user = await requireUser(ctx);
     const company = await ctx.db.get(companyId);
     if (!company || company.ownerId !== user._id) throw new Error("That company is not yours.");
+    if (patch.badge === false) await requireFeature(ctx, user, "brand.badge");
     await ctx.db.patch(companyId, patch);
     return null;
   },

@@ -3,12 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { FEATURES, PLANS, type Interval, type PlanId } from "../../../convex/model/plans";
+import { FEATURES, PLANS, type Feature, type Interval, type PlanId } from "../../../convex/model/plans";
 import { Button, Modal, Segmented } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 import { errorText } from "@/components/app/settings/bits";
 import { PlanCards, bestSavingPercent } from "./PlanCards";
-import { onUpgradeRequest, usePlan, type UpgradeAsk } from "./usePlan";
+import { onUpgradeRequest, openUpgrade, usePlan, type UpgradeAsk } from "./usePlan";
 
 /** A small label beside a paid feature: "Pro" or "Business". */
 export function ProChip({ plan = "pro", onClick }: { plan?: Exclude<PlanId, "free">; onClick?: () => void }) {
@@ -115,5 +115,22 @@ export function UpgradeSheet() {
         Payments are handled by Polar, who send the receipt. Prices in US dollars; tax may be added at checkout.
       </p>
     </Modal>
+  );
+}
+
+/**
+ * Where a paid panel's content would be on a plan without it: one line on
+ * what it shows, and a way to get it. Not a blurred teaser of fake data.
+ */
+export function LockedNote({ feature, children }: { feature: Feature; children: React.ReactNode }) {
+  const needs = FEATURES[feature].plan;
+  return (
+    <div className="fk-locked">
+      <ProChip plan={needs} />
+      <p>{children}</p>
+      <Button size="sm" variant="secondary" onClick={() => openUpgrade({ feature })}>
+        See {PLANS[needs].name}
+      </Button>
+    </div>
   );
 }

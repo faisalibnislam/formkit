@@ -12,6 +12,7 @@ import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { aiAllowed, aiLimit, requireUser } from "./model/identity";
 import { formFor, recount, uniqueSlug } from "./model/forms";
+import { hasFeature } from "./model/plans";
 import { logActivity } from "./model/access";
 import { OPERATORS } from "./logic";
 import { THEME_PRESETS } from "./model/themePresets";
@@ -162,7 +163,7 @@ export const context = internalQuery({
       form,
       riff,
       live: await flagOn(ctx, "ai.live", user._id),
-      brief: await flagOn(ctx, "ai.brief", user._id),
+      brief: (await flagOn(ctx, "ai.brief", user._id)) && (await hasFeature(ctx, user, "ai.brief")),
     };
   },
 });

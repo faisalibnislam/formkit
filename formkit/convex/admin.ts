@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { planOf } from "./model/plans";
+import { PLANS, planOf } from "./model/plans";
 import { modelConfigured } from "./model/gemini";
 import { notify } from "./model/inbox";
 import { FLAGS, isFlagKey } from "./model/flags";
@@ -111,19 +111,22 @@ export const overview = query({
       if (i >= 0 && i < range) signups[i]! += 1;
     }
 
-    // Ask Formkit: what the allowed accounts could build this month, and did.
-    const allowedRows = access.filter((a) => a.enabled);
+    // Ask Formkit: on for every customer unless turned off, credits by plan.
+    const freeDefault = (await platformValue<number>(ctx, "aiDefault")) ?? PLANS.free.aiCredits;
+    const byUser = new Map(access.map((a) => [a.userId as string, a]));
     let capacity = 0;
     let used = 0;
     let outOfCredits = 0;
-    for (const row of allowedRows) {
-      const u = users.find((x) => x._id === row.userId);
-      if (!u) continue;
-      const limit = await aiLimit(ctx, u._id);
+    let allowedCount = 0;
+    for (const u of customers) {
+      const row = byUser.get(u._id);
+      if (row?.enabled === false || u.deactivatedAt) continue;
+      allowedCount += 1;
+      const limit = localAiLimit(u, row, freeDefault);
       const spent = u.aiPeriod === period ? (u.aiUsed ?? 0) : 0;
       capacity += limit;
       used += spent;
-      if (spent >= limit) outOfCredits += 1;
+      if (spent > 0 && spent >= limit) outOfCredits += 1;
     }
 
     const suspended = customers.filter((u) => u.deactivatedAt && !u.selfDeletedAt).length;
@@ -144,7 +147,7 @@ export const overview = query({
       responsesWeek: responses.filter((r) => r.submittedAt >= week).length,
       responsesInRange: responses.filter((r) => r.submittedAt >= since && !r.preview).length,
       aiFormsBuilt: activity.filter((a) => a.at >= since && a.what === "created the form with Ask Formkit").length,
-      aiAllowed: allowedRows.length,
+      aiAllowed: allowedCount,
       aiUsed: used,
       aiCapacity: capacity,
       aiOutOfCredits: outOfCredits,
@@ -158,6 +161,17 @@ export const overview = query({
     };
   },
 });
+
+/** An account's monthly credits without a read per account (see model/identity `aiLimit`). */
+function localAiLimit(
+  u: Doc<"users">,
+  row: { limitOverride?: number; granted?: number } | undefined,
+  freeDefault: number,
+) {
+  const plan = planOf(u);
+  const allowance = plan === "free" ? freeDefault : PLANS[plan].aiCredits;
+  return (row?.limitOverride ?? allowance) + (row?.granted ?? 0);
+}
 
 /* ------------------------------------------------------------------ */
 /* Users                                                               */
@@ -475,29 +489,40 @@ export const setAiPlatform = mutation({
 });
 
 /** Who has Ask Formkit, how much they use, and who is on a limit of their own. */
+/**
+ * "on": everyone who has used Ask Formkit this month. "off": accounts staff
+ * turned it off for. "all": both, plus anyone with a personal limit or grant.
+ */
 export const aiStats = query({
   args: { search: v.optional(v.string()), show: v.optional(v.union(v.literal("on"), v.literal("off"), v.literal("all"))) },
   handler: async (ctx, { search, show = "on" }) => {
     await requireStaff(ctx, "ai.access");
     const period = new Date().toISOString().slice(0, 7);
     const access = await ctx.db.query("aiAccess").collect();
+    const byUser = new Map(access.map((a) => [a.userId as string, a]));
+    const freeDefault = (await platformValue<number>(ctx, "aiDefault")) ?? PLANS.free.aiCredits;
     const term = search?.trim().toLowerCase();
+    const users = await ctx.db.query("users").collect();
     const rows = [];
-    for (const row of access) {
-      if (show === "on" && !row.enabled) continue;
-      if (show === "off" && row.enabled) continue;
-      const u = await ctx.db.get(row.userId);
-      if (!u) continue;
+    for (const u of users) {
+      const row = byUser.get(u._id);
+      const spent = u.aiPeriod === period ? (u.aiUsed ?? 0) : 0;
+      const enabled = row?.enabled !== false;
+      const touched = !!row && (row.enabled === false || row.limitOverride !== undefined || (row.granted ?? 0) > 0);
+      if (show === "on" && !(enabled && spent > 0)) continue;
+      if (show === "off" && enabled) continue;
+      if (show === "all" && !(spent > 0 || touched)) continue;
       if (term && !`${u.name ?? ""} ${u.email ?? ""}`.toLowerCase().includes(term)) continue;
       rows.push({
         _id: u._id,
         name: u.name ?? "",
         email: u.email ?? "",
-        enabled: row.enabled,
-        limit: await aiLimit(ctx, u._id),
-        override: row.limitOverride ?? null,
-        granted: row.granted ?? 0,
-        used: u.aiPeriod === period ? (u.aiUsed ?? 0) : 0,
+        enabled,
+        plan: planOf(u),
+        limit: localAiLimit(u, row, freeDefault),
+        override: row?.limitOverride ?? null,
+        granted: row?.granted ?? 0,
+        used: spent,
       });
     }
     rows.sort((a, b) => b.used - a.used || a.name.localeCompare(b.name));

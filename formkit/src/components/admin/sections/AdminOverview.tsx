@@ -12,7 +12,7 @@ import { useToast } from "@/components/ui/Toast";
 /**
  * What the platform is doing, counted from stored data: the headline numbers
  * over 30 or 90 days, who is in what standing, sign-ups a day, Ask Formkit
- * against what the allow-list could spend, and the things waiting on staff.
+ * against what accounts could spend, and the things waiting on staff.
  */
 export function AdminOverview() {
   const toast = useToast();
@@ -95,14 +95,14 @@ export function AdminOverview() {
         <section className="fk-panel">
           <h3>Ask Formkit this month</h3>
           <p className="fk-panel-lede">
-            {stats.aiUsed.toLocaleString()} of {stats.aiCapacity.toLocaleString()} credits the allow-list could spend.
+            {stats.aiUsed.toLocaleString()} of {stats.aiCapacity.toLocaleString()} credits accounts could spend this month.
           </p>
           <ProgressBar value={stats.aiCapacity ? (stats.aiUsed / stats.aiCapacity) * 100 : 0} />
           <div className="fk-admin-row" style={{ marginTop: 18 }}>
             <span style={{ flex: 1 }}>
               {stats.aiPaused ? "Paused for everyone" : "Running"}
               <span className="fk-admin-quiet" style={{ display: "block" }}>
-                Pausing stops every request at once and remembers the allow-list.
+                Pausing stops every request at once; nothing else changes.
               </span>
             </span>
             <Switch

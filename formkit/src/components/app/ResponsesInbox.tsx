@@ -55,6 +55,8 @@ import { downloadResponsePdf, printResponse, type ResponseDoc } from "./response
 import { useNarrow } from "./useNarrow";
 import { PageSkeleton } from "./Skeleton";
 import { useFirstLoad } from "./useFirstLoad";
+import { ProChip } from "@/components/plan/UpgradeSheet";
+import { useGate } from "@/components/plan/usePlan";
 
 /**
  * The response inbox, for one form or for everything, and — across every
@@ -142,6 +144,7 @@ function Responses({
   const narrow = useNarrow();
   const exportRows = useExporter();
   const excel = useFlag("exports.xlsx");
+  const excelGate = useGate("exports.xlsx");
   const data = useQuery(api.responses.list, { formId });
   const loaded = useFirstLoad(data);
   const setStatus = useMutation(api.responses.setStatus);
@@ -312,10 +315,11 @@ function Responses({
         {excel && (
           <Button
             variant="secondary"
-            onClick={() => exportHere("xlsx")}
+            onClick={excelGate.guard(() => exportHere("xlsx"))}
             iconLeft={<FileSpreadsheet size={16} strokeWidth={1.8} aria-hidden />}
           >
             Export Excel
+            {excelGate.locked && <ProChip />}
           </Button>
         )}
         <Button
@@ -933,6 +937,7 @@ function Contacts({ onOpenPerson }: { onOpenPerson: (who: string) => void }) {
   const narrow = useNarrow();
   const exportRows = useExporter();
   const excel = useFlag("exports.xlsx");
+  const excelGate = useGate("exports.xlsx");
   const people = useQuery(api.responses.contacts, {});
   const [term, setTerm] = useState("");
 
@@ -976,10 +981,11 @@ function Contacts({ onOpenPerson }: { onOpenPerson: (who: string) => void }) {
         {excel && (
           <Button
             variant="secondary"
-            onClick={() => void exportRows({ what: "contacts", format: "xlsx" })}
+            onClick={excelGate.guard(() => void exportRows({ what: "contacts", format: "xlsx" }))}
             iconLeft={<FileSpreadsheet size={16} strokeWidth={1.8} aria-hidden />}
           >
             Export Excel
+            {excelGate.locked && <ProChip />}
           </Button>
         )}
         <Button

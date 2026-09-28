@@ -1,7 +1,8 @@
 import { v } from "convex/values";
-import { internalAction, internalQuery, mutation, query } from "./_generated/server";
+import { internalAction, internalQuery, mutation, query, type MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { requireUser } from "./model/identity";
+import { PLANS, planOfId, requireFeature } from "./model/plans";
 import { formFor } from "./model/forms";
 import { accessOf, colourFor, logActivity, token } from "./model/access";
 import { renderInvite } from "./emails/response";
@@ -150,6 +151,22 @@ function ago(ms: number) {
   return d === 1 ? "yesterday" : `${d} days ago`;
 }
 
+/**
+ * Two people besides the owner on Free and Pro; unlimited on Business. The
+ * owner's plan decides, whoever is doing the inviting.
+ */
+async function roomForAnother(ctx: MutationCtx, form: Doc<"forms">) {
+  const cap = PLANS[await planOfId(ctx, form.ownerId)].collaborators;
+  if (cap === null) return;
+  const on = (
+    await ctx.db
+      .query("collaborators")
+      .withIndex("by_form", (q) => q.eq("formId", form._id))
+      .collect()
+  );
+  if (on.length >= cap) await requireFeature(ctx, form.ownerId, "team");
+}
+
 export const invite = mutation({
   args: {
     formId: v.id("forms"),
@@ -178,6 +195,7 @@ export const invite = mutation({
         .collect()
     ).find((r) => r.email === address);
     if (already) throw new Error(`${address} is already on this form.`);
+    await roomForAnother(ctx, form);
 
     // If they already have a Formkit account the invitation is live at once;
     // otherwise it waits until they sign in with that address.
@@ -389,6 +407,12 @@ export const join = mutation({
         await ctx.db.patch(mine._id, { status: "active", userId: me._id });
       }
       return form._id;
+    }
+    // Someone joining by link is not the one who can upgrade, so a full form
+    // is a plain refusal rather than the upgrade sheet.
+    const cap = PLANS[await planOfId(ctx, form.ownerId)].collaborators;
+    if (cap !== null && rows.length >= cap) {
+      throw new Error("This form already has as many people as its owner’s plan allows. Ask them to make room.");
     }
     await ctx.db.insert("collaborators", {
       formId: form._id,

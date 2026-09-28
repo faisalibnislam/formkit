@@ -13,6 +13,8 @@ import { useExporter } from "../exporting";
 import { downloadAnalytics } from "../analyticsExport";
 import { Panel, Row, errorText } from "./bits";
 import { PageSkeleton } from "../Skeleton";
+import { ProChip } from "@/components/plan/UpgradeSheet";
+import { upgradeOnPlanError, useGate } from "@/components/plan/usePlan";
 
 /**
  * Settings → Exports: take everything out, have a copy of each response
@@ -54,6 +56,7 @@ function ExportPanel() {
   const forms = useQuery(api.forms.list, { filter: "all" });
   const emailIt = useAction(api.notifications.exportByEmail);
   const excel = useFlag("exports.xlsx");
+  const excelGate = useGate("exports.xlsx");
   const [form, setForm] = useState("all");
   const [range, setRange] = useState("all");
   const [partials, setPartials] = useState(false);
@@ -93,9 +96,10 @@ function ExportPanel() {
           <Button
             iconLeft={<FileSpreadsheet size={16} strokeWidth={1.8} aria-hidden />}
             disabled={!ready}
-            onClick={() => void exportRows({ what: "responses", format: "xlsx", formId, from, includePartial: partials })}
+            onClick={excelGate.guard(() => void exportRows({ what: "responses", format: "xlsx", formId, from, includePartial: partials }))}
           >
             Download Excel
+            {excelGate.locked && <ProChip />}
           </Button>
         )}
         <Button
@@ -130,9 +134,10 @@ function ExportPanel() {
                 to: to.trim() || undefined,
                 from,
                 includePartial: partials,
-                format: excel ? "xlsx" : "csv",
+                format: excel && !excelGate.locked ? "xlsx" : "csv",
               });
-              if (r.state === "sent") toast(`Sent to ${r.to}`, { detail: `${excel ? "An Excel" : "A CSV"} file is attached` });
+              if (r.state === "sent")
+                toast(`Sent to ${r.to}`, { detail: `${excel && !excelGate.locked ? "An Excel" : "A CSV"} file is attached` });
               else toast("That export did not go out", { detail: r.detail, tone: "error" });
             } catch (e) {
               toast("That export did not go out", { detail: errorText(e, ""), tone: "error" });
@@ -178,18 +183,28 @@ function EmailCopy() {
   const toast = useToast();
   const viewer = useQuery(api.users.viewer, {});
   const save = useMutation(api.users.setPreferences);
+  const gate = useGate("exports.copy");
   const [draft, setDraft] = useState<string | null>(null);
   if (!viewer) return <PageSkeleton kind="panel" />;
   const to = draft ?? viewer.emailCopy.to;
   return (
-    <Panel title="Email a copy" lede="Send every new response straight to an inbox as it arrives — every answer, not just a notice.">
+    <Panel
+      title="Email a copy"
+      lede="Send every new response straight to an inbox as it arrives — every answer, not just a notice."
+      aside={gate.locked ? <ProChip /> : null}
+    >
       <Row label="Email each response">
         <Switch
-          checked={viewer.emailCopy.on}
+          checked={viewer.emailCopy.on && !gate.locked}
           label="Email each response"
           onChange={async (on) => {
-            await save({ emailCopy: { on, to } });
-            toast(on ? "Copies on" : "Copies off", { detail: on ? `Each new response goes to ${to}` : undefined });
+            if (on && gate.locked) return gate.guard(() => undefined)();
+            try {
+              await save({ emailCopy: { on, to } });
+              toast(on ? "Copies on" : "Copies off", { detail: on ? `Each new response goes to ${to}` : undefined });
+            } catch (e) {
+              if (!upgradeOnPlanError(e)) toast(errorText(e, "That did not save."));
+            }
           }}
         />
       </Row>

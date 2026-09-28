@@ -27,6 +27,8 @@ import { useFlag } from "../useFlags";
 import { fieldType } from "../editor/fieldTypes";
 import { THEME_PRESETS } from "../../../../convex/model/themePresets";
 import { nextMonthLabel, useAsk, type Attachment } from "./AskProvider";
+import { openUpgrade, useGate, usePlan } from "@/components/plan/usePlan";
+import { PLANS } from "../../../../convex/model/plans";
 
 const statusNote = (s: string) =>
   s === "published" ? "Collecting" : s === "closed" ? "Closed" : s === "archived" ? "Archived" : "Draft";
@@ -89,6 +91,7 @@ export function AskComposer({ placeholder, autoFocus }: { placeholder?: string; 
   const toast = useToast();
   // "Build from a brief" is a flag; off, there is nothing to attach.
   const canAttach = useFlag("ai.brief");
+  const briefGate = useGate("ai.brief");
   const [value, setValue] = useState("");
   const [menu, setMenu] = useState(false);
   const [modal, setModal] = useState<"brief" | "riff" | null>(null);
@@ -198,7 +201,8 @@ export function AskComposer({ placeholder, autoFocus }: { placeholder?: string; 
             aria-expanded={menu}
             disabled={reading}
             onPointerDown={(e) => e.stopPropagation()}
-            onClick={() => setMenu((m) => !m)}
+            onClick={() => (briefGate.locked ? openUpgrade({ feature: "ai.brief" }) : setMenu((m) => !m))}
+            title={briefGate.locked ? "Working from a brief is part of Pro" : undefined}
           >
             {reading ? <Loader size={17} strokeWidth={1.8} className="fk-spin" aria-hidden /> : <Paperclip size={17} strokeWidth={1.8} aria-hidden />}
           </button>
@@ -379,10 +383,12 @@ export function AskCredits({ compact }: { compact?: boolean }) {
   );
 }
 
-/** What credits are, and what to do when they run out. No plans, no prices. */
+/** What credits are, and what to do when they run out. */
 export function AskLimitModal() {
   const { left, limit, limitOpen, setLimitOpen } = useAsk();
+  const plan = usePlan();
   if (!limitOpen) return null;
+  const next = plan?.id === "free" ? "pro" : plan?.id === "pro" ? "business" : null;
   const out = left <= 0;
   return (
     <Modal
@@ -393,7 +399,22 @@ export function AskLimitModal() {
           : `You have ${left} of ${limit} left this month.`
       }
       onClose={() => setLimitOpen(false)}
-      footer={<Button onClick={() => setLimitOpen(false)}>Got it</Button>}
+      footer={
+        <>
+          {next && (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setLimitOpen(false);
+                openUpgrade({ plan: next });
+              }}
+            >
+              Get {PLANS[next].aiCredits} a month with {PLANS[next].name}
+            </Button>
+          )}
+          <Button onClick={() => setLimitOpen(false)}>Got it</Button>
+        </>
+      }
     >
       <div className="fk-ask-limit">
         <p>Building a whole new form spends one credit. Everything else is free and does not count:</p>
@@ -405,8 +426,8 @@ export function AskLimitModal() {
           <li>Reading what the responses say</li>
         </ul>
         <p>
-          Credits come back on {nextMonthLabel()}. If you need more before then, ask your Formkit admin — they can add
-          them to your account.
+          Credits come back on {nextMonthLabel()}.
+          {next ? ` ${PLANS[next].name} gives you ${PLANS[next].aiCredits} a month.` : ""}
         </p>
       </div>
     </Modal>

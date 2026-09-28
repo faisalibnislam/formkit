@@ -24,6 +24,8 @@ import { useToast } from "@/components/ui/Toast";
 import { ImageUpload } from "../ImageUpload";
 import { Panel, Row, errorText } from "./bits";
 import { PageSkeleton } from "../Skeleton";
+import { ProChip } from "@/components/plan/UpgradeSheet";
+import { openUpgrade, upgradeOnPlanError, useGate, usePlan } from "@/components/plan/usePlan";
 
 /**
  * Settings → Companies. The person is the account; companies are optional and
@@ -38,12 +40,18 @@ export function CompanySection() {
   const viewer = useQuery(api.users.viewer, {});
   const companies = useQuery(api.companies.list, {});
   const add = useMutation(api.companies.add);
+  const setPrefs = useMutation(api.users.setPreferences);
+  const plan = usePlan();
+  const badgeGate = useGate("brand.badge");
+  const brandsGate = useGate("brands");
   const [open, setOpen] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
 
   if (!viewer || !companies) return <PageSkeleton kind="panel" />;
   const selected = companies.find((c) => c._id === open) ?? null;
+  const cap = plan?.limits.companies ?? null;
+  const full = cap !== null && companies.length >= cap && brandsGate.locked;
 
   return (
     <>
@@ -55,17 +63,44 @@ export function CompanySection() {
         placeholder="your-name"
       />
 
+      <Panel title="Your own forms" lede="Forms you publish as yourself rather than under a company.">
+        <Row
+          label="Show “Made with Formkit”"
+          hint={
+            <>
+              A small credit at the bottom of the form and its confirmation email.{" "}
+              {badgeGate.locked && <ProChip onClick={() => openUpgrade({ feature: "brand.badge" })} />}
+            </>
+          }
+        >
+          <Switch
+            checked={!viewer.hideBadge || badgeGate.locked}
+            label="Show Made with Formkit on my own forms"
+            onChange={badgeGate.guard(async (on: boolean) => {
+              try {
+                await setPrefs({ hideBadge: !on });
+              } catch (e) {
+                if (!upgradeOnPlanError(e)) toast(errorText(e, "That did not save."));
+              }
+            })}
+          />
+        </Row>
+      </Panel>
+
       <Panel
         title="Companies"
-        lede="Optional, and you can have as many as you need — a studio, a side project, a client you invoice through. Each one claims its own link and carries its own logo and colour."
+        lede="Optional — a studio, a side project, a client you invoice through. Each one claims its own link and carries its own logo and colour. One company on Free and Pro; as many as you need on Business."
         aside={
-          <Button
-            variant="secondary"
-            iconLeft={<Plus size={16} strokeWidth={1.8} aria-hidden />}
-            onClick={() => setAdding(true)}
-          >
-            Add a company
-          </Button>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+            {full && <ProChip plan="business" onClick={() => openUpgrade({ feature: "brands" })} />}
+            <Button
+              variant="secondary"
+              iconLeft={<Plus size={16} strokeWidth={1.8} aria-hidden />}
+              onClick={() => (full ? openUpgrade({ feature: "brands" }) : setAdding(true))}
+            >
+              Add a company
+            </Button>
+          </span>
         }
       >
         {companies.length === 0 ? (
@@ -111,7 +146,14 @@ export function CompanySection() {
               <Button
                 disabled={!name.trim()}
                 onClick={async () => {
-                  const id = await add({ name });
+                  let id;
+                  try {
+                    id = await add({ name });
+                  } catch (e) {
+                    setAdding(false);
+                    if (!upgradeOnPlanError(e)) toast(errorText(e, "That company could not be added."));
+                    return;
+                  }
                   toast(`${name.trim()} added`, { detail: "Claim its link and add its logo below" });
                   setName("");
                   setAdding(false);
@@ -236,6 +278,7 @@ const DETAILS = [
 type DetailKey = (typeof DETAILS)[number]["key"] | "address" | "brandColor";
 
 function CompanyEditor({ company, onDone }: { company: Company; onDone: () => void }) {
+  const badgeGate = useGate("brand.badge");
   const toast = useToast();
   const update = useMutation(api.companies.update);
   const setLogo = useMutation(api.companies.setLogo);
@@ -331,11 +374,23 @@ function CompanyEditor({ company, onDone }: { company: Company; onDone: () => vo
             onChange={(on) => void update({ companyId: company._id, patch: { useBranding: on } })}
           />
         </Row>
-        <Row label="Show the Formkit badge" hint="A small credit at the bottom of your forms">
+        <Row
+          label="Show “Made with Formkit”"
+          hint={
+            <>
+              A small credit at the bottom of this company&rsquo;s forms and confirmation emails.{" "}
+              {badgeGate.locked && <ProChip onClick={() => openUpgrade({ feature: "brand.badge" })} />}
+            </>
+          }
+        >
           <Switch
-            checked={company.badge !== false}
-            label="Show the Formkit badge"
-            onChange={(on) => void update({ companyId: company._id, patch: { badge: on } })}
+            checked={company.badge !== false || badgeGate.locked}
+            label="Show Made with Formkit"
+            onChange={(on) =>
+              !on && badgeGate.locked
+                ? openUpgrade({ feature: "brand.badge" })
+                : void update({ companyId: company._id, patch: { badge: on } }).catch((e) => upgradeOnPlanError(e))
+            }
           />
         </Row>
         <div className="fk-setpanel-actions">

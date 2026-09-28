@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { aiAllowed, aiLimit, currentUser, requireUser, twoFactorPassed } from "./model/identity";
-import { planSummary } from "./model/plans";
+import { planSummary, requireFeature } from "./model/plans";
 
 /**
  * Everything the chrome needs to render: the person, their companies, whether
@@ -55,6 +55,7 @@ export const viewer = query({
         body: v.string(),
       }),
       emailCopy: v.object({ on: v.boolean(), to: v.string() }),
+      hideBadge: v.boolean(),
       staffRole: v.union(v.string(), v.null()),
       /** See model/plans.ts `planSummary`. */
       plan: v.any(),
@@ -123,6 +124,7 @@ export const viewer = query({
         body: user.emailPrefs?.body ?? "{{name}} ({{email}}) just submitted {{form_name}}.",
       },
       emailCopy: user.emailCopy ?? { on: false, to: user.email ?? "" },
+      hideBadge: user.hideBadge === true,
       staffRole: user.staffRole ?? null,
       plan: planSummary(user),
       ai: {
@@ -199,12 +201,17 @@ export const setPreferences = mutation({
       }),
     ),
     emailCopy: v.optional(v.object({ on: v.optional(v.boolean()), to: v.optional(v.string()) })),
+    /** Pro: no "Made with Formkit" on forms under the person's own name. */
+    hideBadge: v.optional(v.boolean()),
   },
   returns: v.null(),
-  handler: async (ctx, { skyPref, appTheme, inAppPrefs, emailPrefs, emailCopy }) => {
+  handler: async (ctx, { skyPref, appTheme, inAppPrefs, emailPrefs, emailCopy, hideBadge }) => {
     const user = await requireUser(ctx);
+    if (emailCopy?.on) await requireFeature(ctx, user, "exports.copy");
+    if (hideBadge) await requireFeature(ctx, user, "brand.badge");
     const clean = (s?: string) => (s === undefined ? undefined : s.trim().slice(0, 2000));
     await ctx.db.patch(user._id, {
+      ...(hideBadge !== undefined ? { hideBadge } : {}),
       ...(skyPref ? { skyPref } : {}),
       ...(appTheme ? { appTheme } : {}),
       ...(inAppPrefs

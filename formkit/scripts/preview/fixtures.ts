@@ -473,7 +473,10 @@ export const QUERIES: Record<string, unknown> = {
     counts: { all: 6, draft: 1, published: 4, closed: 1, archived: 0, deleted: 2, shared: 1 },
     forms: FORMS.map((f) => ({ ...f, sharedAs: null })),
   },
-  "forms:get": FORM_DETAIL,
+  get "forms:get"() {
+    const p = VIEWER.plan;
+    return { ...FORM_DETAIL, ownerPlan: { id: p.id, name: p.name, features: p.features, limits: p.limits } };
+  },
   "responses:list": {
     stats: { total: 1117, today: 2, todayChange: 1, week: 8, weekChange: 14, unread: 3, partial: 2, completed: 1115, previews: 1 },
     forms: Object.entries(FORM_TITLES).map(([_id, title]) => ({ _id, title })),
@@ -565,6 +568,9 @@ export const QUERIES: Record<string, unknown> = {
     from: now - 30 * DAY,
     to: now,
     days: 30,
+    get full() {
+      return (flag("fk_plan") ?? "pro") !== "free";
+    },
     views: 12483,
     starts: 8291,
     responses: 8291,

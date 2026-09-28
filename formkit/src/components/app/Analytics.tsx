@@ -22,6 +22,8 @@ import { BarChart, StatCard, TickBars } from "./ds";
 import { downloadAnalytics, duration, signed, ymd } from "./analyticsExport";
 import { PageSkeleton } from "./Skeleton";
 import { useLastDefined } from "./useFirstLoad";
+import { LockedNote, ProChip } from "@/components/plan/UpgradeSheet";
+import { useGate } from "@/components/plan/usePlan";
 
 /**
  * Analytics. Every number is counted from stored data inside the range picked
@@ -118,6 +120,7 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
           : rangeLabel(span.from, span.to);
 
   const excel = useFlag("exports.xlsx");
+  const excelGate = useGate("exports.xlsx");
 
   function exportAnalytics(format: "csv" | "xlsx") {
     if (!data) return;
@@ -197,10 +200,11 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
           <Button
             variant="secondary"
             disabled={!data || !!noForms}
-            onClick={() => exportAnalytics("xlsx")}
+            onClick={excelGate.guard(() => exportAnalytics("xlsx"))}
             iconLeft={<FileSpreadsheet size={16} strokeWidth={1.8} aria-hidden />}
           >
             Export Excel
+            {excelGate.locked && <ProChip />}
           </Button>
         )}
         <Button
@@ -325,7 +329,9 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
                 <section className="fk-panel">
                   <h3>Question drop-off</h3>
                   <p className="fk-panel-lede">Share of people who leave on each question.</p>
-                  {data.dropOff.length === 0 ? (
+                  {!data.full ? (
+                    <LockedNote feature="analytics.full">See the question people give up on, and how many leave there.</LockedNote>
+                  ) : data.dropOff.length === 0 ? (
                     <p className="fk-quiet">This form has no questions yet.</p>
                   ) : (
                     <div className="fk-droprows">
@@ -375,7 +381,13 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
               <section>
                 <h3 className="fk-outside-title">Where people come from</h3>
                 <div className="fk-panel" data-pad="none">
-                  {data.sources.length === 0 ? (
+                  {!data.full ? (
+                    <div style={{ padding: 24 }}>
+                      <LockedNote feature="analytics.full">
+                        Which links, sites and social posts bring people in, and how many of them finish.
+                      </LockedNote>
+                    </div>
+                  ) : data.sources.length === 0 ? (
                     <div style={{ padding: 24 }}>
                       <p className="fk-quiet" style={{ margin: 0 }}>
                         Nothing recorded in this range.

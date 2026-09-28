@@ -79,7 +79,7 @@ const SECTIONS: {
     icon: <Users size={17} strokeWidth={1.8} aria-hidden />,
     permission: "users.view",
     title: "Users",
-    lede: "Everyone on Formkit. Open someone to turn Ask Formkit on, change their limit, or change their standing.",
+    lede: "Everyone on Formkit. Open someone to see their plan, change their AI limit, or change their standing.",
   },
   {
     key: "ai",
@@ -88,7 +88,7 @@ const SECTIONS: {
     icon: <Sparkles size={17} strokeWidth={1.8} aria-hidden />,
     permission: "ai.access",
     title: "AI access",
-    lede: "Ask Formkit is off everywhere until you turn it on for a named person. An account without it sees no AI surface at all.",
+    lede: "Ask Formkit is on for every account, with monthly credits set by plan. Turn it off for one account, or pause it for everyone.",
   },
   {
     key: "billing",

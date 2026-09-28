@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internalMutation, mutation, query, type MutationCtx } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { requireUser } from "./model/identity";
+import { PLANS, planOfId, planSummary } from "./model/plans";
 import {
   completionRate,
   formFor,
@@ -221,6 +222,13 @@ export const picker = query({
   },
 });
 
+async function ownerPlanOf(ctx: Parameters<typeof decorate>[0], ownerId: Id<"users">) {
+  const owner = await ctx.db.get(ownerId);
+  if (!owner) return null;
+  const p = planSummary(owner);
+  return { id: p.id, name: p.name, features: p.features, limits: p.limits };
+}
+
 export const get = query({
   args: { formId: v.id("forms") },
   handler: async (ctx, { formId }) => {
@@ -241,6 +249,8 @@ export const get = query({
       theme: form.theme ?? null,
       logos: await themeLogos(ctx, form.theme),
       identity: await formIdentity(ctx, form),
+      /** The owner's plan: what this form can do, whoever is editing it. */
+      ownerPlan: await ownerPlanOf(ctx, form.ownerId),
       notify: form.notify ?? null,
       security: publicSecurity(form.security),
       closing: form.closing ?? null,
@@ -725,7 +735,11 @@ export const versions = query({
       .query("versions")
       .withIndex("by_form", (q) => q.eq("formId", formId))
       .collect();
+    // How far back the owner's plan reaches; older versions are kept, not shown.
+    const days = PLANS[await planOfId(ctx, form.ownerId)].historyDays;
+    const since = days === null ? 0 : Date.now() - days * 24 * 60 * 60 * 1000;
     return rows
+      .filter((r) => r.publishedAt >= since || r.number === form.liveVersion)
       .sort((a, b) => b.number - a.number)
       .map((r) => ({
         _id: r._id,
@@ -748,6 +762,10 @@ export const restoreVersion = mutation({
     if (!version) throw new Error("That version no longer exists.");
     const form = await formFor(ctx, version.formId);
     const now = Date.now();
+    const days = PLANS[await planOfId(ctx, form.ownerId)].historyDays;
+    if (days !== null && version.publishedAt < now - days * 24 * 60 * 60 * 1000) {
+      throw new Error(`That version is older than your plan's ${days} days of history.`);
+    }
 
     const current = await ctx.db
       .query("blocks")

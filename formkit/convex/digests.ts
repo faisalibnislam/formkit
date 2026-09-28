@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { hasFeature } from "./model/plans";
 import { internalAction, internalMutation, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
@@ -116,7 +117,9 @@ export const content = internalQuery({
         }
         const worst = [...left.entries()].sort((a, b) => b[1] - a[1])[0];
         const q = worst && blocks.find((b) => b._id === worst[0]);
-        if (q && worst[1] >= 2) line += ` · most who left stopped at “${q.title ?? "a question"}”`;
+        if (q && worst[1] >= 2 && (await hasFeature(ctx, user, "analytics.full"))) {
+          line += ` · most who left stopped at “${q.title ?? "a question"}”`;
+        }
       }
       rows.push({ form: f.title, line, count: responses.length });
     }

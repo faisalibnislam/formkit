@@ -248,3 +248,20 @@ button.fk-prochip[data-plan="business"]:hover {
 .fk-pricing-table tbody tr:first-child th {
   padding-top: 12px !important;
 }
+
+.fk-locked {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 18px 20px;
+  border-radius: var(--radius-lg);
+  background: var(--neutral-50);
+}
+.fk-locked p {
+  margin: 0;
+  max-width: 46ch;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}

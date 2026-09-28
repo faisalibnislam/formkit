@@ -7,6 +7,7 @@ import { QueryCtx } from "./_generated/server";
 import { brandOf, shouldAutoClose, themeLogos } from "./model/forms";
 import { passwordMatches, securityOf } from "./model/security";
 import { flagOn } from "./model/flags";
+import { PLANS, hasFeature, planOfId } from "./model/plans";
 import { accessOf } from "./model/access";
 import { formUrl } from "./model/handles";
 
@@ -22,7 +23,32 @@ import { formUrl } from "./model/handles";
  * per person when multiple submissions are off, and a required email.
  */
 
-const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+/**
+ * Partial responses need the platform flag and the owner's plan (Pro and up).
+ */
+async function partialsOn(ctx: QueryCtx, ownerId: Id<"users">) {
+  return (await flagOn(ctx, "forms.partials", ownerId)) && (await hasFeature(ctx, ownerId, "forms.partials"));
+}
+
+/**
+ * A file over the owner's plan cap is refused here as well as in the browser,
+ * and the stored upload is removed rather than kept orphaned.
+ */
+async function checkUploads(
+  ctx: MutationCtx,
+  ownerId: Id<"users">,
+  answers: { fileId?: Id<"_storage"> }[],
+) {
+  const capMb = PLANS[await planOfId(ctx, ownerId)].uploadMb;
+  for (const a of answers) {
+    if (!a.fileId) continue;
+    const meta = await ctx.db.system.get(a.fileId);
+    if (meta && meta.size > capMb * 1024 * 1024) {
+      await ctx.storage.delete(a.fileId);
+      throw new ConvexError(`That file is over ${capMb} MB. Try a smaller one.`);
+    }
+  }
+}
 const RATE_MS = 60_000;
 /** Faster than this, a whole form was not read by a person. */
 const TOO_FAST_MS = 2_500;
@@ -82,14 +108,14 @@ async function payload(ctx: QueryCtx, form: Doc<"forms">) {
     thanks: form.thanks ?? null,
     theme: form.theme ?? null,
     closedMessage: form.closing?.message || CLOSED_NOTE,
-    uploadCapMb: MAX_UPLOAD_BYTES / 1024 / 1024,
+    uploadCapMb: PLANS[await planOfId(ctx, form.ownerId)].uploadMb,
     rules: {
       spam: s.spam,
       requireEmail: s.requireEmail,
       editAfter: s.editAfter,
       multiple: s.multiple,
       /** Unfinished answers are kept, with a link back — a flag on the owner's account. */
-      partials: await flagOn(ctx, "forms.partials", form.ownerId),
+      partials: await partialsOn(ctx, form.ownerId),
     },
     blocks: blocks.map((b) => ({
       _id: b._id,
@@ -186,7 +212,7 @@ export const recordView = mutation({
   },
 });
 
-/** Where a respondent's upload goes. The cap is 10 MB, stated on the field. */
+/** Where a respondent's upload goes. The cap follows the owner's plan, stated on the field. */
 export const uploadUrl = mutation({
   args: {},
   returns: v.string(),
@@ -370,7 +396,8 @@ export const submit = mutation({
     }
 
     const s = securityOf(form.security);
-    if (args.partial && !(await flagOn(ctx, "forms.partials", form.ownerId))) {
+    await checkUploads(ctx, form.ownerId, args.answers);
+    if (args.partial && !(await partialsOn(ctx, form.ownerId))) {
       throw new ConvexError("This form does not keep unfinished answers.");
     }
 

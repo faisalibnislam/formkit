@@ -8,6 +8,8 @@ import { Button, Drawer } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 import { fullTime } from "../bits";
 import { tracked } from "../editor/saveStatus";
+import { ProChip } from "@/components/plan/UpgradeSheet";
+import { openUpgrade } from "@/components/plan/usePlan";
 
 /**
  * Version history, in a drawer. Every publish freezes the questions, so
@@ -37,6 +39,16 @@ export function VersionsDialog({ formId, onClose }: { formId: Id<"forms">; onClo
               : `${pending} questions have changed since version ${form?.liveVersion ?? 1}.`}{" "}
             Publish to save them as a new version.
           </div>
+        )}
+        {form?.ownerPlan?.limits.historyDays != null && (
+          <p className="fk-proprow-hint" style={{ margin: 0, fontSize: 13.5 }}>
+            Showing the last {form.ownerPlan.limits.historyDays} days of versions. Older ones are kept
+            {form.ownerPlan.id === "free" ? " — a year of history comes with Pro" : " — all of it comes with Business"}.{" "}
+            <ProChip
+              plan={form.ownerPlan.id === "free" ? "pro" : "business"}
+              onClick={() => openUpgrade({ plan: form.ownerPlan!.id === "free" ? "pro" : "business" })}
+            />
+          </p>
         )}
         {versions && versions.length === 0 && (
           <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: "var(--color-text-tertiary)" }}>

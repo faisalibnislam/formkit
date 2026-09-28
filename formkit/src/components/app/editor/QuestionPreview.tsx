@@ -92,7 +92,7 @@ export function QuestionPreview({
     return (
       <div className="fk-ghost" style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 18px", fontSize: 14, color: "var(--color-text-tertiary)" }}>
         <Paperclip size={16} strokeWidth={1.8} aria-hidden />
-        Up to 10 MB
+        A file upload
       </div>
     );
   }

@@ -498,6 +498,7 @@ export function FormRunner({
             if (problem === b._id) setProblem(null);
           }}
           onFile={(file) => attach(b, file)}
+          capMb={data.uploadCapMb}
         />
       </div>
       {fileProblem[b._id] ? (
@@ -688,12 +689,14 @@ function Control({
   value,
   onChange,
   onFile,
+  capMb = 10,
 }: {
   block: Block;
   theme: ReturnType<typeof themeOf>;
   value?: Answer;
   onChange: (a: Answer) => void;
   onFile: (file: File) => void;
+  capMb?: number;
 }) {
   const radius = Math.min(theme.radius, 24);
   const box: React.CSSProperties = {
@@ -853,8 +856,8 @@ function Control({
           <span style={{ flex: 1, minWidth: 0 }}>
             {value?.fileName ??
               (block.accept?.length
-                ? `Choose a ${block.accept.join(" ")} file — up to 10 MB`
-                : "Choose a file — up to 10 MB")}
+                ? `Choose a ${block.accept.join(" ")} file — up to ${capMb} MB`
+                : `Choose a file — up to ${capMb} MB`)}
           </span>
           <input
             type="file"
