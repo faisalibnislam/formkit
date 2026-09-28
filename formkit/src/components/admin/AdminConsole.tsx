@@ -18,6 +18,7 @@ import {
   UserCog,
   Users,
   CreditCard,
+  TrendingUp,
 } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import { Logo } from "@/components/brand/Logo";
@@ -31,6 +32,7 @@ import { AdminAnnouncements } from "./sections/AdminAnnouncements";
 import { AdminMail } from "./sections/AdminMail";
 import { AdminTeam } from "./sections/AdminTeam";
 import { AdminFlags } from "./sections/AdminFlags";
+import { AdminRevenue } from "./sections/AdminRevenue";
 import { AdminBilling } from "./sections/AdminBilling";
 import { AdminAudit } from "./sections/AdminAudit";
 
@@ -53,6 +55,7 @@ type Key =
   | "team"
   | "flags"
   | "billing"
+  | "revenue"
   | "audit";
 
 const SECTIONS: {
@@ -89,6 +92,15 @@ const SECTIONS: {
     permission: "ai.access",
     title: "AI access",
     lede: "Ask Formkit is on for every account, with monthly credits set by plan. Turn it off for one account, or pause it for everyone.",
+  },
+  {
+    key: "revenue",
+    label: "Plans and revenue",
+    group: "Customers",
+    icon: <TrendingUp size={17} strokeWidth={1.8} aria-hidden />,
+    permission: "billing",
+    title: "Plans and revenue",
+    lede: "Who is on which plan, what it is worth each month, how that is moving, and where more could come from.",
   },
   {
     key: "billing",
@@ -295,6 +307,7 @@ export function AdminConsole() {
         {current.key === "team" && <AdminTeam meId={me.staff._id} />}
         {current.key === "flags" && <AdminFlags />}
         {current.key === "billing" && <AdminBilling />}
+        {current.key === "revenue" && <AdminRevenue />}
         {current.key === "audit" && <AdminAudit />}
       </main>
     </div>

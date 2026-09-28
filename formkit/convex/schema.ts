@@ -77,6 +77,8 @@ export default defineSchema({
     planComp: v.optional(v.union(v.literal("pro"), v.literal("business"))),
     /** Pro: no "Made with Formkit" on forms published under the person's own name. */
     hideBadge: v.optional(v.boolean()),
+    /** When the current paid plan began — for tenure and cohort figures. */
+    planSince: v.optional(v.number()),
     /** Business: team members' forms wait for an admin's approval before going live. */
     approvals: v.optional(v.boolean()),
     /** Business: responses older than this many days are erased. */
@@ -664,6 +666,49 @@ export default defineSchema({
     .index("by_host", ["host"])
     .index("by_owner", ["ownerId"])
     .index("by_status", ["status"]),
+
+  /**
+   * Every change to a subscription, as Polar reports it: the history the
+   * admin revenue figures are drawn from. `mrr` is the monthly value after
+   * the change, `prevMrr` before it, both in dollars.
+   */
+  billingEvents: defineTable({
+    userId: v.id("users"),
+    at: v.number(),
+    kind: v.union(
+      v.literal("started"),
+      v.literal("upgraded"),
+      v.literal("downgraded"),
+      v.literal("switched"),
+      v.literal("cancelling"),
+      v.literal("resumed"),
+      v.literal("past_due"),
+      v.literal("ended"),
+    ),
+    plan: v.union(v.literal("free"), v.literal("pro"), v.literal("business")),
+    interval: v.optional(v.union(v.literal("month"), v.literal("year"))),
+    prevPlan: v.optional(v.union(v.literal("free"), v.literal("pro"), v.literal("business"))),
+    mrr: v.number(),
+    prevMrr: v.number(),
+  })
+    .index("by_at", ["at"])
+    .index("by_user", ["userId", "at"]),
+
+  /** Money actually collected by Polar for Formkit plans, one row per paid order. */
+  polarOrders: defineTable({
+    orderId: v.string(),
+    userId: v.optional(v.id("users")),
+    email: v.optional(v.string()),
+    at: v.number(),
+    /** In cents, before tax. */
+    amount: v.number(),
+    currency: v.string(),
+    reason: v.optional(v.string()),
+    plan: v.optional(v.union(v.literal("pro"), v.literal("business"))),
+    interval: v.optional(v.union(v.literal("month"), v.literal("year"))),
+  })
+    .index("by_at", ["at"])
+    .index("by_order", ["orderId"]),
 
   /**
    * Business: people who work on every one of the owner's forms. An admin

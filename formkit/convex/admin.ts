@@ -238,9 +238,12 @@ export const usersPage = query({
     search: v.optional(v.string()),
     status: v.optional(v.union(v.literal("all"), v.literal("active"), v.literal("suspended"), v.literal("staff"))),
     ai: v.optional(v.union(v.literal("all"), v.literal("on"), v.literal("off"))),
+    plan: v.optional(
+      v.union(v.literal("all"), v.literal("free"), v.literal("pro"), v.literal("business"), v.literal("paying"), v.literal("comped")),
+    ),
     page: v.optional(v.number()),
   },
-  handler: async (ctx, { search, status = "all", ai = "all", page = 0 }) => {
+  handler: async (ctx, { search, status = "all", ai = "all", plan = "all", page = 0 }) => {
     await requireStaff(ctx, "users.view");
     const PAGE = 20;
     const term = search?.trim().toLowerCase();
@@ -259,6 +262,15 @@ export const usersPage = query({
               : true,
       )
       .filter((u) => (ai === "on" ? allowed.has(u._id) : ai === "off" ? !allowed.has(u._id) : true))
+      .filter((u) =>
+        plan === "all"
+          ? true
+          : plan === "comped"
+            ? !!u.planComp
+            : plan === "paying"
+              ? planOf(u) !== "free" && !u.planComp
+              : planOf(u) === plan,
+      )
       .sort((a, b) => b._creationTime - a._creationTime);
     const at = Math.max(0, Math.min(page, Math.max(0, Math.ceil(rows.length / PAGE) - 1)));
     return {

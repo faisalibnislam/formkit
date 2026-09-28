@@ -23,6 +23,7 @@ import { fullTime, relativeTime } from "@/components/app/bits";
  */
 type Status = "all" | "active" | "suspended" | "staff";
 type Ai = "all" | "on" | "off";
+type PlanFilter = "all" | "free" | "pro" | "business" | "paying" | "comped";
 
 export function AdminUsers({ permissions }: { permissions: string[] }) {
   const router = useRouter();
@@ -32,6 +33,7 @@ export function AdminUsers({ permissions }: { permissions: string[] }) {
 
   const status = (params.get("status") as Status | null) ?? "all";
   const ai = (params.get("ai") as Ai | null) ?? "all";
+  const plan = (params.get("plan") as PlanFilter | null) ?? "all";
   const open = params.get("open") as Id<"users"> | null;
 
   const setParam = (next: Record<string, string | null>) => {
@@ -44,8 +46,8 @@ export function AdminUsers({ permissions }: { permissions: string[] }) {
     router.replace(`/admin?${q}`, { scroll: false });
   };
 
-  const data = useQuery(api.admin.usersPage, { search: term || undefined, status, ai, page });
-  const filtered = Boolean(term) || status !== "all" || ai !== "all";
+  const data = useQuery(api.admin.usersPage, { search: term || undefined, status, ai, plan, page });
+  const filtered = Boolean(term) || status !== "all" || ai !== "all" || plan !== "all";
 
   return (
     <>
@@ -79,6 +81,23 @@ export function AdminUsers({ permissions }: { permissions: string[] }) {
               { value: "off", label: "AI: off" },
             ]}
           />
+          <Select
+            size="sm"
+            ariaLabel="Plan"
+            value={plan}
+            onChange={(v) => {
+              setPage(0);
+              setParam({ plan: v });
+            }}
+            options={[
+              { value: "all", label: "Plan: all" },
+              { value: "free", label: "Free" },
+              { value: "pro", label: "Pro" },
+              { value: "business", label: "Business" },
+              { value: "paying", label: "Paying" },
+              { value: "comped", label: "Given free" },
+            ]}
+          />
           <span className="fk-toolbar-spacer" />
           <Input
             value={term}
@@ -98,7 +117,7 @@ export function AdminUsers({ permissions }: { permissions: string[] }) {
               onClick={() => {
                 setTerm("");
                 setPage(0);
-                setParam({ status: null, ai: null });
+                setParam({ status: null, ai: null, plan: null });
               }}
             >
               Clear filters
@@ -119,10 +138,11 @@ export function AdminUsers({ permissions }: { permissions: string[] }) {
                 <thead>
                   <tr>
                     <th scope="col">User</th>
+                    <th scope="col">Plan</th>
                     <th scope="col">Forms</th>
                     <th scope="col">Responses</th>
                     <th scope="col">Status</th>
-                    <th scope="col">AI used</th>
+                    <th scope="col">AI</th>
                     <th scope="col">Joined</th>
                   </tr>
                 </thead>
@@ -140,6 +160,9 @@ export function AdminUsers({ permissions }: { permissions: string[] }) {
                       <td>
                         {u.name || u.email}
                         <span className="fk-admin-sub">{u.email}</span>
+                      </td>
+                      <td>
+                        <PlanBadge plan={u.plan} />
                       </td>
                       <td>{u.forms.toLocaleString()}</td>
                       <td>{u.responses.toLocaleString()}</td>
@@ -168,7 +191,10 @@ export function AdminUsers({ permissions }: { permissions: string[] }) {
                         {u.forms} forms · {u.responses} responses · {u.ai.allowed ? `AI ${u.ai.used}/${u.ai.limit}` : "AI off"}
                       </span>
                     </span>
-                    <Standing u={u} />
+                    <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+                      <PlanBadge plan={u.plan} />
+                      <Standing u={u} />
+                    </span>
                   </button>
                 ))}
               </div>
@@ -516,5 +542,17 @@ function UserPanel({
         )}
       </div>
     </>
+  );
+}
+
+/** Free, Pro or Business — with how it is paid, or that staff gave it. */
+function PlanBadge({ plan }: { plan: { id: "free" | "pro" | "business"; comp: string | null; interval: string | null; status: string | null } }) {
+  const name = plan.id === "free" ? "Free" : plan.id === "pro" ? "Pro" : "Business";
+  const how = plan.id === "free" ? null : plan.comp ? "given" : plan.interval === "year" ? "yearly" : "monthly";
+  return (
+    <span className="fk-planbadge" data-plan={plan.id} title={plan.status ? `Polar: ${plan.status}` : undefined}>
+      {name}
+      {how && <span>{how}</span>}
+    </span>
   );
 }

@@ -60,6 +60,7 @@ import type * as presence from "../presence.js";
 import type * as publicForm from "../publicForm.js";
 import type * as responses from "../responses.js";
 import type * as restApi from "../restApi.js";
+import type * as revenue from "../revenue.js";
 import type * as security from "../security.js";
 import type * as sso from "../sso.js";
 import type * as support from "../support.js";
@@ -128,6 +129,7 @@ declare const fullApi: ApiFromModules<{
   "publicForm": typeof publicForm,
   "responses": typeof responses,
   "restApi": typeof restApi,
+  "revenue": typeof revenue,
   "security": typeof security,
   "sso": typeof sso,
   "support": typeof support,

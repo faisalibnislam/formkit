@@ -180,6 +180,24 @@ export const polarWebhook = httpAction(async (ctx, req) => {
   } catch {
     return new Response("Bad JSON", { status: 400 });
   }
+  if (event.type === "order.paid" || event.type === "order.created") {
+    const o = event.data as unknown as PolarOrder;
+    // A created order is only money once it is paid; older API versions
+    // report paid orders as created with status "paid".
+    if (event.type === "order.paid" || o.status === "paid") {
+      await ctx.runMutation(internal.billing.recordOrder, {
+        orderId: o.id,
+        amount: o.net_amount ?? o.subtotal_amount ?? o.amount ?? Math.max(0, (o.total_amount ?? 0) - (o.tax_amount ?? 0)),
+        currency: (o.currency ?? "usd").toLowerCase(),
+        at: o.created_at ? Date.parse(o.created_at) : Date.now(),
+        reason: o.billing_reason ?? undefined,
+        productId: o.product_id ?? o.product?.id ?? "",
+        customerId: o.customer_id ?? o.customer?.id ?? "",
+        externalId: o.customer?.external_id ?? undefined,
+        email: o.customer?.email ?? undefined,
+      });
+    }
+  }
   if (event.type.startsWith("subscription.")) {
     const s = event.data;
     await ctx.runMutation(internal.billing.applySubscription, {
@@ -196,6 +214,68 @@ export const polarWebhook = httpAction(async (ctx, req) => {
     });
   }
   return new Response(null, { status: 202 });
+});
+
+type PolarOrder = {
+  id: string;
+  status?: string;
+  amount?: number;
+  net_amount?: number;
+  subtotal_amount?: number;
+  total_amount?: number;
+  tax_amount?: number;
+  currency?: string;
+  created_at?: string;
+  billing_reason?: string;
+  product_id?: string;
+  product?: { id?: string };
+  customer_id?: string;
+  customer?: { id?: string; external_id?: string | null; email?: string };
+};
+
+/** A plan's monthly value in dollars: a yearly price spread over twelve months. */
+function monthlyValue(plan: PlanId, interval: Interval | undefined, paying: boolean) {
+  if (!paying || plan === "free") return 0;
+  const p = PLANS[plan].price;
+  return interval === "year" ? Math.round((p.year / 12) * 100) / 100 : p.month;
+}
+
+export const recordOrder = internalMutation({
+  args: {
+    orderId: v.string(),
+    amount: v.number(),
+    currency: v.string(),
+    at: v.number(),
+    reason: v.optional(v.string()),
+    productId: v.string(),
+    customerId: v.string(),
+    externalId: v.optional(v.string()),
+    email: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, a) => {
+    const seen = await ctx.db
+      .query("polarOrders")
+      .withIndex("by_order", (q) => q.eq("orderId", a.orderId))
+      .first();
+    if (seen) return null;
+    const user = await findCustomer(ctx, a.externalId, a.customerId, a.email);
+    const products = (await platformValue<Products>(ctx, "polarProducts")) ?? {};
+    const match = (Object.entries(products) as [keyof Products, string][]).find(([, id]) => id === a.productId);
+    const [plan, interval] = match ? (match[0].split("_") as [Exclude<PlanId, "free">, Interval]) : [undefined, undefined];
+    await ctx.db.insert("polarOrders", {
+      orderId: a.orderId,
+      userId: user?._id,
+      email: user?.email ?? a.email,
+      at: a.at,
+      amount: a.amount,
+      currency: a.currency,
+      reason: a.reason,
+      plan,
+      interval,
+    });
+    return null;
+  },
 });
 
 export const applySubscription = internalMutation({
@@ -243,10 +323,59 @@ export const applySubscription = internalMutation({
       polarCustomerId: a.customerId || user.polarCustomerId,
       polarSubscriptionId: a.subscriptionId,
     });
-    const now = planOf((await ctx.db.get(user._id))!);
+    const after = (await ctx.db.get(user._id))!;
+    const now = planOf(after);
     if (now !== was) {
       await writeAudit(ctx, null, `Plan ${was} → ${now}`, user.email ?? user._id, `Polar ${a.type}`);
     }
+
+    // The history the admin revenue figures read. Comped plans are not revenue.
+    const paidBefore = !!user.plan && user.plan !== "free" && !user.planComp && ["active", "trialing", "past_due"].includes(user.planStatus ?? "");
+    const paidAfter = !revoked && ["active", "trialing", "past_due"].includes(a.status) && !user.planComp;
+    const prevMrr = monthlyValue((user.plan ?? "free") as PlanId, user.planInterval, paidBefore && !user.planCancelAtPeriodEnd);
+    const mrr = monthlyValue(revoked ? "free" : plan, interval, paidAfter && !a.cancelAtPeriodEnd);
+    const rank = { free: 0, pro: 1, business: 2 } as const;
+    const prevPlan = (user.plan ?? "free") as PlanId;
+    const nextPlan: PlanId = revoked ? "free" : plan;
+    const kind:
+      | "started"
+      | "upgraded"
+      | "downgraded"
+      | "switched"
+      | "cancelling"
+      | "resumed"
+      | "past_due"
+      | "ended"
+      | null = revoked || (!paidAfter && paidBefore && a.status !== "past_due")
+      ? "ended"
+      : !paidBefore && paidAfter
+        ? "started"
+        : a.status === "past_due" && user.planStatus !== "past_due"
+          ? "past_due"
+          : a.cancelAtPeriodEnd && !user.planCancelAtPeriodEnd
+            ? "cancelling"
+            : !a.cancelAtPeriodEnd && user.planCancelAtPeriodEnd
+              ? "resumed"
+              : rank[nextPlan] > rank[prevPlan]
+                ? "upgraded"
+                : rank[nextPlan] < rank[prevPlan]
+                  ? "downgraded"
+                  : interval !== user.planInterval && paidBefore
+                    ? "switched"
+                    : null;
+    if (kind) {
+      await ctx.db.insert("billingEvents", {
+        userId: user._id,
+        at: Date.now(),
+        kind,
+        plan: nextPlan,
+        interval,
+        prevPlan,
+        mrr,
+        prevMrr,
+      });
+    }
+    if (kind === "started") await ctx.db.patch(user._id, { planSince: Date.now() });
     return null;
   },
 });

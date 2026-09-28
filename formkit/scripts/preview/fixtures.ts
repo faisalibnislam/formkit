@@ -834,6 +834,52 @@ export const QUERIES: Record<string, unknown> = {
   },
   "sso:providers": [],
   "support:mine": { priority: true, tickets: [] },
+  "revenue:overview": (() => {
+    const months = Array.from({ length: 12 }, (_, i) => {
+      const d = new Date();
+      const m = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - 11 + i, 1));
+      return `${m.getUTCFullYear()}-${String(m.getUTCMonth() + 1).padStart(2, "0")}`;
+    });
+    const mrr = [0, 0, 0, 0, 0, 12, 29, 41, 58, 77, 101, 121.5];
+    return {
+      generatedAt: now,
+      totals: { users: 1284, paying: 31, comped: 2, conversion: 2.41, mrr: 121.5, arr: 1458, arpu: 3.92, monthlyPayers: 19, yearlyPayers: 12, cancelling: 2, cancellingMrr: 6, pastDue: 1, pastDueMrr: 10, collectedAll: 689, collected30: 187 },
+      byPlan: [
+        { plan: "free", total: 1251, monthly: 0, yearly: 0, comped: 0, mrr: 0 },
+        { plan: "pro", total: 26, monthly: 15, yearly: 9, comped: 2, mrr: 70.25 },
+        { plan: "business", total: 7, monthly: 4, yearly: 3, comped: 0, mrr: 51.25 },
+      ],
+      mrrSeries: months.map((m, i) => ({ month: m, mrr: mrr[i] })),
+      revenueSeries: months.map((m, i) => ({ month: m, amount: [0, 0, 0, 0, 0, 16, 44, 71, 95, 118, 158, 187][i] })),
+      moves: months.map((m, i) => ({ month: m, started: [0, 0, 0, 0, 0, 3, 5, 4, 5, 6, 7, 6][i], upgraded: i > 8 ? 1 : 0, downgraded: i === 10 ? 1 : 0, ended: i > 7 ? 1 : 0, cancelling: i === 11 ? 2 : 0 })),
+      signups: months.map((m, i) => ({ month: m, free: [40, 52, 61, 70, 88, 94, 101, 117, 125, 139, 156, 142][i], pro: [0, 0, 0, 0, 0, 1, 2, 2, 3, 4, 5, 4][i], business: i > 8 ? 1 : 0, paying: 0 })),
+      potential: {
+        activeFree: 412,
+        freeTotal: 1251,
+        scenarios: [
+          { pct: 5, accounts: 21, mrr: 63 },
+          { pct: 10, accounts: 41, mrr: 123 },
+          { pct: 25, accounts: 103, mrr: 309 },
+        ],
+        yearly: { payers: 19, cashUpfront: 877, yearValueChange: -103, monthlyMrr: 97 },
+        businessUpside: 21,
+      },
+      leads: [
+        { _id: "u2", name: "Ravi Menon", email: "ravi@studionine.co", responses: 1840, forms: 7, reasons: ["Used every AI credit", "1,840 responses", "3+ live forms"], score: 1 },
+        { _id: "u5", name: "Priya Shah", email: "priya@lumen.studio", responses: 420, forms: 4, reasons: ["420 responses", "3+ live forms"], score: 1 },
+      ],
+      businessLeads: [{ _id: "u1", name: "Maya Ortiz", email: "maya@studionine.co", forms: 14, responses: 2210 }],
+      risk: [
+        { _id: "u7", name: "Leo Kim", email: "leo@example.com", plan: "business", interval: "month", why: "Payment failed", endsAt: now + 6 * DAY, mrr: 10 },
+        { _id: "u8", name: "Ana Ruiz", email: "ana@example.com", plan: "pro", interval: "month", why: "Cancelling", endsAt: now + 12 * DAY, mrr: 3 },
+      ],
+      recent: [
+        { at: now - 2 * HOUR, kind: "started", plan: "pro", prevPlan: "free", interval: "year", delta: 2.92, who: "sam@acme.co" },
+        { at: now - 26 * HOUR, kind: "upgraded", plan: "business", prevPlan: "pro", interval: "month", delta: 7, who: "maya@studionine.co" },
+        { at: now - 3 * DAY, kind: "cancelling", plan: "pro", prevPlan: "pro", interval: "month", delta: -3, who: "ana@example.com" },
+      ],
+    };
+  })(),
   "billing:adminStatus": {
     token: true,
     secret: false,
