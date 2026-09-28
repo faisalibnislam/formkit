@@ -12,6 +12,7 @@ import type * as admin from "../admin.js";
 import type * as ai from "../ai.js";
 import type * as analytics from "../analytics.js";
 import type * as auth from "../auth.js";
+import type * as billing from "../billing.js";
 import type * as blocks from "../blocks.js";
 import type * as collaborators from "../collaborators.js";
 import type * as comments from "../comments.js";
@@ -39,6 +40,7 @@ import type * as model_gemini from "../model/gemini.js";
 import type * as model_handles from "../model/handles.js";
 import type * as model_identity from "../model/identity.js";
 import type * as model_inbox from "../model/inbox.js";
+import type * as model_plans from "../model/plans.js";
 import type * as model_security from "../model/security.js";
 import type * as model_sheet from "../model/sheet.js";
 import type * as model_themePresets from "../model/themePresets.js";
@@ -64,6 +66,7 @@ declare const fullApi: ApiFromModules<{
   "ai": typeof ai,
   "analytics": typeof analytics,
   "auth": typeof auth,
+  "billing": typeof billing,
   "blocks": typeof blocks,
   "collaborators": typeof collaborators,
   "comments": typeof comments,
@@ -91,6 +94,7 @@ declare const fullApi: ApiFromModules<{
   "model/handles": typeof model_handles,
   "model/identity": typeof model_identity,
   "model/inbox": typeof model_inbox,
+  "model/plans": typeof model_plans,
   "model/security": typeof model_security,
   "model/sheet": typeof model_sheet,
   "model/themePresets": typeof model_themePresets,

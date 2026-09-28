@@ -329,3 +329,16 @@
   font-size: 14px;
   font-weight: 500;
 }
+
+/* A command or URL to copy. In Outfit like everything else — there is no
+   monospace anywhere in Formkit — set apart by a pale pill instead. */
+.fk-admin-code {
+  display: inline;
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: var(--neutral-100);
+  color: var(--neutral-900);
+  font: inherit;
+  font-size: 13px;
+  word-break: break-all;
+}

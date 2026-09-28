@@ -1,0 +1,388 @@
+import { ConvexError, v } from "convex/values";
+import { action, httpAction, internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
+import type { Doc, Id } from "./_generated/dataModel";
+import { platformValue, requireStaff, requireUser, setPlatformValue, writeAudit } from "./model/identity";
+import { PLANS, planOf, type Interval, type PlanId } from "./model/plans";
+
+/**
+ * Billing, through Polar (polar.sh) as the merchant of record.
+ *
+ * Four products — Pro and Business, each monthly and yearly — live in Polar;
+ * their ids are kept in the `platform` table (Admin → Billing creates them).
+ * Checkout is a Polar-hosted page opened with the account's id as the
+ * external customer id, so every webhook can be tied back to the account
+ * without matching on email. Polar's webhooks are the only thing that changes
+ * an account's plan; the app never assumes a payment went through.
+ *
+ * Environment (Convex): POLAR_ACCESS_TOKEN, POLAR_WEBHOOK_SECRET, and
+ * POLAR_SERVER=sandbox while testing (production otherwise).
+ */
+
+const SITE = process.env.SITE_URL ?? "https://formkit.app";
+
+type Products = Partial<Record<`${Exclude<PlanId, "free">}_${Interval}`, string>>;
+
+function apiBase() {
+  return process.env.POLAR_SERVER === "sandbox" ? "https://sandbox-api.polar.sh" : "https://api.polar.sh";
+}
+
+async function polar<T>(path: string, body: unknown): Promise<T> {
+  const token = process.env.POLAR_ACCESS_TOKEN;
+  if (!token) throw new ConvexError("Billing is not set up yet. Try again soon.");
+  const res = await fetch(`${apiBase()}${path}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(body),
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    console.error(`Polar ${path} ${res.status}: ${text.slice(0, 500)}`);
+    throw new ConvexError(`Polar refused the request (${res.status}).`);
+  }
+  return JSON.parse(text) as T;
+}
+
+/* ------------------------------------------------------------------ */
+/* Checkout and the customer portal                                    */
+/* ------------------------------------------------------------------ */
+
+export const me = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireUser(ctx);
+    const products = (await platformValue<Products>(ctx, "polarProducts")) ?? {};
+    return {
+      _id: user._id,
+      email: user.email ?? null,
+      name: user.name ?? null,
+      plan: planOf(user),
+      comped: !!user.planComp,
+      customer: user.polarCustomerId ?? null,
+      products,
+    };
+  },
+});
+
+/** Opens Polar's checkout for a plan; the app sends the person to the url. */
+export const checkout = action({
+  args: {
+    plan: v.union(v.literal("pro"), v.literal("business")),
+    interval: v.union(v.literal("month"), v.literal("year")),
+  },
+  returns: v.object({ url: v.string() }),
+  handler: async (ctx, { plan, interval }): Promise<{ url: string }> => {
+    const me: {
+      _id: Id<"users">;
+      email: string | null;
+      name: string | null;
+      plan: PlanId;
+      comped: boolean;
+      customer: string | null;
+      products: Products;
+    } = await ctx.runQuery(internal.billing.me, {});
+    const product = me.products[`${plan}_${interval}`];
+    if (!product) throw new ConvexError("That plan is not on sale yet. Try again soon.");
+    // Someone already paying changes plan in the portal, where Polar prorates.
+    if (me.customer && me.plan !== "free" && !me.comped) {
+      return await portalUrl(me._id);
+    }
+    const res = await polar<{ url: string }>("/v1/checkouts/", {
+      products: [product],
+      external_customer_id: me._id,
+      ...(me.email ? { customer_email: me.email } : {}),
+      ...(me.name ? { customer_name: me.name } : {}),
+      success_url: `${SITE}/app/settings?tab=plan&welcome=${plan}`,
+      metadata: { userId: me._id, plan, interval },
+    });
+    return { url: res.url };
+  },
+});
+
+async function portalUrl(userId: Id<"users">) {
+  const res = await polar<{ customer_portal_url: string }>("/v1/customer-sessions/", {
+    external_customer_id: userId,
+  });
+  return { url: res.customer_portal_url };
+}
+
+/** Polar's own page for invoices, payment method, switching and cancelling. */
+export const portal = action({
+  args: {},
+  returns: v.object({ url: v.string() }),
+  handler: async (ctx): Promise<{ url: string }> => {
+    const me: { _id: Id<"users">; customer: string | null } = await ctx.runQuery(internal.billing.me, {});
+    if (!me.customer) throw new ConvexError("There is no billing on this account yet.");
+    return await portalUrl(me._id);
+  },
+});
+
+/* ------------------------------------------------------------------ */
+/* Webhooks                                                            */
+/* ------------------------------------------------------------------ */
+
+function b64(bytes: ArrayBuffer) {
+  let s = "";
+  for (const b of new Uint8Array(bytes)) s += String.fromCharCode(b);
+  return btoa(s);
+}
+
+/**
+ * Standard Webhooks, as Polar signs them: HMAC-SHA256 over
+ * "<id>.<timestamp>.<body>", keyed with the secret's own bytes, sent as
+ * space-separated "v1,<base64>" signatures. Anything older than five minutes
+ * is refused, so a captured request cannot be replayed later.
+ */
+async function verified(req: Request, body: string) {
+  const secret = process.env.POLAR_WEBHOOK_SECRET;
+  if (!secret) return false;
+  const id = req.headers.get("webhook-id");
+  const ts = req.headers.get("webhook-timestamp");
+  const sigs = req.headers.get("webhook-signature");
+  if (!id || !ts || !sigs) return false;
+  if (Math.abs(Date.now() / 1000 - Number(ts)) > 300) return false;
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const mac = b64(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${id}.${ts}.${body}`)));
+  return sigs.split(" ").some((part) => {
+    const [, sig] = part.split(",");
+    if (!sig || sig.length !== mac.length) return false;
+    let diff = 0;
+    for (let i = 0; i < sig.length; i++) diff |= sig.charCodeAt(i) ^ mac.charCodeAt(i);
+    return diff === 0;
+  });
+}
+
+type PolarSubscription = {
+  id: string;
+  status: string;
+  product_id?: string;
+  product?: { id: string };
+  customer_id?: string;
+  customer?: { id: string; external_id?: string | null; email?: string | null };
+  current_period_end?: string | null;
+  cancel_at_period_end?: boolean;
+  ended_at?: string | null;
+  metadata?: Record<string, unknown>;
+};
+
+export const polarWebhook = httpAction(async (ctx, req) => {
+  const body = await req.text();
+  if (!(await verified(req, body))) return new Response("Invalid signature", { status: 403 });
+  let event: { type: string; data: PolarSubscription };
+  try {
+    event = JSON.parse(body);
+  } catch {
+    return new Response("Bad JSON", { status: 400 });
+  }
+  if (event.type.startsWith("subscription.")) {
+    const s = event.data;
+    await ctx.runMutation(internal.billing.applySubscription, {
+      type: event.type,
+      subscriptionId: s.id,
+      status: s.status,
+      productId: s.product_id ?? s.product?.id ?? "",
+      customerId: s.customer_id ?? s.customer?.id ?? "",
+      externalId: s.customer?.external_id ?? (s.metadata?.userId as string | undefined) ?? undefined,
+      email: s.customer?.email ?? undefined,
+      periodEnd: s.current_period_end ? Date.parse(s.current_period_end) : undefined,
+      cancelAtPeriodEnd: s.cancel_at_period_end ?? false,
+      endedAt: s.ended_at ? Date.parse(s.ended_at) : undefined,
+    });
+  }
+  return new Response(null, { status: 202 });
+});
+
+export const applySubscription = internalMutation({
+  args: {
+    type: v.string(),
+    subscriptionId: v.string(),
+    status: v.string(),
+    productId: v.string(),
+    customerId: v.string(),
+    externalId: v.optional(v.string()),
+    email: v.optional(v.string()),
+    periodEnd: v.optional(v.number()),
+    cancelAtPeriodEnd: v.boolean(),
+    endedAt: v.optional(v.number()),
+  },
+  returns: v.null(),
+  handler: async (ctx, a) => {
+    const user = await findCustomer(ctx, a.externalId, a.customerId, a.email);
+    await setPlatformValue(ctx, "polarLastEvent", { type: a.type, at: Date.now(), matched: !!user });
+    if (!user) {
+      console.warn(`Polar ${a.type}: no account for customer ${a.customerId}`);
+      return null;
+    }
+    // An event for a subscription this account has since replaced changes nothing.
+    if (user.polarSubscriptionId && user.polarSubscriptionId !== a.subscriptionId && a.status !== "active") {
+      return null;
+    }
+    const products = (await platformValue<Products>(ctx, "polarProducts")) ?? {};
+    const match = (Object.entries(products) as [keyof Products, string][]).find(([, id]) => id === a.productId);
+    const [plan, interval] = (match?.[0] ?? "pro_month").split("_") as [Exclude<PlanId, "free">, Interval];
+    const revoked = a.type === "subscription.revoked" || a.status === "revoked";
+    const was = planOf(user);
+    await ctx.db.patch(user._id, {
+      plan: revoked ? "free" : plan,
+      planInterval: interval,
+      planStatus: revoked ? "revoked" : a.status,
+      // A cancelled or unpaid plan runs to the end of the period paid for;
+      // Polar retries a failed payment within it.
+      planEndsAt: revoked
+        ? (a.endedAt ?? Date.now())
+        : a.cancelAtPeriodEnd || a.status === "past_due" || a.status === "canceled" || a.status === "unpaid"
+          ? a.periodEnd
+          : undefined,
+      planCancelAtPeriodEnd: a.cancelAtPeriodEnd,
+      polarCustomerId: a.customerId || user.polarCustomerId,
+      polarSubscriptionId: a.subscriptionId,
+    });
+    const now = planOf((await ctx.db.get(user._id))!);
+    if (now !== was) {
+      await writeAudit(ctx, null, `Plan ${was} → ${now}`, user.email ?? user._id, `Polar ${a.type}`);
+    }
+    return null;
+  },
+});
+
+async function findCustomer(
+  ctx: { db: import("./_generated/server").MutationCtx["db"] },
+  externalId: string | undefined,
+  customerId: string,
+  email: string | undefined,
+): Promise<Doc<"users"> | null> {
+  if (externalId) {
+    const id = ctx.db.normalizeId("users", externalId);
+    const byId = id ? await ctx.db.get(id) : null;
+    if (byId) return byId;
+  }
+  if (customerId) {
+    const byCustomer = await ctx.db
+      .query("users")
+      .withIndex("by_polar_customer", (q) => q.eq("polarCustomerId", customerId))
+      .first();
+    if (byCustomer) return byCustomer;
+  }
+  if (email) {
+    return await ctx.db
+      .query("users")
+      .withIndex("email", (q) => q.eq("email", email.toLowerCase()))
+      .first();
+  }
+  return null;
+}
+
+/* ------------------------------------------------------------------ */
+/* Admin → Billing                                                     */
+/* ------------------------------------------------------------------ */
+
+export const adminStatus = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireStaff(ctx, "billing");
+    const users = await ctx.db.query("users").collect();
+    const paying = users.filter((u) => !u.planComp && planOf(u) !== "free");
+    const monthly = (u: Doc<"users">) => {
+      const p = PLANS[planOf(u)];
+      return u.planInterval === "year" ? p.price.year / 12 : p.price.month;
+    };
+    return {
+      token: !!process.env.POLAR_ACCESS_TOKEN,
+      secret: !!process.env.POLAR_WEBHOOK_SECRET,
+      server: process.env.POLAR_SERVER === "sandbox" ? "sandbox" : "production",
+      webhookUrl: `${process.env.CONVEX_SITE_URL ?? ""}/polar/webhook`,
+      products: (await platformValue<Products>(ctx, "polarProducts")) ?? {},
+      lastEvent: await platformValue<{ type: string; at: number; matched: boolean }>(ctx, "polarLastEvent"),
+      counts: {
+        pro: users.filter((u) => planOf(u) === "pro").length,
+        business: users.filter((u) => planOf(u) === "business").length,
+        comped: users.filter((u) => u.planComp).length,
+        paying: paying.length,
+      },
+      mrr: Math.round(paying.reduce((n, u) => n + monthly(u), 0) * 100) / 100,
+    };
+  },
+});
+
+export const staffCheck = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    await requireStaff(ctx, "billing");
+    return null;
+  },
+});
+
+/** Creates the four products in Polar at the plan prices and remembers their ids. */
+export const createProducts = action({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx): Promise<null> => {
+    await ctx.runQuery(internal.billing.staffCheck, {});
+    const made: Products = {};
+    for (const plan of ["pro", "business"] as const) {
+      for (const interval of ["month", "year"] as const) {
+        const res = await polar<{ id: string }>("/v1/products/", {
+          name: `Formkit ${PLANS[plan].name} (${interval === "month" ? "monthly" : "yearly"})`,
+          description: PLANS[plan].tagline,
+          recurring_interval: interval,
+          prices: [{ amount_type: "fixed", price_amount: PLANS[plan].price[interval] * 100, price_currency: "usd" }],
+        });
+        made[`${plan}_${interval}`] = res.id;
+      }
+    }
+    await ctx.runMutation(internal.billing.storeProducts, { products: made });
+    return null;
+  },
+});
+
+export const storeProducts = internalMutation({
+  args: { products: v.any() },
+  returns: v.null(),
+  handler: async (ctx, { products }) => {
+    await setPlatformValue(ctx, "polarProducts", products);
+    return null;
+  },
+});
+
+/** Product ids pasted by hand, for products made in Polar's dashboard. */
+export const saveProducts = mutation({
+  args: {
+    pro_month: v.string(),
+    pro_year: v.string(),
+    business_month: v.string(),
+    business_year: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, ids) => {
+    const staff = await requireStaff(ctx, "billing");
+    const clean = Object.fromEntries(Object.entries(ids).map(([k, val]) => [k, val.trim()]).filter(([, val]) => val));
+    await setPlatformValue(ctx, "polarProducts", clean);
+    await writeAudit(ctx, staff, "Updated Polar products");
+    return null;
+  },
+});
+
+/** A plan given by hand — a friend, a partner, a support gesture. */
+export const compPlan = mutation({
+  args: { userId: v.id("users"), plan: v.union(v.literal("pro"), v.literal("business"), v.null()) },
+  returns: v.null(),
+  handler: async (ctx, { userId, plan }) => {
+    const staff = await requireStaff(ctx, "billing");
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("That account no longer exists.");
+    await ctx.db.patch(userId, { planComp: plan ?? undefined });
+    await writeAudit(
+      ctx,
+      staff,
+      plan ? `Gave ${PLANS[plan].name} free of charge` : "Ended a free plan",
+      user.email ?? user._id,
+    );
+    return null;
+  },
+});

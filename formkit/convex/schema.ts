@@ -64,6 +64,18 @@ export default defineSchema({
       v.union(v.literal("owner"), v.literal("admin"), v.literal("support")),
     ),
 
+    // The plan (see model/plans.ts). Written by the Polar webhook; `planComp`
+    // is a plan staff gave by hand, which wins over billing.
+    plan: v.optional(v.union(v.literal("free"), v.literal("pro"), v.literal("business"))),
+    planInterval: v.optional(v.union(v.literal("month"), v.literal("year"))),
+    planStatus: v.optional(v.string()), // active, trialing, past_due, canceled…
+    /** The end of the period paid for; a cancelled plan runs until then. */
+    planEndsAt: v.optional(v.number()),
+    planCancelAtPeriodEnd: v.optional(v.boolean()),
+    planComp: v.optional(v.union(v.literal("pro"), v.literal("business"))),
+    polarCustomerId: v.optional(v.string()),
+    polarSubscriptionId: v.optional(v.string()),
+
     // Ask Formkit. Access is an admin-granted allow-list, off by default.
     aiUsed: v.optional(v.number()),
     aiLive: v.optional(v.boolean()),
@@ -125,7 +137,8 @@ export default defineSchema({
   })
     .index("email", ["email"])
     .index("by_handle", ["handle"])
-    .index("by_self_deleted", ["selfDeletedAt"]),
+    .index("by_self_deleted", ["selfDeletedAt"])
+    .index("by_polar_customer", ["polarCustomerId"]),
 
   companies: defineTable({
     ownerId: v.id("users"),

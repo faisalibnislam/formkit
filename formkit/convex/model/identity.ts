@@ -2,6 +2,7 @@ import { getAuthSessionId, getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError } from "convex/values";
 import { Doc, Id } from "../_generated/dataModel";
 import { MutationCtx, QueryCtx } from "../_generated/server";
+import { PLANS, planOfId } from "./plans";
 
 /** The signed-in person, or null. Never throws — callers decide what a guest sees. */
 export async function currentUser(ctx: QueryCtx | MutationCtx): Promise<Doc<"users"> | null> {
@@ -65,6 +66,7 @@ export const PERMS = [
   "support",
   "announcements",
   "flags",
+  "billing",
   "team",
 ] as const;
 
@@ -129,9 +131,9 @@ export async function writeAudit(
 }
 
 /**
- * Ask Formkit is an allow-list, off for every account until an admin turns it on
- * for a named one, plus a platform pause that suspends everyone at once without
- * forgetting who was allowed.
+ * Ask Formkit is on for every account, with monthly credits set by its plan.
+ * Staff can still turn it off for one account (an `aiAccess` row with
+ * `enabled: false`), and a platform pause suspends everyone at once.
  */
 export async function aiAllowed(ctx: QueryCtx | MutationCtx, userId: Id<"users">) {
   const paused = (await platformValue<boolean>(ctx, "aiPaused")) ?? false;
@@ -140,15 +142,20 @@ export async function aiAllowed(ctx: QueryCtx | MutationCtx, userId: Id<"users">
     .query("aiAccess")
     .withIndex("by_user", (q) => q.eq("userId", userId))
     .unique();
-  return row?.enabled === true;
+  return row?.enabled !== false;
 }
 
-/** The monthly credit limit is set by admins, not by the app. */
+/**
+ * The monthly credits: the plan's allowance (Free's can be tuned from the
+ * admin console), unless staff set a personal limit, plus any one-off grant.
+ */
 export async function aiLimit(ctx: QueryCtx | MutationCtx, userId: Id<"users">) {
-  const fallback = (await platformValue<number>(ctx, "aiDefault")) ?? 5;
+  const plan = await planOfId(ctx, userId);
+  const allowance =
+    plan === "free" ? ((await platformValue<number>(ctx, "aiDefault")) ?? PLANS.free.aiCredits) : PLANS[plan].aiCredits;
   const row = await ctx.db
     .query("aiAccess")
     .withIndex("by_user", (q) => q.eq("userId", userId))
     .unique();
-  return (row?.limitOverride ?? fallback) + (row?.granted ?? 0);
+  return (row?.limitOverride ?? allowance) + (row?.granted ?? 0);
 }

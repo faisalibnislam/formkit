@@ -32,6 +32,7 @@ import { NotificationsDrawer } from "./NotificationsDrawer";
 import { AskProvider } from "./ai/AskProvider";
 import { AskDock } from "./ai/AskDock";
 import { AppScrollbar } from "./AppScrollbar";
+import { UpgradeSheet } from "@/components/plan/UpgradeSheet";
 import { SupportBanner, SupportView } from "./SupportView";
 import { useToast } from "@/components/ui/Toast";
 import { useEscape, useTipEscape } from "@/components/ui/useEscape";
@@ -407,6 +408,7 @@ function AppFrame({ children }: { children: ReactNode }) {
     icon: <t.icon size={15} strokeWidth={1.8} aria-hidden />,
     ...{
       account: { label: "Signed in as:", value: viewer?.name ?? "" },
+      plan: { label: "Plan:", value: viewer ? String((viewer.plan as { name: string }).name) : "" },
       company: { label: "Companies:", value: viewer?.companies.length ? String(viewer.companies.length) : "None" },
       general: { label: "Sky:", value: viewer ? skyWord[viewer.skyPref] : "" },
       members: { label: "Shared with:", value: sharing ? String(sharing.people.length) : "" },
@@ -742,6 +744,7 @@ function AppFrame({ children }: { children: ReactNode }) {
         <CommandPalette onClose={() => setPaletteOpen(false)} onCreate={() => setCreateOpen(true)} />
       )}
       {viewer?.ai.allowed && <AskDock />}
+      <UpgradeSheet />
       <AppScrollbar />
     </div>
   );

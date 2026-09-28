@@ -54,6 +54,10 @@ export function useMutation(reference: unknown) {
 
 export function useAction(reference: unknown) {
   const name = nameOf(reference);
+  if (name.startsWith("billing:")) {
+    // Checkout and the portal "open" back onto the Plan tab.
+    return (async () => ({ url: "/app/settings?tab=plan&welcome=pro" })) as never;
+  }
   if (name === "ai:run") {
     // A stand-in reply after a short wait, so the working steps show.
     return (async (args: { text: string; formId?: string; draft?: unknown }) => {

@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
+import { PLANS, type PlanId } from "../../../../convex/model/plans";
 import { ChevronLeft, ChevronRight, Eye, Search, X } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
-import { Badge, Button, EmptyState, Field, Input, PillTabs, Select, Switch, Textarea } from "@/components/ui";
+import { Badge, Button, EmptyState, Field, Input, PillTabs, Segmented, Select, Switch, Textarea } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 import { fullTime, relativeTime } from "@/components/app/bits";
 
@@ -240,6 +241,7 @@ function UserPanel({
   const setStanding = useMutation(api.admin.setStanding);
   const deleteUser = useMutation(api.admin.deleteUser);
   const setAiAccess = useMutation(api.admin.setAiAccess);
+  const compPlan = useMutation(api.billing.compPlan);
   const message = useMutation(api.admin.messageUser);
   const [confirm, setConfirm] = useState("");
   const [note, setNote] = useState({ title: "", body: "" });
@@ -290,6 +292,43 @@ function UserPanel({
             >
               Open support view
             </Button>
+          </div>
+        )}
+
+        {can("billing") && (
+          <div className="fk-admin-block">
+            <div className="fk-admin-row">
+              <span style={{ flex: 1 }}>
+                Plan: {PLANS[current.plan.id as PlanId].name}
+                <span className="fk-admin-sub" style={{ whiteSpace: "normal" }}>
+                  {current.plan.comp
+                    ? "Given free of charge from this console."
+                    : current.plan.billed
+                      ? `Paying through Polar, ${current.plan.interval === "year" ? "yearly" : "monthly"} · ${current.plan.status ?? "active"}${
+                          current.plan.endsAt ? ` · ends ${new Date(current.plan.endsAt).toLocaleDateString("en-US", { dateStyle: "medium" })}` : ""
+                        }`
+                      : "Not paying."}
+                </span>
+              </span>
+            </div>
+            <Field label="Give a plan free of charge" help="Wins over anything they pay for. Ending it puts them back on what they pay for, or Free.">
+              <Segmented
+                ariaLabel="Plan given free of charge"
+                size="sm"
+                value={(current.plan.comp ?? "none") as "none" | "pro" | "business"}
+                onChange={async (next) => {
+                  await compPlan({ userId: current._id, plan: next === "none" ? null : next });
+                  toast(next === "none" ? "Free plan ended" : `${PLANS[next].name} given free of charge`, {
+                    detail: current.name || current.email,
+                  });
+                }}
+                options={[
+                  { value: "none", label: "None" },
+                  { value: "pro", label: "Pro" },
+                  { value: "business", label: "Business" },
+                ]}
+              />
+            </Field>
           </div>
         )}
 

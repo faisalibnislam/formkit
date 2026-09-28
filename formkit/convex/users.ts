@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { aiAllowed, aiLimit, currentUser, requireUser, twoFactorPassed } from "./model/identity";
+import { planSummary } from "./model/plans";
 
 /**
  * Everything the chrome needs to render: the person, their companies, whether
@@ -55,6 +56,8 @@ export const viewer = query({
       }),
       emailCopy: v.object({ on: v.boolean(), to: v.string() }),
       staffRole: v.union(v.string(), v.null()),
+      /** See model/plans.ts `planSummary`. */
+      plan: v.any(),
       ai: v.object({
         allowed: v.boolean(),
         used: v.number(),
@@ -121,6 +124,7 @@ export const viewer = query({
       },
       emailCopy: user.emailCopy ?? { on: false, to: user.email ?? "" },
       staffRole: user.staffRole ?? null,
+      plan: planSummary(user),
       ai: {
         allowed,
         // Credits count within the month; last month's use has already reset.

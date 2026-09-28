@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Bell, CircleUser, Download, SlidersHorizontal, Store, Users } from "lucide-react";
+import { Bell, CircleUser, CreditCard, Download, SlidersHorizontal, Store, Users } from "lucide-react";
 import { PillTabs } from "@/components/ui";
 import { AccountSection } from "./settings/Account";
 import { CompanySection } from "./settings/Company";
@@ -10,6 +10,7 @@ import { GeneralSection } from "./settings/General";
 import { MembersSection } from "./settings/Members";
 import { NotificationsSection } from "./settings/Notifications";
 import { ExportsSection } from "./settings/Exports";
+import { PlanSection } from "./settings/Plan";
 
 /**
  * Account settings.
@@ -22,7 +23,7 @@ import { ExportsSection } from "./settings/Exports";
  * cannot hold six readable tabs.
  */
 
-export type SettingsTab = "account" | "company" | "general" | "members" | "notifications" | "exports";
+export type SettingsTab = "account" | "plan" | "company" | "general" | "members" | "notifications" | "exports";
 
 /** Older links and the account menu use these names. */
 const ALIAS: Record<string, SettingsTab> = {
@@ -30,10 +31,12 @@ const ALIAS: Record<string, SettingsTab> = {
   sharing: "members",
   emails: "exports",
   preferences: "general",
+  billing: "plan",
 };
 
 export const SETTINGS_TABS: { value: SettingsTab; label: string; meta: string; icon: typeof CircleUser }[] = [
   { value: "account", label: "Account", meta: "Profile and password", icon: CircleUser },
+  { value: "plan", label: "Plan", meta: "Plan, usage and billing", icon: CreditCard },
   { value: "company", label: "Companies", meta: "Optional — links, logos and brands", icon: Store },
   { value: "general", label: "Preferences", meta: "Dashboard appearance", icon: SlidersHorizontal },
   { value: "members", label: "Sharing", meta: "People with access", icon: Users },
@@ -83,6 +86,7 @@ export function Settings() {
       </div>
 
       {tab === "account" && <AccountSection />}
+      {tab === "plan" && <PlanSection />}
       {tab === "company" && <CompanySection />}
       {tab === "general" && <GeneralSection />}
       {tab === "members" && <MembersSection />}

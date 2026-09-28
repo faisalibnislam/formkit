@@ -17,6 +17,7 @@ import {
   ToggleRight,
   UserCog,
   Users,
+  CreditCard,
 } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import { Logo } from "@/components/brand/Logo";
@@ -30,6 +31,7 @@ import { AdminAnnouncements } from "./sections/AdminAnnouncements";
 import { AdminMail } from "./sections/AdminMail";
 import { AdminTeam } from "./sections/AdminTeam";
 import { AdminFlags } from "./sections/AdminFlags";
+import { AdminBilling } from "./sections/AdminBilling";
 import { AdminAudit } from "./sections/AdminAudit";
 
 /**
@@ -50,6 +52,7 @@ type Key =
   | "mail"
   | "team"
   | "flags"
+  | "billing"
   | "audit";
 
 const SECTIONS: {
@@ -86,6 +89,15 @@ const SECTIONS: {
     permission: "ai.access",
     title: "AI access",
     lede: "Ask Formkit is off everywhere until you turn it on for a named person. An account without it sees no AI surface at all.",
+  },
+  {
+    key: "billing",
+    label: "Billing",
+    group: "Customers",
+    icon: <CreditCard size={17} strokeWidth={1.8} aria-hidden />,
+    permission: "billing",
+    title: "Billing",
+    lede: "Plans, who is paying, and the Polar connection behind them.",
   },
   {
     key: "moderation",
@@ -282,6 +294,7 @@ export function AdminConsole() {
         {current.key === "mail" && <AdminMail />}
         {current.key === "team" && <AdminTeam meId={me.staff._id} />}
         {current.key === "flags" && <AdminFlags />}
+        {current.key === "billing" && <AdminBilling />}
         {current.key === "audit" && <AdminAudit />}
       </main>
     </div>

@@ -5,6 +5,8 @@
  * be put side by side with the design it is meant to be.
  */
 
+import { planSummary } from "../../convex/model/plans";
+
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
 
@@ -300,7 +302,20 @@ export const VIEWER = {
   },
   emailCopy: { on: true, to: "inbox@studionine.co" },
   staffRole: "owner",
-  ai: { allowed: true, used: 3, limit: 25, live: true },
+  /** ?fk_plan=free|pro|business, and ?fk_plan_state=cancelled|past_due. */
+  get plan() {
+    const id = (flag("fk_plan") ?? "pro") as "free" | "pro" | "business";
+    const state = flag("fk_plan_state");
+    return planSummary({
+      plan: id,
+      planInterval: "year",
+      planStatus: state === "past_due" ? "past_due" : "active",
+      planEndsAt: state ? now + 12 * DAY : undefined,
+      planCancelAtPeriodEnd: state === "cancelled",
+      polarCustomerId: id === "free" ? undefined : "cus_preview",
+    } as unknown as Parameters<typeof planSummary>[0]);
+  },
+  ai: { allowed: true, used: 3, limit: 50, live: true },
   companies: COMPANIES,
 };
 
@@ -390,6 +405,7 @@ const PERMS = [
   "support",
   "announcements",
   "flags",
+  "billing",
   "team",
 ];
 
@@ -404,6 +420,7 @@ const STAFF_USERS = PEOPLE.slice(0, 6).map(([name, email], i) => ({
   forms: 6 - i,
   responses: 300 - i * 40,
   ai: { allowed: i < 2, limit: 25, used: i < 2 ? 3 : 0 },
+  plan: { id: i === 0 ? "pro" : "free", comp: null, billed: i === 0 ? "pro" : null, status: i === 0 ? "active" : null, interval: "year", endsAt: null },
 }));
 
 /** The form as the runner receives it — for the preview and the public link. */
@@ -692,6 +709,16 @@ export const QUERIES: Record<string, unknown> = {
   "admin:users": STAFF_USERS,
   "admin:usersPage": { total: 10020, page: 0, pageSize: 20, rows: STAFF_USERS },
   "admin:user": STAFF_USERS[0],
+  "billing:adminStatus": {
+    token: true,
+    secret: false,
+    server: "sandbox",
+    webhookUrl: "https://formal-terrier-849.convex.site/polar/webhook",
+    products: {},
+    lastEvent: null,
+    counts: { pro: 38, business: 6, comped: 2, paying: 42 },
+    mrr: 163.5,
+  },
   "admin:aiStats": {
     rows: [
       { _id: "u1", name: "Maya Ortiz", email: "maya@studionine.co", enabled: true, limit: 25, override: 25, granted: 0, used: 19 },

@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { planOf } from "./model/plans";
 import { modelConfigured } from "./model/gemini";
 import { notify } from "./model/inbox";
 import { FLAGS, isFlagKey } from "./model/flags";
@@ -41,7 +42,7 @@ export const PERM_LABELS: Record<string, { label: string; detail: string }> = {
   },
   "ai.access": {
     label: "Manage AI access",
-    detail: "Turn Ask Formkit on for one person, set their limit and grant extra credits.",
+    detail: "Turn Ask Formkit off for one person, set their limit and grant extra credits.",
   },
   moderation: { label: "Moderate forms", detail: "Lock a reported form or dismiss the report." },
   support: { label: "Reply to support", detail: "Answer tickets as Formkit and close them." },
@@ -50,6 +51,10 @@ export const PERM_LABELS: Record<string, { label: string; detail: string }> = {
     detail: "Push a message to every customer dashboard.",
   },
   flags: { label: "Change feature flags", detail: "Turn platform features on and off." },
+  billing: {
+    label: "Manage billing",
+    detail: "Set up Polar, see who is paying, and give an account a plan free of charge.",
+  },
   team: { label: "Manage team access", detail: "Invite staff, change roles and set permissions." },
 };
 
@@ -178,6 +183,14 @@ async function describeUser(ctx: Parameters<typeof aiLimit>[0], u: Doc<"users">)
       allowed: await aiAllowed(ctx, u._id),
       limit: await aiLimit(ctx, u._id),
       used: u.aiPeriod === period ? (u.aiUsed ?? 0) : 0,
+    },
+    plan: {
+      id: planOf(u),
+      comp: u.planComp ?? null,
+      billed: u.plan && u.plan !== "free" ? u.plan : null,
+      status: u.planStatus ?? null,
+      interval: u.planInterval ?? null,
+      endsAt: u.planEndsAt ?? null,
     },
   };
 }

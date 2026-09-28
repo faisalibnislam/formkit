@@ -1,0 +1,211 @@
+/* Plans: the cards on the pricing page, in Settings → Plan and in the upgrade
+   sheet; the small "Pro" chip beside a paid feature; the comparison table. */
+
+.fk-plans {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.fk-plans[data-count="2"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.fk-plan {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px 22px 24px;
+  border-radius: var(--radius-xl);
+  background: var(--neutral-0);
+  box-shadow: inset 0 0 0 1px var(--neutral-150);
+  min-width: 0;
+}
+.fk-plan[data-highlight="true"] {
+  box-shadow:
+    inset 0 0 0 2px var(--neutral-900),
+    0 18px 40px -28px rgba(33, 40, 46, 0.45);
+}
+.fk-plan[data-current="true"] {
+  background: var(--neutral-25);
+}
+.fk-plan-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fk-plan-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--neutral-900);
+}
+.fk-plan-tag {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--neutral-100);
+  color: var(--neutral-700);
+  font-size: 12px;
+  font-weight: 500;
+}
+.fk-plan-tag[data-tone="accent"] {
+  background: var(--neutral-900);
+  color: var(--neutral-0);
+}
+.fk-plan-tagline {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+.fk-plan-price {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 8px;
+}
+.fk-plan-amount {
+  font-size: 44px;
+  line-height: 1;
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  color: var(--neutral-900);
+}
+.fk-plan-per {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+.fk-plan-note {
+  min-height: 20px;
+  font-size: 13px;
+  color: var(--green-600);
+}
+.fk-plan[data-plan="free"] .fk-plan-note {
+  color: var(--color-text-secondary);
+}
+.fk-plan-cta .ui-btn,
+.fk-plan-cta a {
+  width: 100%;
+}
+.fk-plan-lead {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+.fk-plan-points {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fk-plan-points li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 14.5px;
+  line-height: 1.45;
+  color: var(--neutral-800);
+}
+.fk-plan-points svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--green-600);
+}
+
+@media (max-width: 900px) {
+  .fk-plans,
+  .fk-plans[data-count="2"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The chip beside a paid feature. */
+.fk-prochip {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  height: 20px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--blue-50);
+  color: var(--blue-700);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.fk-prochip[data-plan="business"] {
+  background: var(--neutral-900);
+  color: var(--neutral-0);
+}
+button.fk-prochip {
+  cursor: pointer;
+}
+button.fk-prochip:hover {
+  background: var(--blue-100);
+}
+button.fk-prochip[data-plan="business"]:hover {
+  background: var(--neutral-700);
+}
+
+.fk-upgrade-toolbar {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+.fk-upgrade-foot {
+  margin: 16px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.fk-plan-welcome {
+  margin-bottom: 16px;
+  padding: 16px 20px;
+  border-radius: var(--radius-lg);
+  background: var(--green-100);
+  color: var(--neutral-900);
+  font-size: 14.5px;
+  line-height: 1.55;
+}
+
+.fk-plan-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.fk-plan-table th,
+.fk-plan-table td {
+  padding: 11px 8px;
+  border-bottom: 1px solid var(--neutral-150);
+  text-align: center;
+  font-weight: 400;
+}
+.fk-plan-table th[scope="row"],
+.fk-plan-table thead th:first-child {
+  text-align: left;
+  padding-left: 0;
+}
+.fk-plan-table thead th {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--neutral-700);
+}
+.fk-plan-table td {
+  width: 88px;
+  color: var(--neutral-800);
+}
+.fk-plan-table tr:last-child th,
+.fk-plan-table tr:last-child td {
+  border-bottom: 0;
+}
