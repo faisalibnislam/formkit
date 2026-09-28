@@ -103,7 +103,7 @@ export const content = internalQuery({
             .withIndex("by_form_order", (q) => q.eq("formId", f._id))
             .collect()
         )
-          .filter((b) => b.kind === "field")
+          .filter((b) => b.kind === "field" && b.type !== "hidden")
           .sort((a, b) => a.order - b.order);
         const left = new Map<string, number>();
         for (const r of responses.filter((r) => r.partial)) {

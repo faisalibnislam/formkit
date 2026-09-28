@@ -22,7 +22,8 @@ export type FieldType = {
     | "rating"
     | "file"
     | "signature"
-    | "date";
+    | "date"
+    | "hidden";
   defaultOptions?: string[];
 };
 
@@ -69,7 +70,11 @@ export const FIELD_TYPES: FieldType[] = [
   { type: "scale", label: "Opinion scale", group: "Rating", icon: "sliders-horizontal", preview: "scale" },
   { type: "file", label: "File upload", group: "Upload", icon: "paperclip", preview: "file" },
   { type: "signature", label: "Signature", group: "Upload", icon: "pen-line", preview: "signature" },
+  { type: "hidden", label: "Hidden field", group: "Smart", icon: "eye-off", preview: "hidden" },
 ];
+
+/** Field types that are part of a paid plan, and the feature that covers them. */
+export const PAID_TYPES: Record<string, "logic.hidden"> = { hidden: "logic.hidden" };
 
 export const FIELD_GROUPS = Array.from(new Set(FIELD_TYPES.map((t) => t.group)));
 
@@ -111,6 +116,7 @@ export function matchFieldTypes(term: string) {
 /** "Untitled question" for a plain text field, "<Label> question" otherwise. */
 export function defaultTitle(type: string) {
   const t = fieldType(type);
+  if (t.type === "hidden") return "Where they came from";
   return t.type === "short-text" ? "Untitled question" : `${t.label} question`;
 }
 

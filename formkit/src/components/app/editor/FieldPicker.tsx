@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { CirclePlus } from "lucide-react";
 import { Portal } from "@/components/ui";
-import { FIELD_GROUPS, matchFieldTypes } from "./fieldTypes";
+import { FIELD_GROUPS, PAID_TYPES, matchFieldTypes } from "./fieldTypes";
+import { ProChip } from "@/components/plan/UpgradeSheet";
+import { usePlan } from "@/components/plan/usePlan";
 import { FieldIcon } from "./FieldIcon";
 
 /**
@@ -17,6 +19,7 @@ export function FieldPicker({
   onPick: (type: string) => void;
   onClose: () => void;
 }) {
+  const plan = usePlan();
   const [term, setTerm] = useState("");
   const input = useRef<HTMLInputElement | null>(null);
   const matches = matchFieldTypes(term);
@@ -83,6 +86,7 @@ export function FieldPicker({
                           <FieldIcon name={t.icon} />
                         </span>
                         <span className="fk-fieldtile-label">{t.label}</span>
+                        {PAID_TYPES[t.type] && plan && !plan.features[PAID_TYPES[t.type]!] && <ProChip />}
                       </button>
                     ))}
                   </div>

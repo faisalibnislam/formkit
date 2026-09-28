@@ -32,6 +32,8 @@ export const questionType = v.union(
   v.literal("scale"),
   v.literal("file"),
   v.literal("signature"),
+  /** Pro: never shown; filled from the link, or its default. */
+  v.literal("hidden"),
 );
 
 export default defineSchema({
@@ -223,6 +225,8 @@ export default defineSchema({
       }),
     ),
 
+    /** Pro: named formulas over question keys, worked out at submit. */
+    calc: v.optional(v.array(v.object({ name: v.string(), formula: v.string() }))),
     /** Kept in step with the blocks by `recount`, so the forms list never reads them. */
     questionCount: v.optional(v.number()),
     pageCount: v.optional(v.number()),
@@ -258,6 +262,12 @@ export default defineSchema({
     scaleMin: v.optional(v.number()),
     scaleMax: v.optional(v.number()),
     pageName: v.optional(v.string()),
+    /** Pro: how links pre-fill it, later text quotes it, and formulas read it. */
+    key: v.optional(v.string()),
+    /** Pro: points for each option, in the same order as `options`. */
+    scores: v.optional(v.array(v.number())),
+    /** A hidden field's value when the link does not carry one. */
+    defaultValue: v.optional(v.string()),
   }).index("by_form_order", ["formId", "order"]),
 
   logicRules: defineTable({
@@ -306,6 +316,8 @@ export default defineSchema({
     device: v.optional(v.string()),
     source: v.optional(v.string()),
     durationMs: v.optional(v.number()),
+    /** Pro: the form's calculations, worked out when it was sent. */
+    calc: v.optional(v.record(v.string(), v.number())),
     status: v.union(v.literal("new"), v.literal("read"), v.literal("reviewed")),
     note: v.optional(v.string()),
     resumeToken: v.optional(v.string()),

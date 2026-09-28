@@ -8,6 +8,7 @@ import { brandOf, shouldAutoClose, themeLogos } from "./model/forms";
 import { passwordMatches, securityOf } from "./model/security";
 import { flagOn } from "./model/flags";
 import { PLANS, hasFeature, planOfId } from "./model/plans";
+import { computeAll } from "./model/calc";
 import { accessOf } from "./model/access";
 import { formUrl } from "./model/handles";
 
@@ -22,6 +23,17 @@ import { formUrl } from "./model/handles";
  * password, the spam check, one submission a minute per device, one response
  * per person when multiple submissions are off, and a required email.
  */
+
+/** The smarter-form features the owner's plan includes. */
+async function smartOf(ctx: QueryCtx, ownerId: Id<"users">) {
+  const owner = await ctx.db.get(ownerId);
+  return {
+    hidden: await hasFeature(ctx, owner, "logic.hidden"),
+    piping: await hasFeature(ctx, owner, "logic.piping"),
+    calc: await hasFeature(ctx, owner, "logic.calc"),
+    redirect: await hasFeature(ctx, owner, "forms.redirect"),
+  };
+}
 
 /** Pro: the brand's own font file and custom CSS, dropped if the plan lapses. */
 async function customLook(ctx: QueryCtx, form: Doc<"forms">) {
@@ -110,6 +122,8 @@ async function payload(ctx: QueryCtx, form: Doc<"forms">) {
     .sort((a, b) => a.order - b.order);
 
   const s = securityOf(form.security);
+  const smart = await smartOf(ctx, form.ownerId);
+  const thanks = form.thanks as { redirect?: string } | null | undefined;
 
   return {
     state: "open" as const,
@@ -118,9 +132,13 @@ async function payload(ctx: QueryCtx, form: Doc<"forms">) {
     brand: await brandOf(ctx, form),
     logos: await themeLogos(ctx, form.theme),
     welcome: form.welcome ?? null,
-    thanks: form.thanks ?? null,
+    // Sending people on to a page of the owner's is Pro.
+    thanks: thanks ? { ...thanks, redirect: smart.redirect ? thanks.redirect : undefined } : null,
     theme: form.theme ?? null,
     closedMessage: form.closing?.message || CLOSED_NOTE,
+    /** Which smarter-form features the owner's plan turns on here. */
+    smart,
+    calc: smart.calc ? (form.calc ?? []) : [],
     uploadCapMb: PLANS[await planOfId(ctx, form.ownerId)].uploadMb,
     custom: await customLook(ctx, form),
     rules: {
@@ -131,7 +149,8 @@ async function payload(ctx: QueryCtx, form: Doc<"forms">) {
       /** Unfinished answers are kept, with a link back — a flag on the owner's account. */
       partials: await partialsOn(ctx, form.ownerId),
     },
-    blocks: blocks.map((b) => ({
+    // A hidden field without the plan is left out entirely.
+    blocks: blocks.filter((b) => b.type !== "hidden" || smart.hidden).map((b) => ({
       _id: b._id,
       kind: b.kind,
       type: b.type ?? null,
@@ -144,6 +163,9 @@ async function payload(ctx: QueryCtx, form: Doc<"forms">) {
       scaleMin: b.scaleMin ?? null,
       scaleMax: b.scaleMax ?? null,
       pageName: b.pageName ?? null,
+      key: b.key ?? null,
+      scores: smart.calc ? (b.scores ?? null) : null,
+      defaultValue: b.type === "hidden" ? (b.defaultValue ?? null) : null,
     })),
     logic: rules.map((r) => ({
       join: r.join,
@@ -328,7 +350,7 @@ async function store(
     submittedAt: Date.now(),
     partial: args.partial,
     answeredCount: answers.filter((a) => a.value || a.values?.length || a.fileId).length,
-    totalCount: blocks.length,
+    totalCount: blocks.filter((b) => b.type !== "hidden").length,
     answers,
     respondentName: named?.value,
     respondentEmail: mailed?.value?.trim().toLowerCase(),
@@ -347,9 +369,21 @@ async function store(
     tags: existing?.tags,
   };
 
+  // The server's own working-out of the calculations is the one kept.
+  const calcVars = form.calc ?? [];
+  const calc =
+    calcVars.length && (await hasFeature(ctx, form.ownerId, "logic.calc"))
+      ? computeAll(
+          calcVars,
+          blocks.map((b) => ({ _id: b._id, kind: b.kind, type: b.type, key: b.key, options: b.options, scores: b.scores })),
+          Object.fromEntries(answers.map((a) => [a.blockId as string, { value: a.value, values: a.values }])),
+        )
+      : undefined;
+  const full = calc ? { ...record, calc } : record;
+
   const responseId = existing
-    ? (await ctx.db.replace(existing._id, record), existing._id)
-    : await ctx.db.insert("responses", record);
+    ? (await ctx.db.replace(existing._id, full), existing._id)
+    : await ctx.db.insert("responses", full);
 
   await ctx.runMutation(internal.responses.recount, { formId: form._id });
 

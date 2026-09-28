@@ -9,6 +9,11 @@ import { useToast } from "@/components/ui/Toast";
 import { DraftInput, DraftPill } from "./Draft";
 import { VALUELESS, firstValue, opLabel, opsFor, valueControl } from "./operators";
 import { tracked } from "./saveStatus";
+import type { FunctionReturnType } from "convex/server";
+import { ProChip } from "@/components/plan/UpgradeSheet";
+import { openUpgrade, upgradeOnPlanError, useGate } from "@/components/plan/usePlan";
+import { errorText } from "../settings/bits";
+import { unknownKeys } from "../../../../convex/model/calc";
 
 /**
  * Conditional logic. Show, hide or require a question — or jump ahead — based
@@ -329,6 +334,105 @@ export function LogicTab({ formId }: { formId: Id<"forms"> }) {
           </section>
         );
       })}
+
+      {form && <Calculations formId={formId} form={form} />}
     </div>
+  );
+}
+
+/**
+ * Pro: named formulas over question keys — a quiz score, a quote, a total.
+ * Worked out when a response is sent, kept with it, and quotable on the
+ * thank-you screen as {{name}}.
+ */
+function Calculations({
+  formId,
+  form,
+}: {
+  formId: Id<"forms">;
+  form: NonNullable<FunctionReturnType<typeof api.forms.get>>;
+}) {
+  const toast = useToast();
+  const setCalc = useMutation(api.forms.setCalc);
+  const gate = useGate("logic.calc", form.ownerPlan?.features);
+  const calc = form.calc ?? [];
+  const keyed = form.blocks.filter((b) => b.kind === "field" && b.key);
+
+  const save = async (next: { name: string; formula: string }[]) => {
+    try {
+      await tracked(setCalc({ formId, calc: next }));
+    } catch (e) {
+      if (!upgradeOnPlanError(e)) toast(errorText(e, "That calculation did not save."));
+    }
+  };
+
+  const known = (i: number) => new Set([...keyed.map((b) => b.key!), ...calc.slice(0, i).map((c) => c.name)]);
+
+  return (
+    <section className="fk-panel">
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <h3 style={{ flex: 1, margin: 0 }}>Calculations</h3>
+        {gate.locked && <ProChip onClick={() => openUpgrade({ feature: "logic.calc" })} />}
+      </div>
+      <p className="fk-panel-lede">
+        Add up points, price a quote or score a quiz. Use question keys and earlier results, with + − × ÷, brackets,
+        and min, max or round. Quote a result on the thank-you screen as {"{{total}}"}.
+      </p>
+      {keyed.length === 0 && (
+        <p className="fk-proprow-hint" style={{ margin: "0 0 12px" }}>
+          Give questions a key first — select one in Build and fill in Key.
+        </p>
+      )}
+      {keyed.length > 0 && (
+        <p className="fk-proprow-hint" style={{ margin: "0 0 12px" }}>
+          Keys on this form: {keyed.map((b) => b.key).join(", ")}
+        </p>
+      )}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {calc.map((c, i) => {
+          const missing = unknownKeys(c.formula, known(i));
+          return (
+            <div key={`${c.name}-${i}`} className="fk-calcrow">
+              <DraftPill
+                value={c.name}
+                placeholder="total"
+                wrapStyle={{ width: 150 }}
+                onCommit={(name) => save(calc.map((x, k) => (k === i ? { ...x, name } : x)))}
+              />
+              <span className="fk-rw">=</span>
+              <DraftPill
+                value={c.formula}
+                placeholder="quality + value * 2"
+                wrapStyle={{ flex: 1, minWidth: 200 }}
+                onCommit={(formula) => save(calc.map((x, k) => (k === i ? { ...x, formula } : x)))}
+              />
+              <IconButton label="Remove calculation" onClick={() => save(calc.filter((_, k) => k !== i))}>
+                <Trash2 size={16} strokeWidth={1.8} aria-hidden />
+              </IconButton>
+              {missing.length > 0 && (
+                <span className="fk-proprow-hint" style={{ flexBasis: "100%", color: "var(--red-600)" }}>
+                  Not a key on this form: {missing.join(", ")}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ marginTop: 14 }}>
+        <Button
+          variant="secondary"
+          size="sm"
+          iconLeft={<Plus size={16} strokeWidth={1.8} aria-hidden />}
+          onClick={gate.guard(() => {
+            const taken = new Set([...keyed.map((b) => b.key), ...calc.map((c) => c.name)]);
+            let name = "total";
+            for (let n = 2; taken.has(name); n++) name = `total_${n}`;
+            void save([...calc, { name, formula: keyed.map((b) => b.key).join(" + ") || "0" }]);
+          })}
+        >
+          Add a calculation
+        </Button>
+      </div>
+    </section>
   );
 }

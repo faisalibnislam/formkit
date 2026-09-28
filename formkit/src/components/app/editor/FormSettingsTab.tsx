@@ -16,6 +16,8 @@ import { DraftArea, DraftPill } from "./Draft";
 import { openPreview } from "./previewBus";
 import { tracked } from "./saveStatus";
 import { useSettingsDraft } from "./useSettingsDraft";
+import { ProChip } from "@/components/plan/UpgradeSheet";
+import { openUpgrade, useGate } from "@/components/plan/usePlan";
 
 /**
  * A form's own settings.
@@ -94,6 +96,8 @@ export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
   const toast = useToast();
   const router = useRouter();
   const form = useQuery(api.forms.get, { formId });
+  const redirectGate = useGate("forms.redirect", form?.ownerPlan?.features);
+  const pipeGate = useGate("logic.piping", form?.ownerPlan?.features);
   const viewer = useQuery(api.users.viewer, {});
   const log = useQuery(api.notifications.log, { formId });
   const update = useMutation(api.forms.update);
@@ -608,7 +612,14 @@ export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
                 onCommit={(title) => patchThanks({ title })}
               />
             </Field>
-            <Field label="Message">
+            <Field
+              label="Message"
+              help={
+                pipeGate.locked
+                  ? "Quoting an answer with {{key}} — “Thanks {{name}}” — is part of Pro."
+                  : "Quote an answer or a calculation by its key: “Thanks {{name}}, your total is {{total}}.”"
+              }
+            >
               <DraftArea
                 rows={2}
                 value={form.thanks?.message ?? ""}
@@ -634,14 +645,22 @@ export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
                 onCommit={(buttonUrl) => patchThanks({ buttonUrl })}
               />
             </Field>
-            <Field label="Redirect URL" help="Sends people straight here after they submit, instead of the thank-you screen.">
-              <DraftPill
-                size="md"
-                value={form.thanks?.redirect ?? ""}
-                placeholder="https://studionine.co/thanks"
-                wrapStyle={{ maxWidth: 420 }}
-                onCommit={(redirect) => patchThanks({ redirect })}
-              />
+            <Field
+              label="Redirect URL"
+              help="Sends people straight here after they submit, instead of the thank-you screen. Keys fill in: https://acme.com/thanks?name={{name}}"
+            >
+              <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <DraftPill
+                  size="md"
+                  value={form.thanks?.redirect ?? ""}
+                  placeholder="https://studionine.co/thanks"
+                  wrapStyle={{ maxWidth: 420, flex: 1 }}
+                  onCommit={(redirect) =>
+                    redirect && redirectGate.locked ? openUpgrade({ feature: "forms.redirect" }) : patchThanks({ redirect })
+                  }
+                />
+                {redirectGate.locked && <ProChip onClick={() => openUpgrade({ feature: "forms.redirect" })} />}
+              </span>
             </Field>
           </div>
         </Card>

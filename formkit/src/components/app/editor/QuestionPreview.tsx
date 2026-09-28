@@ -97,6 +97,14 @@ export function QuestionPreview({
     );
   }
 
+  if (shape === "hidden") {
+    return (
+      <div className="fk-ghost" style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 18px", fontSize: 14, color: "var(--color-text-tertiary)" }}>
+        Never shown — filled from the link, or its default
+      </div>
+    );
+  }
+
   if (shape === "signature") {
     return (
       <div className="fk-ghost" data-tall="true" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, color: "var(--color-text-tertiary)", fontSize: 14 }}>

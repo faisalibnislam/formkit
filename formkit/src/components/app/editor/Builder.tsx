@@ -26,7 +26,9 @@ import { FieldIcon } from "./FieldIcon";
 import { FieldPicker } from "./FieldPicker";
 import { FieldSettings, NothingSelected, PageSettings } from "./Inspector";
 import { QuestionPreview } from "./QuestionPreview";
-import { FIELD_GROUPS, defaultTitle, fieldType, matchFieldTypes } from "./fieldTypes";
+import { FIELD_GROUPS, PAID_TYPES, defaultTitle, fieldType, matchFieldTypes } from "./fieldTypes";
+import { ProChip } from "@/components/plan/UpgradeSheet";
+import { openUpgrade, usePlan } from "@/components/plan/usePlan";
 import { openComments, setCurrentBlock, usePresence } from "./collab";
 import { tracked } from "./saveStatus";
 import { PageSkeleton } from "../Skeleton";
@@ -187,6 +189,8 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
     setOverCard(null);
   }
 
+  const plan = usePlan();
+
   /** After the selected block, or at the end. */
   const insertIndex = () => {
     if (!selected) return blocks.length;
@@ -196,6 +200,11 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
 
   async function add(type: string, at?: number) {
     const meta = fieldType(type);
+    const paid = PAID_TYPES[type];
+    if (paid && !plan?.features[paid]) {
+      openUpgrade({ feature: paid });
+      return;
+    }
     setPickerAt(null);
     const id = await tracked(
       addBlock({
@@ -207,6 +216,7 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
         options: meta.defaultOptions,
         ...(meta.preview === "scale" ? { scaleMin: 1, scaleMax: 5 } : {}),
         ...(meta.preview === "rating" ? { scaleMax: 5 } : {}),
+        ...(type === "hidden" ? { key: "source" } : {}),
       }),
     );
     if (id) setSelected(id);
@@ -434,6 +444,7 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
                       <FieldIcon name={t.icon} />
                     </span>
                     <span className="fk-fieldtile-label">{t.label}</span>
+                    {PAID_TYPES[t.type] && plan && !plan.features[PAID_TYPES[t.type]!] && <ProChip />}
                     <span className="fk-fieldtile-grip" aria-hidden>
                       <GripVertical size={15} strokeWidth={1.8} />
                     </span>

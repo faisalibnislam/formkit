@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  EyeOff,
   AlignLeft,
   AtSign,
   Building2,
@@ -50,6 +51,7 @@ const ICONS: Record<string, ComponentType<{ size?: number; strokeWidth?: number 
   clock: Clock,
   paperclip: Paperclip,
   "pen-line": PenLine,
+  "eye-off": EyeOff,
   mail: Mail,
   user: User,
   "building-2": Building2,

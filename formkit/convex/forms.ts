@@ -1,8 +1,9 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { internalMutation, mutation, query, type MutationCtx } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { requireUser } from "./model/identity";
 import { PLANS, planOfId, planSummary, requireFeature } from "./model/plans";
+import { validKey } from "./model/calc";
 import {
   completionRate,
   formFor,
@@ -249,6 +250,7 @@ export const get = query({
       theme: form.theme ?? null,
       logos: await themeLogos(ctx, form.theme),
       identity: await formIdentity(ctx, form),
+      calc: form.calc ?? [],
       /** The owner's plan: what this form can do, whoever is editing it. */
       ownerPlan: await ownerPlanOf(ctx, form.ownerId),
       notify: form.notify ?? null,
@@ -437,6 +439,39 @@ export const patchSettings = mutation({
       [key]: { ...current, ...(patch as Record<string, unknown>) },
       updatedAt: Date.now(),
     });
+    return null;
+  },
+});
+
+/** Pro: the form's calculations, in order. Each name must be new on the form. */
+export const setCalc = mutation({
+  args: { formId: v.id("forms"), calc: v.array(v.object({ name: v.string(), formula: v.string() })) },
+  returns: v.null(),
+  handler: async (ctx, { formId, calc }) => {
+    const form = await formFor(ctx, formId);
+    if (calc.length) await requireFeature(ctx, form.ownerId, "logic.calc");
+    const keys = new Set(
+      (
+        await ctx.db
+          .query("blocks")
+          .withIndex("by_form_order", (q) => q.eq("formId", formId))
+          .collect()
+      )
+        .map((b) => b.key)
+        .filter(Boolean),
+    );
+    const seen = new Set<string>();
+    const clean = calc.slice(0, 20).map((c) => {
+      const name = c.name.trim().toLowerCase();
+      if (!validKey(name)) {
+        throw new ConvexError("A name is lowercase letters, numbers and underscores, starting with a letter — like total.");
+      }
+      if (keys.has(name)) throw new ConvexError(`“${name}” is already a question's key.`);
+      if (seen.has(name)) throw new ConvexError(`Two calculations are called “${name}”.`);
+      seen.add(name);
+      return { name, formula: c.formula.slice(0, 500) };
+    });
+    await ctx.db.patch(formId, { calc: clean, updatedAt: Date.now() });
     return null;
   },
 });

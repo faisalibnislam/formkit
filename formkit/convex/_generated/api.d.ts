@@ -36,6 +36,7 @@ import type * as model_access from "../model/access.js";
 import type * as model_aiForms from "../model/aiForms.js";
 import type * as model_aiIntent from "../model/aiIntent.js";
 import type * as model_builtinTemplates from "../model/builtinTemplates.js";
+import type * as model_calc from "../model/calc.js";
 import type * as model_flags from "../model/flags.js";
 import type * as model_forms from "../model/forms.js";
 import type * as model_gemini from "../model/gemini.js";
@@ -92,6 +93,7 @@ declare const fullApi: ApiFromModules<{
   "model/aiForms": typeof model_aiForms,
   "model/aiIntent": typeof model_aiIntent,
   "model/builtinTemplates": typeof model_builtinTemplates,
+  "model/calc": typeof model_calc,
   "model/flags": typeof model_flags,
   "model/forms": typeof model_forms,
   "model/gemini": typeof model_gemini,

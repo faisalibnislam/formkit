@@ -629,8 +629,21 @@ export const QUERIES: Record<string, unknown> = {
     { _id: "a3", who: "You", image: null, color: "#2e78bb", what: "invited freelance@grainhouse.com as Viewer", icon: "user-plus", at: now - 2 * DAY },
   ],
   "publicForm:preview": RUNNER,
-  /** ?fk_css=1 shows the published form with sample custom CSS. */
+  /** ?fk_css=1 shows the published form with sample custom CSS; ?fk_smart=1 turns on keys and piping. */
   get "publicForm:bySlug"() {
+    if (flag("fk_smart")) {
+      return {
+        ...RUNNER,
+        smart: { hidden: true, piping: true, calc: true, redirect: true },
+        calc: [{ name: "total", formula: "budget * 2" }],
+        blocks: [
+          ...RUNNER.blocks.slice(0, 2).map((b, i) => ({ ...b, key: i === 0 ? "name" : "email" })),
+          { ...RUNNER.blocks[0]!, _id: "b1h", type: "hidden", title: "Where they came from", key: "utm_source", defaultValue: "direct", required: false },
+          { ...RUNNER.blocks[1]!, _id: "b2p", title: "Thanks {{name}} — where should the proposal for you go?", key: null },
+          ...RUNNER.blocks.slice(2),
+        ],
+      };
+    }
     return flag("fk_css")
       ? { ...RUNNER, custom: { font: null, css: ".fk-live-q-title { color: #c4614f; text-transform: uppercase; letter-spacing: .04em; } body { background: red; }" } }
       : RUNNER;

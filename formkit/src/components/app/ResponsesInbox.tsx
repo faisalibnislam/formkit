@@ -617,8 +617,16 @@ function ResponseDrawer({
         rows: gone.map((a) => ({ q: a.question, a: answerOf(a), empty: !a.value && !a.fileName, file: !!a.fileName })),
       });
     }
+    // Pro: the form's calculations, as worked out when it was sent.
+    const calc = Object.entries(response.calc ?? {});
+    if (calc.length) {
+      out.push({
+        title: "Calculations",
+        rows: calc.map(([k, v]) => ({ q: k, a: v.toLocaleString("en-US"), empty: false, file: false })),
+      });
+    }
     return out;
-  }, [form, response.answers]);
+  }, [form, response.answers, response.calc]);
 
   const name = who(response);
   const meta = [

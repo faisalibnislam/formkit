@@ -18,7 +18,8 @@ import {
 } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
 import type { Doc, Id } from "../../../../convex/_generated/dataModel";
-import { Badge, Button, Field, IconButton, Select, Switch } from "@/components/ui";
+import { Badge, Button, Field, IconButton, Input, Select, Switch } from "@/components/ui";
+import { errorText } from "../settings/bits";
 import { useToast } from "@/components/ui/Toast";
 import { DraftArea, DraftPill } from "./Draft";
 import {
@@ -31,7 +32,9 @@ import {
 } from "./fieldTypes";
 import { VALUELESS, firstValue, opLabel } from "./operators";
 import { tracked } from "./saveStatus";
-import { usePlan } from "@/components/plan/usePlan";
+import { openUpgrade, upgradeOnPlanError, useGate, usePlan } from "@/components/plan/usePlan";
+import { ProChip } from "@/components/plan/UpgradeSheet";
+import { suggestKey } from "../../../../convex/model/calc";
 
 type Block = Doc<"blocks">;
 type Rule = Doc<"logicRules">;
@@ -155,6 +158,11 @@ export function FieldSettings({
     tracked(update({ blockId: block._id, patch: p }));
 
   const meta = fieldType(block.type);
+  const calcGate = useGate("logic.calc");
+  const pipingGate = useGate("logic.piping");
+  const hiddenGate = useGate("logic.hidden");
+  // A key is useful with any of the three; it is locked only when all are.
+  const keyLocked = pipingGate.locked && hiddenGate.locked && calcGate.locked;
   const title = (id?: Id<"blocks">) =>
     fields.find((f) => f._id === id)?.title || (id ? "Untitled question" : "—");
 
@@ -228,13 +236,81 @@ export function FieldSettings({
         </Field>
       </div>
 
-      <PropertyRow label="Required" hint="People can't submit without it">
-        <Switch
-          checked={!!block.required}
-          label="Required"
-          onChange={(on) => patch({ required: on })}
+      {block.type !== "hidden" && (
+        <PropertyRow label="Required" hint="People can't submit without it">
+          <Switch
+            checked={!!block.required}
+            label="Required"
+            onChange={(on) => patch({ required: on })}
+          />
+        </PropertyRow>
+      )}
+
+      <div className="fk-proprow" data-stack="true">
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, marginBottom: 7 }}>
+          Key
+          {keyLocked && <ProChip onClick={() => openUpgrade({ feature: "logic.piping" })} />}
+        </div>
+        <DraftPill
+          value={block.key ?? ""}
+          placeholder={suggestKey(block.title)}
+          onCommit={(key) =>
+            void update({ blockId: block._id, patch: { key } }).catch((e) => toast(errorText(e, "That key did not save.")))
+          }
         />
-      </PropertyRow>
+        <div className="fk-proprow-hint" style={{ marginTop: 6 }}>
+          {block.key
+            ? `Pre-fill it with ?${block.key}=… on the link, quote it later with {{${block.key}}}, and use it in calculations.`
+            : "A short name, like budget. Pre-fills it from the link, quotes it in later text, and feeds calculations."}
+        </div>
+      </div>
+
+      {block.type === "hidden" && (
+        <div className="fk-proprow" data-stack="true">
+          <div style={{ fontSize: 14, marginBottom: 7 }}>Default value</div>
+          <DraftPill
+            value={block.defaultValue ?? ""}
+            placeholder="Used when the link does not carry one"
+            onCommit={(defaultValue) => patch({ defaultValue })}
+          />
+        </div>
+      )}
+
+      {(hasOptions(block.type) || block.type === "yes-no") && (
+        <div className="fk-proprow" data-stack="true">
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, marginBottom: 7 }}>
+            Points
+            {calcGate.locked && <ProChip onClick={() => openUpgrade({ feature: "logic.calc" })} />}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {(block.type === "yes-no" ? ["Yes", "No"] : options).map((o, i) => (
+              <label key={`${o}-${i}`} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13.5 }}>
+                <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o}</span>
+                <Input
+                  type="number"
+                  aria-label={`Points for ${o}`}
+                  disabled={calcGate.locked}
+                  defaultValue={block.scores?.[i] ?? 0}
+                  wrapStyle={{ width: 90 }}
+                  onBlur={(e) => {
+                    const n = Number(e.target.value) || 0;
+                    const count = block.type === "yes-no" ? 2 : options.length;
+                    const next = Array.from({ length: count }, (_, k) => block.scores?.[k] ?? 0);
+                    if (next[i] === n) return;
+                    next[i] = n;
+                    void update({ blockId: block._id, patch: { scores: next } }).catch((err) => {
+                      if (!upgradeOnPlanError(err)) toast(errorText(err, "Those points did not save."));
+                    });
+                  }}
+                />
+              </label>
+            ))}
+          </div>
+          <div className="fk-proprow-hint" style={{ marginTop: 6 }}>
+            For quizzes, scores and quotes — add them up under Logic → Calculations.
+          </div>
+        </div>
+      )}
 
       {hasPlaceholder(block.type) && (
         <div className="fk-proprow" data-stack="true">

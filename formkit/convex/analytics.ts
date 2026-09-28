@@ -176,7 +176,7 @@ export const overview = query({
               .withIndex("by_form_order", (q) => q.eq("formId", args.formId!))
               .collect()
           )
-            .filter((b) => b.kind === "field")
+            .filter((b) => b.kind === "field" && b.type !== "hidden")
             .sort((a, b) => a.order - b.order);
           const began = Math.max(now_.starts, recent.length);
           const left = new Map<string, number>();

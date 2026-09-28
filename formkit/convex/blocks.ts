@@ -1,8 +1,11 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation } from "./_generated/server";
 import { questionType } from "./schema";
 import { formFor, recount } from "./model/forms";
+import { requireFeature } from "./model/plans";
+import { validKey } from "./model/calc";
 import type { Id } from "./_generated/dataModel";
+import type { MutationCtx } from "./_generated/server";
 
 /**
  * Questions and page breaks share one ordered list, exactly as the builder
@@ -21,7 +24,25 @@ const blockFields = {
   scaleMin: v.optional(v.number()),
   scaleMax: v.optional(v.number()),
   pageName: v.optional(v.string()),
+  key: v.optional(v.string()),
+  scores: v.optional(v.array(v.number())),
+  defaultValue: v.optional(v.string()),
 };
+
+/** A key not already used on this form: "source", then "source_2" and on. */
+async function freeKey(ctx: MutationCtx, formId: Id<"forms">, want: string) {
+  const base = validKey(want) ? want : "field";
+  const used = new Set(
+    (
+      await ctx.db
+        .query("blocks")
+        .withIndex("by_form_order", (q) => q.eq("formId", formId))
+        .collect()
+    ).map((b) => b.key),
+  );
+  if (!used.has(base)) return base;
+  for (let i = 2; ; i++) if (!used.has(`${base}_${i}`)) return `${base}_${i}`;
+}
 
 async function nextOrder(ctx: Parameters<typeof formFor>[0], formId: string) {
   const blocks = await ctx.db
@@ -41,7 +62,8 @@ export const add = mutation({
   },
   returns: v.id("blocks"),
   handler: async (ctx, { formId, kind, at, ...fields }) => {
-    await formFor(ctx, formId);
+    const form = await formFor(ctx, formId);
+    if (fields.type === "hidden") await requireFeature(ctx, form.ownerId, "logic.hidden");
 
     const blocks = (
       await ctx.db
@@ -72,6 +94,9 @@ export const add = mutation({
             accept: fields.accept,
             scaleMin: fields.scaleMin,
             scaleMax: fields.scaleMax,
+            ...(fields.type === "hidden"
+              ? { key: await freeKey(ctx, formId, fields.key ?? "source"), defaultValue: fields.defaultValue }
+              : {}),
           }),
     });
 
@@ -88,7 +113,26 @@ export const update = mutation({
   handler: async (ctx, { blockId, patch }) => {
     const block = await ctx.db.get(blockId);
     if (!block) throw new Error("That question no longer exists.");
-    await formFor(ctx, block.formId);
+    const form = await formFor(ctx, block.formId);
+    if (patch.type === "hidden" && block.type !== "hidden") await requireFeature(ctx, form.ownerId, "logic.hidden");
+    if (patch.scores?.some((n) => n !== 0)) await requireFeature(ctx, form.ownerId, "logic.calc");
+    if (patch.key !== undefined) {
+      const key = patch.key.trim().toLowerCase();
+      if (key && !validKey(key)) {
+        throw new ConvexError("A key is lowercase letters, numbers and underscores, starting with a letter — like budget or first_name.");
+      }
+      if (key) {
+        const clash = (
+          await ctx.db
+            .query("blocks")
+            .withIndex("by_form_order", (q) => q.eq("formId", block.formId))
+            .collect()
+        ).find((b) => b._id !== blockId && b.key === key);
+        if (clash) throw new ConvexError(`“${key}” is already the key of “${clash.title ?? "another question"}”.`);
+        if ((form.calc ?? []).some((c) => c.name === key)) throw new ConvexError(`“${key}” is already a calculation's name.`);
+      }
+      patch.key = key || undefined;
+    }
     await ctx.db.patch(blockId, patch);
     await ctx.db.patch(block.formId, { updatedAt: Date.now() });
     return null;

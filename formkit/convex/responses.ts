@@ -93,6 +93,8 @@ async function shape(ctx: QueryCtx, r: Doc<"responses">, formTitle: string) {
     tags: r.tags ?? [],
     versionNumber: r.versionNumber ?? null,
     resumeToken: r.partial ? (r.resumeToken ?? null) : null,
+    /** Pro: the form's calculations, as worked out when it was sent. */
+    calc: r.calc ?? null,
   };
 }
 
@@ -421,6 +423,9 @@ export const forExport = query({
           questions.push(a.question.trim());
         }
 
+    // Calculation results get a column each, after the questions.
+    const calcNames = [...new Set(picked.flatMap((r) => Object.keys(r.calc ?? {})))];
+
     const many = !formId;
     const columns = [
       ...(many ? ["Form"] : []),
@@ -436,6 +441,7 @@ export const forExport = query({
       "Tags",
       "Note",
       ...questions,
+      ...calcNames,
     ];
     const slug = formId ? (forms[0]?.slug ?? "form") : "all-forms";
     return {
@@ -463,6 +469,7 @@ export const forExport = query({
             if (a.values) return a.values.join("; ");
             return a.fileName ?? a.value ?? "";
           }),
+          ...calcNames.map((n) => (r.calc && n in r.calc ? String(r.calc[n]) : "")),
         ];
       }),
     };

@@ -408,3 +408,11 @@ button.fk-prochip[data-plan="business"]:hover {
     display: none;
   }
 }
+
+/* Logic → Calculations. */
+.fk-calcrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}

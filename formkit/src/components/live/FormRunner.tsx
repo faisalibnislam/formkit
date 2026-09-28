@@ -12,6 +12,7 @@ import {
   themeOf,
 } from "@/components/app/editor/themes";
 import { fontStack, loadFont } from "@/components/app/editor/fonts";
+import { computeAll, pipe, pipeValues } from "../../../convex/model/calc";
 import { LogoLockup } from "./LogoLockup";
 
 /**
@@ -42,6 +43,10 @@ export type Block = {
   scaleMin: number | null;
   scaleMax: number | null;
   pageName: string | null;
+  /** Pro: pre-fill, piping and formulas read a question by its key. */
+  key?: string | null;
+  scores?: number[] | null;
+  defaultValue?: string | null;
 };
 
 type Rule = {
@@ -72,6 +77,9 @@ export type OpenForm = {
   rules: { spam: boolean; requireEmail: boolean; editAfter: boolean; multiple: boolean; partials?: boolean };
   blocks: Block[];
   logic: Rule[];
+  /** Which smarter-form features the owner's plan turns on. */
+  smart?: { hidden: boolean; piping: boolean; calc: boolean; redirect: boolean };
+  calc?: { name: string; formula: string }[];
   /** Pro: the brand's own font file and custom CSS, when the owner's plan has them. */
   custom?: { font: { name: string; url: string } | null; css: string | null } | null;
 };
@@ -158,7 +166,9 @@ export function FormRunner({
   const [started, setStarted] = useState(!!resume || !standalone);
   const [page, setPage] = useState(0);
   const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, Answer>>(resume?.answers ?? {});
+  const [answers, setAnswers] = useState<Record<string, Answer>>(() => resume?.answers ?? prefilled(blocks, data.smart?.hidden === true));
+  // Hidden fields are sent with the answers but never shown.
+  const hiddenFields = blocks.filter((b) => b.type === "hidden");
   const [problem, setProblem] = useState<string | null>(null);
   const [fileProblem, setFileProblem] = useState<Record<string, string>>({});
   const [done, setDone] = useState<{ token: string } | null>(null);
@@ -196,11 +206,20 @@ export function FormRunner({
     return { hidden: h, forced: f, jumpTo: j };
   }, [answers, data.logic]);
 
+  /* ---------- calculations and piping (Pro) ---------- */
+  const results = useMemo(
+    () => (data.smart?.calc && data.calc?.length ? computeAll(data.calc, blocks, answers) : {}),
+    [data.smart?.calc, data.calc, blocks, answers],
+  );
+  const piped = useMemo(() => pipeValues(blocks, answers, results), [blocks, answers, results]);
+  /** Text with {{key}} filled in from earlier answers, when the plan has piping. */
+  const say = (text: string | null | undefined) => (data.smart?.piping ? pipe(text, piped) : (text ?? ""));
+
   /* ---------- pages, and the questions in order ---------- */
   const pages: { name: string; fields: Block[] }[] = [{ name: "", fields: [] }];
   for (const b of blocks) {
     if (b.kind === "pagebreak") pages.push({ name: b.pageName ?? "", fields: [] });
-    else if (!hidden.has(b._id)) pages[pages.length - 1]!.fields.push(b);
+    else if (b.type !== "hidden" && !hidden.has(b._id)) pages[pages.length - 1]!.fields.push(b);
   }
   const live = pages.filter((p) => p.fields.length > 0);
   const fields = live.flatMap((p) => p.fields);
@@ -238,12 +257,17 @@ export function FormRunner({
     return () => window.removeEventListener("pagehide", save);
   }, [answers, done, mode, onSubmit, data.rules.partials]);
 
-  // A redirect after submitting, on the live form only.
+  // A redirect after submitting, on the live form only — with {{keys}} filled in.
+  const redirectTo = data.thanks?.redirect
+    ? data.smart?.piping
+      ? pipe(data.thanks.redirect, piped, true)
+      : data.thanks.redirect
+    : null;
   useEffect(() => {
-    if (!done || mode !== "live" || !data.thanks?.redirect) return;
-    const t = window.setTimeout(() => window.location.assign(data.thanks!.redirect!), 1400);
+    if (!done || mode !== "live" || !redirectTo || !/^https?:\/\//i.test(redirectTo)) return;
+    const t = window.setTimeout(() => window.location.assign(redirectTo), 1400);
     return () => window.clearTimeout(t);
-  }, [done, mode, data.thanks]);
+  }, [done, mode, redirectTo]);
 
   async function send(asHuman = human) {
     setBusy(true);
@@ -257,7 +281,7 @@ export function FormRunner({
         device: describeDevice(),
         durationMs: since(openedAt.current),
         answers: Object.entries(answers)
-          .filter(([id]) => fields.some((f) => f._id === id))
+          .filter(([id]) => fields.some((f) => f._id === id) || hiddenFields.some((f) => f._id === id))
           .map(([blockId, a]) => ({ blockId: blockId as Id<"blocks">, ...a })),
       });
       setProve(false);
@@ -387,13 +411,13 @@ export function FormRunner({
           <span className="fk-live-lock" style={{ background: theme.primary, color: ink }}>
             <Check size={30} strokeWidth={2} aria-hidden />
           </span>
-          <h1 style={{ marginTop: 22 }}>{t?.title || "Thank you"}</h1>
-          <p className="fk-live-lede">{t?.message || "Your answers are in."}</p>
-          {t?.redirect && (
+          <h1 style={{ marginTop: 22 }}>{say(t?.title) || "Thank you"}</h1>
+          <p className="fk-live-lede">{say(t?.message) || "Your answers are in."}</p>
+          {redirectTo && (
             <p className="fk-live-note">
               {mode === "live"
                 ? "Taking you on…"
-                : `On the live form, people go straight to ${t.redirect} from here.`}
+                : `On the live form, people go straight to ${redirectTo} from here.`}
             </p>
           )}
           <div className="fk-live-foot" style={{ justifyContent: split ? "flex-start" : "center" }}>
@@ -417,11 +441,11 @@ export function FormRunner({
   const intro = (
     <>
       <h1 style={{ textAlign: split ? undefined : "center" }}>
-        {data.welcome?.title || data.title}
+        {say(data.welcome?.title) || data.title}
       </h1>
       {data.welcome?.message && (
         <p className="fk-live-lede" style={{ textAlign: split ? undefined : "center" }}>
-          {data.welcome.message}
+          {say(data.welcome.message)}
         </p>
       )}
     </>
@@ -483,14 +507,14 @@ export function FormRunner({
   const question = (b: Block, big = false) => (
     <div key={b._id} className="fk-live-q" id={`q-${b._id}`} data-big={big ? "true" : undefined}>
       <div className="fk-live-q-title">
-        {b.title}
+        {say(b.title)}
         {isRequired(b) && (
           <span className="fk-live-req" aria-hidden>
             *
           </span>
         )}
       </div>
-      {b.help && <div className="fk-live-q-help">{b.help}</div>}
+      {b.help && <div className="fk-live-q-help">{say(b.help)}</div>}
       <div className="fk-live-q-control">
         <Control
           block={b}
@@ -593,7 +617,7 @@ export function FormRunner({
             </span>
             {progress(page + 1, live.length)}
           </div>
-          {current?.name && <h2 className="fk-live-pagetitle">{current.name}</h2>}
+          {current?.name && <h2 className="fk-live-pagetitle">{say(current.name)}</h2>}
         </div>
       )}
       <form
@@ -940,4 +964,38 @@ export function describeDevice() {
   if (/iPad|Tablet/i.test(ua)) return "Tablet";
   if (/Mobi|Android|iPhone/i.test(ua)) return "Phone";
   return "Desktop";
+}
+
+
+/**
+ * Answers a link carries (Pro): ?budget=5000 fills the question keyed
+ * "budget", and a hidden field takes its value from the link or its default.
+ * A choice only takes a value that is one of its options.
+ */
+function prefilled(blocks: Block[], allowed: boolean): Record<string, Answer> {
+  if (!allowed || typeof window === "undefined") return {};
+  const params = new URLSearchParams(window.location.search);
+  const out: Record<string, Answer> = {};
+  for (const b of blocks) {
+    if (b.kind !== "field" || !b.key) continue;
+    const raw = params.get(b.key);
+    if (b.type === "hidden") {
+      const value = (raw ?? b.defaultValue ?? "").slice(0, 500);
+      if (value) out[b._id] = { value };
+      continue;
+    }
+    if (!raw) continue;
+    const options = b.type === "yes-no" ? ["Yes", "No"] : (b.options ?? []);
+    const match = (v: string) => options.find((o) => o.toLowerCase() === v.trim().toLowerCase());
+    if (b.type === "multi-choice") {
+      const values = raw.split(",").map(match).filter((v): v is string => !!v);
+      if (values.length) out[b._id] = { values };
+    } else if (["single-choice", "dropdown", "yes-no"].includes(b.type ?? "")) {
+      const v = match(raw);
+      if (v) out[b._id] = { value: v };
+    } else if (b.type !== "file" && b.type !== "signature") {
+      out[b._id] = { value: raw.slice(0, 2000) };
+    }
+  }
+  return out;
 }
