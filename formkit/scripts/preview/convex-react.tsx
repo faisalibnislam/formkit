@@ -48,7 +48,9 @@ export function useMutation(reference: unknown) {
     console.info("[preview] mutation", name, args);
     // The upload flow posts to whatever this returns, so it has to be a URL.
     if (name === "users:generateUploadUrl") return "/__preview_upload";
-    return null;
+    const canned = fixtureFor(`mutation:${name}`);
+    if (typeof canned === "function") return (canned as () => unknown)();
+    return canned;
   }) as never;
 }
 

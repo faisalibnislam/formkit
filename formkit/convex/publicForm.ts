@@ -5,6 +5,7 @@ import { mutation, query, type MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { closedReason, notifyResponse, tellFormTeam } from "./model/inbox";
 import { queueReply } from "./model/aiReply";
+import { markAll, marked } from "./model/quiz";
 import { Doc, Id } from "./_generated/dataModel";
 import { QueryCtx } from "./_generated/server";
 import { brandOf, shouldAutoClose, themeLogos } from "./model/forms";
@@ -108,6 +109,15 @@ async function resolve(
 }
 
 
+/** A quiz shortly over its time is still accepted, marked late, for slow networks. */
+const LATE_GRACE_MS = 60_000;
+
+/** The form's quiz settings, when it is a quiz and the owner's plan has quizzes. */
+async function quizOf(ctx: QueryCtx | MutationCtx, form: Doc<"forms">) {
+  if (!form.quiz?.enabled) return null;
+  return (await hasFeature(ctx, form.ownerId, "quiz")) ? form.quiz : null;
+}
+
 function publicCondition<C extends { source?: string; value?: string }>(c: C): C {
   return c.source === "ai" ? { ...c, value: undefined } : c;
 }
@@ -136,6 +146,17 @@ async function payload(ctx: QueryCtx, form: Doc<"forms">) {
   // Several endings, hidden options and limited places are Pro.
   const advanced = await hasFeature(ctx, form.ownerId, "logic.advanced");
   const taken = advanced ? await placesTaken(ctx, form._id, blocks) : new Map<string, number[]>();
+  const quiz = await quizOf(ctx, form);
+  const quizPublic = quiz
+    ? {
+        timeLimit: quiz.timeLimit ?? null,
+        shuffleQuestions: !!quiz.shuffleQuestions,
+        shuffleOptions: !!quiz.shuffleOptions,
+        results: quiz.results,
+        passMark: quiz.passMark ?? null,
+        oneAttempt: !!quiz.oneAttempt,
+      }
+    : null;
 
   return {
     state: "open" as const,
@@ -183,7 +204,11 @@ async function payload(ctx: QueryCtx, form: Doc<"forms">) {
       /** Places left per option; null where an option has no limit. */
       left: advanced ? placesLeft(b, taken) : null,
       extract: smart.ai && b.extract ? { from: b.extract.from } : null,
+      /** Quiz: what the question is worth, when it counts. */
+      marks: quiz && marked(b) ? (b.marks ?? 1) : null,
     })),
+    /** Business: the quiz's settings the form itself needs — never the answers. */
+    quiz: quizPublic,
     /** Business: an AI-written reply follows, and where it goes. */
     aiReply:
       form.aiReply?.enabled && (await hasFeature(ctx, form.ownerId, "ai.reply"))
@@ -256,6 +281,31 @@ export const preview = query({
       status: form.status,
       url: await formUrl(ctx, form),
     };
+  },
+});
+
+/**
+ * Business: starting a timed quiz. The server keeps the start time, so the
+ * limit holds however the browser's clock is set; a late send is marked late.
+ */
+export const startQuiz = mutation({
+  args: { formId: v.id("forms"), deviceId: v.optional(v.string()) },
+  returns: v.object({ attemptId: v.id("quizAttempts"), startedAt: v.number(), endsAt: v.union(v.number(), v.null()) }),
+  handler: async (ctx, { formId, deviceId }) => {
+    const form = await ctx.db.get(formId);
+    if (!form || form.status !== "published") throw new ConvexError("That quiz is not open.");
+    const quiz = await quizOf(ctx, form);
+    if (!quiz) throw new ConvexError("That form is not a quiz.");
+    if (quiz.oneAttempt && deviceId) {
+      const done = await ctx.db
+        .query("responses")
+        .withIndex("by_form_device", (q) => q.eq("formId", formId).eq("deviceId", deviceId))
+        .collect();
+      if (done.some((r) => !r.partial && !r.preview)) throw new ConvexError("You’ve already taken this quiz — it allows one attempt.");
+    }
+    const startedAt = Date.now();
+    const attemptId = await ctx.db.insert("quizAttempts", { formId, startedAt, deviceId });
+    return { attemptId, startedAt, endsAt: quiz.timeLimit ? startedAt + quiz.timeLimit * 60_000 : null };
   },
 });
 
@@ -354,6 +404,8 @@ async function store(
     durationMs?: number;
     deviceId?: string;
     ending?: string;
+    attemptId?: Id<"quizAttempts">;
+    timedOut?: boolean;
     answers: AnswerIn[];
   },
   existing: Doc<"responses"> | null,
@@ -426,11 +478,29 @@ async function store(
       : !args.partial && !preview
         ? await owed(ctx, form, calc)
         : null;
-  const full = payment ? { ...withCalc, payment } : withCalc;
+  const withPay = payment ? { ...withCalc, payment } : withCalc;
+  // Business: a quiz is marked as it arrives; written answers wait for the owner.
+  const quizOn = !args.partial ? await quizOf(ctx, form) : null;
+  const attempt = quizOn && args.attemptId ? await ctx.db.get(args.attemptId) : null;
+  const full = quizOn
+    ? {
+        ...withPay,
+        quiz: {
+          ...markAll(blocks, answers, quizOn.passMark),
+          ...(attempt && attempt.formId === form._id ? { startedAt: attempt.startedAt } : {}),
+          timedOut: args.timedOut || undefined,
+          late:
+            attempt && quizOn.timeLimit && Date.now() > attempt.startedAt + quizOn.timeLimit * 60_000 + LATE_GRACE_MS
+              ? true
+              : undefined,
+        },
+      }
+    : withPay;
 
   const responseId = existing
     ? (await ctx.db.replace(existing._id, full), existing._id)
     : await ctx.db.insert("responses", full);
+  if (attempt && !attempt.responseId) await ctx.db.patch(attempt._id, { responseId });
 
   await ctx.runMutation(internal.responses.recount, { formId: form._id });
 
@@ -456,6 +526,10 @@ async function store(
     if (saved && after) await notifyResponse(ctx, after, saved);
     // Business: the AI reply is queued first, so the confirmation knows to wait for it.
     if (!existing?.aiReply) await queueReply(ctx, form, responseId);
+    // Instant quiz results go out by email as soon as the mark is in.
+    if (quizOn?.results === "instant" && quizOn.emailResults && "quiz" in full && !full.quiz.pending) {
+      await ctx.scheduler.runAfter(0, internal.quiz.emailResult, { responseId });
+    }
     await ctx.scheduler.runAfter(0, internal.notifications.onResponse, { responseId });
     await ctx.scheduler.runAfter(0, internal.connections.fanout, { responseId });
   }
@@ -483,6 +557,9 @@ export const submit = mutation({
     human: v.optional(v.boolean()),
     /** The ending the person's answers led to, when it was not the default. */
     ending: v.optional(v.string()),
+    /** Quiz: the attempt started when the timer began, and whether it ran out. */
+    attemptId: v.optional(v.id("quizAttempts")),
+    timedOut: v.optional(v.boolean()),
     answers: v.array(answerArg),
   },
   returns: v.object({ responseId: v.id("responses"), resumeToken: v.string(), pay: v.boolean() }),
@@ -573,6 +650,23 @@ export const submit = mutation({
             ((args.deviceId && r.deviceId === args.deviceId) || (email && r.respondentEmail === email)),
         );
         if (again) throw new ConvexError("You have already answered this form. Thank you.");
+      }
+
+      // Business: a quiz taken once per person — by device and by email.
+      const quiz = await quizOf(ctx, form);
+      if (quiz && existing && !existing.partial) throw new ConvexError("Answers to a quiz can’t be changed once sent.");
+      if (quiz?.oneAttempt && !existing) {
+        const before = await ctx.db
+          .query("responses")
+          .withIndex("by_form", (q) => q.eq("formId", form._id))
+          .collect();
+        const again = before.some(
+          (r) =>
+            !r.partial &&
+            !r.preview &&
+            ((args.deviceId && r.deviceId === args.deviceId) || (email && r.respondentEmail === email)),
+        );
+        if (again) throw new ConvexError("You’ve already taken this quiz — it allows one attempt.");
       }
     }
 

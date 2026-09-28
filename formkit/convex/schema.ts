@@ -278,6 +278,29 @@ export default defineSchema({
         }),
       ),
     ),
+    /** Business: the form is a quiz or exam, marked as it is sent. See convex/quiz.ts. */
+    quiz: v.optional(
+      v.object({
+        enabled: v.boolean(),
+        /** Minutes from starting to an automatic send; none means no timer. */
+        timeLimit: v.optional(v.number()),
+        /** Percent needed to pass; none means no pass or fail. */
+        passMark: v.optional(v.number()),
+        shuffleQuestions: v.optional(v.boolean()),
+        shuffleOptions: v.optional(v.boolean()),
+        /** One attempt per email address and device. */
+        oneAttempt: v.optional(v.boolean()),
+        /** Results on the thank-you screen, or held until the owner releases them. */
+        results: v.union(v.literal("instant"), v.literal("later")),
+        /** Show which answers were right in the results. */
+        showAnswers: v.optional(v.boolean()),
+        /** Email people their results when they're out. */
+        emailResults: v.optional(v.boolean()),
+        /** When held results were released, or are due to be. */
+        releasedAt: v.optional(v.number()),
+        releaseAt: v.optional(v.number()),
+      }),
+    ),
     /**
      * Business: a reply written by AI for each person who answers, from the
      * owner's instructions and their answers. See convex/aiReply.ts.
@@ -366,6 +389,10 @@ export default defineSchema({
     key: v.optional(v.string()),
     /** Pro: points for each option, in the same order as `options`. */
     scores: v.optional(v.array(v.number())),
+    /** Quiz: the right answer(s) — options, or accepted typed answers. */
+    answerKey: v.optional(v.array(v.string())),
+    /** Quiz: what the question is worth; 1 when not set. */
+    marks: v.optional(v.number()),
     /** A hidden field's value when the link does not carry one. */
     defaultValue: v.optional(v.string()),
     /** Pro: how many people can pick each option, in the same order as `options`; 0 is no limit. */
@@ -394,6 +421,14 @@ export default defineSchema({
     .index("by_key", ["formId", "key"])
     .index("by_form_at", ["formId", "at"])
     .index("by_at", ["at"]),
+
+  /** Business: a quiz started, so the timer is kept by the server, not the browser. */
+  quizAttempts: defineTable({
+    formId: v.id("forms"),
+    startedAt: v.number(),
+    deviceId: v.optional(v.string()),
+    responseId: v.optional(v.id("responses")),
+  }).index("by_form", ["formId", "startedAt"]),
 
   /** Business: the AI's written report on a form's responses, kept until asked again. */
   aiReports: defineTable({
@@ -467,6 +502,32 @@ export default defineSchema({
     calc: v.optional(v.record(v.string(), v.number())),
     /** Which ending the person saw, when it was not the default. */
     ending: v.optional(v.string()),
+    /** Business: the mark, when the form is a quiz. */
+    quiz: v.optional(
+      v.object({
+        score: v.number(),
+        max: v.number(),
+        percent: v.number(),
+        passed: v.optional(v.boolean()),
+        /** Per question: marks given, marks possible, and whether a person still has to mark it. */
+        marks: v.array(
+          v.object({
+            blockId: v.id("blocks"),
+            got: v.number(),
+            max: v.number(),
+            manual: v.optional(v.boolean()),
+          }),
+        ),
+        /** Questions still waiting for the owner to mark. */
+        pending: v.number(),
+        startedAt: v.optional(v.number()),
+        /** Sent by the timer running out. */
+        timedOut: v.optional(v.boolean()),
+        /** Sent after the time allowed, beyond a short grace. */
+        late: v.optional(v.boolean()),
+        emailedAt: v.optional(v.number()),
+      }),
+    ),
     /** Business: the AI-written reply to this response, and where it went. */
     aiReply: v.optional(
       v.object({

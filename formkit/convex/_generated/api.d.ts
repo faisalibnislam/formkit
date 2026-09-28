@@ -57,6 +57,7 @@ import type * as model_logicOps from "../model/logicOps.js";
 import type * as model_money from "../model/money.js";
 import type * as model_places from "../model/places.js";
 import type * as model_plans from "../model/plans.js";
+import type * as model_quiz from "../model/quiz.js";
 import type * as model_security from "../model/security.js";
 import type * as model_sheet from "../model/sheet.js";
 import type * as model_team from "../model/team.js";
@@ -66,6 +67,7 @@ import type * as notifications from "../notifications.js";
 import type * as payments from "../payments.js";
 import type * as presence from "../presence.js";
 import type * as publicForm from "../publicForm.js";
+import type * as quiz from "../quiz.js";
 import type * as responses from "../responses.js";
 import type * as restApi from "../restApi.js";
 import type * as revenue from "../revenue.js";
@@ -134,6 +136,7 @@ declare const fullApi: ApiFromModules<{
   "model/money": typeof model_money,
   "model/places": typeof model_places,
   "model/plans": typeof model_plans,
+  "model/quiz": typeof model_quiz,
   "model/security": typeof model_security,
   "model/sheet": typeof model_sheet,
   "model/team": typeof model_team,
@@ -143,6 +146,7 @@ declare const fullApi: ApiFromModules<{
   "payments": typeof payments,
   "presence": typeof presence,
   "publicForm": typeof publicForm,
+  "quiz": typeof quiz,
   "responses": typeof responses,
   "restApi": typeof restApi,
   "revenue": typeof revenue,

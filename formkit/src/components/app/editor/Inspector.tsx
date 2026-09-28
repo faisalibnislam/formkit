@@ -4,6 +4,7 @@ import { conditionsOf } from "../../../../convex/model/logicEval";
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
+import { useSeededQuery } from "@/lib/seed";
 import {
   Asterisk,
   CornerDownRight,
@@ -489,6 +490,8 @@ export function FieldSettings({
         </div>
       )}
 
+      {block.type !== "hidden" && <QuizKey block={block} />}
+
       <div style={{ marginTop: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
           <GitBranch size={16} strokeWidth={1.8} aria-hidden />
@@ -694,6 +697,83 @@ function FillWithAi({ block, fields }: { block: Block; fields: Block[] }) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Business, on a quiz: the right answer to this question and what it is
+ * worth. Questions without a key — a written answer — are marked by hand.
+ */
+function QuizKey({ block }: { block: Block }) {
+  const toast = useToast();
+  const form = useSeededQuery(api.forms.get, { formId: block.formId });
+  const update = useMutation(api.blocks.update);
+  if (!form?.quiz?.enabled) return null;
+
+  const save = async (patch: { answerKey?: string[]; marks?: number }) => {
+    try {
+      await tracked(update({ blockId: block._id, patch }));
+    } catch (e) {
+      if (!upgradeOnPlanError(e)) toast(errorText(e, "That did not save."));
+    }
+  };
+  const key = block.answerKey ?? [];
+  const options = block.type === "yes-no" ? ["Yes", "No"] : (block.options ?? []);
+  const choice = ["single-choice", "dropdown", "yes-no", "multi-choice"].includes(block.type ?? "");
+  const typed = ["short-text", "number", "email", "phone", "date", "name", "company"].includes(block.type ?? "");
+
+  return (
+    <div className="fk-proprow" data-stack="true" style={{ marginTop: 6 }}>
+      <div style={{ fontSize: 14, marginBottom: 8 }}>Quiz</div>
+      {choice ? (
+        <>
+          <div className="fk-proprow-hint" style={{ margin: "0 0 8px" }}>
+            {block.type === "multi-choice" ? "Pick every right option — all of them, and only them, score." : "Pick the right answer."}
+          </div>
+          <span className="fk-optpicks">
+            {options.map((o) => {
+              const on = key.includes(o);
+              return (
+                <button
+                  key={o}
+                  type="button"
+                  className="fk-optpick"
+                  aria-pressed={on}
+                  onClick={() =>
+                    void save({
+                      answerKey:
+                        block.type === "multi-choice" ? (on ? key.filter((k) => k !== o) : [...key, o]) : on ? [] : [o],
+                    })
+                  }
+                >
+                  {o}
+                </button>
+              );
+            })}
+          </span>
+        </>
+      ) : typed ? (
+        <DraftPill
+          value={key.join(" | ")}
+          placeholder="Accepted answers, separated by |"
+          onCommit={(v) => void save({ answerKey: v.split("|").map((x) => x.trim()).filter(Boolean) })}
+        />
+      ) : (
+        <div className="fk-proprow-hint" style={{ margin: 0 }}>
+          Marked by hand: open a response under Responses to give it marks.
+        </div>
+      )}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
+        <span style={{ flex: 1, fontSize: 13.5 }}>Marks</span>
+        <DraftPill
+          value={block.marks !== undefined ? String(block.marks) : key.length ? "1" : ""}
+          placeholder={choice || typed ? "1" : "0 — not marked"}
+          inputMode="decimal"
+          wrapStyle={{ width: 110 }}
+          onCommit={(v) => void save({ marks: v.trim() === "" ? (choice || typed ? 1 : 0) : Math.max(0, Number(v) || 0) })}
+        />
+      </div>
     </div>
   );
 }

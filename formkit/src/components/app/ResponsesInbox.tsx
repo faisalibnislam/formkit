@@ -1,6 +1,7 @@
 "use client";
 
 import { AiReplyPanel } from "./AiReplyPanel";
+import { QuizMarks } from "./QuizMarks";
 import { useSeededQuery } from "@/lib/seed";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -804,6 +805,12 @@ function ResponseDrawer({
       )}
 
       <TagEditor responseId={response._id} tags={response.tags} />
+
+      <QuizMarks
+        responseId={response._id}
+        quiz={response.quiz}
+        titles={new Map((form?.blocks ?? []).map((b) => [b._id as string, b.title ?? "Question"]))}
+      />
 
       <AiReplyPanel
         responseId={response._id}

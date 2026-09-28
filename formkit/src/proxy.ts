@@ -77,7 +77,7 @@ async function customDomain(request: NextRequest) {
     return NextResponse.redirect(new URL(`/${found.handle}${path === "/" ? "" : path}`, MAIN));
   }
   if (path === "/") return NextResponse.rewrite(new URL(`/domain/${host}`, request.url));
-  if (path.startsWith("/r/")) return NextResponse.next();
+  if (path.startsWith("/r/") || path.startsWith("/q/")) return NextResponse.next();
   const parts = path.split("/").filter(Boolean);
   if (parts.length === 1) return NextResponse.rewrite(new URL(`/${found.handle}/${parts[0]}${request.nextUrl.search}`, request.url));
   return NextResponse.redirect(new URL(path, MAIN));

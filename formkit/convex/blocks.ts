@@ -29,6 +29,8 @@ const blockFields = {
   scores: v.optional(v.array(v.number())),
   defaultValue: v.optional(v.string()),
   limits: v.optional(v.array(v.number())),
+  answerKey: v.optional(v.array(v.string())),
+  marks: v.optional(v.number()),
   extract: v.optional(v.union(v.object({ from: v.id("blocks"), what: v.string() }), v.null())),
 };
 
@@ -120,6 +122,14 @@ export const update = mutation({
     if (patch.type === "hidden" && block.type !== "hidden") await requireFeature(ctx, form.ownerId, "logic.hidden");
     if (patch.scores?.some((n) => n !== 0)) await requireFeature(ctx, form.ownerId, "logic.calc");
     if (patch.limits?.some((n) => n > 0)) await requireFeature(ctx, form.ownerId, "logic.advanced");
+    if (patch.answerKey?.length || patch.marks !== undefined) {
+      await requireFeature(ctx, form.ownerId, "quiz");
+      patch = {
+        ...patch,
+        ...(patch.answerKey ? { answerKey: patch.answerKey.map((a) => a.trim().slice(0, 200)).filter(Boolean).slice(0, 20) } : {}),
+        ...(patch.marks !== undefined ? { marks: Math.max(0, Math.min(1000, Math.round(patch.marks * 10) / 10)) } : {}),
+      };
+    }
     if (patch.extract) {
       await requireFeature(ctx, form.ownerId, "logic.ai");
       if ((patch.type ?? block.type) !== "hidden") throw new ConvexError("Only a hidden field can be filled in by AI.");

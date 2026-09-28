@@ -118,6 +118,24 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "title": "Show or hide a question",
         "summary": "Conditional questions that appear only when they are relevant.",
         "body": "A show rule keeps a question hidden until its condition is met; a hide rule does the opposite. Use show for follow-ups — \"You said other; what was it?\" — and hide for questions that stop applying.\n## Behaviour on the page\nHidden questions are not rendered at all, so they do not leave a gap, and they never count towards required validation while hidden.\n## In the responses\nA question somebody never saw is recorded as blank rather than skipped, and the responses table shows an em dash in that column.\n## Keep it shallow\nTwo levels of conditional depth is usually the limit before a form becomes hard to reason about. Beyond that, a page break and a skip rule is clearer."
+      },
+      {
+        "id": "logic-groups",
+        "title": "Groups, comparisons and endings",
+        "summary": "“(This and that) or something else”, several endings, hidden options and limited places.",
+        "body": "A rule can hold more than one group of conditions. Each group joins its own conditions with AND or OR, and the groups are joined the same way — so “(budget over £20k and a company email) or they asked for a call” is one rule. Select Add a group under a rule's conditions.\n## Comparisons\nThe comparisons follow the question: choice questions offer is, is not, is any of and is none of; numbers offer at least, at most and between; dates offer on, before, after and between; text offers contains, starts with, ends with, email domain and a pattern. A condition can also read a calculation's result.\n## Several endings\nUnder Endings, add a different last screen — one for people who qualify and one for those who don't — and finish on it with a rule's End with. Each ending can have its own button, or send people straight to a page.\n## Hiding options\nHide options on removes some of a choice question's options when the rule holds, and any it hides are un-picked.\n## Limited places\nIn a choice question's settings, turn on Limit places and type how many people can pick each option — seats, slots or tickets. A full option can't be picked, and the form shows how many places are left.\n> Groups and the new comparisons are on every plan. Several endings, hiding options and limited places are part of Pro."
+      },
+      {
+        "id": "logic-map",
+        "title": "The logic map and tester",
+        "summary": "See every rule at once, catch mistakes, and try your answers.",
+        "body": "At the top of the Logic tab, How it flows shows your pages in order, what each rule does to which question, where people can skip to and where they can end.\n## Checks\nUnderneath, Formkit lists anything that looks wrong: a rule reading a deleted question, a condition with no value, a jump that goes backwards, a rule that reads an answer given after the question it affects, options all hidden, or an ending no rule leads to.\n## Try it\nSwitch to Try it and pick answers. It runs the same rules the live form runs and shows the pages people see, the ones they skip, what is hidden or required, and which ending they reach."
+      },
+      {
+        "id": "logic-ai",
+        "title": "AI in your logic",
+        "summary": "Describe a rule in plain words, let the AI decide, or pull facts out of answers.",
+        "body": "## Describe a rule\nAt the top of the Logic tab, say what should happen in your own words — “if the budget is over £20k and they found us on Instagram, skip to the call page”. The AI writes the rules against your questions, and you add the ones you want. Nothing is saved until you do. On every plan.\n## AI decides\nA condition can ask the AI a yes-or-no question about an answer — “does this mention a deadline?” or “does this sound unhappy?”. The form asks when that answer's page is finished. Choose what to assume until it answers: if the AI can't answer, or your checks run out, the form goes on with that.\n## Pull a fact into a hidden field\nIn a hidden field's settings, turn on Fill it in with AI, pick the answer it reads and say what to pull out — “their budget in pounds, as a number”. The value is saved with the response and can drive rules and calculations.\n## The allowance\nAI decisions and facts use AI logic checks: 1,000 a month on Business, shown under Settings → Plan. The same answer is never checked twice.\n> Describing a rule is on every plan. AI decisions and facts are part of Business."
       }
     ]
   },
@@ -345,7 +363,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "id": "plans-overview",
         "title": "Free, Pro and Business",
         "summary": "What each plan includes, and how a form decides which features it has.",
-        "body": "Formkit has three plans. Free is the whole product for one person, with no time limit; Pro and Business add to it.\n## Free\nUnlimited forms and responses, every question type, pages and logic, themes, your own formkit.app link, embedding, notifications and confirmation emails, partial responses, drop-off by question, CSV export, three collaborators on each form, one company, 20 MB uploads, 30 days of version history and 5 Ask Formkit credits a month.\n## Pro — $3 a month, or $35 a year\nEverything in Free, plus your own domain, no “Made with Formkit”, emails from your own domain, custom fonts and CSS, where people come from and their devices, calculations, hidden fields, answer piping and redirects, webhooks, Zapier, Make, Slack and Google Sheets, payments with your own Stripe, Excel export, unlimited collaborators, up to five companies, 150 MB uploads, a year of version history and 50 AI credits.\n## Business — $10 a month, or $99 a year\nEverything in Pro, plus a team with unlimited seats, unlimited companies and brands, shared templates, approval before publishing, an audit log, data retention rules, API access, sign-in with your company’s Google or Microsoft, priority support, 250 MB uploads, all of your version history and 200 AI credits.\n## Whose plan counts\nA form uses its owner’s plan. If a Pro owner invites you to their form, you work on it with Pro features, whatever plan you are on yourself.\n> Features that are not on your plan still show in the app, with a small Pro or Business label. Select it to see what it does and upgrade."
+        "body": "Formkit has three plans. Free is the whole product for one person, with no time limit; Pro and Business add to it.\n## Free\nUnlimited forms and responses, every question type, pages and logic, themes, your own formkit.app link, embedding, notifications and confirmation emails, partial responses, drop-off by question, CSV export, three collaborators on each form, one company, 20 MB uploads, 30 days of version history and 5 Ask Formkit credits a month.\n## Pro — $3 a month, or $35 a year\nEverything in Free, plus your own domain, no “Made with Formkit”, emails from your own domain, custom fonts and CSS, where people come from and their devices, calculations, hidden fields, answer piping and redirects, several endings, hidden options and limited places, webhooks, Zapier, Make, Slack and Google Sheets, payments with your own Stripe, Excel export, unlimited collaborators, up to five companies, 150 MB uploads, a year of version history and 50 AI credits.\n## Business — $10 a month, or $99 a year\nEverything in Pro, plus AI replies to every response (30 a month, then $5 for 100 more that roll over), AI insights, AI logic that reads answers (1,000 checks a month), quizzes and exams, a team with unlimited seats, unlimited companies and brands, shared templates, approval before publishing, an audit log, data retention rules, API access, sign-in with your company’s Google or Microsoft, priority support, 250 MB uploads, all of your version history and 200 AI credits.\n## Whose plan counts\nA form uses its owner’s plan. If a Pro owner invites you to their form, you work on it with Pro features, whatever plan you are on yourself.\n> Features that are not on your plan still show in the app, with a small Pro or Business label. Select it to see what it does and upgrade."
       },
       {
         "id": "billing",
@@ -390,6 +408,44 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "title": "Quote answers, and send people on",
         "summary": "“Thanks {{name}}” — and a page of yours after.",
         "body": "Once a question has a key, write {{key}} in any later question, help text, page name, the welcome screen or the thank-you screen, and it is replaced with the person's answer.\n## Redirecting after\nIn Settings → Submission, a redirect address sends people straight to a page of yours when they finish. Keys work there too: https://acme.com/thanks?name={{name}}.\n> Answer piping and redirects are part of Pro."
+      }
+    ]
+  },
+  {
+    "id": "ai-business",
+    "name": "AI replies, insights and quizzes",
+    "icon": "sparkles",
+    "desc": "Business: a reply written for everyone who answers, what the AI reads in your responses, and quizzes and exams.",
+    "articles": [
+      {
+        "id": "ai-replies",
+        "title": "AI replies to every response",
+        "summary": "A personal reply for each person who answers — on the form, by email, or both.",
+        "body": "Open a form's Settings → AI reply and turn on Write a reply to every response.\n## Your instructions\nTell the AI what the reply should do, as you would brief a colleague: who it is from, what to look at in their answers, what to offer. Start from an example if you like. Add background it may use — your services, prices, links, answers to common questions. It never makes these up; it only uses what you give it.\n## Where it goes\n- On the form: the reply appears on the thank-you screen as soon as it's written.\n- By email: sent to the address they gave, in place of your usual confirmation.\n- Both.\n## The email\nPlain text, or your branded template with the form's logo and colour. Set the sender name, a subject (or let the AI write one) and a signature. It comes from your own address when you've set one up under Settings → Email.\n## Try it\nWrite a sample reply to your latest response before turning it on. Nothing is sent.\n## In your responses\nEach response shows the reply, whether it was emailed and whether the person found it helpful. Edit it, send it again, or write it again if it failed.\n> AI replies are part of Business."
+      },
+      {
+        "id": "ai-replies-allowance",
+        "title": "How many AI replies you get",
+        "summary": "30 a month on Business, then $5 for 100 more that roll over.",
+        "body": "Business includes 30 AI replies a month, reset on the first. Settings → Plan shows how many you've used.\n## Adding more\nSelect Buy for $5 under Settings → Plan to add 100 replies. Bought replies are only used once the month's are gone, and they roll over until used.\n## When they run out\nNew responses simply get your usual confirmation email, and you're told once that month. Nothing breaks, and no one is left waiting.\n## Failed replies\nIf the AI can't write a reply, it doesn't count, and the person gets your usual confirmation instead."
+      },
+      {
+        "id": "ai-insights",
+        "title": "AI insights on your responses",
+        "summary": "How people feel, what they want, and which responses to follow up.",
+        "body": "For forms with AI replies, the AI also reads each response for its sentiment, what the person wants, the topics it touches, a lead score out of 100 by your goal, and how urgent it is.\n## Where to see it\nA form's Analytics tab gains an AI insights section: how people feel, what comes up and how promising each topic is, the most promising responses, the ones worth a personal reply, and how the replies landed.\n## The AI's report\nSelect Write a report and the AI reads across your latest responses and says what stands out — themes, opportunities, things worth watching and what to do next.\n## In exports\nExports gain Sentiment, Lead score, Urgency, AI summary and AI reply columns.\n> AI insights are part of Business."
+      },
+      {
+        "id": "quizzes",
+        "title": "Quizzes and exams",
+        "summary": "Right answers, marks, a timer and results — straight away or released later.",
+        "body": "Open a form's Settings → Quiz and turn on This form is a quiz.\n## Right answers and marks\nIn Build, each question gains a Quiz section. Pick the right option (or every right option on a multiple-choice question), or type accepted answers separated by |. Set what it's worth. Written answers and uploads have no key: you mark them by hand.\n## The timer\nSet a time limit and a countdown shows from the moment people start. At zero the quiz sends itself with whatever is answered. The clock is kept by Formkit, not the person's browser.\n## Fair attempts\nShuffle the questions on each page, and the options of choice questions, into each person's own order. One attempt each allows one go per device and email address.\n## Pass mark\nSet a percentage and results say Pass or Not a pass.\n> Quizzes are part of Business."
+      },
+      {
+        "id": "quiz-results",
+        "title": "Marking and releasing results",
+        "summary": "Mark written answers, then show results straight away or when you're ready.",
+        "body": "## Results straight away\nPeople see their mark on the thank-you screen — with each question and the right answer, if you turn on Show the right answers — and get a link to their results page.\n## Results later\nFor exams you mark first, choose Later. People are told their results are coming. Release them from Settings → Quiz with Release results now, or set a time and they go out on their own.\n## Marking by hand\nOpen a response under Responses. The Quiz section lists every question with its marks; type a mark for anything waiting, or change an automatic one. Settings → Quiz shows how many are waiting.\n## Emailing results\nTurn on Email people their results and everyone with an email answer gets a link to their results once they're out and fully marked.\n## The numbers\nSettings → Quiz shows the average, the pass rate, the spread of scores and how many got each question right. Exports gain Score, Out of, Percent, Result and To mark columns."
       }
     ]
   },

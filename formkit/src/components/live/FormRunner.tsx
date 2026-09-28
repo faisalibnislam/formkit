@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
-import { ArrowLeft, Check, CornerDownLeft, CreditCard, Lock, Paperclip } from "lucide-react";
+import { ArrowLeft, Check, Clock3, CornerDownLeft, CreditCard, Lock, Paperclip } from "lucide-react";
 import type { Id } from "../../../convex/_generated/dataModel";
 import {
   cleanCss,
@@ -14,6 +14,7 @@ import {
 import { fontStack, loadFont } from "@/components/app/editor/fonts";
 import { computeAll, pipe, pipeValues } from "../../../convex/model/calc";
 import { LiveReply } from "./LiveReply";
+import { QuizResult } from "./QuizResult";
 import { applyLogic, conditionsOf, type Rule as LogicRule } from "../../../convex/model/logicEval";
 import { LogoLockup } from "./LogoLockup";
 
@@ -53,6 +54,8 @@ export type Block = {
   left?: (number | null)[] | null;
   /** Business: a hidden field AI fills from another answer. */
   extract?: { from: Id<"blocks"> } | null;
+  /** Quiz: what the question is worth, when it counts. */
+  marks?: number | null;
 };
 
 type Rule = LogicRule;
@@ -70,7 +73,18 @@ export type Ending = {
 
 export type Answer = { value?: string; values?: string[]; fileId?: Id<"_storage">; fileName?: string };
 
+/** Business: the quiz settings the form itself needs. */
+export type QuizSettings = {
+  timeLimit: number | null;
+  shuffleQuestions: boolean;
+  shuffleOptions: boolean;
+  results: "instant" | "later";
+  passMark: number | null;
+  oneAttempt: boolean;
+};
+
 export type OpenForm = {
+  quiz?: QuizSettings | null;
   aiReply?: { delivery: "form" | "email" | "both" } | null;
   formId: Id<"forms">;
   title: string;
@@ -112,8 +126,21 @@ export type SubmitArgs = {
   device?: string;
   /** The ending the answers led to, when it was not the default. */
   ending?: string;
+  /** Quiz: the attempt the timer belongs to, and whether time ran out. */
+  attemptId?: Id<"quizAttempts">;
+  timedOut?: boolean;
   answers: ({ blockId: Id<"blocks"> } & Answer)[];
 };
+
+/** The same list in an order fixed by the seed: each person's own, but steady. */
+function shuffled<T>(list: T[], seed: number, key: (x: T) => string): T[] {
+  const hash = (s: string) => {
+    let h = seed >>> 0;
+    for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 2654435761) >>> 0;
+    return h;
+  };
+  return [...list].sort((a, b) => hash(key(a)) - hash(key(b)));
+}
 
 /** Clock reads live out here, where they are not part of a render. */
 const now = () => Date.now();
@@ -130,6 +157,7 @@ export function FormRunner({
   onPay,
   onStart,
   onThink,
+  onStartQuiz,
   upload,
   scrollRoot,
 }: {
@@ -143,6 +171,8 @@ export function FormRunner({
   /** Opens the payment page for a response that owes one; the live form only. */
   onPay?: (r: { responseId: Id<"responses">; resumeToken: string }) => Promise<{ url: string } | { paid: true } | null>;
   onStart?: () => void;
+  /** Business: starts a quiz attempt on the server, which keeps its clock. The live form only. */
+  onStartQuiz?: () => Promise<{ attemptId: Id<"quizAttempts">; startedAt: number; endsAt: number | null }>;
   /** Business: asks the AI about answers when a page is finished. The live form only. */
   onThink?: (a: {
     checks: string[];
@@ -201,6 +231,14 @@ export function FormRunner({
   const [thinking, setThinking] = useState(false);
   // The answer each AI condition or hidden field was last asked about.
   const askedWith = useRef<Record<string, string>>({});
+
+  /* ---------- quiz: attempt, clock and shuffling (Business) ---------- */
+  const quiz = data.quiz ?? null;
+  const [attempt, setAttempt] = useState<{ attemptId?: Id<"quizAttempts">; endsAt: number | null } | null>(null);
+  const [quizBlocked, setQuizBlocked] = useState<string | null>(null);
+  const [clock, setClock] = useState(() => now());
+  // One order per person, kept for the whole attempt.
+  const [seed] = useState(() => Math.floor(Math.random() * 2 ** 31));
   const types = useMemo(() => Object.fromEntries(blocks.map((b) => [b._id as string, b.type])), [blocks]);
   const outcome = useMemo(
     () => applyLogic(data.logic, { answers, calc: results, ai: judged, types }),
@@ -223,6 +261,43 @@ export function FormRunner({
     return next;
   }, [answers, hiddenOptions]);
 
+  // A quiz with a timer or one attempt starts an attempt once the person starts.
+  const timeUp = useRef<() => void>(() => {});
+  useEffect(() => {
+    if (!quiz || !started || attempt || done || resume || !(quiz.timeLimit || quiz.oneAttempt)) return;
+    let live = true;
+    const begin = async () => {
+      if (mode !== "live" || !onStartQuiz) {
+        if (live) setAttempt({ endsAt: quiz.timeLimit ? now() + quiz.timeLimit * 60_000 : null });
+        return;
+      }
+      try {
+        const a = await onStartQuiz();
+        if (live) setAttempt({ attemptId: a.attemptId, endsAt: a.endsAt });
+      } catch (e) {
+        const d = (e as { data?: unknown }).data;
+        if (live) setQuizBlocked(typeof d === "string" ? d : "This quiz can’t be started right now.");
+      }
+    };
+    void begin();
+    return () => {
+      live = false;
+    };
+  }, [quiz, started, attempt, done, resume, mode, onStartQuiz]);
+  // The clock ticks while the quiz is open; at zero it sends itself.
+  useEffect(() => {
+    const endsAt = attempt?.endsAt;
+    if (!endsAt || done) return;
+    const t = window.setInterval(() => {
+      setClock(now());
+      if (now() >= endsAt) {
+        window.clearInterval(t);
+        timeUp.current();
+      }
+    }, 1000);
+    return () => window.clearInterval(t);
+  }, [attempt?.endsAt, done]);
+
   /* ---------- pages, and the questions in order ---------- */
   const pagesFor = (gone: Set<string>) => {
     const pages: { name: string; fields: Block[] }[] = [{ name: "", fields: [] }];
@@ -230,6 +305,7 @@ export function FormRunner({
       if (b.kind === "pagebreak") pages.push({ name: b.pageName ?? "", fields: [] });
       else if (b.type !== "hidden" && !gone.has(b._id)) pages[pages.length - 1]!.fields.push(b);
     }
+    if (quiz?.shuffleQuestions) for (const p of pages) p.fields = shuffled(p.fields, seed, (b) => b._id);
     return pages.filter((p) => p.fields.length > 0);
   };
   const live = pagesFor(hidden);
@@ -282,7 +358,10 @@ export function FormRunner({
     return () => window.clearTimeout(t);
   }, [done, mode, redirectTo]);
 
-  async function send(asHuman = human, over?: { answers?: Record<string, Answer>; ending?: string | null }) {
+  async function send(
+    asHuman = human,
+    over?: { answers?: Record<string, Answer>; ending?: string | null; timedOut?: boolean },
+  ) {
     const sending = over?.answers ?? kept;
     const ending = over && "ending" in over ? over.ending : outcome.ending;
     setBusy(true);
@@ -296,6 +375,8 @@ export function FormRunner({
         device: describeDevice(),
         durationMs: since(openedAt.current),
         ending: ending ?? undefined,
+        attemptId: attempt?.attemptId,
+        timedOut: over?.timedOut || undefined,
         answers: Object.entries(sending)
           .filter(([id]) => fields.some((f) => f._id === id) || hiddenFields.some((f) => f._id === id))
           .map(([blockId, a]) => ({ blockId: blockId as Id<"blocks">, ...a })),
@@ -389,6 +470,12 @@ export function FormRunner({
       setThinking(false);
     }
   }
+
+  useEffect(() => {
+    timeUp.current = () => {
+      if (!done && !busy) void send(human, { timedOut: true });
+    };
+  });
 
   async function nextPage() {
     const missing = firstMissing(current?.fields ?? []);
@@ -522,6 +609,18 @@ export function FormRunner({
     );
   }
 
+  if (quizBlocked) {
+    return (
+      <Shell theme={theme} brand={data.brand} logos={data.logos} custom={data.custom}>
+        <div style={{ textAlign: "center", paddingTop: "8vh" }}>
+          <h1>{data.title}</h1>
+          <p className="fk-live-lede">{quizBlocked}</p>
+        </div>
+        {credit}
+      </Shell>
+    );
+  }
+
   if (done) {
     const t = endingNow ?? data.thanks;
     return (
@@ -532,6 +631,12 @@ export function FormRunner({
           </span>
           <h1 style={{ marginTop: 22 }}>{say(t?.title) || "Thank you"}</h1>
           <p className="fk-live-lede">{say(t?.message) || "Your answers are in."}</p>
+          {quiz && mode === "live" && <QuizResult token={done.token} />}
+          {quiz && mode === "preview" && (
+            <p className="fk-live-note">
+              On the live form, {quiz.results === "instant" ? "their mark shows here straight away" : "people are told their results come later"}.
+            </p>
+          )}
           {data.aiReply && mode === "live" && done.responseId && (
             <LiveReply responseId={done.responseId} token={done.token} />
           )}
@@ -563,7 +668,7 @@ export function FormRunner({
                 {t.buttonLabel}
               </a>
             )}
-            {data.rules.editAfter && mode === "live" && (
+            {data.rules.editAfter && mode === "live" && !quiz && (
               <a href={`/r/${done.token}`} style={{ ...button(false), textDecoration: "none" }}>
                 Change your answers
               </a>
@@ -650,6 +755,11 @@ export function FormRunner({
             *
           </span>
         )}
+        {quiz && b.marks ? (
+          <span className="fk-live-marks">
+            {b.marks} {b.marks === 1 ? "mark" : "marks"}
+          </span>
+        ) : null}
       </div>
       {b.help && <div className="fk-live-q-help">{say(b.help)}</div>}
       <div className="fk-live-q-control">
@@ -664,6 +774,7 @@ export function FormRunner({
           onFile={(file) => attach(b, file)}
           capMb={data.uploadCapMb}
           hiddenOptions={hiddenOptions.get(b._id)}
+          shuffle={quiz?.shuffleOptions ? seed : undefined}
         />
       </div>
       {fileProblem[b._id] ? (
@@ -680,6 +791,15 @@ export function FormRunner({
     </div>
   );
 
+  const left = attempt?.endsAt ? Math.max(0, attempt.endsAt - clock) : null;
+  const timer =
+    left !== null ? (
+      <div className="fk-live-timer" data-low={left < 60_000 ? "true" : undefined} role="timer" aria-live="off">
+        <Clock3 size={15} strokeWidth={1.9} aria-hidden />
+        {Math.floor(left / 60_000)}:{String(Math.floor((left % 60_000) / 1000)).padStart(2, "0")} left
+      </div>
+    ) : null;
+
   /* ---------- one question at a time ---------- */
   if (conversational) {
     if (!cur) {
@@ -692,6 +812,7 @@ export function FormRunner({
     }
     return (
       <Shell theme={theme} brand={data.brand} logos={data.logos} custom={data.custom}>
+        {timer}
         {step === 0 && !standalone && <div style={{ marginBottom: 28 }}>{intro}</div>}
         <div className="fk-live-steplabel">
           <span>
@@ -746,6 +867,7 @@ export function FormRunner({
   /* ---------- classic: a page of questions at a time ---------- */
   return (
     <Shell theme={theme} brand={data.brand} logos={data.logos} custom={data.custom}>
+      {timer}
       {page === 0 && !standalone && intro}
       {live.length > 1 && (
         <div style={{ marginTop: page === 0 && !standalone ? 34 : 0 }}>
@@ -865,6 +987,7 @@ function Control({
   onFile,
   capMb = 10,
   hiddenOptions,
+  shuffle,
 }: {
   block: Block;
   theme: ReturnType<typeof themeOf>;
@@ -874,12 +997,15 @@ function Control({
   capMb?: number;
   /** Options a logic rule hides right now. */
   hiddenOptions?: Set<string>;
+  /** Quiz: a seed that puts the options in this person's own order. */
+  shuffle?: number;
 }) {
   const radius = Math.min(theme.radius, 24);
   // The options on offer: minus any a rule hides, each with its places left.
-  const offered = (block.options ?? [])
+  const listed = (block.options ?? [])
     .map((o, i) => ({ o, left: block.left?.[i] ?? null }))
     .filter((x) => !hiddenOptions?.has(x.o));
+  const offered = shuffle === undefined ? listed : shuffled(listed, shuffle + block._id.length, (x) => `${block._id}${x.o}`);
   const placeNote = (left: number | null) =>
     left === null ? null : left <= 0 ? "Full" : left === 1 ? "1 place left" : `${left} places left`;
   const box: React.CSSProperties = {

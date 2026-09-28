@@ -124,6 +124,8 @@ export const FEATURES = {
   "ai.reply": { plan: "business", label: "AI-written replies to every submission", group: "AI" },
   "ai.insights": { plan: "business", label: "AI insights on your submissions", group: "AI" },
   "logic.ai": { plan: "business", label: "AI decides: logic that reads answers, and facts pulled from them", group: "AI" },
+  // Business — quizzes
+  quiz: { plan: "business", label: "Quizzes and exams: marking, a timer and results", group: "Smarter forms" },
 } as const satisfies Record<string, { plan: Exclude<PlanId, "free">; label: string; group: string }>;
 
 export type Feature = keyof typeof FEATURES;

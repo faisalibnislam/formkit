@@ -116,6 +116,19 @@ async function shape(ctx: QueryCtx, r: Doc<"responses">, formTitle: string) {
         }
       : null,
     insight: r.insight ?? null,
+    /** Business: the quiz mark, when the form is a quiz. */
+    quiz: r.quiz
+      ? {
+          score: r.quiz.score,
+          max: r.quiz.max,
+          percent: r.quiz.percent,
+          passed: r.quiz.passed ?? null,
+          pending: r.quiz.pending,
+          timedOut: !!r.quiz.timedOut,
+          late: !!r.quiz.late,
+          marks: r.quiz.marks.map((m) => ({ blockId: m.blockId, got: m.got, max: m.max, manual: !!m.manual })),
+        }
+      : null,
   };
 }
 
@@ -447,6 +460,8 @@ export const forExport = query({
     // Calculation results get a column each, after the questions.
     const calcNames = [...new Set(picked.flatMap((r) => Object.keys(r.calc ?? {})))];
     const paid = picked.some((r) => r.payment);
+    const quizzed = picked.some((r) => r.quiz);
+    const replied = picked.some((r) => r.aiReply?.text || r.insight);
 
     const many = !formId;
     const columns = [
@@ -465,6 +480,8 @@ export const forExport = query({
       ...questions,
       ...calcNames,
       ...(paid ? ["Payment"] : []),
+      ...(quizzed ? ["Score", "Out of", "Percent", "Result", "To mark"] : []),
+      ...(replied ? ["Sentiment", "Lead score", "Urgency", "AI summary", "AI reply"] : []),
     ];
     const slug = formId ? (forms[0]?.slug ?? "form") : "all-forms";
     return {
@@ -494,6 +511,26 @@ export const forExport = query({
           }),
           ...calcNames.map((n) => (r.calc && n in r.calc ? String(r.calc[n]) : "")),
           ...(paid ? [r.payment ? `${r.payment.status} · ${moneyText(r.payment.amount, r.payment.currency)}` : ""] : []),
+          ...(quizzed
+            ? r.quiz
+              ? [
+                  String(r.quiz.score),
+                  String(r.quiz.max),
+                  `${r.quiz.percent}%`,
+                  r.quiz.passed === undefined ? "" : r.quiz.passed ? "Pass" : "Fail",
+                  r.quiz.pending ? String(r.quiz.pending) : "",
+                ]
+              : ["", "", "", "", ""]
+            : []),
+          ...(replied
+            ? [
+                r.insight?.sentiment ?? "",
+                r.insight?.score === undefined ? "" : String(r.insight.score),
+                r.insight?.urgency ?? "",
+                r.insight?.summary ?? "",
+                r.aiReply?.text ?? "",
+              ]
+            : []),
         ];
       }),
     };

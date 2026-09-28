@@ -43,6 +43,7 @@ export const PLAN_POINTS: Record<PlanId, { lead?: string; points: string[] }> = 
       `AI replies to every response — ${PLANS.business.aiReplies} a month, then $${REPLY_PACK.price} per ${REPLY_PACK.replies}`,
       "AI insights: sentiment, intent and lead scores",
       `AI logic that reads answers — ${PLANS.business.aiChecks.toLocaleString("en-US")} checks a month`,
+      "Quizzes and exams with a timer, marking and results",
       "A team with unlimited seats",
       "Unlimited companies and brands",
       "Templates shared with the team",

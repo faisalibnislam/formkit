@@ -205,6 +205,23 @@ const RESPONSES: Row[] = [
     versionNumber: 3,
     resumeToken: partial ? `tok${i}` : null,
     ending: i === 1 ? "e1" : null,
+    quiz:
+      partial || formId !== "f1"
+        ? null
+        : {
+            score: [4, 3, 1][i] ?? 2,
+            max: 5,
+            percent: [80, 60, 20][i] ?? 40,
+            passed: i === 1 ? null : [true, true, false][i] ?? false,
+            pending: i === 1 ? 1 : 0,
+            timedOut: i === 2,
+            late: false,
+            marks: [
+              { blockId: "b5", got: 1, max: 1, manual: false },
+              { blockId: "b6", got: i === 2 ? 0 : 1, max: 1, manual: false },
+              { blockId: "b4", got: i === 1 ? 0 : [3, 0, 0][i] ?? 0, max: 3, manual: i === 1 },
+            ],
+          },
     aiReply:
       partial || formId !== "f1"
         ? null
@@ -422,6 +439,7 @@ const FORM_DETAIL = {
   blocks: BLOCKS,
   rules: [],
   calc: [],
+  quiz: { enabled: true, timeLimit: 20, passMark: 60, shuffleOptions: true, oneAttempt: true, results: "later", showAnswers: true, emailResults: true },
   aiReply: {
     enabled: true,
     prompt: "You're replying for our digital agency.\n- Thank them by first name.\n- Look closely at the challenges they describe and respond positively and helpfully.\n- Share one or two useful insights that relate to their situation.\n- Explain briefly how we could help and invite them to book a free 20-minute call.",
@@ -684,6 +702,14 @@ export const QUERIES: Record<string, unknown> = {
         ],
       };
     }
+    if (flag("fk_quiz")) {
+      return {
+        ...RUNNER,
+        welcome: null,
+        quiz: { timeLimit: 20, shuffleQuestions: false, shuffleOptions: true, results: "instant", passMark: 60, oneAttempt: true },
+        blocks: RUNNER.blocks.map((b) => (b._id === "b5" ? { ...b, type: "single-choice", marks: 2 } : b._id === "b6" ? { ...b, marks: 1 } : b)),
+      };
+    }
     if (flag("fk_logic")) {
       // Places left on the budget, an option hidden until the project mentions a website.
       return {
@@ -836,6 +862,48 @@ export const QUERIES: Record<string, unknown> = {
       risks: ["People comparing agencies often go quiet; a same-day personal follow-up helps."],
       suggestions: ["Add a budget question with ranges so replies can be more specific.", "Put two short case studies in the reply background for booking projects."],
     },
+  },
+  "mutation:publicForm:startQuiz": () => ({ attemptId: "qa1", startedAt: Date.now(), endsAt: Date.now() + 20 * 60_000 }),
+  "quiz:summary": {
+    count: 64,
+    toMark: 5,
+    average: 71.4,
+    passRate: 78,
+    timedOut: 3,
+    spread: [
+      { label: "0–19%", count: 2 },
+      { label: "20–39%", count: 4 },
+      { label: "40–59%", count: 9 },
+      { label: "60–79%", count: 21 },
+      { label: "80–100%", count: 23 },
+    ],
+    questions: [
+      { _id: "b5", title: "Budget range", keyed: true, right: 84 },
+      { _id: "b6", title: "When does it need to be live?", keyed: true, right: 37 },
+      { _id: "b4", title: "What are we making?", keyed: false, right: null },
+    ],
+    released: false,
+    releasedAt: null,
+    releaseAt: null,
+  },
+  "quiz:result": {
+    title: "Client Onboarding",
+    brand: { name: "Studio Nine", logoUrl: null, color: null },
+    name: "John Smith",
+    submittedAt: now - 2 * HOUR,
+    released: true,
+    score: 4,
+    max: 5,
+    percent: 80,
+    passed: true,
+    passMark: 60,
+    pending: 0,
+    timedOut: false,
+    questions: [
+      { title: "Which planet is known as the red planet?", given: "Mars", got: 1, max: 1, manual: false, answer: "Mars" },
+      { title: "What is 7 × 8?", given: "54", got: 0, max: 1, manual: false, answer: "56" },
+      { title: "Explain photosynthesis in a sentence.", given: "Plants turn light, water and CO₂ into sugar and oxygen.", got: 3, max: 3, manual: false, answer: null },
+    ],
   },
   "aiReply:usage": { plan: "business", replies: { monthly: 30, used: 22, credits: 100, left: 108 }, checks: { limit: 1000, used: 318 }, pack: { price: 5, replies: 100 } },
   "action:aiReply:tryIt": {
