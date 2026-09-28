@@ -13,6 +13,7 @@ import { SaveTemplateDialog, TEMPLATE_TOPICS } from "./dialogs/SaveTemplateDialo
 import { FieldIcon } from "./editor/FieldIcon";
 import { fieldType } from "./editor/fieldTypes";
 import { TemplateIcon } from "./TemplateIcon";
+import { PageSkeleton } from "./Skeleton";
 
 /**
  * The template library: the thirteen Formkit ships with, filed by topic, and
@@ -40,7 +41,7 @@ export function TemplateLibrary() {
   const [editing, setEditing] = useState<Row | null>(null);
   const [deleting, setDeleting] = useState<Row | null>(null);
 
-  if (!templates) return null;
+  if (!templates) return <PageSkeleton kind="cards" />;
 
   const needle = term.trim().toLowerCase();
   const builtin = templates.filter((t) => !t.mine);

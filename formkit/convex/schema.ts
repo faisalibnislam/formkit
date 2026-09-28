@@ -302,6 +302,7 @@ export default defineSchema({
     .index("by_form", ["formId"])
     .index("by_form_device", ["formId", "deviceId"])
     .index("by_owner", ["ownerId"])
+    .index("by_owner_status", ["ownerId", "status"])
     .index("by_resume", ["resumeToken"]),
 
   /**

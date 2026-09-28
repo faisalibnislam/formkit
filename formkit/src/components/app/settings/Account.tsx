@@ -29,6 +29,7 @@ import { ImageUpload } from "../ImageUpload";
 import { relativeTime } from "../bits";
 import { localZone, zoneOptions } from "../time";
 import { Panel, Row, SCORE_LABEL, errorText, passwordScore } from "./bits";
+import { PageSkeleton } from "../Skeleton";
 
 type Viewer = NonNullable<ReturnType<typeof useViewer>>;
 function useViewer() {
@@ -37,7 +38,7 @@ function useViewer() {
 
 export function AccountSection() {
   const viewer = useViewer();
-  if (!viewer) return null;
+  if (!viewer) return <PageSkeleton kind="panel" />;
   return (
     <>
       <Profile viewer={viewer} />

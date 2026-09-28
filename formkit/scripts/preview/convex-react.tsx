@@ -32,7 +32,12 @@ function nameOf(reference: unknown) {
 export function useQuery(reference: unknown, ..._args: unknown[]) {
   void _args;
   const [ready, setReady] = useState(false);
-  useEffect(() => setReady(true), []);
+  useEffect(() => {
+    // ?fk_slow=2000 holds every query back, to see the loading states.
+    const slow = Number(new URLSearchParams(window.location.search).get("fk_slow") ?? 0);
+    const t = window.setTimeout(() => setReady(true), slow);
+    return () => window.clearTimeout(t);
+  }, []);
   return (ready ? fixtureFor(nameOf(reference)) : undefined) as never;
 }
 

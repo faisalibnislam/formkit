@@ -10,6 +10,7 @@ import { Badge, Button, Segmented } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 import { Panel } from "./bits";
 import { useFlags } from "../useFlags";
+import { PageSkeleton } from "../Skeleton";
 
 /**
  * Settings → Preferences. The AI card exists only for an account that has
@@ -38,7 +39,7 @@ export function GeneralSection() {
     };
   }, []);
 
-  if (!viewer) return null;
+  if (!viewer) return <PageSkeleton kind="panel" />;
   const pref = viewer.skyPref as Pref;
   const darkAllowed = flags["app.dark"];
   const now = clock ? periodFor(clock.hour) : "evening";

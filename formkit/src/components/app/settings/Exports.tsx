@@ -12,6 +12,7 @@ import { relativeTime } from "../bits";
 import { useExporter } from "../exporting";
 import { downloadAnalytics } from "../analyticsExport";
 import { Panel, Row, errorText } from "./bits";
+import { PageSkeleton } from "../Skeleton";
 
 /**
  * Settings → Exports: take everything out, have a copy of each response
@@ -178,7 +179,7 @@ function EmailCopy() {
   const viewer = useQuery(api.users.viewer, {});
   const save = useMutation(api.users.setPreferences);
   const [draft, setDraft] = useState<string | null>(null);
-  if (!viewer) return null;
+  if (!viewer) return <PageSkeleton kind="panel" />;
   const to = draft ?? viewer.emailCopy.to;
   return (
     <Panel title="Email a copy" lede="Send every new response straight to an inbox as it arrives — every answer, not just a notice.">

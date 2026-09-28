@@ -9,6 +9,7 @@ import { Field, Input, Select, Switch, Textarea } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 import { Panel, Row } from "./bits";
 import { browserAlertsOn, browserAlertsSupported, setBrowserAlerts } from "../useInboxAlerts";
+import { PageSkeleton } from "../Skeleton";
 
 /**
  * Settings → Notifications. "Every form" sets the account's defaults — what
@@ -33,7 +34,7 @@ export function NotificationsSection() {
   const forms = useQuery(api.forms.list, { filter: "all" });
   const [scope, setScope] = useState("all");
 
-  if (!viewer) return null;
+  if (!viewer) return <PageSkeleton kind="panel" />;
 
   return (
     <>

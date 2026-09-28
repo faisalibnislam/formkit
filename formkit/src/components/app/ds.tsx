@@ -324,8 +324,14 @@ export function TabSummary({ label, value, tone }: { label: string; value: strin
   return (
     <span className="fk-tab-sum">
       <span>{label}</span>
-      <strong>{value}</strong>
-      {tone && <StatDot tone={tone} size={20} />}
+      {value ? (
+        <>
+          <strong>{value}</strong>
+          {tone && <StatDot tone={tone} size={20} />}
+        </>
+      ) : (
+        <span className="fk-skel" aria-hidden style={{ width: 44, height: 16, borderRadius: 6 }} />
+      )}
     </span>
   );
 }

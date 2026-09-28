@@ -5,6 +5,8 @@ import { ConvexClientProvider } from "./ConvexClientProvider";
 import { ToastProvider } from "@/components/ui/Toast";
 import { SHARE_IMAGE, SITE_URL } from "@/lib/site";
 import "./globals.css";
+import { Suspense } from "react";
+import { NavProgress } from "@/components/site/NavProgress";
 
 /**
  * Outfit is the single typeface: UI, display and the large-light numerals.
@@ -40,6 +42,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           rather than left in place offering translations that do not exist. */}
       <html lang="en-US" className={outfit.variable} suppressHydrationWarning>
         <body>
+          <Suspense fallback={null}>
+            <NavProgress />
+          </Suspense>
           <ConvexClientProvider>
             <ToastProvider>{children}</ToastProvider>
           </ConvexClientProvider>

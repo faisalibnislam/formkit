@@ -23,6 +23,7 @@ import { Button, ColorField, Field, Input, Modal, Switch, Textarea } from "@/com
 import { useToast } from "@/components/ui/Toast";
 import { ImageUpload } from "../ImageUpload";
 import { Panel, Row, errorText } from "./bits";
+import { PageSkeleton } from "../Skeleton";
 
 /**
  * Settings → Companies. The person is the account; companies are optional and
@@ -41,7 +42,7 @@ export function CompanySection() {
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
 
-  if (!viewer || !companies) return null;
+  if (!viewer || !companies) return <PageSkeleton kind="panel" />;
   const selected = companies.find((c) => c._id === open) ?? null;
 
   return (

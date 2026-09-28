@@ -29,6 +29,7 @@ import { QuestionPreview } from "./QuestionPreview";
 import { FIELD_GROUPS, defaultTitle, fieldType, matchFieldTypes } from "./fieldTypes";
 import { openComments, setCurrentBlock, usePresence } from "./collab";
 import { tracked } from "./saveStatus";
+import { PageSkeleton } from "../Skeleton";
 
 /**
  * The builder: field library, canvas, inspector.
@@ -294,7 +295,7 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
     toast("Duplicated");
   }
 
-  if (!form) return null;
+  if (!form) return <PageSkeleton kind="editor" label="Opening the form" />;
 
   const runs = pageRuns(blocks);
   const breaks = blocks.filter((b) => b.kind === "pagebreak").length;

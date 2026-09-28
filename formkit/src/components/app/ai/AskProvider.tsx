@@ -147,8 +147,8 @@ export function AskProvider({
 
   // The form the builder has open wins over the page's picker.
   const editing = /^\/app\/forms\/([^/?#]+)/.exec(pathname ?? "")?.[1] as Id<"forms"> | undefined;
-  const forms = useQuery(api.forms.list, { filter: "all" });
-  const pickable = target !== "new" && forms?.forms.some((f) => f._id === target);
+  const forms = useQuery(api.forms.picker, {});
+  const pickable = target !== "new" && forms?.some((f) => f._id === target);
   const formId = editing ?? (pickable ? (target as Id<"forms">) : null);
 
   useEffect(() => {

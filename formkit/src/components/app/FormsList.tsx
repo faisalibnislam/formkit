@@ -32,6 +32,8 @@ import { ShareDialog } from "./dialogs/ShareDialog";
 import { CreateFormDialog } from "./CreateFormDialog";
 import { FormCard, FormMark } from "./ds";
 import { relativeTime } from "./bits";
+import { PageSkeleton } from "./Skeleton";
+import { useFirstLoad } from "./useFirstLoad";
 
 /**
  * The forms list, the archive, and the bin.
@@ -133,6 +135,7 @@ export function FormsList() {
   const duplicate = useMutation(api.forms.duplicate);
   const archive = useMutation(api.forms.archive);
 
+  const loaded = useFirstLoad(data);
   const counts = data?.counts;
   const inBin = filter === "deleted";
 
@@ -247,6 +250,8 @@ export function FormsList() {
         />
       </>
     );
+
+  if (!loaded) return <PageSkeleton kind="list" />;
 
   return (
     <>

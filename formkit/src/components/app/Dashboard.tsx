@@ -30,6 +30,8 @@ import { relativeTime } from "./bits";
 import { CreateFormDialog } from "./CreateFormDialog";
 import { TemplateIcon } from "./TemplateIcon";
 import { useToast } from "@/components/ui/Toast";
+import { PageSkeleton } from "./Skeleton";
+import { useFirstLoad } from "./useFirstLoad";
 
 const START_STEPS = [
   { icon: Layers, title: "Build it", body: "Drag questions in, split them across pages, set what is required." },
@@ -64,7 +66,8 @@ export function Dashboard() {
   const templates = useQuery(api.templates.list, {});
   const create = useMutation(api.forms.create);
   const forms = useQuery(api.forms.list, { filter: "all" });
-  const responses = useQuery(api.responses.list, {});
+  // The totals and the newest few — not every response ever sent.
+  const responses = useQuery(api.responses.recent, {});
   const analytics = useQuery(api.analytics.overview, {});
   const sweep = useMutation(api.forms.sweepClosing);
 
@@ -74,6 +77,7 @@ export function Dashboard() {
     void sweep({});
   }, [sweep]);
 
+  const loaded = useFirstLoad(forms);
   const list = forms?.forms ?? [];
   const counts = forms?.counts;
   const stats = responses?.stats;
@@ -102,6 +106,8 @@ export function Dashboard() {
   const abandoned = stats?.partial ?? 0;
   const completionRate = analytics?.completionRate ?? 0;
   const lastAnswer = recentAnswers[0];
+
+  if (!loaded) return <PageSkeleton kind="dashboard" />;
 
   return (
     <>

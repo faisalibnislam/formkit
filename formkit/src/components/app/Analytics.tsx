@@ -20,6 +20,8 @@ import { Button, EmptyState, Input, Segmented, Select } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 import { BarChart, StatCard, TickBars } from "./ds";
 import { downloadAnalytics, duration, signed, ymd } from "./analyticsExport";
+import { PageSkeleton } from "./Skeleton";
+import { useLastDefined } from "./useFirstLoad";
 
 /**
  * Analytics. Every number is counted from stored data inside the range picked
@@ -101,7 +103,9 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
     const [lo, hi] = a <= b ? [a, b] : [b, a];
     return { from: Math.max(lo, hi - 365 * DAY), to: hi + DAY };
   })();
-  const data = useQuery(api.analytics.overview, { formId: scope, from: span.from, to: span.to });
+  const fresh = useQuery(api.analytics.overview, { formId: scope, from: span.from, to: span.to });
+  // Changing the range keeps the last figures up until the new ones land.
+  const data = useLastDefined(fresh);
 
   const note =
     range === "7"
@@ -137,6 +141,8 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
   const neverStart = data && data.views ? Math.max(0, Math.round((1 - data.starts / data.views) * 100)) : null;
   const finish = data && data.starts ? Math.round((data.completed / data.starts) * 100) : null;
   const dropPeak = Math.max(1, ...(data?.dropOff ?? []).map((q) => q.share));
+
+  if (!data) return <PageSkeleton kind="table" />;
 
   return (
     <>

@@ -53,6 +53,8 @@ import { useExporter } from "./exporting";
 import { useFlag } from "./useFlags";
 import { downloadResponsePdf, printResponse, type ResponseDoc } from "./responseDoc";
 import { useNarrow } from "./useNarrow";
+import { PageSkeleton } from "./Skeleton";
+import { useFirstLoad } from "./useFirstLoad";
 
 /**
  * The response inbox, for one form or for everything, and — across every
@@ -141,6 +143,7 @@ function Responses({
   const exportRows = useExporter();
   const excel = useFlag("exports.xlsx");
   const data = useQuery(api.responses.list, { formId });
+  const loaded = useFirstLoad(data);
   const setStatus = useMutation(api.responses.setStatus);
   const remove = useMutation(api.responses.remove);
   const readFor = useMutation(api.inbox.readFor);
@@ -223,6 +226,8 @@ function Responses({
       ids: filtered ? rows.map((r) => r._id) : undefined,
     });
   }
+
+  if (!loaded) return <PageSkeleton kind="table" />;
 
   const s = data?.stats;
   const signed = (n: number | null | undefined, suffix = "") =>

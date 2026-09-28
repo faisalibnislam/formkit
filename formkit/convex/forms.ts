@@ -146,6 +146,50 @@ export const list = query({
   },
 });
 
+/**
+ * What the app's header needs on every page: how many forms in each state and
+ * the lifetime response total. Read from the form rows alone — never their
+ * questions — so editing a question does not make every page recount.
+ */
+export const summary = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireUser(ctx);
+    const all = await ctx.db
+      .query("forms")
+      .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
+      .collect();
+    const shared = (
+      await ctx.db
+        .query("collaborators")
+        .withIndex("by_email", (q) => q.eq("email", (user.email ?? "").toLowerCase()))
+        .collect()
+    ).filter((r) => r.status === "active" && r.userId === user._id).length;
+    const live = all.filter((f) => !f.deletedAt);
+    return {
+      counts: countsOf(all, shared),
+      responses: live.reduce((n, f) => n + f.responsesCount, 0),
+    };
+  },
+});
+
+/** Titles to pick from — Ask Formkit's menus — without reading any questions. */
+export const picker = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireUser(ctx);
+    return (
+      await ctx.db
+        .query("forms")
+        .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
+        .collect()
+    )
+      .filter((f) => !f.deletedAt)
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .map((f) => ({ _id: f._id, title: f.title, status: f.status, responses: f.responsesCount }));
+  },
+});
+
 export const get = query({
   args: { formId: v.id("forms") },
   handler: async (ctx, { formId }) => {

@@ -188,7 +188,9 @@ function AppFrame({ children }: { children: ReactNode }) {
     accepted.current = true;
     void acceptPending({}).catch(() => {});
   }, [viewer, acceptPending]);
-  const formsList = useQuery(api.forms.list, { filter: "all" });
+  // Counts only: the full list reads every form's questions, and would recount
+  // on every edit in the builder.
+  const formsList = useQuery(api.forms.summary, {});
   const inbox = useQuery(api.inbox.list, {});
   const newResponses = useQuery(api.responses.unreadCount, {});
   useInboxAlerts(inbox);
@@ -206,7 +208,9 @@ function AppFrame({ children }: { children: ReactNode }) {
     }
     aiWas.current = aiNow;
   }, [aiNow, toastAccess]);
-  const analytics = useQuery(api.analytics.overview, {});
+  // Its figure only shows on the Analytics tab, where the page asks for the
+  // same thing — so it is one subscription there and none anywhere else.
+  const analytics = useQuery(api.analytics.overview, pathname?.startsWith("/app/analytics") ? {} : "skip");
   const templates = useQuery(api.templates.list, {});
 
   const [createOpen, setCreateOpen] = useState(false);
@@ -314,6 +318,8 @@ function AppFrame({ children }: { children: ReactNode }) {
 
   const counts = formsList?.counts;
   const live = counts?.published ?? 0;
+  // Until a figure arrives its slot stays blank (a shimmer), never a false zero.
+  const known = (ready: boolean, v: string) => (ready ? v : "");
   const unread = inbox?.unread ?? 0;
   const templateCount = templates?.length ?? 0;
   const completion = analytics?.completionRate ?? 0;
@@ -330,16 +336,16 @@ function AppFrame({ children }: { children: ReactNode }) {
         meta: "Overview",
         icon: <LayoutGrid size={15} strokeWidth={1.8} aria-hidden />,
         label: "Live forms:",
-        value: String(live),
+        value: known(!!counts, String(live)),
       },
       {
         key: "forms" as NavKey,
         href: "/app/forms",
         name: "Forms",
-        meta: `${counts?.all ?? 0} ${counts?.all === 1 ? "form" : "forms"}`,
+        meta: counts ? `${counts.all} ${counts.all === 1 ? "form" : "forms"}` : "Your forms",
         icon: <FileText size={15} strokeWidth={1.8} aria-hidden />,
         label: "Collecting:",
-        value: String(live),
+        value: known(!!counts, String(live)),
       },
       {
         key: "responses" as NavKey,
@@ -348,7 +354,7 @@ function AppFrame({ children }: { children: ReactNode }) {
         meta: "All submissions",
         icon: <Inbox size={15} strokeWidth={1.8} aria-hidden />,
         label: "New:",
-        value: String(newResponses ?? 0),
+        value: known(newResponses !== undefined, String(newResponses ?? 0)),
       },
       {
         key: "analytics" as NavKey,
@@ -357,7 +363,7 @@ function AppFrame({ children }: { children: ReactNode }) {
         meta: "Last 30 days",
         icon: <ChartPie size={15} strokeWidth={1.8} aria-hidden />,
         label: "Completion:",
-        value: `${completion}%`,
+        value: known(analytics !== undefined, `${completion}%`),
       },
       {
         key: "templates" as NavKey,
@@ -366,7 +372,7 @@ function AppFrame({ children }: { children: ReactNode }) {
         meta: templateCount ? `${templateCount} to start from` : "Start from one",
         icon: <LayoutTemplate size={15} strokeWidth={1.8} aria-hidden />,
         label: "Templates:",
-        value: String(templateCount),
+        value: known(templates !== undefined, String(templateCount)),
       },
       // The AI surface exists only for an account that has been allowed it.
       ...(askAllowed
@@ -383,7 +389,7 @@ function AppFrame({ children }: { children: ReactNode }) {
           ]
         : []),
     ],
-    [counts, live, newResponses, completion, templateCount, askAllowed, askCreditsLeft],
+    [counts, live, newResponses, analytics, completion, templates, templateCount, askAllowed, askCreditsLeft],
   );
 
   /* In Settings the dock holds its sections instead of the pages, each with
@@ -399,13 +405,13 @@ function AppFrame({ children }: { children: ReactNode }) {
       account: { label: "Signed in as:", value: viewer?.name ?? "" },
       company: { label: "Companies:", value: viewer?.companies.length ? String(viewer.companies.length) : "None" },
       general: { label: "Sky:", value: viewer ? skyWord[viewer.skyPref] : "" },
-      members: { label: "Shared with:", value: String(sharing?.people.length ?? 0) },
+      members: { label: "Shared with:", value: sharing ? String(sharing.people.length) : "" },
       notifications: { label: "Sent to:", value: viewer?.emailPrefs.to ?? "" },
-      exports: { label: "Responses:", value: (analytics?.lifetime?.responses ?? 0).toLocaleString("en-US") },
+      exports: { label: "Responses:", value: formsList ? formsList.responses.toLocaleString("en-US") : "" },
     }[t.value],
   }));
 
-  const firstName = (viewer?.name ?? "").trim().split(/\s+/)[0] || "there";
+  const firstName = (viewer?.name ?? "").trim().split(/\s+/)[0] || (viewer ? "there" : "");
 
   /**
    * The chrome leads with the person. A second line names the company when
@@ -420,17 +426,21 @@ function AppFrame({ children }: { children: ReactNode }) {
   const heroes: Record<string, { eyebrow: string; title: string; sub: string }> = {
     home: {
       eyebrow: clock?.today ?? "",
-      title: clock ? `${greeting(clock.hour)}, ${firstName}` : `Hello, ${firstName}`,
-      sub: counts?.all
-        ? "Here's what's happening with your forms."
-        : "Nothing here yet. One form is all it takes to start.",
+      title: [clock ? greeting(clock.hour) : "Hello", firstName].filter(Boolean).join(", "),
+      sub: !counts
+        ? ""
+        : counts.all
+          ? "Here's what's happening with your forms."
+          : "Nothing here yet. One form is all it takes to start.",
     },
     forms: {
       eyebrow: orgLine,
       title: "Forms",
-      sub: counts?.all
-        ? `${counts.all} forms, ${live} of them collecting right now.`
-        : "No forms yet — create one, or lift a template.",
+      sub: !counts
+        ? ""
+        : counts.all
+          ? `${counts.all} forms, ${live} of them collecting right now.`
+          : "No forms yet — create one, or lift a template.",
     },
     responses: {
       eyebrow: orgLine,
@@ -644,7 +654,8 @@ function AppFrame({ children }: { children: ReactNode }) {
                   hero?.eyebrow && <div className="fk-app-eyebrow">{hero.eyebrow}</div>
                 )}
                 <h1>{hero?.title}</h1>
-                {hero?.sub && <p>{hero.sub}</p>}
+                {/* Held open while loading, so the page does not shift when it lands. */}
+                {hero && <p>{hero.sub || "\u00a0"}</p>}
               </div>
             </div>
 

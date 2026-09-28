@@ -140,6 +140,46 @@ export const list = query({
   },
 });
 
+/**
+ * The dashboard's slice: completed and partial totals, from the counts kept on
+ * each form, and the newest few responses. `list` reads every response a
+ * person has ever had; this reads a handful.
+ */
+export const recent = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, { limit = 6 }) => {
+    const user = await requireUser(ctx);
+    const forms = await ownForms(ctx, user._id);
+    const titles = new Map(forms.map((f) => [f._id as string, f.title]));
+    // Newest first, stopping at the first response from before this week —
+    // the week's count and the latest few come from one short walk.
+    const since = Date.now() - 7 * DAY;
+    const newest: Doc<"responses">[] = [];
+    let week = 0;
+    for await (const r of ctx.db
+      .query("responses")
+      .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
+      .order("desc")) {
+      // A partial saved earlier can be finished later, so allow a day's slack.
+      if (r._creationTime < since - DAY && newest.length >= limit) break;
+      if (r.preview || !titles.has(r.formId)) continue;
+      if (r.submittedAt >= since) week += 1;
+      if (newest.length < limit * 4) newest.push(r);
+    }
+    const rows = newest.sort((a, b) => b.submittedAt - a.submittedAt).slice(0, limit);
+    const completed = forms.reduce((n, f) => n + f.completedCount, 0);
+    return {
+      stats: {
+        total: forms.reduce((n, f) => n + f.responsesCount, 0),
+        completed,
+        partial: forms.reduce((n, f) => n + Math.max(0, f.responsesCount - f.completedCount), 0),
+        week,
+      },
+      responses: await Promise.all(rows.map((r) => shape(ctx, r, titles.get(r.formId) ?? "A form"))),
+    };
+  },
+});
+
 export const get = query({
   args: { responseId: v.id("responses") },
   handler: async (ctx, { responseId }) => {
@@ -471,10 +511,11 @@ export const unreadCount = query({
   args: {},
   handler: async (ctx) => {
     const user = await requireUser(ctx);
+    // Only the unread rows are read, not every response the person has.
     const rows = await ctx.db
       .query("responses")
-      .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
+      .withIndex("by_owner_status", (q) => q.eq("ownerId", user._id).eq("status", "new"))
       .collect();
-    return rows.filter((r) => r.status === "new" && !r.partial && !r.preview).length;
+    return rows.filter((r) => !r.partial && !r.preview).length;
   },
 });

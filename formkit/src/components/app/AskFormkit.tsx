@@ -8,6 +8,7 @@ import { api } from "../../../convex/_generated/api";
 import { Segmented } from "@/components/ui";
 import { useAskMaybe } from "./ai/AskProvider";
 import { AskCanvas, AskComposer, AskCredits, AskTarget, AskThread } from "./ai/AskParts";
+import { PageSkeleton } from "./Skeleton";
 
 /**
  * Ask Formkit, full page: the conversation on the left, what it builds or
@@ -53,7 +54,7 @@ export function AskFormkit() {
   const pane = choice && choice.at === at ? choice.pane : auto;
   const setPane = (next: "chat" | "work") => setChoice({ pane: next, at });
 
-  if (!viewer || !ask) return null;
+  if (!viewer || !ask) return <PageSkeleton kind="panel" />;
 
   if (!ask.thread.length) {
     return (

@@ -28,6 +28,9 @@ import { fieldType } from "../editor/fieldTypes";
 import { THEME_PRESETS } from "../../../../convex/model/themePresets";
 import { nextMonthLabel, useAsk, type Attachment } from "./AskProvider";
 
+const statusNote = (s: string) =>
+  s === "published" ? "Collecting" : s === "closed" ? "Closed" : s === "archived" ? "Archived" : "Draft";
+
 /* ---------- the conversation ---------- */
 
 export function AskThread() {
@@ -308,9 +311,9 @@ function BriefModal({ onClose }: { onClose: () => void }) {
 
 function RiffModal({ onClose }: { onClose: () => void }) {
   const ask = useAsk();
-  const forms = useQuery(api.forms.list, { filter: "all" });
+  const forms = useQuery(api.forms.picker, {});
   const [pick, setPick] = useState<string | null>(null);
-  const list = forms?.forms ?? [];
+  const list = forms ?? [];
   return (
     <Modal
       title="Riff on a form"
@@ -341,7 +344,7 @@ function RiffModal({ onClose }: { onClose: () => void }) {
           placeholder="Choose a form"
           value={pick}
           onChange={setPick}
-          options={list.map((f) => ({ value: f._id, label: f.title, note: `${f.questions} questions` }))}
+          options={list.map((f) => ({ value: f._id, label: f.title, note: statusNote(f.status) }))}
         />
       ) : (
         <p className="fk-ask-quiet">You have no forms yet to start from.</p>
@@ -658,7 +661,7 @@ export function AskCanvas({ inline }: { inline?: boolean }) {
 /** The form being worked on, when there is a choice to make. */
 export function AskTarget() {
   const ask = useAsk();
-  const forms = useQuery(api.forms.list, { filter: "all" });
+  const forms = useQuery(api.forms.picker, {});
   return (
     <Select
       size="sm"
@@ -668,7 +671,7 @@ export function AskTarget() {
       onChange={ask.setTarget}
       options={[
         { value: "new", label: "A new form" },
-        ...(forms?.forms ?? []).map((f) => ({ value: f._id, label: f.title, note: `${f.questions} questions` })),
+        ...(forms ?? []).map((f) => ({ value: f._id, label: f.title, note: statusNote(f.status) })),
       ]}
     />
   );

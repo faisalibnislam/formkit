@@ -809,7 +809,25 @@ export function aiReply({ text, formId, draft }: { text: string; formId?: string
   return { kind: "draft", draft: d, revised: Boolean(draft), note: draft ? "Made it shorter." : undefined, used: 4, limit: 25 };
 }
 
+/** Queries that are slices of another fixture. */
+function derived(name: string): unknown {
+  if (name === "forms:summary") {
+    const list = QUERIES["forms:list"] as { counts: unknown; forms: { responses: number }[] };
+    return { counts: list.counts, responses: list.forms.reduce((n, f) => n + f.responses, 0) };
+  }
+  if (name === "forms:picker") {
+    const list = QUERIES["forms:list"] as { forms: { _id: string; title: string; status: string; responses: number }[] };
+    return list.forms.map((f) => ({ _id: f._id, title: f.title, status: f.status, responses: f.responses }));
+  }
+  if (name === "responses:recent") {
+    const list = QUERIES["responses:list"] as { stats: Record<string, number>; responses: { preview?: boolean }[] };
+    return { stats: list.stats, responses: list.responses.filter((r) => !r.preview).slice(0, 6) };
+  }
+  return undefined;
+}
+
 export function fixtureFor(name: string) {
   if (name in QUERIES) return QUERIES[name];
-  return null;
+  const d = derived(name);
+  return d === undefined ? null : d;
 }
