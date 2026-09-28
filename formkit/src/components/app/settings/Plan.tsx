@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAction, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { api } from "../../../../convex/_generated/api";
 import { FEATURES, PLANS, type Feature, type Interval, type PlanId, type PlanSummary } from "../../../../convex/model/plans";
 import { Button, ProgressBar, Segmented } from "@/components/ui";
@@ -17,16 +18,37 @@ const date = (at: number) => new Date(at).toLocaleDateString("en-US", { day: "nu
 /** Settings → Plan: what this account is on, what it has used, and changing it. */
 export function PlanSection() {
   const viewer = useQuery(api.users.viewer, {});
+
+  if (!viewer) return <PageSkeleton kind="panel" />;
+  return <PlanBody viewer={viewer} />;
+}
+
+/**
+ * Arriving from the pricing page (`?upgrade=pro&interval=year`) opens the
+ * checkout for that plan straight away — once, and only if it is an upgrade.
+ */
+function useUpgradeFromLink(current: PlanId, go: (plan: Exclude<PlanId, "free">, interval: Interval) => void) {
+  const search = useSearchParams();
+  const started = useRef(false);
+  useEffect(() => {
+    const want = search.get("upgrade");
+    if (started.current || (want !== "pro" && want !== "business")) return;
+    if (PLAN_RANK[want] <= PLAN_RANK[current]) return;
+    started.current = true;
+    go(want, search.get("interval") === "month" ? "month" : "year");
+  }, [search, current, go]);
+}
+
+function PlanBody({ viewer }: { viewer: NonNullable<FunctionReturnType<typeof api.users.viewer>> }) {
   const search = useSearchParams();
   const toast = useToast();
   const portal = useAction(api.billing.portal);
   const { go, busy } = useCheckout();
   const [interval, setInterval] = useState<Interval>("year");
   const [opening, setOpening] = useState(false);
-
-  if (!viewer) return <PageSkeleton kind="panel" />;
   const plan = viewer.plan as PlanSummary;
   const welcome = search.get("welcome") as PlanId | null;
+  useUpgradeFromLink(plan.id, go);
 
   const manage = async () => {
     setOpening(true);

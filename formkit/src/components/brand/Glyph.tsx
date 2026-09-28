@@ -46,6 +46,7 @@ import {
   User,
   Users,
   type LucideIcon,
+  CreditCard,
 } from "lucide-react";
 
 /**
@@ -93,6 +94,7 @@ const GLYPHS: Record<string, LucideIcon> = {
   "settings-2": Settings2,
   "share-2": Share2,
   shield: Shield,
+  "credit-card": CreditCard,
   "sliders-horizontal": SlidersHorizontal,
   sparkles: Sparkles,
   star: Star,

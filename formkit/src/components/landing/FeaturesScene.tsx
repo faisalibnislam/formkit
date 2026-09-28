@@ -59,8 +59,8 @@ export function FeaturesScene({ onStep }: { onStep: (direction: -1 | 1) => void 
                 color: "rgba(255,255,255,.7)",
               }}
             >
-              Twelve things Formkit does, free on every account, with nothing held back for a paid
-              plan.
+              Twelve things Formkit does. Every one starts on the free plan;
+              Pro and Business take them further.
             </p>
           </div>
 

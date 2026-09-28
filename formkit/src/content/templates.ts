@@ -280,7 +280,7 @@ export const TEMPLATES: FormTemplate[] = [
       },
       {
         q: "Can I summarise the responses?",
-        a: "If AI is enabled on your account, the assistant can summarise a batch of responses. It is free — only creating a new form spends a credit.",
+        a: "Ask Formkit can summarise a batch of responses. That costs nothing — only creating a new form spends a credit.",
       },
       {
         q: "What if somebody abandons it halfway?",

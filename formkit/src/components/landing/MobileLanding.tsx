@@ -648,7 +648,7 @@ function MobileFeatures() {
       <div className="fk-m-heading fk-m-heading-dark">
         <span className="fk-m-eyebrow">EVERYTHING IN FORMKIT</span>
         <h2>Everything from the first question to the spreadsheet.</h2>
-        <p>Twelve things Formkit does, free on every account, with nothing held back for a paid plan.</p>
+        <p>Twelve things Formkit does. Every one starts on the free plan; Pro and Business take them further.</p>
       </div>
 
       <div

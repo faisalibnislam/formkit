@@ -253,7 +253,7 @@ export function AuthCard({ initialView }: { initialView: View }) {
           {view === "signup" && (
             <>
               <Head title="Create your account">
-                Free, and it stays free. No card, no plan to pick.
+                Free to start, and free for as long as you like. No card needed.
               </Head>
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 <Field label="Your name">

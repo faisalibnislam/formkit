@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     template: "%s — Formkit",
   },
   description:
-    "Build a form, brand it, publish it at your own link, and read the answers in one place. Formkit is free — no plans, no card.",
+    "Build a form, brand it, publish it at your own link, and read the answers in one place. Free to start, with unlimited forms and responses.",
   openGraph: {
     images: [SHARE_IMAGE],
     type: "website",

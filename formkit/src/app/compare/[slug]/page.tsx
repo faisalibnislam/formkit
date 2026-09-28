@@ -172,7 +172,7 @@ export default async function CompareDetailPage(props: PageProps<"/compare/[slug
                   }}
                 >
                   A complete workspace for designing the form, shaping the journey, and
-                  using what comes back. Free, with no plans.
+                  using what comes back. Free to start.
                 </p>
               </div>
             </div>

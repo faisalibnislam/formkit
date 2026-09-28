@@ -20,7 +20,7 @@ export function HelpCta() {
         <span>
           {signedIn
             ? "Everything in this article is a click or two away in the builder."
-            : "Free, and it stays free. Every form, every answer, every teammate."}
+            : "Free to start, with unlimited forms and responses. No card needed."}
         </span>
       </div>
       <Link href={signedIn ? "/app" : "/signup"} className="fk-pill fk-pill-dark">

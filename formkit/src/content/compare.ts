@@ -44,23 +44,23 @@ export const COMPARE_ROWS: CompareRow[] = [
   },
   {
     label: "Partial responses kept",
-    cells: [n("Submitted only"), y("Partials shown"), y("Badged and resumable")],
+    cells: [n("Submitted only"), y("Partials shown"), p("On Pro, from $3")],
   },
   {
     label: "Drop-off by question",
-    cells: [n("Summary charts"), y("Completion reporting"), y("Per question")],
+    cells: [n("Summary charts"), y("Completion reporting"), p("Per question, on Pro")],
   },
   {
     label: "Version history with restore",
-    cells: [n("Not offered"), n("Not offered"), y("Every publish snapshotted")],
+    cells: [n("Not offered"), n("Not offered"), y("30 days of publishes")],
   },
   {
     label: "CSV and spreadsheet export",
-    cells: [y("Sheets and CSV"), y("CSV and XLSX"), y("CSV and Excel")],
+    cells: [y("Sheets and CSV"), y("CSV and XLSX"), y("CSV; Excel on Pro")],
   },
   {
-    label: "Collaborators at no cost",
-    cells: [y("Editors"), p("Paid seats"), y("Editor, Commenter, Viewer")],
+    label: "Collaborators on the free tier",
+    cells: [y("Editors"), p("Paid seats"), y("Two per form, three roles")],
   },
 ];
 
@@ -99,11 +99,11 @@ export const RIVALS: Rival[] = [
       },
       {
         q: "Does Formkit export to Sheets?",
-        a: "Formkit exports to CSV and Excel, which Sheets opens directly. There is no live Sheets connection.",
+        a: "Formkit exports CSV, which Sheets opens directly. On Pro, new responses also flow into a Google Sheet as they arrive.",
       },
       {
         q: "Which one is better for a long form?",
-        a: "Both support pages. Formkit keeps partial responses and shows you the question people abandon on, which matters more the longer the form gets.",
+        a: "Both support pages. On Pro, Formkit keeps partial responses and shows you the question people abandon on, which matters more the longer the form gets.",
       },
     ],
   },
@@ -127,11 +127,11 @@ export const RIVALS: Rival[] = [
       },
       {
         q: "Can I publish under my own domain?",
-        a: "Formkit gives you formkit.app/your-name free, and a separate handle for each company you add. A fully custom domain is not offered by either product on a free tier.",
+        a: "Formkit gives you formkit.app/your-name free. A fully custom domain, like forms.acme.com, is on Formkit Pro from $3 a month; neither product offers one on a free tier.",
       },
       {
         q: "How many people can work on a form?",
-        a: "As many as you like in Formkit, as Editor, Commenter or Viewer, at no cost.",
+        a: "Two per form on Formkit's free plan, as Editor, Commenter or Viewer, and a whole team with unlimited seats on Business at $10 a month.",
       },
     ],
   },

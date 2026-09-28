@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { FEATURES, PLANS, type Interval, type PlanId } from "../../../convex/model/plans";
@@ -29,16 +29,19 @@ export function useCheckout() {
   const checkout = useAction(api.billing.checkout);
   const toast = useToast();
   const [busy, setBusy] = useState<PlanId | null>(null);
-  const go = async (plan: Exclude<PlanId, "free">, interval: Interval) => {
-    setBusy(plan);
-    try {
-      const { url } = await checkout({ plan, interval });
-      window.location.assign(url);
-    } catch (e) {
-      setBusy(null);
-      toast(errorText(e, "Checkout could not open. Try again in a moment."));
-    }
-  };
+  const go = useCallback(
+    async (plan: Exclude<PlanId, "free">, interval: Interval) => {
+      setBusy(plan);
+      try {
+        const { url } = await checkout({ plan, interval });
+        window.location.assign(url);
+      } catch (e) {
+        setBusy(null);
+        toast(errorText(e, "Checkout could not open. Try again in a moment."));
+      }
+    },
+    [checkout, toast],
+  );
   return { go, busy };
 }
 

@@ -117,7 +117,7 @@ export const TERMS: LegalSection[] = [
     id: "the-agreement",
     title: "The short version",
     paras: [
-      "Use Formkit to build and share forms. Do not use it to hurt people. It is free, we will do our best to keep it running, and we do not promise perfection.",
+      "Use Formkit to build and share forms. Do not use it to hurt people. The Free plan costs nothing; Pro and Business are paid by subscription through Polar, and you can cancel any time. We will do our best to keep it running, and we do not promise perfection.",
       "The rest of this page is the same thing said carefully. Using Formkit means you accept it.",
     ],
   },
@@ -134,7 +134,7 @@ export const TERMS: LegalSection[] = [
     title: "What you may not do",
     paras: ["A short list, and we enforce it:"],
     bullets: [
-      "Collect card numbers, bank details or passwords. Formkit has no payment field and is not built to hold them.",
+      "Ask for card numbers, bank details or passwords in a question. A form that takes payment does it through its payment step, where Stripe — not Formkit — handles the card.",
       "Send unsolicited email, or use a form as the landing page for a spam campaign.",
       "Impersonate somebody else, or run a form designed to trick people into handing over credentials.",
       "Upload malware, or use a form to distribute it.",
@@ -162,7 +162,7 @@ export const TERMS: LegalSection[] = [
     id: "availability",
     title: "What we promise about uptime",
     paras: [
-      "We aim to keep Formkit up and to warn you before planned maintenance. We do not offer a service-level agreement, because the service is free. Forms stay live during most maintenance; when the dashboard is read-only we say so in advance.",
+      "We aim to keep Formkit up and to warn you before planned maintenance. We do not offer a service-level agreement on any plan. Forms stay live during most maintenance; when the dashboard is read-only we say so in advance.",
     ],
   },
   {
@@ -174,17 +174,21 @@ export const TERMS: LegalSection[] = [
     ],
   },
   {
-    id: "free",
-    title: "Free, and what happens if that changes",
+    id: "plans",
+    title: "Plans and payment",
     paras: [
-      "Formkit is free. There are no plans, no seats and no card on file. If we ever introduce a paid tier, everything you have built stays yours and stays accessible, and you will hear about the change with enough notice to export and leave if you want to.",
+      "Formkit has three plans. Free costs nothing and has no time limit. Pro and Business are subscriptions, monthly or yearly, at the prices on the pricing page.",
+      "Paid plans are sold by Polar (polar.sh), who act as the merchant of record: they take the payment, charge any sales tax or VAT, and send the receipt, and their checkout terms apply to the purchase. A subscription renews automatically at the end of each period until you cancel it.",
+      "You can cancel, or move between plans, any time from Settings → Plan. A cancelled plan stays on until the end of the period you have paid for and is not charged again. We do not refund part-used periods, except where the law requires us to.",
+      "If a payment fails, Polar tries again; the plan stays on until the end of the period while it does. Moving to a lower plan never deletes anything: features that are not in the new plan stop, and everything you built or collected stays yours and exportable.",
+      "We will give you at least 30 days' notice by email before changing the price of a plan you are on.",
     ],
   },
   {
     id: "liability",
     title: "Where our responsibility ends",
     paras: [
-      "Formkit is provided as it is. We do not warrant that it will be uninterrupted or free of faults, and we are not liable for lost profits, lost data or business you did not win because a form was down. Where the law lets us cap liability, it is capped at nothing, because you have paid us nothing — and nothing in this page limits liability we cannot lawfully limit, including for death, personal injury or fraud.",
+      "Formkit is provided as it is. We do not warrant that it will be uninterrupted or free of faults, and we are not liable for lost profits, lost data or business you did not win because a form was down. Where the law lets us cap liability, it is capped at what you paid us in the twelve months before the claim, which on the Free plan is nothing — and nothing in this page limits liability we cannot lawfully limit, including for death, personal injury or fraud.",
     ],
   },
   {

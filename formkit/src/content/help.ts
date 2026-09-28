@@ -1,5 +1,5 @@
 /**
- * The help centre: 12 categories, 41 articles.
+ * The help centre, by category.
  *
  * Content lifted verbatim from the design handoff. Each article gets its own
  * indexable route at /help/<id> rather than the hash routing the prototype
@@ -298,14 +298,14 @@ export const HELP_CATEGORIES: HelpCategory[] = [
       {
         "id": "ai-access",
         "title": "Why can I not see Ask Formkit?",
-        "summary": "AI form building is enabled per account by a Formkit administrator.",
-        "body": "Ask Formkit is not on by default. It is switched on for individual accounts by a Formkit administrator, and when it is off, nothing about it appears in the app — no launcher, no panel, no mention in settings.\n## If your account has it\nA launcher appears in the app chrome and the Ask workspace becomes available. Access can be granted or withdrawn at any time, and the app picks the change up within a few seconds without a reload.\n## If it is paused\nOccasionally the whole feature is paused across the platform, for maintenance or a model change. Access is remembered — when the pause lifts, accounts that had it get it back."
+        "summary": "It is on for every account, unless it has been paused or turned off for yours.",
+        "body": "Ask Formkit is on for every account, on every plan. The launcher sits in the app chrome and the Ask workspace is under its own tab.\n## If you cannot see it\nA Formkit administrator can turn it off for one account — for example after misuse — and when it is off, nothing about it appears in the app. Write to support if you think that has happened by mistake.\n## If it is paused\nOccasionally the whole feature is paused across the platform, for maintenance or a model change. When the pause lifts, it comes back for everyone, with the credits you had left."
       },
       {
         "id": "ai-credits",
         "title": "Credits",
-        "summary": "What spends one, what does not, and who sets the limit.",
-        "body": "Accounts with AI access get a monthly allowance of credits.\n## What spends a credit\nCreating a form — that is, asking for a new draft — spends one credit.\n## What is free\nRewriting copy, writing logic rules, suggesting a theme, summarising responses, and ordinary conversation with the assistant all cost nothing.\n## The limit\nThe monthly limit is set by a Formkit administrator, not in your settings. It can be raised for your account specifically. When you reach it, the assistant still talks and still does the free work — only new form drafts wait for the reset."
+        "summary": "What spends one, what does not, and how many each plan gets.",
+        "body": "Every account gets a monthly allowance of credits: 5 on Free, 50 on Pro and 200 on Business. They reset on the first of each month.\n## What spends a credit\nCreating a form — that is, asking for a new draft — spends one credit.\n## What is free\nRewriting copy, writing logic rules, suggesting a theme, summarising responses, and ordinary conversation with the assistant all cost nothing.\n## Working from a brief\nOn Pro and Business, Ask Formkit can also build from a pasted brief, an uploaded document or one of your existing forms.\n## The limit\nSettings → Plan shows how many you have used. When you reach the limit, the assistant still talks and still does the free work — only new form drafts wait for the reset, or for an upgrade."
       }
     ]
   },
@@ -332,6 +332,26 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "title": "Spam protection",
         "summary": "Keeping bots out of a public form.",
         "body": "Public forms attract automated submissions. Formkit applies two defences, both in form settings.\n## Spam check\nAn invisible check on submission. Genuine respondents never see it; obvious bots are refused. It is on by default for published forms.\n## Rate limiting\nCaps how many submissions can arrive from the same source in a short window. A form linked from a newsletter will never touch the cap; a form being hammered will.\n## If something slips through\nDelete it from the responses table and mark the pattern — a repeated address or a nonsense answer in the same field — so you can filter for it next time."
+      }
+    ]
+  },
+  {
+    "id": "plans",
+    "name": "Plans and billing",
+    "icon": "credit-card",
+    "desc": "Free, Pro and Business: what each includes, and paying, changing or cancelling.",
+    "articles": [
+      {
+        "id": "plans-overview",
+        "title": "Free, Pro and Business",
+        "summary": "What each plan includes, and how a form decides which features it has.",
+        "body": "Formkit has three plans. Free is the whole product for one person, with no time limit; Pro and Business add to it.\n## Free\nUnlimited forms and responses, every question type, pages and logic, themes, your own formkit.app link, embedding, notifications and confirmation emails, CSV export, core analytics, two collaborators on each form and 5 Ask Formkit credits a month.\n## Pro — $3 a month, or $35 a year\nYour own domain, no “Made with Formkit”, emails from your own domain, custom fonts and CSS, partial responses, sources, devices and drop-off, calculations, hidden fields, answer piping and redirects, webhooks, Zapier, Make, Slack and Google Sheets, payments with your own Stripe, Excel export, and 50 AI credits.\n## Business — $10 a month, or $99 a year\nEverything in Pro, plus a team with unlimited seats, several companies and brands, shared templates, approval before publishing, an audit log, data retention rules, API access, sign-in with your company’s Google or Microsoft, priority support and 200 AI credits.\n## Whose plan counts\nA form uses its owner’s plan. If a Pro owner invites you to their form, you work on it with Pro features, whatever plan you are on yourself.\n> Features that are part of a paid plan show a small Pro or Business label. Using one on Free opens a short sheet to upgrade."
+      },
+      {
+        "id": "billing",
+        "title": "Paying, changing and cancelling",
+        "summary": "Checkout, receipts, switching plans and what a downgrade does.",
+        "body": "Upgrade from Settings → Plan, or from any Pro label in the app. Payment is handled by Polar, who act as the merchant of record: they take the card, add any sales tax or VAT, and send the receipt.\n## Receipts and your card\nSettings → Plan → Invoices and billing opens Polar’s page for your account, with every receipt and the card on file.\n## Switching plans\nMove between Pro and Business, or between monthly and yearly, from the same page. Polar works out the difference for the rest of the period.\n## Cancelling\nCancel any time. The plan stays on until the end of the period you have paid for and is not charged again.\n## What a downgrade does\nNothing is deleted. Features outside your new plan stop — a custom domain goes back to your formkit.app link, the “Made with Formkit” credit comes back — and everything you built or collected stays yours and exportable. Upgrade again and they come back as they were."
       }
     ]
   },
