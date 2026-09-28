@@ -755,13 +755,12 @@ function AppFrame({ children }: { children: ReactNode }) {
     );
   }
 
-  // Ask Formkit exists only for an account on the allow-list: without it there
-  // is no provider, no launcher and no drawer to find.
-  return viewer?.ai.allowed ? (
-    <AskProvider key={viewer._id} userId={viewer._id} limit={viewer.ai.limit} used={viewer.ai.used}>
+  // Ask Formkit exists only for an account on the allow-list: without it the
+  // provider holds nothing and there is no launcher or drawer to find. It is
+  // always rendered, so the account loading never changes the tree's shape.
+  return (
+    <AskProvider userId={viewer?.ai.allowed ? viewer._id : null} limit={viewer?.ai.limit ?? 0} used={viewer?.ai.used ?? 0}>
       {frame}
     </AskProvider>
-  ) : (
-    frame
   );
 }

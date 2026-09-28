@@ -115,13 +115,19 @@ export function nextMonthLabel() {
   return new Date(d.getFullYear(), d.getMonth() + 1, 1).toLocaleDateString("en-GB", { day: "numeric", month: "long" });
 }
 
+/**
+ * Always in the tree, whether or not the account has Ask Formkit: with no
+ * userId it provides nothing. Wrapping the app only once the account had
+ * loaded would change the tree's shape and rebuild the whole page — the
+ * tabs visibly blinking a moment after every load.
+ */
 export function AskProvider({
   userId,
   limit,
   used,
   children,
 }: {
-  userId: string;
+  userId: string | null;
   limit: number;
   used: number;
   children: ReactNode;
@@ -133,10 +139,9 @@ export function AskProvider({
   const commitDraft = useMutation(api.ai.commit);
   const rewrite = useMutation(api.ai.applyRewrite);
 
-  const [saved] = useState(() => load(userId));
-  const [thread, setThread] = useState<Message[]>(saved.thread);
-  const [canvas, setCanvas] = useState<Canvas | null>(saved.canvas);
-  const [target, setTarget] = useState(saved.target);
+  const [thread, setThread] = useState<Message[]>([]);
+  const [canvas, setCanvas] = useState<Canvas | null>(null);
+  const [target, setTarget] = useState<Saved["target"]>("new");
   const [busy, setBusy] = useState(false);
   const [plan, setPlan] = useState<{ text: string; done: boolean }[]>([]);
   const [shown, setShown] = useState(Number.MAX_SAFE_INTEGER);
@@ -144,20 +149,35 @@ export function AskProvider({
   const [limitOpen, setLimitOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const timers = useRef<number[]>([]);
+  // The saved conversation is read once the account is known, and again if
+  // a different account signs in.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  if (userId && loadedFor !== userId) {
+    const saved = load(userId);
+    setLoadedFor(userId);
+    setThread(saved.thread);
+    setCanvas(saved.canvas);
+    setTarget(saved.target);
+    setPlan([]);
+    setAttach(null);
+    setLimitOpen(false);
+    setDrawerOpen(false);
+  }
 
   // The form the builder has open wins over the page's picker.
   const editing = /^\/app\/forms\/([^/?#]+)/.exec(pathname ?? "")?.[1] as Id<"forms"> | undefined;
-  const forms = useQuery(api.forms.picker, {});
+  const forms = useQuery(api.forms.picker, userId ? {} : "skip");
   const pickable = target !== "new" && forms?.some((f) => f._id === target);
   const formId = editing ?? (pickable ? (target as Id<"forms">) : null);
 
   useEffect(() => {
+    if (!userId || loadedFor !== userId) return;
     try {
       window.localStorage.setItem(KEY + userId, JSON.stringify({ thread: thread.slice(-60), canvas, target }));
     } catch {
       /* storage full or blocked: the conversation just will not survive a reload */
     }
-  }, [userId, thread, canvas, target]);
+  }, [userId, loadedFor, thread, canvas, target]);
 
   const clearTimers = () => {
     timers.current.forEach((t) => window.clearTimeout(t));
@@ -373,5 +393,5 @@ export function AskProvider({
     [thread, canvas, busy, plan, shown, attach, target, formId, left, limit, limitOpen, drawerOpen, send, commit, discard, applyRewrite, newChat],
   );
 
-  return <AskContext.Provider value={value}>{children}</AskContext.Provider>;
+  return <AskContext.Provider value={userId ? value : null}>{children}</AskContext.Provider>;
 }
