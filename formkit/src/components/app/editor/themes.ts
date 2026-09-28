@@ -30,7 +30,28 @@ export type Theme = {
   logos: { name: string; storageId?: string }[];
   logoAlign: "left" | "center" | "right";
   logoSize: "Small" | "Medium" | "Large";
+  /** Pro: a font file of the brand's own, used for headings and text. */
+  customFont?: { name: string; storageId: string } | null;
+  /** Pro: CSS applied inside the published form only. */
+  css?: string;
 };
+
+/**
+ * Custom CSS is scoped by nesting it inside the form's own root, and anything
+ * that could reach outside the form or run code is taken out.
+ */
+export function cleanCss(css: string | null | undefined) {
+  if (!css) return "";
+  return css
+    .slice(0, 20000)
+    .replace(/<\/?style/gi, "")
+    .replace(/</g, "")
+    .replace(/@import[^;]*;?/gi, "")
+    .replace(/@charset[^;]*;?/gi, "")
+    .replace(/url\(\s*(['"]?)\s*javascript:[^)]*\)/gi, "none")
+    .replace(/expression\s*\(/gi, "(")
+    .replace(/-moz-binding|behavior\s*:/gi, "");
+}
 
 import { INK, THEME_PRESETS } from "../../../../convex/model/themePresets";
 

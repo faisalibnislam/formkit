@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { ArrowLeft, Check, CornerDownLeft, Lock, Paperclip } from "lucide-react";
 import type { Id } from "../../../convex/_generated/dataModel";
 import {
+  cleanCss,
   LOGO_PX,
   SIZE_SCALE,
   WEIGHTS,
@@ -71,6 +72,8 @@ export type OpenForm = {
   rules: { spam: boolean; requireEmail: boolean; editAfter: boolean; multiple: boolean; partials?: boolean };
   blocks: Block[];
   logic: Rule[];
+  /** Pro: the brand's own font file and custom CSS, when the owner's plan has them. */
+  custom?: { font: { name: string; url: string } | null; css: string | null } | null;
 };
 
 export type SubmitArgs = {
@@ -363,7 +366,7 @@ export function FormRunner({
   /* ---------- closed ---------- */
   if (closed) {
     return (
-      <Shell theme={theme} brand={data.brand} logos={data.logos}>
+      <Shell theme={theme} brand={data.brand} logos={data.logos} custom={data.custom}>
         <div style={{ paddingTop: "8vh", textAlign: "center" }}>
           <span className="fk-live-lock">
             <Lock size={30} strokeWidth={1.8} aria-hidden />
@@ -379,7 +382,7 @@ export function FormRunner({
   if (done) {
     const t = data.thanks;
     return (
-      <Shell theme={theme} brand={data.brand} logos={data.logos}>
+      <Shell theme={theme} brand={data.brand} logos={data.logos} custom={data.custom}>
         <div style={{ textAlign: split ? "left" : "center", paddingTop: "4vh" }}>
           <span className="fk-live-lock" style={{ background: theme.primary, color: ink }}>
             <Check size={30} strokeWidth={2} aria-hidden />
@@ -427,7 +430,7 @@ export function FormRunner({
   /* ---------- a welcome page of its own ---------- */
   if (!started) {
     return (
-      <Shell theme={theme} brand={data.brand} logos={data.logos}>
+      <Shell theme={theme} brand={data.brand} logos={data.logos} custom={data.custom}>
         <div style={{ paddingTop: "4vh" }}>{intro}</div>
         <div className="fk-live-foot" style={{ justifyContent: split ? "flex-start" : "center" }}>
           <button
@@ -519,14 +522,14 @@ export function FormRunner({
   if (conversational) {
     if (!cur) {
       return (
-        <Shell theme={theme} brand={data.brand} logos={data.logos}>
+        <Shell theme={theme} brand={data.brand} logos={data.logos} custom={data.custom}>
           {intro}
           <p className="fk-live-note">There are no questions on this form yet.</p>
         </Shell>
       );
     }
     return (
-      <Shell theme={theme} brand={data.brand} logos={data.logos}>
+      <Shell theme={theme} brand={data.brand} logos={data.logos} custom={data.custom}>
         {step === 0 && !standalone && <div style={{ marginBottom: 28 }}>{intro}</div>}
         <div className="fk-live-steplabel">
           <span>
@@ -580,7 +583,7 @@ export function FormRunner({
 
   /* ---------- classic: a page of questions at a time ---------- */
   return (
-    <Shell theme={theme} brand={data.brand} logos={data.logos}>
+    <Shell theme={theme} brand={data.brand} logos={data.logos} custom={data.custom}>
       {page === 0 && !standalone && intro}
       {live.length > 1 && (
         <div style={{ marginTop: page === 0 && !standalone ? 34 : 0 }}>
@@ -636,14 +639,18 @@ export function Shell({
   theme,
   brand,
   logos,
+  custom,
   children,
 }: {
   theme: ReturnType<typeof themeOf> | null;
   brand?: { name: string; logoUrl: string | null; color: string | null };
   logos?: { name: string; url: string | null }[];
+  custom?: OpenForm["custom"];
   children: React.ReactNode;
 }) {
   const t = theme ?? themeOf(null);
+  const brandFont = custom?.font ? `${custom.font.name.replace(/["\\]/g, "")} Formkit brand` : null;
+  const css = cleanCss(custom?.css);
   useEffect(() => {
     loadFont(t.font);
     loadFont(t.heading);
@@ -653,17 +660,22 @@ export function Shell({
     <div
       className="fk-live"
       data-layout={t.layout}
+      data-custom={css ? "true" : undefined}
       style={
         {
           background: t.bg,
           color: t.text,
           fontSize: 16 * SIZE_SCALE[t.size],
-          fontFamily: fontStack(t.font),
-          "--fk-live-heading": fontStack(t.heading),
+          fontFamily: brandFont ? `"${brandFont}", ${fontStack(t.font)}` : fontStack(t.font),
+          "--fk-live-heading": brandFont ? `"${brandFont}", ${fontStack(t.heading)}` : fontStack(t.heading),
           "--fk-live-weight": WEIGHTS[t.weight],
         } as React.CSSProperties
       }
     >
+      {brandFont && custom?.font && (
+        <style>{`@font-face{font-family:"${brandFont}";src:url("${encodeURI(custom.font.url)}");font-display:swap}`}</style>
+      )}
+      {css && <style>{`.fk-live[data-custom="true"]{${css}}`}</style>}
       <div className="fk-live-inner">
         {brand && t.showLogo && (
           <div className="fk-live-brand">

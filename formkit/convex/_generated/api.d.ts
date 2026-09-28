@@ -19,7 +19,9 @@ import type * as comments from "../comments.js";
 import type * as companies from "../companies.js";
 import type * as crons from "../crons.js";
 import type * as digests from "../digests.js";
+import type * as domains from "../domains.js";
 import type * as email from "../email.js";
+import type * as emailDomains from "../emailDomains.js";
 import type * as emails_authCode from "../emails/authCode.js";
 import type * as emails_kit from "../emails/kit.js";
 import type * as emails_response from "../emails/response.js";
@@ -73,7 +75,9 @@ declare const fullApi: ApiFromModules<{
   "companies": typeof companies,
   "crons": typeof crons,
   "digests": typeof digests,
+  "domains": typeof domains,
   "email": typeof email,
+  "emailDomains": typeof emailDomains,
   "emails/authCode": typeof emails_authCode,
   "emails/kit": typeof emails_kit,
   "emails/response": typeof emails_response,

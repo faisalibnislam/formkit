@@ -3,6 +3,9 @@ import {
   createRouteMatcher,
   nextjsMiddlewareRedirect,
 } from "@convex-dev/auth/nextjs/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { fetchQuery } from "convex/nextjs";
+import { api } from "../convex/_generated/api";
 
 /**
  * Route protection.
@@ -30,7 +33,60 @@ const VIEWS: Record<string, string> = {
   setup: "/onboarding",
 };
 
+/* ---------- Custom domains (Pro) ----------
+
+   A request to a host that is not Formkit's own is a customer's domain.
+   forms.acme.com/<slug> shows that identity's form at <slug>; the root
+   lists its open forms; resume links work as they are; anything else goes
+   to formkit.app. When the owner's plan no longer has custom domains, every
+   request is sent on to their formkit.app link so nothing shared breaks. */
+
+const OWN_HOSTS = new Set(
+  ["formkit.app", "www.formkit.app", "localhost", "127.0.0.1", new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://formkit.app").hostname].filter(Boolean),
+);
+const MAIN = process.env.NEXT_PUBLIC_SITE_URL ?? "https://formkit.app";
+
+type Resolved = { handle: string; live: boolean } | null;
+const seen = new Map<string, { at: number; value: Resolved }>();
+const TTL = 60_000;
+
+async function resolveHost(host: string): Promise<Resolved> {
+  const hit = seen.get(host);
+  if (hit && Date.now() - hit.at < TTL) return hit.value;
+  let value: Resolved = null;
+  try {
+    value = await fetchQuery(api.domains.resolve, { host });
+  } catch {
+    value = hit?.value ?? null;
+  }
+  seen.set(host, { at: Date.now(), value });
+  return value;
+}
+
+function isOwnHost(host: string) {
+  return OWN_HOSTS.has(host) || host.endsWith(".vercel.app") || host.endsWith(".localhost");
+}
+
+async function customDomain(request: NextRequest) {
+  const host = (request.headers.get("host") ?? request.nextUrl.host).split(":")[0]!.toLowerCase();
+  if (isOwnHost(host)) return null;
+  const path = request.nextUrl.pathname;
+  const found = await resolveHost(host);
+  if (!found) return NextResponse.redirect(new URL(MAIN));
+  if (!found.live) {
+    return NextResponse.redirect(new URL(`/${found.handle}${path === "/" ? "" : path}`, MAIN));
+  }
+  if (path === "/") return NextResponse.rewrite(new URL(`/domain/${host}`, request.url));
+  if (path.startsWith("/r/")) return NextResponse.next();
+  const parts = path.split("/").filter(Boolean);
+  if (parts.length === 1) return NextResponse.rewrite(new URL(`/${found.handle}/${parts[0]}${request.nextUrl.search}`, request.url));
+  return NextResponse.redirect(new URL(path, MAIN));
+}
+
 export const proxy = convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
+  const custom = await customDomain(request);
+  if (custom) return custom;
+
   const view = request.nextUrl.searchParams.get("view");
   if (view && VIEWS[view] && request.nextUrl.pathname.startsWith("/app")) {
     return nextjsMiddlewareRedirect(request, VIEWS[view]);

@@ -23,6 +23,19 @@ import { formUrl } from "./model/handles";
  * per person when multiple submissions are off, and a required email.
  */
 
+/** Pro: the brand's own font file and custom CSS, dropped if the plan lapses. */
+async function customLook(ctx: QueryCtx, form: Doc<"forms">) {
+  const t = (form.theme ?? {}) as { customFont?: { name: string; storageId: Id<"_storage"> } | null; css?: string };
+  const fontOk = !!t.customFont && (await hasFeature(ctx, form.ownerId, "design.fonts"));
+  const cssOk = !!t.css?.trim() && (await hasFeature(ctx, form.ownerId, "design.css"));
+  if (!fontOk && !cssOk) return null;
+  const url = fontOk ? await ctx.storage.getUrl(t.customFont!.storageId) : null;
+  return {
+    font: fontOk && url ? { name: t.customFont!.name, url } : null,
+    css: cssOk ? t.css!.slice(0, 20000) : null,
+  };
+}
+
 /**
  * Partial responses need the platform flag and the owner's plan (Pro and up).
  */
@@ -109,6 +122,7 @@ async function payload(ctx: QueryCtx, form: Doc<"forms">) {
     theme: form.theme ?? null,
     closedMessage: form.closing?.message || CLOSED_NOTE,
     uploadCapMb: PLANS[await planOfId(ctx, form.ownerId)].uploadMb,
+    custom: await customLook(ctx, form),
     rules: {
       spam: s.spam,
       requireEmail: s.requireEmail,

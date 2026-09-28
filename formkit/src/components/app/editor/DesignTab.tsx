@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery } from "convex/react";
 import {
@@ -8,6 +8,7 @@ import {
   AlignLeft,
   AlignRight,
   BadgeCheck,
+  Braces,
   Droplet,
   Eye,
   GripVertical,
@@ -34,7 +35,10 @@ import {
   Segmented,
   Select,
   Switch,
+  Textarea,
 } from "@/components/ui";
+import { ProChip } from "@/components/plan/UpgradeSheet";
+import { openUpgrade, useGate } from "@/components/plan/usePlan";
 import { useToast } from "@/components/ui/Toast";
 import { LogoLockup } from "@/components/live/LogoLockup";
 import { FONTS, fontStack, loadFont, loadFontPreviews } from "./fonts";
@@ -58,7 +62,7 @@ import { useSettingsDraft } from "./useSettingsDraft";
  * out under — with a preview that repaints as anything changes.
  */
 
-type Section = "theme" | "colors" | "type" | "layout" | "branding";
+type Section = "theme" | "colors" | "type" | "layout" | "branding" | "css";
 type Device = "desktop" | "tablet" | "mobile";
 
 const INK = "#21282E";
@@ -97,6 +101,10 @@ export function DesignTab({ formId }: { formId: Id<"forms"> }) {
   const [uploading, setUploading] = useState(false);
 
   const [theme, set] = useSettingsDraft<Theme>(formId, "theme", themeOf(form?.theme ?? null));
+  const fontGate = useGate("design.fonts", form?.ownerPlan?.features);
+  const cssGate = useGate("design.css", form?.ownerPlan?.features);
+  const fontInput = useRef<HTMLInputElement>(null);
+  const [cssDraft, setCssDraft] = useState<string | null>(null);
 
   useEffect(() => {
     loadFont(theme.font);
@@ -154,6 +162,27 @@ export function DesignTab({ formId }: { formId: Id<"forms"> }) {
     }
   }
 
+  async function addFont(file: File | null) {
+    if (!file) return;
+    if (!/\.(woff2?|ttf|otf)$/i.test(file.name) || file.size > 2 * 1024 * 1024) {
+      toast("That font was not added", { detail: "Use a WOFF2, WOFF, TTF or OTF file under 2 MB.", tone: "error" });
+      return;
+    }
+    setUploading(true);
+    try {
+      const url = await uploadUrl({});
+      const res = await fetch(url, { method: "POST", headers: { "Content-Type": file.type || "font/woff2" }, body: file });
+      const { storageId } = (await res.json()) as { storageId: string };
+      const name = file.name.replace(/\.[a-z0-9]+$/i, "").replace(/[-_]+/g, " ").trim() || "Brand font";
+      set({ customFont: { name, storageId } });
+      toast("Brand font added", { detail: `${name} is used on the live form` });
+    } catch {
+      toast("That upload did not finish", { detail: "Check the connection and try again.", tone: "error" });
+    } finally {
+      setUploading(false);
+    }
+  }
+
   function moveLogo(from: number, to: number) {
     setLogoDrag(null);
     setLogoOver(null);
@@ -192,6 +221,7 @@ export function DesignTab({ formId }: { formId: Id<"forms"> }) {
               { value: "type", label: "Type", icon: <Type size={15} strokeWidth={1.8} aria-hidden /> },
               { value: "layout", label: "Layout", icon: <LayoutGrid size={15} strokeWidth={1.8} aria-hidden /> },
               { value: "branding", label: "Branding", icon: <BadgeCheck size={15} strokeWidth={1.8} aria-hidden /> },
+              { value: "css", label: "CSS", icon: <Braces size={15} strokeWidth={1.8} aria-hidden /> },
             ]}
           />
         </div>
@@ -327,6 +357,42 @@ export function DesignTab({ formId }: { formId: Id<"forms"> }) {
                 </div>
               </PropRow>
             ))}
+            <PropRow
+              label="Your brand font"
+              hint={
+                theme.customFont
+                  ? `${theme.customFont.name} — used for headings and text on the live form`
+                  : "Upload a font file of your own (WOFF2, WOFF, TTF or OTF, up to 2 MB)"
+              }
+            >
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                {fontGate.locked && <ProChip onClick={() => openUpgrade({ feature: "design.fonts" })} />}
+                {theme.customFont ? (
+                  <Button variant="ghost" size="sm" onClick={() => set({ customFont: null })}>
+                    Remove
+                  </Button>
+                ) : (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={uploading}
+                    onClick={() => (fontGate.locked ? openUpgrade({ feature: "design.fonts" }) : fontInput.current?.click())}
+                  >
+                    Upload
+                  </Button>
+                )}
+                <input
+                  ref={fontInput}
+                  type="file"
+                  accept=".woff2,.woff,.ttf,.otf"
+                  hidden
+                  onChange={(e) => {
+                    void addFont(e.target.files?.[0] ?? null);
+                    e.target.value = "";
+                  }}
+                />
+              </span>
+            </PropRow>
             <PropRow label="Font size">
               <div style={{ width: 130 }}>
                 <Select
@@ -349,6 +415,36 @@ export function DesignTab({ formId }: { formId: Id<"forms"> }) {
                 />
               </div>
             </PropRow>
+          </div>
+        )}
+
+        {section === "css" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <p className="fk-proprow-hint" style={{ margin: 0 }}>
+              CSS for the published form only — it cannot reach the rest of the page. Start from the form&rsquo;s own classes:
+              .fk-live-q, .fk-live-q-title, .fk-live-q-help, .fk-live-choice, .fk-live-progress, .fk-live-foot.
+            </p>
+            {cssGate.locked && (
+              <span>
+                <ProChip onClick={() => openUpgrade({ feature: "design.css" })} />
+              </span>
+            )}
+            <Textarea
+              rows={12}
+              value={cssDraft ?? theme.css ?? ""}
+              placeholder={".fk-live-q-title {\n  letter-spacing: -0.02em;\n}"}
+              disabled={cssGate.locked}
+              onChange={(e) => setCssDraft(e.target.value)}
+              onBlur={() => {
+                if (cssDraft === null || cssDraft === (theme.css ?? "")) return setCssDraft(null);
+                set({ css: cssDraft });
+                setCssDraft(null);
+              }}
+              style={{ fontSize: 13.5, lineHeight: 1.55 }}
+            />
+            <p className="fk-proprow-hint" style={{ margin: 0 }}>
+              Shows on the live form and in Preview. Up to 20,000 characters; imports and scripts are removed.
+            </p>
           </div>
         )}
 

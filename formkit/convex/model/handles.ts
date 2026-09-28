@@ -1,5 +1,6 @@
 import { Id } from "../_generated/dataModel";
 import { MutationCtx, QueryCtx } from "../_generated/server";
+import { hasFeature } from "./plans";
 
 /**
  * Claimed links.
@@ -18,6 +19,9 @@ const RESERVED = new Set([
   "api",
   "app",
   "compare",
+  "domain",
+  "dpa",
+  "api-docs",
   "f",
   "formkit",
   "help",
@@ -117,6 +121,16 @@ export async function formUrl(
     handle = (await ctx.db.get(form.ownerId))?.handle ?? null;
   } else {
     handle = (await ctx.db.get(form.brand))?.handle ?? null;
+  }
+  // A live custom domain for this identity is the link, while the plan has it.
+  if (handle) {
+    const domain = (
+      await ctx.db
+        .query("domains")
+        .withIndex("by_owner", (q) => q.eq("ownerId", form.ownerId))
+        .collect()
+    ).find((d) => d.owner === form.brand && d.status === "active");
+    if (domain && (await hasFeature(ctx, form.ownerId, "domains"))) return `${domain.host}/${form.slug}`;
   }
   return handle ? `formkit.app/${handle}/${form.slug}` : `formkit.app/f/${form.slug}`;
 }

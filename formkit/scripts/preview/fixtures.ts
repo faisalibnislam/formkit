@@ -629,7 +629,12 @@ export const QUERIES: Record<string, unknown> = {
     { _id: "a3", who: "You", image: null, color: "#2e78bb", what: "invited freelance@grainhouse.com as Viewer", icon: "user-plus", at: now - 2 * DAY },
   ],
   "publicForm:preview": RUNNER,
-  "publicForm:bySlug": RUNNER,
+  /** ?fk_css=1 shows the published form with sample custom CSS. */
+  get "publicForm:bySlug"() {
+    return flag("fk_css")
+      ? { ...RUNNER, custom: { font: null, css: ".fk-live-q-title { color: #c4614f; text-transform: uppercase; letter-spacing: .04em; } body { background: red; }" } }
+      : RUNNER;
+  },
   "comments:counts": { b2: 1 },
   "comments:list": {
     canComment: true,
@@ -715,6 +720,35 @@ export const QUERIES: Record<string, unknown> = {
   "admin:users": STAFF_USERS,
   "admin:usersPage": { total: 10020, page: 0, pageSize: 20, rows: STAFF_USERS },
   "admin:user": STAFF_USERS[0],
+  "domains:mine": {
+    configured: true,
+    domains: [
+      {
+        _id: "d1",
+        owner: "me",
+        host: "forms.mayaortiz.design",
+        status: "pending",
+        records: [{ type: "CNAME", name: "forms", value: "cname.vercel-dns.com" }],
+        detail: "Waiting for the DNS record. Changes can take up to a few hours to spread.",
+        checkedAt: now,
+        identity: { name: "Maya Ortiz", handle: "maya" },
+      },
+    ],
+  },
+  "emailDomains:mine": {
+    _id: "e1",
+    domain: "studionine.co",
+    status: "pending",
+    fromLocal: "hello",
+    fromName: "Studio Nine",
+    checkedAt: now,
+    detail: "Add these records where your domain's DNS is managed, then check again.",
+    records: [
+      { type: "MX", name: "send", value: "feedback-smtp.ap-northeast-1.amazonses.com", priority: 10 },
+      { type: "TXT", name: "send", value: "v=spf1 include:amazonses.com ~all" },
+      { type: "TXT", name: "resend._domainkey", value: "p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC…" },
+    ],
+  },
   "billing:adminStatus": {
     token: true,
     secret: false,

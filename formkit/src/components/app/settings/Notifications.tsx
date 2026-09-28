@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/Toast";
 import { Panel, Row } from "./bits";
 import { browserAlertsOn, browserAlertsSupported, setBrowserAlerts } from "../useInboxAlerts";
 import { PageSkeleton } from "../Skeleton";
+import { EmailDomainPanel } from "./Domains";
 
 /**
  * Settings → Notifications. "Every form" sets the account's defaults — what
@@ -62,6 +63,7 @@ export function NotificationsSection() {
         <FormNotify key={scope} formId={scope as Id<"forms">} account={viewer.emailPrefs} ownerEmail={viewer.email} />
       )}
     </Panel>
+    <EmailDomainPanel />
     </>
   );
 }

@@ -24,6 +24,7 @@ import { useToast } from "@/components/ui/Toast";
 import { ImageUpload } from "../ImageUpload";
 import { Panel, Row, errorText } from "./bits";
 import { PageSkeleton } from "../Skeleton";
+import { DomainsPanel } from "./Domains";
 import { ProChip } from "@/components/plan/UpgradeSheet";
 import { openUpgrade, upgradeOnPlanError, useGate, usePlan } from "@/components/plan/usePlan";
 
@@ -131,6 +132,13 @@ export function CompanySection() {
       </Panel>
 
       {selected && <CompanyEditor key={selected._id} company={selected} onDone={() => setOpen(null)} />}
+
+      <DomainsPanel
+        identities={[
+          { value: "me" as const, label: `${viewer.name} (you)`, handle: viewer.handle },
+          ...companies.map((c) => ({ value: c._id, label: c.name, handle: c.handle ?? null })),
+        ]}
+      />
 
       {adding && (
         <Modal

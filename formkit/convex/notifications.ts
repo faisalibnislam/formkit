@@ -11,6 +11,7 @@ import { api, internal } from "./_generated/api";
 import { Doc, Id } from "./_generated/dataModel";
 import { requireUser } from "./model/identity";
 import { brandOf, formFor } from "./model/forms";
+import { senderFor } from "./emailDomains";
 import { hasFeature } from "./model/plans";
 import {
   fill,
@@ -146,6 +147,8 @@ export const forResponse = internalQuery({
       formTitle: form.title,
       brandName,
       brand,
+      /** The owner's own verified sender for the confirmation (Pro), if any. */
+      confirmationFrom: await senderFor(ctx, owner._id, brandName),
       partial: response.partial,
       respondentEmail: response.respondentEmail ?? null,
       notification: {
@@ -205,6 +208,8 @@ export async function send(
     subject: string;
     html: string;
     replyTo?: string;
+    /** A verified sender of the form owner's own; Formkit's address otherwise. */
+    from?: string | null;
   },
 ): Promise<{ state: "sent" | "failed"; detail?: string }> {
   const key = process.env.AUTH_RESEND_KEY;
@@ -212,7 +217,7 @@ export async function send(
   try {
     const resend = new ResendAPI(key);
     const { error } = await resend.emails.send({
-      from: FROM,
+      from: payload.from || FROM,
       to: payload.to,
       subject: payload.subject,
       html: payload.html,
@@ -271,6 +276,7 @@ export const onResponse = internalAction({
         to: [job.respondentEmail],
         subject: job.confirmation.subject,
         replyTo: job.confirmation.replyTo,
+        from: job.confirmationFrom,
         html: renderConfirmation({
           subject: job.confirmation.subject,
           message: job.confirmation.message,
@@ -305,6 +311,7 @@ type TestJob = {
   replyTo: string | undefined;
   subject: string;
   html: string;
+  from: string | null;
 };
 
 /**
@@ -324,6 +331,7 @@ export const sendTest = action({
       subject: job.subject,
       html: job.html,
       replyTo: job.replyTo,
+      from: job.from,
     });
     await ctx.runMutation(internal.notifications.record, {
       userId: job.userId,
@@ -376,6 +384,7 @@ export const testFor = internalQuery({
       userId: user._id,
       to,
       replyTo: which === "confirmation" ? settings.replyTo : undefined,
+      from: which === "confirmation" ? await senderFor(ctx, form.ownerId, brand.name) : null,
       subject: fill(
         which === "notification" ? settings.subject : settings.confirmSubject,
         vars,

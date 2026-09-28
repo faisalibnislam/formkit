@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { internalMutation, mutation, query, type MutationCtx } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { requireUser } from "./model/identity";
-import { PLANS, planOfId, planSummary } from "./model/plans";
+import { PLANS, planOfId, planSummary, requireFeature } from "./model/plans";
 import {
   completionRate,
   formFor,
@@ -383,11 +383,26 @@ export const update = mutation({
   },
   returns: v.null(),
   handler: async (ctx, { formId, patch }) => {
-    await formFor(ctx, formId);
+    const form = await formFor(ctx, formId);
+    if (patch.theme) await themeAllowed(ctx, form.ownerId, patch.theme, form.theme);
     await ctx.db.patch(formId, { ...patch, updatedAt: Date.now() });
     return null;
   },
 });
+
+/**
+ * A brand font file and custom CSS are Pro, on the owner's plan. Only a change
+ * to them is checked, so a form that kept them after a downgrade can still
+ * have its colours changed.
+ */
+async function themeAllowed(ctx: MutationCtx, ownerId: Id<"users">, next: unknown, prev: unknown) {
+  const n = (next ?? {}) as { customFont?: { storageId?: string } | null; css?: string };
+  const p = (prev ?? {}) as { customFont?: { storageId?: string } | null; css?: string };
+  if ("customFont" in n && n.customFont && n.customFont.storageId !== p.customFont?.storageId) {
+    await requireFeature(ctx, ownerId, "design.fonts");
+  }
+  if ("css" in n && n.css?.trim() && n.css !== p.css) await requireFeature(ctx, ownerId, "design.css");
+}
 
 /**
  * Merge keys into one of a form's settings objects — theme, notify, welcome,
@@ -416,6 +431,7 @@ export const patchSettings = mutation({
       delete p.passwordSalt;
       delete p.password;
     }
+    if (key === "theme") await themeAllowed(ctx, form.ownerId, patch, form.theme);
     const current = ((form as Record<string, unknown>)[key] ?? {}) as Record<string, unknown>;
     await ctx.db.patch(formId, {
       [key]: { ...current, ...(patch as Record<string, unknown>) },

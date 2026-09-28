@@ -17,5 +17,7 @@ crons.interval("close forms whose rule has arrived", { minutes: 5 }, internal.fo
 crons.hourly("daily and weekly digests", { minuteUTC: 0 }, internal.digests.run, {});
 crons.hourly("erase forms 60 days in the bin", { minuteUTC: 20 }, internal.forms.purgeExpired, {});
 crons.hourly("erase accounts deleted 30 days ago", { minuteUTC: 40 }, internal.security.purgeDeactivated, {});
+crons.interval("check custom domains waiting on DNS", { minutes: 10 }, internal.domains.recheckPending, {});
+crons.interval("check email domains waiting on DNS", { minutes: 10 }, internal.emailDomains.recheckPending, {});
 
 export default crons;

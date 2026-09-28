@@ -577,4 +577,43 @@ export default defineSchema({
     enabled: v.boolean(),
     rollout: v.number(),
   }).index("by_key", ["key"]),
+
+  /**
+   * Pro: a domain of the customer's own (forms.acme.com) for one identity —
+   * the person or one of their companies. Added to the Vercel project, then
+   * checked until its DNS points at Formkit.
+   */
+  domains: defineTable({
+    ownerId: v.id("users"),
+    owner: v.union(v.literal("me"), v.id("companies")),
+    host: v.string(),
+    status: v.union(v.literal("pending"), v.literal("active"), v.literal("failed")),
+    /** The DNS records to set, as Vercel reports them. */
+    records: v.optional(v.array(v.object({ type: v.string(), name: v.string(), value: v.string() }))),
+    detail: v.optional(v.string()),
+    addedAt: v.number(),
+    checkedAt: v.optional(v.number()),
+  })
+    .index("by_host", ["host"])
+    .index("by_owner", ["ownerId"])
+    .index("by_status", ["status"]),
+
+  /**
+   * Pro: confirmation emails sent from the customer's own domain, verified
+   * with Resend. One per account.
+   */
+  emailDomains: defineTable({
+    ownerId: v.id("users"),
+    domain: v.string(),
+    resendId: v.optional(v.string()),
+    status: v.union(v.literal("pending"), v.literal("verified"), v.literal("failed")),
+    records: v.optional(
+      v.array(v.object({ type: v.string(), name: v.string(), value: v.string(), priority: v.optional(v.number()) })),
+    ),
+    fromName: v.optional(v.string()),
+    fromLocal: v.string(),
+    detail: v.optional(v.string()),
+    addedAt: v.number(),
+    checkedAt: v.optional(v.number()),
+  }).index("by_owner", ["ownerId"]),
 });
