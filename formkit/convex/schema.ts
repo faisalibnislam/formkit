@@ -74,6 +74,8 @@ export default defineSchema({
     skyPref: v.optional(
       v.union(v.literal("sync"), v.literal("morning"), v.literal("afternoon"), v.literal("evening")),
     ),
+    // Settings → General → Appearance, when the dark mode flag reaches them.
+    appTheme: v.optional(v.union(v.literal("light"), v.literal("dark"), v.literal("system"))),
 
     // Settings → Account → Security.
     signInAlerts: v.optional(v.boolean()), // absent means on

@@ -23,6 +23,7 @@
 @import "../styles/landing-mobile.css";
 @import "../styles/ui.css";
 @import "../styles/app.css";
+@import "../styles/dark.css";
 @import "../styles/admin.css";
 
 /* Outfit is loaded through next/font, which exposes it as --font-outfit. The

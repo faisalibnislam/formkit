@@ -3,93 +3,100 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-import { Button, EmptyState, Field, Input, Switch } from "@/components/ui";
+import { Badge, Button, Field, Input, Switch } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 
-/** Feature flags: on or off, with the share of accounts that see them. */
+/**
+ * Feature flags: on or off, and when on, the share of accounts that get it.
+ *
+ * The list is fixed — each flag is read somewhere in the product, and a flag
+ * nothing reads would be a switch that does nothing. Raising the rollout keeps
+ * everyone who already had it; lowering it takes the most recent away first.
+ */
 export function AdminFlags() {
-  const toast = useToast();
   const flags = useQuery(api.admin.flags, {});
-  const save = useMutation(api.admin.saveFlag);
-  const [key, setKey] = useState("");
-  const [label, setLabel] = useState("");
-  const [description, setDescription] = useState("");
-
   return (
     <>
       {(flags ?? []).map((f) => (
-        <section key={f._id} className="fk-panel">
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
-            <div style={{ flex: 1, minWidth: 240 }}>
-              <h3>{f.label}</h3>
-              <p className="fk-panel-lede" style={{ marginBottom: 0 }}>
-                {f.description}
-              </p>
-              <p style={{ margin: "8px 0 0", fontSize: 13, color: "var(--color-text-tertiary)" }}>
-                {f.key} · {f.rollout}% of accounts
-              </p>
-            </div>
-            <Switch
-              checked={f.enabled}
-              label={f.label}
-              onChange={async (on) => {
-                await save({ ...f, flagId: f._id, enabled: on });
-                toast(`${f.label} ${on ? "on" : "off"}`);
-              }}
-            />
-          </div>
-          <div style={{ marginTop: 14, maxWidth: 220 }}>
-            <Field label="Rollout %">
-              <Input
-                type="number"
-                min={0}
-                max={100}
-                defaultValue={f.rollout}
-                onBlur={(e) => save({ ...f, flagId: f._id, rollout: Number(e.target.value) })}
-              />
-            </Field>
-          </div>
-        </section>
+        <FlagPanel key={f.key} flag={f} />
       ))}
+    </>
+  );
+}
 
-      {flags && flags.length === 0 && (
-        <section className="fk-panel">
-          <EmptyState title="No flags" description="Add one below and it appears here." />
-        </section>
-      )}
+type Flag = {
+  key: string;
+  label: string;
+  description: string;
+  enabled: boolean;
+  rollout: number;
+  changed: boolean;
+};
 
-      <section className="fk-panel">
-        <h3>Add a flag</h3>
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <Field label="Key" help="What the code checks, in lower case with dots.">
-            <Input value={key} onChange={(e) => setKey(e.target.value)} placeholder="export.xlsx" />
+function FlagPanel({ flag }: { flag: Flag }) {
+  const toast = useToast();
+  const save = useMutation(api.admin.saveFlag);
+  const [rollout, setRollout] = useState<string | null>(null);
+  const typed = rollout ?? String(flag.rollout);
+  const pct = Math.max(0, Math.min(100, Number(typed) || 0));
+
+  return (
+    <section className="fk-panel">
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
+        <div style={{ flex: 1, minWidth: 240 }}>
+          <h3 style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            {flag.label}
+            {!flag.changed && <Badge tone="neutral">Default</Badge>}
+          </h3>
+          <p className="fk-panel-lede" style={{ marginBottom: 0 }}>
+            {flag.description}
+          </p>
+          <p className="fk-admin-quiet" style={{ margin: "8px 0 0" }}>
+            {flag.key} · {flag.enabled ? (flag.rollout >= 100 ? "every account" : `${flag.rollout}% of accounts`) : "off for everyone"}
+          </p>
+        </div>
+        <Switch
+          checked={flag.enabled}
+          label={flag.label}
+          onChange={async (on) => {
+            await save({ key: flag.key, enabled: on, rollout: flag.rollout });
+            toast(`${flag.label} ${on ? "on" : "off"}`, {
+              detail: on ? `For ${flag.rollout >= 100 ? "every account" : `${flag.rollout}% of accounts`}.` : "For everyone, straight away.",
+            });
+          }}
+        />
+      </div>
+      {flag.enabled && (
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+          <Field label="Rollout" help="The share of accounts that get it. The same accounts stay in as it rises.">
+            <Input type="number" min={0} max={100} value={typed} onChange={(e) => setRollout(e.target.value)} wrapStyle={{ width: 110 }} />
           </Field>
-          <Field label="Name">
-            <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Excel export" />
-          </Field>
-          <Field label="What it does">
-            <Input
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Adds an .xlsx option beside the CSV download."
-            />
-          </Field>
-          <div>
+          <Button
+            size="sm"
+            disabled={rollout === null || pct === flag.rollout}
+            onClick={async () => {
+              await save({ key: flag.key, enabled: true, rollout: pct });
+              setRollout(null);
+              toast(`${flag.label} for ${pct}% of accounts`);
+            }}
+          >
+            Save
+          </Button>
+          {flag.rollout < 100 && (
             <Button
-              disabled={!key.trim() || !label.trim()}
+              variant="ghost"
+              size="sm"
               onClick={async () => {
-                await save({ key, label, description, enabled: false, rollout: 0 });
-                toast(`${label} added`, { detail: "It is off until you turn it on." });
-                setKey("");
-                setLabel("");
-                setDescription("");
+                await save({ key: flag.key, enabled: true, rollout: 100 });
+                setRollout(null);
+                toast(`${flag.label} for every account`);
               }}
             >
-              Add the flag
+              Everyone
             </Button>
-          </div>
+          )}
         </div>
-      </section>
-    </>
+      )}
+    </section>
   );
 }

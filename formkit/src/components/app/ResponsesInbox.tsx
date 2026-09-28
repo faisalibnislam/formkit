@@ -50,6 +50,7 @@ import { useToast } from "@/components/ui/Toast";
 import { initials, StatCard } from "./ds";
 import { fullTime, relativeTime } from "./bits";
 import { useExporter } from "./exporting";
+import { useFlag } from "./useFlags";
 import { downloadResponsePdf, printResponse, type ResponseDoc } from "./responseDoc";
 import { useNarrow } from "./useNarrow";
 
@@ -138,6 +139,7 @@ function Responses({
   const toast = useToast();
   const narrow = useNarrow();
   const exportRows = useExporter();
+  const excel = useFlag("exports.xlsx");
   const data = useQuery(api.responses.list, { formId });
   const setStatus = useMutation(api.responses.setStatus);
   const remove = useMutation(api.responses.remove);
@@ -302,13 +304,15 @@ function Responses({
         <span className="fk-range-note">
           {rows.length.toLocaleString("en-US")} of {real.length.toLocaleString("en-US")} responses
         </span>
-        <Button
-          variant="secondary"
-          onClick={() => exportHere("xlsx")}
-          iconLeft={<FileSpreadsheet size={16} strokeWidth={1.8} aria-hidden />}
-        >
-          Export Excel
-        </Button>
+        {excel && (
+          <Button
+            variant="secondary"
+            onClick={() => exportHere("xlsx")}
+            iconLeft={<FileSpreadsheet size={16} strokeWidth={1.8} aria-hidden />}
+          >
+            Export Excel
+          </Button>
+        )}
         <Button
           variant="secondary"
           onClick={() => exportHere("csv")}
@@ -923,6 +927,7 @@ function TagEditor({ responseId, tags }: { responseId: Id<"responses">; tags: st
 function Contacts({ onOpenPerson }: { onOpenPerson: (who: string) => void }) {
   const narrow = useNarrow();
   const exportRows = useExporter();
+  const excel = useFlag("exports.xlsx");
   const people = useQuery(api.responses.contacts, {});
   const [term, setTerm] = useState("");
 
@@ -963,13 +968,15 @@ function Contacts({ onOpenPerson }: { onOpenPerson: (who: string) => void }) {
           {people?.length === 1 ? "contact" : "contacts"}, collected from your forms
         </span>
         <span className="fk-section-spacer" />
-        <Button
-          variant="secondary"
-          onClick={() => void exportRows({ what: "contacts", format: "xlsx" })}
-          iconLeft={<FileSpreadsheet size={16} strokeWidth={1.8} aria-hidden />}
-        >
-          Export Excel
-        </Button>
+        {excel && (
+          <Button
+            variant="secondary"
+            onClick={() => void exportRows({ what: "contacts", format: "xlsx" })}
+            iconLeft={<FileSpreadsheet size={16} strokeWidth={1.8} aria-hidden />}
+          >
+            Export Excel
+          </Button>
+        )}
         <Button
           variant="secondary"
           onClick={() => void exportRows({ what: "contacts", format: "csv" })}

@@ -9,6 +9,7 @@ import { periodFor, type SkyPeriod } from "@/components/brand/AppSky";
 import { Badge, Button, Segmented } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 import { Panel } from "./bits";
+import { useFlags } from "../useFlags";
 
 /**
  * Settings → Preferences. The AI card exists only for an account that has
@@ -20,6 +21,7 @@ type Pref = "sync" | SkyPeriod;
 export function GeneralSection() {
   const toast = useToast();
   const viewer = useQuery(api.users.viewer, {});
+  const flags = useFlags();
   const save = useMutation(api.users.setPreferences);
   const [clock, setClock] = useState<{ hour: number; label: string } | null>(null);
 
@@ -38,6 +40,7 @@ export function GeneralSection() {
 
   if (!viewer) return null;
   const pref = viewer.skyPref as Pref;
+  const darkAllowed = flags["app.dark"];
   const now = clock ? periodFor(clock.hour) : "evening";
   const left = Math.max(0, viewer.ai.limit - viewer.ai.used);
 
@@ -59,7 +62,31 @@ export function GeneralSection() {
         </Panel>
       )}
 
-      <Panel title="Appearance" lede="The sky behind your dashboard. Synced to your own clock, or pinned to one time of day.">
+      <Panel
+        title="Appearance"
+        lede={
+          darkAllowed
+            ? "Light or dark, and the sky behind your dashboard."
+            : "The sky behind your dashboard. Synced to your own clock, or pinned to one time of day."
+        }
+      >
+        {darkAllowed && (
+          <div style={{ marginBottom: 18 }}>
+            <Segmented
+              ariaLabel="Theme"
+              value={viewer.appTheme}
+              onChange={async (next) => {
+                await save({ appTheme: next });
+                toast(next === "system" ? "Following your system" : next === "dark" ? "Dark mode on" : "Light mode on");
+              }}
+              options={[
+                { value: "light", label: "Light" },
+                { value: "dark", label: "Dark" },
+                { value: "system", label: "Match my system" },
+              ]}
+            />
+          </div>
+        )}
         <Segmented
           ariaLabel="Dashboard sky"
           value={pref}

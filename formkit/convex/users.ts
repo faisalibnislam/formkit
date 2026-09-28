@@ -28,6 +28,7 @@ export const viewer = query({
         v.literal("afternoon"),
         v.literal("evening"),
       ),
+      appTheme: v.union(v.literal("light"), v.literal("dark"), v.literal("system")),
       /** Signed in with a password, but this session still owes its code. */
       twoFactorNeeded: v.boolean(),
       onboarded: v.boolean(),
@@ -94,6 +95,7 @@ export const viewer = query({
       timezone: user.timezone ?? null,
       role: user.role ?? null,
       skyPref: user.skyPref ?? "sync",
+      appTheme: user.appTheme ?? "light",
       twoFactorNeeded: !(await twoFactorPassed(ctx, user)),
       onboarded: user.onboardedAt !== undefined,
       deactivated: user.deactivatedAt !== undefined,
@@ -170,6 +172,7 @@ export const setPreferences = mutation({
     skyPref: v.optional(
       v.union(v.literal("sync"), v.literal("morning"), v.literal("afternoon"), v.literal("evening")),
     ),
+    appTheme: v.optional(v.union(v.literal("light"), v.literal("dark"), v.literal("system"))),
     inAppPrefs: v.optional(
       v.object({
         responses: v.optional(v.boolean()),
@@ -194,11 +197,12 @@ export const setPreferences = mutation({
     emailCopy: v.optional(v.object({ on: v.optional(v.boolean()), to: v.optional(v.string()) })),
   },
   returns: v.null(),
-  handler: async (ctx, { skyPref, inAppPrefs, emailPrefs, emailCopy }) => {
+  handler: async (ctx, { skyPref, appTheme, inAppPrefs, emailPrefs, emailCopy }) => {
     const user = await requireUser(ctx);
     const clean = (s?: string) => (s === undefined ? undefined : s.trim().slice(0, 2000));
     await ctx.db.patch(user._id, {
       ...(skyPref ? { skyPref } : {}),
+      ...(appTheme ? { appTheme } : {}),
       ...(inAppPrefs
         ? {
             inAppPrefs: {

@@ -127,6 +127,36 @@ function deviceLabel() {
   return os ? `${browser} on ${os}` : browser;
 }
 
+/**
+ * Dark mode: the account's choice, when the "Dark mode" flag reaches it.
+ * "Match my system" follows the operating system as it changes. The answer is
+ * remembered in this browser so the next visit starts in the right theme.
+ */
+function useAppTheme(pref: "light" | "dark" | "system" | undefined, allowed: boolean, ready: boolean) {
+  useEffect(() => {
+    if (!ready) return;
+    const root = document.documentElement;
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const apply = () => {
+      const dark = allowed && (pref === "dark" || (pref === "system" && mq.matches));
+      if (dark) root.dataset.appTheme = "dark";
+      else delete root.dataset.appTheme;
+      try {
+        window.localStorage.setItem("fk.appTheme", dark ? "dark" : "light");
+      } catch {
+        /* no storage: the theme is just applied a moment later next time */
+      }
+    };
+    apply();
+    mq.addEventListener("change", apply);
+    return () => {
+      mq.removeEventListener("change", apply);
+      // Leaving the app (for the marketing site, say) leaves the dark theme too.
+      delete root.dataset.appTheme;
+    };
+  }, [pref, allowed, ready]);
+}
+
 function AppFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const search = useSearchParams();
@@ -134,6 +164,8 @@ function AppFrame({ children }: { children: ReactNode }) {
   const { signOut } = useAuthActions();
 
   const viewer = useQuery(api.users.viewer, {});
+  const flags = useQuery(api.flags.mine, {});
+  useAppTheme(viewer?.appTheme, Boolean(flags?.["app.dark"]), viewer !== undefined && flags !== undefined);
   // `?viewAs=` is staff only; for anyone else it is ignored.
   const supportUser = viewer?.staffRole ? (search.get("viewAs") as Id<"users"> | null) : null;
   const acceptPending = useMutation(api.collaborators.acceptPending);

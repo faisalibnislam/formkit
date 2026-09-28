@@ -415,8 +415,11 @@ export const exportByEmail = action({
   returns: v.object({ state: v.string(), to: v.string(), detail: v.optional(v.string()) }),
   handler: async (
     ctx,
-    { formId, to, ids, includePartial, from, until, format = "xlsx", what = "responses" },
+    { formId, to, ids, includePartial, from, until, format: asked = "xlsx", what = "responses" },
   ): Promise<SendResult> => {
+    // With Excel export switched off for this account, the file goes as CSV.
+    const flags: { "exports.xlsx": boolean } = await ctx.runQuery(api.flags.mine, {});
+    const format = asked === "xlsx" && !flags["exports.xlsx"] ? "csv" : asked;
     const me: { _id: Id<"users">; email: string } | null = await ctx.runQuery(
       api.users.viewer,
       {},

@@ -22,6 +22,7 @@ import type * as email from "../email.js";
 import type * as emails_authCode from "../emails/authCode.js";
 import type * as emails_response from "../emails/response.js";
 import type * as exports from "../exports.js";
+import type * as flags from "../flags.js";
 import type * as forms from "../forms.js";
 import type * as handles from "../handles.js";
 import type * as http from "../http.js";
@@ -31,6 +32,7 @@ import type * as model_access from "../model/access.js";
 import type * as model_aiForms from "../model/aiForms.js";
 import type * as model_aiIntent from "../model/aiIntent.js";
 import type * as model_builtinTemplates from "../model/builtinTemplates.js";
+import type * as model_flags from "../model/flags.js";
 import type * as model_forms from "../model/forms.js";
 import type * as model_gemini from "../model/gemini.js";
 import type * as model_handles from "../model/handles.js";
@@ -71,6 +73,7 @@ declare const fullApi: ApiFromModules<{
   "emails/authCode": typeof emails_authCode,
   "emails/response": typeof emails_response,
   "exports": typeof exports,
+  "flags": typeof flags,
   "forms": typeof forms,
   "handles": typeof handles,
   "http": typeof http,
@@ -80,6 +83,7 @@ declare const fullApi: ApiFromModules<{
   "model/aiForms": typeof model_aiForms,
   "model/aiIntent": typeof model_aiIntent,
   "model/builtinTemplates": typeof model_builtinTemplates,
+  "model/flags": typeof model_flags,
   "model/forms": typeof model_forms,
   "model/gemini": typeof model_gemini,
   "model/handles": typeof model_handles,

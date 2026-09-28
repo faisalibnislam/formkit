@@ -38,7 +38,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <ConvexAuthNextjsServerProvider>
       {/* English (US) only, deliberately — the language picker was removed
           rather than left in place offering translations that do not exist. */}
-      <html lang="en-US" className={outfit.variable}>
+      <html lang="en-US" className={outfit.variable} suppressHydrationWarning>
         <body>
           <ConvexClientProvider>
             <ToastProvider>{children}</ToastProvider>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery } from "convex/react";
+import { useFlag } from "./useFlags";
 import type { FunctionReturnType } from "convex/server";
 import {
   CircleCheck,
@@ -111,6 +112,8 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
           ? "Last 90 days, to today."
           : rangeLabel(span.from, span.to);
 
+  const excel = useFlag("exports.xlsx");
+
   function exportAnalytics(format: "csv" | "xlsx") {
     if (!data) return;
     const title =
@@ -183,14 +186,16 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
           />
         )}
         <span className="fk-section-spacer" />
-        <Button
-          variant="secondary"
-          disabled={!data || !!noForms}
-          onClick={() => exportAnalytics("xlsx")}
-          iconLeft={<FileSpreadsheet size={16} strokeWidth={1.8} aria-hidden />}
-        >
-          Export Excel
-        </Button>
+        {excel && (
+          <Button
+            variant="secondary"
+            disabled={!data || !!noForms}
+            onClick={() => exportAnalytics("xlsx")}
+            iconLeft={<FileSpreadsheet size={16} strokeWidth={1.8} aria-hidden />}
+          >
+            Export Excel
+          </Button>
+        )}
         <Button
           variant="secondary"
           disabled={!data || !!noForms}

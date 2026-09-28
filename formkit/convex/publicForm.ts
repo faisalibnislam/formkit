@@ -6,6 +6,7 @@ import { Doc, Id } from "./_generated/dataModel";
 import { QueryCtx } from "./_generated/server";
 import { shouldAutoClose, themeLogos } from "./model/forms";
 import { passwordMatches, securityOf } from "./model/security";
+import { flagOn } from "./model/flags";
 import { accessOf } from "./model/access";
 import { formUrl } from "./model/handles";
 
@@ -104,6 +105,8 @@ async function payload(ctx: QueryCtx, form: Doc<"forms">) {
       requireEmail: s.requireEmail,
       editAfter: s.editAfter,
       multiple: s.multiple,
+      /** Unfinished answers are kept, with a link back — a flag on the owner's account. */
+      partials: await flagOn(ctx, "forms.partials", form.ownerId),
     },
     blocks: blocks.map((b) => ({
       _id: b._id,
@@ -384,6 +387,9 @@ export const submit = mutation({
     }
 
     const s = securityOf(form.security);
+    if (args.partial && !(await flagOn(ctx, "forms.partials", form.ownerId))) {
+      throw new ConvexError("This form does not keep unfinished answers.");
+    }
 
     const existing = args.resumeToken
       ? await ctx.db

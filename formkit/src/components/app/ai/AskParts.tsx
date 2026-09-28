@@ -23,6 +23,7 @@ import type { Id } from "../../../../convex/_generated/dataModel";
 import { Badge, Button, Modal, Select, Textarea } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 import { FieldIcon } from "../editor/FieldIcon";
+import { useFlag } from "../useFlags";
 import { fieldType } from "../editor/fieldTypes";
 import { THEME_PRESETS } from "../../../../convex/model/themePresets";
 import { nextMonthLabel, useAsk, type Attachment } from "./AskProvider";
@@ -83,6 +84,8 @@ const ATTACH_ITEMS = [
 export function AskComposer({ placeholder, autoFocus }: { placeholder?: string; autoFocus?: boolean }) {
   const ask = useAsk();
   const toast = useToast();
+  // "Build from a brief" is a flag; off, there is nothing to attach.
+  const canAttach = useFlag("ai.brief");
   const [value, setValue] = useState("");
   const [menu, setMenu] = useState(false);
   const [modal, setModal] = useState<"brief" | "riff" | null>(null);
@@ -182,6 +185,7 @@ export function AskComposer({ placeholder, autoFocus }: { placeholder?: string; 
         </div>
       )}
       <div className="fk-ask-input">
+        {canAttach && (
         <span style={{ position: "relative" }}>
           <button
             type="button"
@@ -219,6 +223,7 @@ export function AskComposer({ placeholder, autoFocus }: { placeholder?: string; 
             </span>
           )}
         </span>
+        )}
         <textarea
           ref={box}
           rows={1}

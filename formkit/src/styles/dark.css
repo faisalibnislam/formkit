@@ -1,0 +1,134 @@
+/* Dark mode for the app (Settings → General → Appearance), behind the
+   "Dark mode" feature flag. AppTheme sets data-app-theme="dark" on <html>.
+
+   It works by inverting the ramps rather than restyling components: the app
+   draws surfaces with the low steps and ink with the high ones, so swapping
+   them turns every card, chip, hairline and label at once. Inverse pieces —
+   the dark pill, toasts, the bulk bar — come out light, which is what they
+   should be on a dark page.
+
+   Two places keep the light ramp:
+   - the sky header, where white text and glass controls sit on the sky,
+     which follows the time of day and is already dark enough;
+   - a form's own preview, which shows the form in its theme, not the app's. */
+
+html[data-app-theme="dark"] {
+  color-scheme: dark;
+
+  --paper: #12181c;
+  --neutral-0: #1b2227;
+  --neutral-25: #1d2429;
+  --neutral-50: #20282e;
+  --neutral-100: #263037;
+  --neutral-150: #2c363e;
+  --neutral-200: #35414a;
+  --neutral-300: #46525c;
+  --neutral-400: #66717b;
+  --neutral-500: #87919a;
+  --neutral-600: #a4adb4;
+  --neutral-700: #c0c7cc;
+  --neutral-800: #d7dce0;
+  --neutral-900: #eef2f4;
+  --neutral-950: #eef2f4;
+
+  --blue-50: #172a3b;
+  --blue-100: #1c3348;
+  --blue-200: #244460;
+  --blue-300: #2f5a80;
+  --blue-400: #4a7fb2;
+  --blue-500: #6ea6dc;
+  --blue-600: #8fbde6;
+  --blue-700: #b1d2ee;
+
+  --green-100: #1c3320;
+  --green-200: #26452a;
+  --green-300: #3f6e3b;
+  --green-600: #93d68a;
+  --yellow-100: #332b12;
+  --yellow-200: #4a3e17;
+  --yellow-600: #edd36e;
+  --red-100: #3a201f;
+  --red-200: #522c2a;
+  --red-600: #f5a9a7;
+  --mint-100: #1a2b26;
+  --mint-200: #213831;
+
+  --color-surface-glass: rgba(27, 34, 39, 0.62);
+  --color-surface-glass-strong: rgba(27, 34, 39, 0.86);
+  --color-surface-overlay: rgba(0, 0, 0, 0.5);
+  --color-text-inverse-secondary: rgba(20, 26, 31, 0.66);
+}
+
+/* The light ramp, put back where it belongs. */
+html[data-app-theme="dark"] .fk-app-bar,
+html[data-app-theme="dark"] .fk-app-hero,
+html[data-app-theme="dark"] .fk-tab:not([data-active="true"]),
+html[data-app-theme="dark"] .fk-preview-frame,
+html[data-app-theme="dark"] .fk-preview-device,
+html[data-app-theme="dark"] .fk-live {
+  color-scheme: light;
+  --paper: #f7fbff;
+  --neutral-0: #ffffff;
+  --neutral-25: #fcfcfc;
+  --neutral-50: #fafafa;
+  --neutral-100: #f4f4f4;
+  --neutral-150: #ededee;
+  --neutral-200: #e0e2e4;
+  --neutral-300: #c9ced2;
+  --neutral-400: #a9b0b6;
+  --neutral-500: #8d949b;
+  --neutral-600: #6d747a;
+  --neutral-700: #4d5358;
+  --neutral-800: #3a3f44;
+  --neutral-900: #21282e;
+  --neutral-950: #21282e;
+  --blue-50: #eaf3fb;
+  --blue-100: #d8e9f7;
+  --blue-200: #bcd9f0;
+  --blue-300: #a3c8e7;
+  --blue-400: #86b2dc;
+  --blue-500: #5f9bd4;
+  --blue-600: #2e78bb;
+  --blue-700: #1a5b95;
+  --green-100: #edf8e9;
+  --green-200: #d2ecca;
+  --green-300: #a0d098;
+  --green-600: #337c38;
+  --yellow-100: #fdf7e0;
+  --yellow-200: #f8e9b4;
+  --yellow-600: #846a11;
+  --red-100: #fdeeed;
+  --red-200: #fad5d3;
+  --red-600: #b33e3a;
+  --mint-100: #eef6f3;
+  --mint-200: #dceee6;
+  --color-surface-glass: rgba(255, 255, 255, 0.62);
+  --color-surface-glass-strong: rgba(255, 255, 255, 0.86);
+  --color-text-inverse-secondary: rgba(255, 255, 255, 0.66);
+}
+
+/* Inverse pieces come out light; their hard-coded white details follow. */
+html[data-app-theme="dark"] .ui-toast-close,
+html[data-app-theme="dark"] .fk-bulk-btn[data-tone="quiet"],
+html[data-app-theme="dark"] .fk-statcard[data-tone="ink"] .fk-statcard-label,
+html[data-app-theme="dark"] .fk-statcard[data-tone="ink"] .fk-statcard-caption,
+html[data-app-theme="dark"] .fk-statcard[data-tone="ink"] .fk-statcard-delta {
+  color: rgba(20, 26, 31, 0.66);
+}
+html[data-app-theme="dark"] .ui-toast-action,
+html[data-app-theme="dark"] .fk-bulk-btn,
+html[data-app-theme="dark"] .fk-coedit-bar button,
+html[data-app-theme="dark"] .fk-ask-launch-count {
+  background: rgba(20, 26, 31, 0.08);
+}
+html[data-app-theme="dark"] .ui-toast-action:hover,
+html[data-app-theme="dark"] .fk-bulk-btn:hover,
+html[data-app-theme="dark"] .fk-coedit-bar button:hover,
+html[data-app-theme="dark"] .fk-bulkbar .ui-btn[data-variant="ghost"]:hover {
+  background: rgba(20, 26, 31, 0.14);
+}
+
+/* A little more depth for cards that relied on a pale shadow on pale paper. */
+html[data-app-theme="dark"] {
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 8px 24px -16px rgba(0, 0, 0, 0.7);
+}

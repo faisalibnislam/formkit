@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { modelConfigured } from "./model/gemini";
 import { notify } from "./model/inbox";
+import { FLAGS, isFlagKey } from "./model/flags";
 import { mutation, query } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
@@ -855,36 +856,50 @@ export const setRolePermission = mutation({
 /* Feature flags and the audit log                                     */
 /* ------------------------------------------------------------------ */
 
+/**
+ * The flags, as the console shows them: every flag the product reads, with
+ * what it does, whether anyone has changed it, and its current setting.
+ */
 export const flags = query({
   args: {},
   handler: async (ctx) => {
     await requireStaff(ctx, "flags");
-    return (await ctx.db.query("featureFlags").collect()).sort((a, b) =>
-      a.label.localeCompare(b.label),
-    );
+    const rows = await ctx.db.query("featureFlags").collect();
+    return FLAGS.map((f) => {
+      const row = rows.find((r) => r.key === f.key);
+      return {
+        key: f.key,
+        label: f.label,
+        description: f.description,
+        enabled: row ? row.enabled : f.defaultOn,
+        rollout: row ? row.rollout : 100,
+        changed: Boolean(row),
+      };
+    });
   },
 });
 
 export const saveFlag = mutation({
-  args: {
-    flagId: v.optional(v.id("featureFlags")),
-    key: v.string(),
-    label: v.string(),
-    description: v.string(),
-    enabled: v.boolean(),
-    rollout: v.number(),
-  },
+  args: { key: v.string(), enabled: v.boolean(), rollout: v.number() },
   returns: v.null(),
-  handler: async (ctx, { flagId, ...fields }) => {
+  handler: async (ctx, { key, enabled, rollout }) => {
     const staff = await requireStaff(ctx, "flags");
-    if (flagId) await ctx.db.patch(flagId, fields);
+    if (!isFlagKey(key)) throw new Error("There is no flag by that name.");
+    const def = FLAGS.find((f) => f.key === key)!;
+    const pct = Math.max(0, Math.min(100, Math.round(rollout)));
+    const row = await ctx.db
+      .query("featureFlags")
+      .withIndex("by_key", (q) => q.eq("key", key))
+      .unique();
+    const fields = { key, label: def.label, description: def.description, enabled, rollout: pct };
+    if (row) await ctx.db.patch(row._id, fields);
     else await ctx.db.insert("featureFlags", fields);
     await writeAudit(
       ctx,
       staff,
-      `${fields.enabled ? "Turned on" : "Turned off"} the flag ${fields.key}`,
+      `${enabled ? "Turned on" : "Turned off"} “${def.label}”`,
       undefined,
-      `${fields.rollout}% of accounts`,
+      enabled ? `${pct}% of accounts` : undefined,
     );
     return null;
   },

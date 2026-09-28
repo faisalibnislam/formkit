@@ -273,6 +273,10 @@ export const VIEWER = {
   get skyPref() {
     return flag("fk_sky") ?? "sync";
   },
+  /** ?fk_theme=dark|system shows the app in dark mode. */
+  get appTheme() {
+    return flag("fk_theme") ?? "light";
+  },
   get twoFactorNeeded() {
     return flag("fk_gate") === "2fa";
   },
@@ -446,6 +450,7 @@ export const QUERIES: Record<string, unknown> = {
     ],
   },
   "users:viewer": VIEWER,
+  "flags:mine": { "ai.live": true, "ai.brief": true, "forms.partials": true, "app.dark": true, "exports.xlsx": true },
   "companies:list": COMPANIES.map((c) => ({ ...c, formCount: 4, logoId: null, ownerId: "u1" })),
   "forms:list": {
     counts: { all: 6, draft: 1, published: 4, closed: 1, archived: 0, deleted: 2, shared: 1 },
@@ -714,7 +719,13 @@ export const QUERIES: Record<string, unknown> = {
       { _id: "u9", name: "Ravi Menon", email: "ravi@formkit.app", role: "support", custom: false, permissions: ["users.view", "support"] },
     ],
   },
-  "admin:flags": [],
+  "admin:flags": [
+    { key: "ai.live", label: "Live AI generation", description: "Ask Formkit calls the model. Off, it still answers simple questions, but writes and changes nothing, and spends no credits.", enabled: true, rollout: 100, changed: false },
+    { key: "ai.brief", label: "Build from a brief", description: "Ask Formkit can work from a pasted brief, an uploaded document or an existing form.", enabled: true, rollout: 40, changed: true },
+    { key: "forms.partials", label: "Save partial responses", description: "When somebody leaves a form half-way, what they answered is kept with a link to carry on. Decided by the form owner's account.", enabled: true, rollout: 100, changed: false },
+    { key: "app.dark", label: "Dark mode", description: "A dark theme for the app, chosen under Settings → General → Appearance.", enabled: false, rollout: 100, changed: false },
+    { key: "exports.xlsx", label: "Excel export", description: "Responses, contacts and analytics download as .xlsx as well as CSV.", enabled: true, rollout: 100, changed: false },
+  ],
   "admin:audit": [],
   "admin:announcements": [],
   "admin:mail": [],

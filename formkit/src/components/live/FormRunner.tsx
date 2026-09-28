@@ -68,7 +68,7 @@ export type OpenForm = {
   theme: unknown;
   closedMessage: string;
   uploadCapMb: number;
-  rules: { spam: boolean; requireEmail: boolean; editAfter: boolean; multiple: boolean };
+  rules: { spam: boolean; requireEmail: boolean; editAfter: boolean; multiple: boolean; partials?: boolean };
   blocks: Block[];
   logic: Rule[];
 };
@@ -217,7 +217,8 @@ export function FormRunner({
 
   // Leaving keeps what was answered.
   useEffect(() => {
-    if (mode !== "live") return;
+    // Switched off for the owner's account, a half-finished form is not kept.
+    if (mode !== "live" || data.rules.partials === false) return;
     const save = () => {
       if (savedPartial.current || done) return;
       const given = Object.entries(answers).filter(([, a]) => filled(a));
@@ -232,7 +233,7 @@ export function FormRunner({
     };
     window.addEventListener("pagehide", save);
     return () => window.removeEventListener("pagehide", save);
-  }, [answers, done, mode, onSubmit]);
+  }, [answers, done, mode, onSubmit, data.rules.partials]);
 
   // A redirect after submitting, on the live form only.
   useEffect(() => {

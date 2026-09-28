@@ -37,6 +37,7 @@ import {
 } from "./model/aiForms";
 import { aiIntent, type Intent } from "./model/aiIntent";
 import { generate, ModelError, parseJson, voice, type Part } from "./model/gemini";
+import { flagOn } from "./model/flags";
 
 export type { Draft, DraftItem, DraftRule };
 
@@ -160,6 +161,8 @@ export const context = internalQuery({
       used,
       form,
       riff,
+      live: await flagOn(ctx, "ai.live", user._id),
+      brief: await flagOn(ctx, "ai.brief", user._id),
     };
   },
 });
@@ -523,6 +526,26 @@ export const run = action({
     const left = Math.max(0, seat.limit - seat.used);
 
     try {
+      // The "Live AI generation" flag: off, nothing reaches the model and
+      // nothing is written or spent; plain questions still get an answer.
+      if (!seat.live) {
+        if (intent === "chat") {
+          return { kind: "chat", text: chatFallback(text, left, seat.limit, seat.form?.title ?? null), note: "Answered offline" };
+        }
+        return {
+          kind: "say",
+          text: "Formkit has switched off AI writing for the moment. Nothing was changed and no credit was used.",
+          note: "Nothing spent",
+        };
+      }
+      // "Build from a brief": off, attachments are refused rather than ignored.
+      if (attach && !seat.brief) {
+        return {
+          kind: "say",
+          text: "Working from a brief, a document or another form is switched off for now. Ask again without the attachment.",
+          note: "Nothing spent",
+        };
+      }
       switch (intent) {
         case "chat":
           return await chat(text, args.history ?? [], seat, left);

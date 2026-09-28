@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useAction, useConvex, useMutation, useQuery } from "convex/react";
+import { useFlag } from "../useFlags";
 import { Download, FileSpreadsheet, FileText, Mail, Send } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
@@ -51,6 +52,7 @@ function ExportPanel() {
   const exportRows = useExporter();
   const forms = useQuery(api.forms.list, { filter: "all" });
   const emailIt = useAction(api.notifications.exportByEmail);
+  const excel = useFlag("exports.xlsx");
   const [form, setForm] = useState("all");
   const [range, setRange] = useState("all");
   const [partials, setPartials] = useState(false);
@@ -86,13 +88,15 @@ function ExportPanel() {
         <Switch checked={partials} label="Include incomplete responses" onChange={setPartials} />
       </Row>
       <div className="fk-setpanel-actions">
-        <Button
-          iconLeft={<FileSpreadsheet size={16} strokeWidth={1.8} aria-hidden />}
-          disabled={!ready}
-          onClick={() => void exportRows({ what: "responses", format: "xlsx", formId, from, includePartial: partials })}
-        >
-          Download Excel
-        </Button>
+        {excel && (
+          <Button
+            iconLeft={<FileSpreadsheet size={16} strokeWidth={1.8} aria-hidden />}
+            disabled={!ready}
+            onClick={() => void exportRows({ what: "responses", format: "xlsx", formId, from, includePartial: partials })}
+          >
+            Download Excel
+          </Button>
+        )}
         <Button
           variant="secondary"
           iconLeft={<FileText size={16} strokeWidth={1.8} aria-hidden />}
@@ -125,9 +129,9 @@ function ExportPanel() {
                 to: to.trim() || undefined,
                 from,
                 includePartial: partials,
-                format: "xlsx",
+                format: excel ? "xlsx" : "csv",
               });
-              if (r.state === "sent") toast(`Sent to ${r.to}`, { detail: "An Excel file is attached" });
+              if (r.state === "sent") toast(`Sent to ${r.to}`, { detail: `${excel ? "An Excel" : "A CSV"} file is attached` });
               else toast("That export did not go out", { detail: r.detail, tone: "error" });
             } catch (e) {
               toast("That export did not go out", { detail: errorText(e, ""), tone: "error" });

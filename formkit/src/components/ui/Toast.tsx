@@ -58,7 +58,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                     display: "block",
                     marginTop: 2,
                     fontSize: 12.5,
-                    color: "rgba(255,255,255,.7)",
+                    color: "var(--color-text-inverse-secondary)",
                   }}
                 >
                   {t.detail}
