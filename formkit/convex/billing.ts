@@ -30,15 +30,79 @@ import { canManage, currentSpace, personalSpace, resolveSpace, roleIn, seatsOf, 
 const SITE = process.env.SITE_URL ?? "https://formkit.app";
 
 type PlanKey = `${Exclude<PlanId, "free">}_${Interval}`;
-type Products = Partial<Record<PlanKey | `${PlanKey}_seat` | "replies_100" | CreditPackKey, string>>;
+/**
+ * `${PlanKey}_seat_<n>` are copies of a seat product. Polar refuses a second
+ * live subscription to the same product for one customer, even with multiple
+ * subscriptions allowed, so a person paying for several companies on the same
+ * plan has each on its own copy (see `productFor`).
+ */
+type Products = Partial<
+  Record<PlanKey | `${PlanKey}_seat` | `${PlanKey}_seat_${number}` | "replies_100" | CreditPackKey, string>
+>;
 
 /** The plan and interval a product id stands for, seat-based or older. */
 function planOfProduct(products: Products, productId: string) {
   const key = (Object.entries(products) as [string, string][]).find(([, id]) => id === productId)?.[0];
   if (!key || key === "replies_100" || key.startsWith("credits_")) return null;
   const [plan, interval] = key.split("_") as [Exclude<PlanId, "free">, Interval];
-  return { plan, interval, seated: key.endsWith("_seat") };
+  return { plan, interval, seated: key.includes("_seat") };
 }
+
+/** What Polar is sent to make a seat product: the same for every copy. */
+function seatProductBody(plan: Exclude<PlanId, "free">, interval: Interval) {
+  return {
+    name: `Formkit ${PLANS[plan].name} (${interval === "month" ? "monthly" : "yearly"}, per seat)`,
+    description: PLANS[plan].tagline,
+    recurring_interval: interval,
+    prices: [
+      {
+        amount_type: "seat_based",
+        price_currency: "usd",
+        seat_tiers: {
+          seat_tier_type: "volume",
+          tiers: [{ min_seats: 1, max_seats: null, price_per_seat: PLANS[plan].price[interval] * 100 }],
+        },
+      },
+    ],
+  };
+}
+
+/**
+ * The seat product to put a subscription on: the plan's product, or the first
+ * copy of it this customer has no other live subscription to. A copy is made
+ * in Polar the first time one is needed.
+ */
+async function productFor(
+  ctx: { runMutation: import("./_generated/server").ActionCtx["runMutation"] },
+  products: Products,
+  plan: Exclude<PlanId, "free">,
+  interval: Interval,
+  taken: Set<string>,
+): Promise<string> {
+  const base = `${plan}_${interval}_seat` as const;
+  if (!products[base]) throw new ConvexError("That plan is not on sale yet. Try again soon.");
+  for (let n = 1; n <= 50; n++) {
+    const key = (n === 1 ? base : `${base}_${n}`) as keyof Products;
+    const id = products[key];
+    if (id && !taken.has(id)) return id;
+    if (!id) {
+      const made = await polar<{ id: string }>("/v1/products/", seatProductBody(plan, interval));
+      await ctx.runMutation(internal.billing.addProduct, { key, id: made.id });
+      return made.id;
+    }
+  }
+  throw new ConvexError("Too many companies on this plan for one account. Write to us and we will sort it out.");
+}
+
+export const addProduct = internalMutation({
+  args: { key: v.string(), id: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { key, id }) => {
+    const have = (await platformValue<Products>(ctx, "polarProducts")) ?? {};
+    await setPlatformValue(ctx, "polarProducts", { ...have, [key]: id });
+    return null;
+  },
+});
 
 function apiBase() {
   return process.env.POLAR_SERVER === "sandbox" ? "https://sandbox-api.polar.sh" : "https://api.polar.sh";
@@ -150,15 +214,17 @@ export const checkout = action({
     let me: Me = await ctx.runQuery(internal.billing.me, {});
     if (!me.manage) throw new ConvexError("Only the company’s owner and admins can change its plan.");
     if (me.comped) throw new ConvexError("This company has a plan from Formkit. Ask support to change it.");
-    const product = me.products[`${plan}_${interval}_seat`];
-    if (!product) throw new ConvexError("That plan is not on sale yet. Try again soon.");
+    if (!me.products[`${plan}_${interval}_seat`]) throw new ConvexError("That plan is not on sale yet. Try again soon.");
 
-    if (!me.live) {
-      await ctx.runAction(internal.billing.syncCustomer, { userId: me.payer._id, why: "before checkout" }).catch(() => null);
-      me = await ctx.runQuery(internal.billing.me, {});
-      // A subscription Formkit had missed: it is on the plan it paid for now.
-      if (me.live && me.current) return { changed: `found:${me.current.plan}` };
-    }
+    // What the payer already has running in Polar, brought up to date first.
+    const wasLive = me.live;
+    const running = await syncWith(ctx, me.live ? me.payer._id : me._id, wasLive ? "before changing plan" : "before checkout").catch(
+      () => [] as PolarSubscription[],
+    );
+    me = await ctx.runQuery(internal.billing.me, {});
+    // A subscription Formkit had missed: it is on the plan it paid for now.
+    if (!wasLive && me.live && me.current) return { changed: `found:${me.current.plan}` };
+    const taken = new Set((running ?? []).filter((x) => x.id !== me.subscription).map((x) => x.product_id ?? x.product?.id ?? ""));
 
     if (me.live && me.subscription) {
       if (!me.payer.me) {
@@ -169,6 +235,7 @@ export const checkout = action({
         await applyPolar(ctx, "resumed", await polar<PolarSubscription>(`/v1/subscriptions/${me.subscription}`, { cancel_at_period_end: false }, "PATCH"));
       }
       if (me.current?.plan !== plan || me.current.interval !== interval) {
+        const product = await productFor(ctx, me.products, plan, interval, taken);
         const updated = await polar<PolarSubscription>(
           `/v1/subscriptions/${me.subscription}`,
           { product_id: product, proration_behavior: "prorate" },
@@ -179,6 +246,7 @@ export const checkout = action({
       return { changed: plan };
     }
 
+    const product = await productFor(ctx, me.products, plan, interval, taken);
     const res = await polar<{ url: string }>("/v1/checkouts/", {
       products: [product],
       seats: Math.max(1, me.seats),
@@ -268,28 +336,41 @@ export const syncCustomer = internalAction({
   args: { userId: v.id("users"), why: v.string() },
   returns: v.object({ customer: v.boolean(), subscriptions: v.number() }),
   handler: async (ctx, { userId, why }): Promise<{ customer: boolean; subscriptions: number }> => {
-    let customer: { id: string } | null = null;
-    try {
-      customer = await polar<{ id: string }>(`/v1/customers/external/${encodeURIComponent(userId)}`, undefined, "GET");
-    } catch (e) {
-      if (!notFound(e)) throw e;
-    }
-    if (!customer) return { customer: false, subscriptions: 0 };
-    await ctx.runMutation(internal.billing.noteCustomer, { userId, customerId: customer.id });
-    const list = await polar<{ items: PolarSubscription[] }>(
-      `/v1/subscriptions/?customer_id=${encodeURIComponent(customer.id)}&limit=100`,
-      undefined,
-      "GET",
-    );
-    const live = new Set(["active", "trialing", "past_due"]);
-    const subs = list.items
-      .filter((x) => x.status !== "incomplete" && x.status !== "incomplete_expired")
-      // Ended ones first, so the one still running has the last word.
-      .sort((a, b) => Number(live.has(a.status)) - Number(live.has(b.status)));
-    for (const sub of subs) await applyPolar(ctx, why, sub);
-    return { customer: true, subscriptions: subs.filter((x) => live.has(x.status)).length };
+    const running = await syncWith(ctx, userId, why);
+    return { customer: running !== null, subscriptions: running?.length ?? 0 };
   },
 });
+
+/**
+ * Asks Polar for this person's subscriptions and applies each one. Returns
+ * the ones still running, or null when Polar has no customer for them.
+ */
+async function syncWith(
+  ctx: { runMutation: import("./_generated/server").ActionCtx["runMutation"] },
+  userId: Id<"users">,
+  why: string,
+): Promise<PolarSubscription[] | null> {
+  let customer: { id: string } | null = null;
+  try {
+    customer = await polar<{ id: string }>(`/v1/customers/external/${encodeURIComponent(userId)}`, undefined, "GET");
+  } catch (e) {
+    if (!notFound(e)) throw e;
+  }
+  if (!customer) return null;
+  await ctx.runMutation(internal.billing.noteCustomer, { userId, customerId: customer.id });
+  const list = await polar<{ items: PolarSubscription[] }>(
+    `/v1/subscriptions/?customer_id=${encodeURIComponent(customer.id)}&limit=100`,
+    undefined,
+    "GET",
+  );
+  const live = new Set(["active", "trialing", "past_due"]);
+  const subs = list.items
+    .filter((x) => x.status !== "incomplete" && x.status !== "incomplete_expired")
+    // Ended ones first, so the one still running has the last word.
+    .sort((a, b) => Number(live.has(a.status)) - Number(live.has(b.status)));
+  for (const sub of subs) await applyPolar(ctx, why, sub);
+  return subs.filter((x) => live.has(x.status));
+}
 
 export const noteCustomer = internalMutation({
   args: { userId: v.id("users"), customerId: v.string() },
@@ -424,30 +505,51 @@ function b64(bytes: ArrayBuffer) {
  * "<id>.<timestamp>.<body>", keyed with the secret's own bytes, sent as
  * space-separated "v1,<base64>" signatures. Anything older than five minutes
  * is refused, so a captured request cannot be replayed later.
+ *
+ * The secret is trimmed (a pasted one often ends in a space or newline), and
+ * a "whsec_" or plain base64 secret is also tried decoded, the other way
+ * Standard Webhooks secrets are written. Each candidate comes from the secret
+ * itself, so none of this lets an unsigned request through. Returns why a
+ * delivery was refused, or null when it is genuine.
  */
-async function verified(req: Request, body: string) {
-  const secret = process.env.POLAR_WEBHOOK_SECRET;
-  if (!secret) return false;
+async function verified(req: Request, body: string): Promise<string | null> {
+  const raw = process.env.POLAR_WEBHOOK_SECRET;
+  if (!raw) return "POLAR_WEBHOOK_SECRET is not set in Convex.";
+  const secret = raw.trim();
   const id = req.headers.get("webhook-id");
   const ts = req.headers.get("webhook-timestamp");
   const sigs = req.headers.get("webhook-signature");
-  if (!id || !ts || !sigs) return false;
-  if (Math.abs(Date.now() / 1000 - Number(ts)) > 300) return false;
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  const mac = b64(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${id}.${ts}.${body}`)));
-  return sigs.split(" ").some((part) => {
-    const [, sig] = part.split(",");
-    if (!sig || sig.length !== mac.length) return false;
-    let diff = 0;
-    for (let i = 0; i < sig.length; i++) diff |= sig.charCodeAt(i) ^ mac.charCodeAt(i);
-    return diff === 0;
-  });
+  if (!id || !ts || !sigs) return "The delivery had no Standard Webhooks signature headers. Is the endpoint's format set to Raw in Polar?";
+  const age = Math.round(Date.now() / 1000 - Number(ts));
+  if (!Number.isFinite(age) || Math.abs(age) > 300) return `The delivery was signed ${Math.abs(age)} seconds away from now; over five minutes is refused.`;
+
+  const keys: Uint8Array[] = [new TextEncoder().encode(secret)];
+  const encoded = secret.startsWith("whsec_") ? secret.slice(6) : secret;
+  if (/^[A-Za-z0-9+/]+={0,2}$/.test(encoded) && encoded.length % 4 === 0) {
+    try {
+      keys.push(Uint8Array.from(atob(encoded), (c) => c.charCodeAt(0)));
+    } catch {
+      /* not base64 after all */
+    }
+  }
+  const signed = new TextEncoder().encode(`${id}.${ts}.${body}`);
+  const given = sigs.split(" ").map((part) => part.split(",")[1] ?? "");
+  for (const k of keys) {
+    const key = await crypto.subtle.importKey("raw", k as BufferSource, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    const mac = b64(await crypto.subtle.sign("HMAC", key, signed));
+    const match = given.some((sig) => {
+      if (sig.length !== mac.length) return false;
+      let diff = 0;
+      for (let i = 0; i < sig.length; i++) diff |= sig.charCodeAt(i) ^ mac.charCodeAt(i);
+      return diff === 0;
+    });
+    if (match) return null;
+  }
+  // Enough to compare with Polar's without showing the secret: its prefix and length.
+  const prefix = /^[a-z]+(_[a-z]+)*_/.exec(secret)?.[0] ?? "";
+  return `The signature did not match. Formkit's POLAR_WEBHOOK_SECRET is ${prefix ? `"${prefix}…", ` : ""}${secret.length} characters${
+    raw !== secret ? " (after trimming spaces)" : ""
+  }: copy the secret again from this endpoint in Polar → Settings → Webhooks.`;
 }
 
 type PolarSubscription = {
@@ -466,14 +568,9 @@ type PolarSubscription = {
 
 export const polarWebhook = httpAction(async (ctx, req) => {
   const body = await req.text();
-  if (!(await verified(req, body))) {
-    await ctx.runMutation(internal.billing.logEvent, {
-      type: "rejected",
-      ok: false,
-      note: process.env.POLAR_WEBHOOK_SECRET
-        ? "The signature did not match POLAR_WEBHOOK_SECRET, or the delivery was over five minutes old."
-        : "POLAR_WEBHOOK_SECRET is not set in Convex.",
-    });
+  const refused = await verified(req, body);
+  if (refused) {
+    await ctx.runMutation(internal.billing.logEvent, { type: "rejected", ok: false, note: refused });
     return new Response("Invalid signature", { status: 403 });
   }
   let event: { type: string; data: PolarSubscription };
@@ -870,21 +967,7 @@ export const createProducts = action({
       for (const interval of ["month", "year"] as const) {
         const key = `${plan}_${interval}_seat` as const;
         if (have[key]) continue;
-        const res = await polar<{ id: string }>("/v1/products/", {
-          name: `Formkit ${PLANS[plan].name} (${interval === "month" ? "monthly" : "yearly"}, per seat)`,
-          description: PLANS[plan].tagline,
-          recurring_interval: interval,
-          prices: [
-            {
-              amount_type: "seat_based",
-              price_currency: "usd",
-              seat_tiers: {
-                seat_tier_type: "volume",
-                tiers: [{ min_seats: 1, max_seats: null, price_per_seat: PLANS[plan].price[interval] * 100 }],
-              },
-            },
-          ],
-        });
+        const res = await polar<{ id: string }>("/v1/products/", seatProductBody(plan, interval));
         next[key] = res.id;
         made.push(key);
       }
@@ -939,7 +1022,10 @@ export const saveProducts = mutation({
         .map(([k, val]) => [k, (val ?? "").trim()])
         .filter(([, val]) => val),
     );
-    await setPlatformValue(ctx, "polarProducts", clean);
+    // Copies made for people with several companies on one plan are kept.
+    const have = (await platformValue<Products>(ctx, "polarProducts")) ?? {};
+    const copies = Object.fromEntries(Object.entries(have).filter(([k]) => /_seat_\d+$/.test(k)));
+    await setPlatformValue(ctx, "polarProducts", { ...copies, ...clean });
     await writeAudit(ctx, staff, "Updated Polar products");
     return null;
   },
