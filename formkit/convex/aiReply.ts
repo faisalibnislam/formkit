@@ -9,7 +9,7 @@ import { chargeReply, month, refundReply, replyAllowance } from "./model/aiReply
 import { senderFor } from "./emailDomains";
 import { FROM, notifyDefaults, send } from "./notifications";
 import { paragraph, renderShell, safeColor, type Brand } from "./emails/kit";
-import { generate as askModel, ModelError, parseJson, voice } from "./model/gemini";
+import { generate as askModel, ModelError, parseJson, voice, type Meter } from "./model/gemini";
 
 /**
  * Business: a reply written by AI to every person who answers a form.
@@ -125,8 +125,9 @@ function cleanInsight(raw: Partial<Insight> & { score?: number } | undefined): I
   };
 }
 
-async function write(s: Settings, ctx: { brand: string; title: string; firstName?: string; rows: Row[] }) {
+async function write(meter: Meter, s: Settings, ctx: { brand: string; title: string; firstName?: string; rows: Row[] }) {
   const { text } = await askModel({
+    meter,
     system: systemFor({ brand: ctx.brand, title: ctx.title, prompt: s.prompt, knowledge: s.knowledge, firstName: ctx.firstName }),
     turns: [
       {
@@ -297,7 +298,7 @@ export const generate = internalAction({
     if (!c || c.reply?.status !== "pending") return null;
     const emails = c.settings.delivery !== "form";
     try {
-      const out = await write(c.settings, { brand: c.brand.name, title: c.title, firstName: firstName(c.name), rows: c.rows });
+      const out = await write({ ctx, userId: c.ownerId, feature: "reply" }, c.settings, { brand: c.brand.name, title: c.title, firstName: firstName(c.name), rows: c.rows });
       const subject = subjectFor(c, out.subject);
       await ctx.runMutation(internal.aiReply.settle, {
         responseId,
@@ -552,7 +553,7 @@ export const tryIt = action({
                 : "Sam Taylor",
       }));
     try {
-      const out = await write(settings as Settings, { brand: c.brand, title: c.title, firstName: firstName(c.sample?.name ?? (made ? "Sam" : null)), rows });
+      const out = await write({ ctx, userId: c.userId, feature: "reply.try" }, settings as Settings, { brand: c.brand, title: c.title, firstName: firstName(c.sample?.name ?? (made ? "Sam" : null)), rows });
       await ctx.runMutation(internal.aiLogic.countDescribe, { userId: c.userId });
       const subj = (settings.subject?.trim() || out.subject || `Thanks for your answers to ${c.title}`)
         .replace(/\{\{\s*name\s*\}\}/g, firstName(c.sample?.name ?? (made ? "Sam" : null)) ?? "there")

@@ -556,6 +556,38 @@ export const QUERIES: Record<string, unknown> = {
     const p = VIEWER.plan;
     return { ...FORM_DETAIL, ownerPlan: { id: p.id, name: p.name, features: p.features, limits: p.limits } };
   },
+  "aiUsage:summary": {
+    span: 30,
+    total: { calls: 4812, input: 9_420_000, output: 1_910_000, usd: 14.62 },
+    byFeature: [
+      { key: "reply", calls: 612, input: 1_610_000, output: 690_000, usd: 3.79 },
+      { key: "ask.build", calls: 88, input: 290_000, output: 410_000, usd: 1.76 },
+      { key: "logic.check", calls: 3790, input: 3_020_000, output: 610_000, usd: 1.67 },
+      { key: "insights", calls: 41, input: 1_190_000, output: 70_000, usd: 1.16 },
+      { key: "ask.edit", calls: 170, input: 380_000, output: 120_000, usd: 0.74 },
+      { key: "ask.chat", calls: 111, input: 150_000, output: 30_000, usd: 0.22 },
+    ],
+    byModel: [
+      { key: "gemini-3.8-flash", calls: 960, input: 5_800_000, output: 1_220_000, usd: 8.93 },
+      { key: "gemini-3.1-flash-lite", calls: 3740, input: 2_960_000, output: 590_000, usd: 1.63 },
+      { key: "gemini-3.5-flash", calls: 112, input: 660_000, output: 100_000, usd: 1.89 },
+    ],
+    daily: Array.from({ length: 30 }, (_, i) => ({
+      day: new Date(now - (29 - i) * DAY).toISOString().slice(0, 10),
+      usd: [0.21, 0.3, 0.28, 0.44, 0.39, 0.52, 0.47, 0.35, 0.41, 0.62][i % 10]! * (0.8 + i / 50),
+    })),
+    plans: [
+      { plan: "free", accounts: 1840, using: 212, usd: 3.1, calls: 690, perAccount: 0.0017, perUser: 0.0146, revenue: 0 },
+      { plan: "pro", accounts: 96, using: 41, usd: 4.02, calls: 1210, perAccount: 0.042, perUser: 0.098, revenue: 288 },
+      { plan: "business", accounts: 23, using: 17, usd: 7.5, calls: 2912, perAccount: 0.326, perUser: 0.441, revenue: 230 },
+    ],
+    topAccounts: [
+      { who: "u9", name: "Northstar Labs", email: "ops@northstar.co", plan: "business", calls: 1320, input: 0, output: 0, usd: 2.41 },
+      { who: "u8", name: "Priya Shah", email: "priya@fable.studio", plan: "business", calls: 640, input: 0, output: 0, usd: 1.12 },
+      { who: "u7", name: "Tom Okafor", email: "tom@grainhouse.com", plan: "pro", calls: 214, input: 0, output: 0, usd: 0.61 },
+    ],
+    unattributed: 0,
+  },
   "responses:list": {
     stats: { total: 1117, today: 2, todayChange: 1, week: 8, weekChange: 14, unread: 3, partial: 2, completed: 1115, previews: 1 },
     forms: Object.entries(FORM_TITLES).map(([_id, title]) => ({ _id, title, owner: ownerOf(_id) })),

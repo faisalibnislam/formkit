@@ -5,9 +5,39 @@
  * never reaches the browser. GEMINI_MODEL, if set, is tried first; after it the
  * list below runs newest first, so a model that is busy (503), rate-limited
  * (429) or retired (404) hands the request on rather than failing it.
+ *
+ * Small, high-volume jobs (AI logic checks) ask for the "lite" tier: Flash-Lite
+ * first (GEMINI_LITE_MODEL, if set, before it), then the Flash list. Every
+ * answered call is metered: its tokens, priced for the model that answered,
+ * are added to the day's AI cost (aiUsage.ts).
  */
 
+import { internal } from "../_generated/api";
+import type { ActionCtx } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
+import { costOf } from "./aiPrices";
+
 const MODELS = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-flash-latest", "gemini-2.5-flash"];
+const LITE = ["gemini-3.1-flash-lite", "gemini-3.5-flash-lite"];
+
+/** What a call was for, as the admin console groups AI cost. */
+export type AiFeature =
+  | "ask.build"
+  | "ask.edit"
+  | "ask.chat"
+  | "ask.insight"
+  | "reply"
+  | "reply.try"
+  | "logic.check"
+  | "logic.write"
+  | "insights";
+
+/** Who a call is for and why, so its cost lands on the right account. */
+export type Meter = {
+  ctx: Pick<ActionCtx, "runMutation">;
+  feature: AiFeature;
+  userId?: Id<"users"> | null;
+};
 const ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models";
 
 /** Statuses worth trying the next model for; anything else is final. */
@@ -37,6 +67,8 @@ export async function generate({
   maxTokens = 2048,
   timeoutMs = 40_000,
   temperature = 0.6,
+  tier = "flash",
+  meter,
 }: {
   system: string;
   turns: Turn[];
@@ -46,13 +78,18 @@ export async function generate({
   /** For the whole request, across every model tried. */
   timeoutMs?: number;
   temperature?: number;
+  /** "lite" for small, frequent jobs: Flash-Lite first, Flash after it. */
+  tier?: "flash" | "lite";
+  /** Who the call is for and why: its cost is recorded against them. */
+  meter: Meter;
 }): Promise<{ text: string; model: string }> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) {
     throw new ModelError("Ask Formkit has no model key yet. Set GEMINI_API_KEY on the Convex deployment.", "no-key");
   }
 
-  const models = [process.env.GEMINI_MODEL, ...MODELS].filter(
+  const flash = [process.env.GEMINI_MODEL, ...MODELS];
+  const models = (tier === "lite" ? [process.env.GEMINI_LITE_MODEL, ...LITE, ...flash] : flash).filter(
     (m, i, all): m is string => Boolean(m) && all.indexOf(m) === i,
   );
   const deadline = Date.now() + timeoutMs;
@@ -105,7 +142,10 @@ export async function generate({
     const payload = (await response.json()) as {
       candidates?: { content?: { parts?: { text?: string; thought?: boolean }[] }; finishReason?: string }[];
       promptFeedback?: { blockReason?: string };
+      usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; thoughtsTokenCount?: number };
     };
+    // Billed whether or not the answer is usable, so counted before judging it.
+    await charge(meter, model, payload.usageMetadata);
     if (payload.promptFeedback?.blockReason) {
       throw new ModelError("The model would not answer that. Try saying it another way.", "refused");
     }
@@ -155,4 +195,27 @@ export function voice(input: string) {
     .replace(/,\s*([.,;:!?])/g, "$1");
   out = out.replace(/(^|[.!?]\s+|\n\s*)([a-z])/g, (m, pre: string, ch: string) => pre + ch.toUpperCase());
   return out.trim();
+}
+
+/** Adds one answered call to the day's AI cost. Never fails the call it measures. */
+async function charge(
+  meter: Meter,
+  model: string,
+  usage: { promptTokenCount?: number; candidatesTokenCount?: number; thoughtsTokenCount?: number } | undefined,
+) {
+  if (!usage) return;
+  const input = usage.promptTokenCount ?? 0;
+  const output = (usage.candidatesTokenCount ?? 0) + (usage.thoughtsTokenCount ?? 0);
+  try {
+    await meter.ctx.runMutation(internal.aiUsage.record, {
+      who: meter.userId ?? "-",
+      feature: meter.feature,
+      model,
+      input,
+      output,
+      usd: costOf(model, input, output, Date.now()),
+    });
+  } catch (e) {
+    console.error("AI cost not recorded", e);
+  }
 }

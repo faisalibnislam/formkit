@@ -1,7 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { action, internalMutation, internalQuery, query } from "./_generated/server";
 import { internal } from "./_generated/api";
-import type { Doc } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { formFor } from "./model/forms";
 import { hasFeature } from "./model/plans";
 import { generate, ModelError, parseJson, voice } from "./model/gemini";
@@ -171,6 +171,7 @@ export const reportContext = internalQuery({
         .take(600)
     ).filter((r) => r.insight && !r.preview && !r.partial);
     return {
+      ownerId: form.ownerId,
       title: form.title,
       goal: form.aiReply?.prompt.slice(0, 1200) ?? "",
       items: rows.slice(0, 300).map((r) => ({
@@ -208,11 +209,15 @@ export const report = action({
   args: { formId: v.id("forms") },
   returns: v.null(),
   handler: async (ctx, { formId }): Promise<null> => {
-    const c: { title: string; goal: string; items: unknown[] } = await ctx.runQuery(internal.insights.reportContext, { formId });
+    const c: { ownerId: Id<"users">; title: string; goal: string; items: unknown[] } = await ctx.runQuery(
+      internal.insights.reportContext,
+      { formId },
+    );
     if (c.items.length < 3) throw new ConvexError("A report needs a few more responses with AI replies first.");
     let raw: Partial<Report> | null = null;
     try {
       const { text } = await generate({
+        meter: { ctx, userId: c.ownerId, feature: "insights" },
         system: `You are an analyst reading what an AI noted about each response to the form “${c.title}”. The owner's goal for the form, from their reply instructions:
 """
 ${c.goal}

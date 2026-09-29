@@ -12,6 +12,7 @@ import type * as admin from "../admin.js";
 import type * as ai from "../ai.js";
 import type * as aiLogic from "../aiLogic.js";
 import type * as aiReply from "../aiReply.js";
+import type * as aiUsage from "../aiUsage.js";
 import type * as analytics from "../analytics.js";
 import type * as approvals from "../approvals.js";
 import type * as auth from "../auth.js";
@@ -41,6 +42,7 @@ import type * as logic from "../logic.js";
 import type * as model_access from "../model/access.js";
 import type * as model_aiForms from "../model/aiForms.js";
 import type * as model_aiIntent from "../model/aiIntent.js";
+import type * as model_aiPrices from "../model/aiPrices.js";
 import type * as model_aiReply from "../model/aiReply.js";
 import type * as model_apiKeys from "../model/apiKeys.js";
 import type * as model_builtinTemplates from "../model/builtinTemplates.js";
@@ -91,6 +93,7 @@ declare const fullApi: ApiFromModules<{
   "ai": typeof ai,
   "aiLogic": typeof aiLogic,
   "aiReply": typeof aiReply,
+  "aiUsage": typeof aiUsage,
   "analytics": typeof analytics,
   "approvals": typeof approvals,
   "auth": typeof auth,
@@ -120,6 +123,7 @@ declare const fullApi: ApiFromModules<{
   "model/access": typeof model_access,
   "model/aiForms": typeof model_aiForms,
   "model/aiIntent": typeof model_aiIntent,
+  "model/aiPrices": typeof model_aiPrices,
   "model/aiReply": typeof model_aiReply,
   "model/apiKeys": typeof model_apiKeys,
   "model/builtinTemplates": typeof model_builtinTemplates,

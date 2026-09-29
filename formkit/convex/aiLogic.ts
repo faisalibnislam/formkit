@@ -84,7 +84,7 @@ export const thinkContext = internalQuery({
     ).length;
     const used = owner.aiCheckPeriod === month() ? (owner.aiCheckUsed ?? 0) : 0;
     const limit = PLANS[await planOfId(ctx, owner._id)].aiChecks;
-    return { checks, facts, left: Math.max(0, Math.min(limit - used, HOURLY - hour)) };
+    return { ownerId: owner._id, checks, facts, left: Math.max(0, Math.min(limit - used, HOURLY - hour)) };
   },
 });
 
@@ -140,6 +140,7 @@ export const prune = internalMutation({
 });
 
 type ThinkContext = {
+  ownerId: Id<"users">;
   checks: { id: string; blockId: string; ask: string; about: string }[];
   facts: { id: string; from: string; what: string; about: string }[];
   left: number;
@@ -203,7 +204,10 @@ export const think = action({
     if (!ask.length) return { judged, extracted };
 
     try {
+      // Yes/no reads and short facts: the cheaper Flash-Lite does these well.
       const { text: reply } = await generate({
+        tier: "lite",
+        meter: { ctx, userId: context.ownerId, feature: "logic.check" },
         system: THINK_SYSTEM,
         turns: [
           {
@@ -407,6 +411,7 @@ Write at most 4 rules. Give each a short name (under 40 characters) and a one-se
     let raw: { rules?: RawRule[]; note?: string } | null = null;
     try {
       const { text: reply } = await generate({
+        meter: { ctx, userId: c.userId, feature: "logic.write" },
         system,
         turns: [{ role: "user", parts: [{ text: `The form:\n${JSON.stringify(form)}\n\nWhat should happen:\n${words}` }] }],
         schema: {

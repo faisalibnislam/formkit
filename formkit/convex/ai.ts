@@ -37,7 +37,7 @@ import {
   type RawItem,
 } from "./model/aiForms";
 import { aiIntent, type Intent } from "./model/aiIntent";
-import { generate, ModelError, parseJson, voice, type Part } from "./model/gemini";
+import { generate, ModelError, parseJson, voice, type Meter, type Part } from "./model/gemini";
 import { flagOn } from "./model/flags";
 
 export type { Draft, DraftItem, DraftRule };
@@ -523,6 +523,8 @@ export const run = action({
       riffId: attach?.kind === "form" ? attach.formId : undefined,
     });
     if (!seat.allowed) throw new Error("Ask Formkit is not on for this account.");
+    // Every model call below is costed to the person asking.
+    const m: Asker = { ctx, userId: seat.userId };
 
     const pending = args.draft ? toDraft(parseJson<RawDraft>(draftAsJson(args.draft as Draft)))?.draft : undefined;
     const intent: Intent = aiIntent(text, { hasForm: Boolean(seat.form), hasDraft: Boolean(pending) });
@@ -551,26 +553,26 @@ export const run = action({
       }
       switch (intent) {
         case "chat":
-          return await chat(text, args.history ?? [], seat, left);
+          return await chat(m, text, args.history ?? [], seat, left);
         case "create":
           if (left <= 0) return { kind: "limit", used: seat.used, limit: seat.limit };
-          return await create(ctx, text, attach, seat);
+          return await create(ctx, m, text, attach, seat);
         case "revise":
-          return await revise(text, pending!, seat);
+          return await revise(m, text, pending!, seat);
         case "insight":
-          return await insight(ctx, text, seat.form);
+          return await insight(ctx, m, text, seat.form);
         default:
-          if (pending) return await revise(text, pending, seat);
+          if (pending) return await revise(m, text, pending, seat);
           if (!seat.form) {
             return {
               kind: "say",
               text: "Pick a form to work on from the menu above, or describe a new one and I will build it.",
             };
           }
-          if (intent === "append") return await append(ctx, text, seat.form);
-          if (intent === "logic") return await logic(ctx, text, seat.form);
-          if (intent === "theme") return await theme(ctx, text, seat.form);
-          return await tone(text, seat.form);
+          if (intent === "append") return await append(ctx, m, text, seat.form);
+          if (intent === "logic") return await logic(ctx, m, text, seat.form);
+          if (intent === "theme") return await theme(ctx, m, text, seat.form);
+          return await tone(m, text, seat.form);
       }
     } catch (e) {
       if (e instanceof ModelError) {
@@ -594,6 +596,9 @@ export const run = action({
   },
 });
 
+/** Who is asking, for costing each model call to them. */
+type Asker = Omit<Meter, "feature">;
+
 type Seat = {
   userId: Id<"users">;
   firstName: string;
@@ -603,12 +608,12 @@ type Seat = {
   riff: Snapshot | null;
 };
 
-async function chat(text: string, history: HistoryTurn[], seat: Seat, left: number): Promise<AskResult> {
+async function chat(m: Asker, text: string, history: HistoryTurn[], seat: Seat, left: number): Promise<AskResult> {
   const system = `You are Formkit, a form building tool, talking to the person using it${seat.firstName ? ` (${seat.firstName})` : ""}.
 Reply in plain text, no markdown, at most three sentences. Never say you are an AI model.
 ${VOICE}
 State what is true and what they can do next.
-Facts you may use: they have ${left} of ${seat.limit} monthly form credits left. Building a new form spends one credit; adding questions, rewriting questions, writing logic rules, picking a theme and summarising responses are free. Credits reset on the first of the month. There are no plans and nothing to pay.
+Facts you may use: they have ${left} of ${seat.limit} monthly form credits left. Building a new form spends one credit; adding questions, rewriting questions, writing logic rules, picking a theme and summarising responses are free. Credits reset on the first of the month. Formkit has three plans: Free, Pro and Business. For prices and what each includes, send them to formkit.app/pricing rather than quoting figures.
 ${seat.form ? `They are working on the form "${seat.form.title}".` : "No form is selected; they can pick one from the menu above the chat."}
 You can: write a whole form from a sentence, a pasted brief or a document; add questions; rewrite questions in another tone; write show, hide and require rules; pick one of the ten themes; read what the responses say.
 You cannot: publish, send email, delete questions or change settings. Those are done in the builder.
@@ -619,12 +624,13 @@ If they greet you or ask what you do, answer briefly and invite them to describe
   ];
   // The API wants the conversation to open with the person.
   while (turns.length && turns[0]!.role !== "user") turns.shift();
-  const { text: reply } = await generate({ system, turns, maxTokens: 400, timeoutMs: 20_000, temperature: 0.5 });
+  const { text: reply } = await generate({ meter: { ...m, feature: "ask.chat" }, system, turns, maxTokens: 400, timeoutMs: 20_000, temperature: 0.5 });
   return { kind: "chat", text: voice(reply.replace(/[*_#`]/g, "")).slice(0, 700) };
 }
 
 async function create(
   ctx: ActionCtx,
+  m: Asker,
   text: string,
   attach: Attach | undefined,
   seat: Seat,
@@ -657,7 +663,7 @@ ${FORM_RULES}
 Rules: optional. Only add a rule when some questions plainly apply to some people and not others. A rule names the questions it reads and changes by their exact wording, and a choice rule's value is one of that question's options exactly. Actions: show, hide, require.
 Theme: optional, one of ${THEME_PRESETS.map((t) => `${t.id} (${t.name})`).join(", ")}. Leave it out unless the request suggests a mood.`;
 
-  const { text: raw } = await generate({ system, turns: [{ role: "user", parts }], schema: DRAFT_SCHEMA, maxTokens: 6000 });
+  const { text: raw } = await generate({ meter: { ...m, feature: "ask.build" }, system, turns: [{ role: "user", parts }], schema: DRAFT_SCHEMA, maxTokens: 6000 });
   const checked = toDraft(parseJson<RawDraft>(raw));
   if (!checked) throw new ModelError("What came back was not a usable form.", "empty");
 
@@ -666,12 +672,12 @@ Theme: optional, one of ${THEME_PRESETS.map((t) => `${t.id} (${t.name})`).join("
 }
 
 
-async function revise(text: string, draft: Draft, seat: Seat): Promise<AskResult> {
+async function revise(m: Asker, text: string, draft: Draft, seat: Seat): Promise<AskResult> {
   const system = `You edit a draft form for Formkit. Reply with the whole form as JSON matching the schema, changed as asked and otherwise left as it was.
 ${FORM_RULES}
 Rules name questions by their exact wording; keep them in step if you reword a question. Theme is one of ${THEME_PRESETS.map((t) => t.id).join(", ")}.
 In note, say in one sentence what you changed.`;
-  const { text: raw } = await generate({
+  const { text: raw } = await generate({ meter: { ...m, feature: "ask.build" },
     system,
     turns: [{ role: "user", parts: [{ text: `The draft:\n${draftAsJson(draft)}\n\nChange it: ${text}` }] }],
     schema: DRAFT_SCHEMA,
@@ -689,10 +695,10 @@ In note, say in one sentence what you changed.`;
   };
 }
 
-async function append(ctx: ActionCtx, text: string, form: Snapshot): Promise<AskResult> {
+async function append(ctx: ActionCtx, m: Asker, text: string, form: Snapshot): Promise<AskResult> {
   const system = `You add questions to an existing Formkit form. Reply with JSON matching the schema: only the new questions, at most four, none repeating one already there.
 ${FORM_RULES}`;
-  const { text: raw } = await generate({
+  const { text: raw } = await generate({ meter: { ...m, feature: "ask.edit" },
     system,
     turns: [{ role: "user", parts: [{ text: `The form "${form.title}":\n${describe(form.blocks)}\n\nAdd: ${text}` }] }],
     schema: { type: "OBJECT", properties: { questions: { type: "ARRAY", items: ITEM_SCHEMA } }, required: ["questions"] },
@@ -713,7 +719,7 @@ ${FORM_RULES}`;
   };
 }
 
-async function logic(ctx: ActionCtx, text: string, form: Snapshot): Promise<AskResult> {
+async function logic(ctx: ActionCtx, m: Asker, text: string, form: Snapshot): Promise<AskResult> {
   const fields = form.blocks.filter((b) => b.kind === "field");
   if (!fields.some((f) => ["single-choice", "multi-choice", "dropdown", "yes-no", "rating", "scale", "number"].includes(f.type ?? ""))) {
     return {
@@ -725,7 +731,7 @@ async function logic(ctx: ActionCtx, text: string, form: Snapshot): Promise<AskR
 A rule reads one question and shows, hides or requires another, which comes after it. Name both questions by their exact wording, as listed. For a choice or yes / no question the value is one of its options exactly ("Yes" or "No" for yes / no). Operators by kind. Choice: is, is-not, is-empty, is-not-empty; number: at-least, at-most, greater, less, is-empty; text: contains, is, is-empty, is-not-empty.
 Only write rules that make sense for the people answering. If nothing sensible can be written, return no rules.
 ${VOICE}`;
-  const { text: raw } = await generate({
+  const { text: raw } = await generate({ meter: { ...m, feature: "ask.edit" },
     system,
     turns: [{ role: "user", parts: [{ text: `The form "${form.title}":\n${describe(form.blocks)}\n\nWhat to do: ${text}` }] }],
     schema: { type: "OBJECT", properties: { rules: { type: "ARRAY", items: RULE_SCHEMA } }, required: ["rules"] },
@@ -765,11 +771,11 @@ ${VOICE}`;
   };
 }
 
-async function theme(ctx: ActionCtx, text: string, form: Snapshot): Promise<AskResult> {
+async function theme(ctx: ActionCtx, m: Asker, text: string, form: Snapshot): Promise<AskResult> {
   const system = `You pick a theme for a Formkit form from a fixed list. Reply with JSON matching the schema.
 Themes: ${THEME_PRESETS.map((t) => `${t.id}: ${t.name}, background ${t.bg}, accent ${t.primary}${t.bg === "#21282E" ? ", dark" : ""}`).join("; ")}.
 Set useBrandColour to true only when they ask for their own or their brand's colour${form.brandColor ? "" : ". This form has no brand colour, so always false"}.`;
-  const { text: raw } = await generate({
+  const { text: raw } = await generate({ meter: { ...m, feature: "ask.edit" },
     system,
     turns: [{ role: "user", parts: [{ text: `Form: "${form.title}". What they want: ${text}` }] }],
     schema: {
@@ -803,13 +809,13 @@ Set useBrandColour to true only when they ask for their own or their brand's col
   };
 }
 
-async function tone(text: string, form: Snapshot): Promise<AskResult> {
+async function tone(m: Asker, text: string, form: Snapshot): Promise<AskResult> {
   const fields = form.blocks.filter((b) => b.kind === "field" && b.title);
   if (!fields.length) return { kind: "say", text: "This form has no questions yet. Add some and I will rewrite them." };
   const system = `You rewrite the questions of a Formkit form in the tone asked for. Reply with JSON matching the schema.
 Keep each question's meaning and what kind of answer it expects. Leave a question out of rewrites if it already reads right. mode is two or three words for the tone, like "warmer" or "more formal".
 ${VOICE}`;
-  const { text: raw } = await generate({
+  const { text: raw } = await generate({ meter: { ...m, feature: "ask.edit" },
     system,
     turns: [{ role: "user", parts: [{ text: `The form "${form.title}":\n${describe(form.blocks)}\n\nRewrite: ${text}` }] }],
     schema: {
@@ -842,6 +848,7 @@ ${VOICE}`;
 
 async function insight(
   ctx: ActionCtx,
+  m: Asker,
   text: string,
   form: Snapshot | null,
 ): Promise<AskResult> {
@@ -882,7 +889,7 @@ summary: two or three sentences, the most useful thing first, with numbers where
 Say only what the data supports. No names or personal details; there are none in the data.
 ${VOICE}`;
   try {
-    const { text: raw } = await generate({
+    const { text: raw } = await generate({ meter: { ...m, feature: "ask.insight" },
       system,
       turns: [
         {

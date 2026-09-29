@@ -844,6 +844,24 @@ export default defineSchema({
    * the person or one of their companies. Added to the Vercel project, then
    * checked until its DNS points at Formkit.
    */
+  /**
+   * What the AI costs: every Gemini call, added into one row per day, account,
+   * feature and model. `who` is the account's user id, or "-" when no account
+   * is behind the call. Dollars are priced when recorded (model/aiPrices.ts).
+   */
+  aiCost: defineTable({
+    day: v.string(),
+    who: v.string(),
+    feature: v.string(),
+    model: v.string(),
+    calls: v.number(),
+    input: v.number(),
+    output: v.number(),
+    usd: v.number(),
+  })
+    .index("by_key", ["day", "who", "feature", "model"])
+    .index("by_day", ["day"]),
+
   domains: defineTable({
     ownerId: v.id("users"),
     owner: v.union(v.literal("me"), v.id("companies")),

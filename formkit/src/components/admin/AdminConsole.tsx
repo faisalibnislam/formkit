@@ -7,6 +7,7 @@ import { useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import {
   ChartPie,
+  Coins,
   LifeBuoy,
   LogOut,
   MailCheck,
@@ -33,6 +34,7 @@ import { AdminMail } from "./sections/AdminMail";
 import { AdminTeam } from "./sections/AdminTeam";
 import { AdminFlags } from "./sections/AdminFlags";
 import { AdminRevenue } from "./sections/AdminRevenue";
+import { AdminAiCost } from "./sections/AdminAiCost";
 import { AdminBilling } from "./sections/AdminBilling";
 import { AdminAudit } from "./sections/AdminAudit";
 
@@ -56,6 +58,7 @@ type Key =
   | "flags"
   | "billing"
   | "revenue"
+  | "aicost"
   | "audit";
 
 const SECTIONS: {
@@ -101,6 +104,15 @@ const SECTIONS: {
     permission: "billing",
     title: "Plans and revenue",
     lede: "Who is on which plan, what it is worth each month, how that is moving, and where more could come from.",
+  },
+  {
+    key: "aicost",
+    label: "AI cost",
+    group: "Customers",
+    icon: <Coins size={17} strokeWidth={1.8} aria-hidden />,
+    permission: "billing",
+    title: "AI cost",
+    lede: "What Gemini costs, by feature, model, plan and account, and how it compares with what each plan pays.",
   },
   {
     key: "billing",
@@ -308,6 +320,7 @@ export function AdminConsole() {
         {current.key === "flags" && <AdminFlags />}
         {current.key === "billing" && <AdminBilling />}
         {current.key === "revenue" && <AdminRevenue />}
+        {current.key === "aicost" && <AdminAiCost />}
         {current.key === "audit" && <AdminAudit />}
       </main>
     </div>
