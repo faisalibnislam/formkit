@@ -222,6 +222,8 @@ export function DomainSetup({
 
   const seen: { tone: "ok" | "wait" | "bad"; text: string } = !dns
     ? { tone: "wait", text: reading ? "Looking up your domain…" : "We could not read public DNS just now." }
+    : dns.pointsHere && dns.servedHere === false && detail?.startsWith("Formkit is connected to the wrong Vercel project")
+      ? { tone: "bad", text: detail }
     : dns.pointsHere && dns.servedHere === false
       ? {
           tone: "bad",
@@ -373,7 +375,7 @@ export function DomainSetup({
               )}
               <span>{seen.text}</span>
             </p>
-            {configured && detail && status !== "active" && !/Waiting for the DNS record/.test(detail) && (
+            {configured && detail && status !== "active" && !/Waiting for the DNS record|Another website on Vercel|wrong Vercel project/.test(detail) && (
               <p className="fk-dsetup-detail">{detail}</p>
             )}
             <div className="fk-dsetup-actions">

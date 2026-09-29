@@ -216,6 +216,14 @@ const PROVIDERS: [RegExp, string, string][] = [
   [/digitalocean\.com$/, "digitalocean", "DigitalOcean"],
 ];
 
+/** Whether the configured Vercel project is the one serving Formkit itself. */
+async function servesFormkit(project: string) {
+  const own = new URL(process.env.SITE_URL ?? "https://formkit.app").hostname.replace(/^www\./, "");
+  const res = await vercelCall<{ domains?: { name: string }[] }>("GET", `/v9/projects/${project}/domains?limit=100`);
+  if (!res.ok) return true; // can't tell; don't blame the setup
+  return (res.data.domains ?? []).some((d) => d.name === own || d.name === `www.${own}`);
+}
+
 /** Whether Formkit answers on the domain: true, false, or null when it can't be reached yet. */
 async function servedHere(host: string): Promise<boolean | null> {
   const abort = new AbortController();
@@ -393,6 +401,9 @@ async function check(
   // (a *.example.com wildcard on the customer's own site, say). Only count it
   // live once Formkit itself is what answers.
   const answer = dnsOk ? await servedHere(row.host) : null;
+  // A domain belongs to one Vercel project, so if Formkit's project holds it
+  // and something else answers, VERCEL_PROJECT_ID names the wrong project.
+  const wrongProject = dnsOk && answer === false ? !(await servesFormkit(project!)) : false;
   const live = dnsOk && answer === true;
   const apexName = apexOf(row.host);
   await ctx.runMutation(internal.domains.record, {
@@ -401,7 +412,9 @@ async function check(
     records,
     detail: live
       ? undefined
-      : dnsOk && answer === false
+      : wrongProject
+        ? `Formkit is connected to the wrong Vercel project, so ${row.host} was added to that project instead. An admin needs to set VERCEL_PROJECT_ID (in Convex) to the project that serves Formkit, then remove ${row.host} from the other project and check again.`
+        : dnsOk && answer === false
         ? `Another website on Vercel is answering ${row.host}, probably your ${apexName} site. In Vercel, open that project → Settings → Domains and remove ${row.host}, or the *.${apexName} wildcard, from it.`
         : dnsOk
           ? "The record is in place. Waiting for the secure (https) certificate, which usually takes a few minutes."
