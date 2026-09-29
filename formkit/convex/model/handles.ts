@@ -121,7 +121,7 @@ export async function liveDomainOf(ctx: QueryCtx | MutationCtx, ownerId: Id<"use
       .withIndex("by_owner", (q) => q.eq("ownerId", ownerId))
       .collect()
   ).find((d) => d.owner === brand && d.status === "active");
-  return domain && (await hasFeature(ctx, ownerId, "domains")) ? domain.host : null;
+  return domain && (await hasFeature(ctx, { ownerId, brand }, "domains")) ? domain.host : null;
 }
 
 /** The form's formkit.app address, which keeps working beside a custom domain. */
@@ -152,7 +152,7 @@ export async function formUrl(
         .withIndex("by_owner", (q) => q.eq("ownerId", form.ownerId))
         .collect()
     ).find((d) => d.owner === form.brand && d.status === "active");
-    if (domain && (await hasFeature(ctx, form.ownerId, "domains"))) return `${domain.host}/${form.slug}`;
+    if (domain && (await hasFeature(ctx, form, "domains"))) return `${domain.host}/${form.slug}`;
   }
   return handle ? `formkit.app/${handle}/${form.slug}` : `formkit.app/f/${form.slug}`;
 }

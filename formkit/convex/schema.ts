@@ -121,6 +121,15 @@ export default defineSchema({
     ),
     polarCustomerId: v.optional(v.string()),
     polarSubscriptionId: v.optional(v.string()),
+    /** Seats on the personal company's plan (it can have members too). */
+    planSeats: v.optional(v.number()),
+    /**
+     * Set once the person pays per company. Before it, an older subscription
+     * on the account also covers the companies they own (grandfathered).
+     */
+    spaceBilling: v.optional(v.boolean()),
+    /** The company the app is showing: "me:<userId>" for their own, or a company id. */
+    space: v.optional(v.string()),
 
     // Ask Formkit. Access is an admin-granted allow-list, off by default.
     aiUsed: v.optional(v.number()),
@@ -207,9 +216,23 @@ export default defineSchema({
     markId: v.optional(v.id("_storage")),
     useBranding: v.optional(v.boolean()),
     badge: v.optional(v.boolean()),
+
+    // The company's own plan, billed per seat (see model/spaces.ts).
+    plan: v.optional(v.union(v.literal("free"), v.literal("pro"), v.literal("business"))),
+    planInterval: v.optional(v.union(v.literal("month"), v.literal("year"))),
+    planStatus: v.optional(v.string()),
+    planEndsAt: v.optional(v.number()),
+    planCancelAtPeriodEnd: v.optional(v.boolean()),
+    planComp: v.optional(v.union(v.literal("pro"), v.literal("business"))),
+    planSince: v.optional(v.number()),
+    planSeats: v.optional(v.number()),
+    /** Who pays: their Polar customer carries the subscription. */
+    billedTo: v.optional(v.id("users")),
+    polarSubscriptionId: v.optional(v.string()),
   })
     .index("by_owner", ["ownerId"])
-    .index("by_handle", ["handle"]),
+    .index("by_handle", ["handle"])
+    .index("by_subscription", ["polarSubscriptionId"]),
 
   /**
    * One claim path for every identity's public link, so the same name cannot be
@@ -362,6 +385,8 @@ export default defineSchema({
     starts: v.optional(v.number()),
 
     liveVersion: v.optional(v.number()),
+    /** Who made it, when that is a member rather than the company's owner. */
+    createdBy: v.optional(v.id("users")),
     deletedAt: v.optional(v.number()), // 60-day bin
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -484,6 +509,11 @@ export default defineSchema({
         fileName: v.optional(v.string()),
       }),
     ),
+    /**
+     * Where this response's AI was paid from: the company's allowance or its
+     * credits. Charged once, however many AI features ran on it.
+     */
+    aiCharge: v.optional(v.union(v.literal("allowance"), v.literal("credits"))),
     respondentName: v.optional(v.string()),
     respondentEmail: v.optional(v.string()),
     respondentPhone: v.optional(v.string()),
@@ -845,6 +875,28 @@ export default defineSchema({
    * checked until its DNS points at Formkit.
    */
   /**
+   * AI used by a company in a month, against its allowance ("2026-10").
+   * `space` is the company's key (model/spaces.ts).
+   */
+  aiAllowance: defineTable({
+    space: v.string(),
+    period: v.string(),
+    builds: v.number(),
+    edits: v.number(),
+    responses: v.number(),
+    reports: v.number(),
+  }).index("by_space_period", ["space", "period"]),
+
+  /** Bought AI credits, per company. Spent only once the monthly allowance runs out. */
+  aiCredits: defineTable({
+    space: v.string(),
+    balance: v.number(),
+    /** Each purchase and when it lapses (12 months), oldest first. */
+    lots: v.array(v.object({ amount: v.number(), left: v.number(), at: v.number(), expires: v.number() })),
+    updatedAt: v.number(),
+  }).index("by_space", ["space"]),
+
+  /**
    * What the AI costs: every Gemini call, added into one row per day, account,
    * feature and model. `who` is the account's user id, or "-" when no account
    * is behind the call. Dollars are priced when recorded (model/aiPrices.ts).
@@ -926,6 +978,8 @@ export default defineSchema({
    */
   teamMembers: defineTable({
     ownerId: v.id("users"),
+    /** The company they are a member of; absent is the owner's personal company. */
+    companyId: v.optional(v.id("companies")),
     email: v.string(),
     userId: v.optional(v.id("users")),
     role: v.union(v.literal("admin"), v.literal("editor"), v.literal("viewer")),
@@ -935,7 +989,8 @@ export default defineSchema({
   })
     .index("by_owner", ["ownerId"])
     .index("by_email", ["email"])
-    .index("by_user", ["userId"]),
+    .index("by_user", ["userId"])
+    .index("by_company", ["companyId"]),
 
   /** Business: who did what on the account, kept for a year. */
   accountAudit: defineTable({

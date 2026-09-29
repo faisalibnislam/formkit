@@ -3,7 +3,9 @@ import { action, internalMutation, internalQuery, query } from "./_generated/ser
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { formFor } from "./model/forms";
-import { hasFeature } from "./model/plans";
+import { CREDIT_COST, hasFeature } from "./model/plans";
+import { canSpend } from "./model/aiMeter";
+import { spaceOfForm } from "./model/spaces";
 import { generate, ModelError, parseJson, voice } from "./model/gemini";
 
 /**
@@ -32,7 +34,7 @@ export const overview = query({
     const read = rows.filter((r) => r.insight);
     // Only forms with AI replies have anything to show.
     if (!form.aiReply?.enabled && read.length === 0) return null;
-    if (!(await hasFeature(ctx, form.ownerId, "ai.insights"))) return { locked: true as const };
+    if (!(await hasFeature(ctx, form, "ai.insights"))) return { locked: true as const };
 
     const n = read.length;
     const ins = read.map((r) => r.insight!);
@@ -154,7 +156,12 @@ export const reportContext = internalQuery({
   args: { formId: v.id("forms") },
   handler: async (ctx, { formId }) => {
     const form = await formFor(ctx, formId, "read");
-    if (!(await hasFeature(ctx, form.ownerId, "ai.insights"))) throw new ConvexError("AI insights are part of Business.");
+    if (!(await hasFeature(ctx, form, "ai.insights"))) throw new ConvexError("AI insights are part of Pro.");
+    if (!(await canSpend(ctx, spaceOfForm(form), "reports"))) {
+      throw new ConvexError(
+        `This month’s insights reports are used up. Each extra report is ${CREDIT_COST.reports} AI credits, under Settings → Plan.`,
+      );
+    }
     const last = await ctx.db
       .query("aiReports")
       .withIndex("by_form", (q) => q.eq("formId", formId))
@@ -172,6 +179,7 @@ export const reportContext = internalQuery({
     ).filter((r) => r.insight && !r.preview && !r.partial);
     return {
       ownerId: form.ownerId,
+      brand: form.brand,
       title: form.title,
       goal: form.aiReply?.prompt.slice(0, 1200) ?? "",
       items: rows.slice(0, 300).map((r) => ({
@@ -209,7 +217,13 @@ export const report = action({
   args: { formId: v.id("forms") },
   returns: v.null(),
   handler: async (ctx, { formId }): Promise<null> => {
-    const c: { ownerId: Id<"users">; title: string; goal: string; items: unknown[] } = await ctx.runQuery(
+    const c: {
+      ownerId: Id<"users">;
+      brand: "me" | Id<"companies">;
+      title: string;
+      goal: string;
+      items: unknown[];
+    } = await ctx.runQuery(
       internal.insights.reportContext,
       { formId },
     );
@@ -264,6 +278,8 @@ Write a short, concrete report for the owner: a one-sentence headline; up to 5 t
       suggestions: (raw.suggestions ?? []).slice(0, 3).map((x) => clip(x, 280)),
     };
     await ctx.runMutation(internal.insights.saveReport, { formId, count: c.items.length, report });
+    // Charged once the report is written; a failed one costs nothing.
+    await ctx.runMutation(internal.credits.spend, { ownerId: c.ownerId, brand: c.brand, kind: "reports" });
     return null;
   },
 });

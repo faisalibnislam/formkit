@@ -5,6 +5,7 @@ import { mutation, query, type MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { closedReason, notifyResponse, tellFormTeam } from "./model/inbox";
 import { queueReply } from "./model/aiReply";
+import { chargeResponse, usesAiLogic } from "./model/aiMeter";
 import { markAll, marked } from "./model/quiz";
 import { Doc, Id } from "./_generated/dataModel";
 import { QueryCtx } from "./_generated/server";
@@ -28,24 +29,23 @@ import { formUrl, liveDomainOf } from "./model/handles";
  * per person when multiple submissions are off, and a required email.
  */
 
-/** The smarter-form features the owner's plan includes. */
-async function smartOf(ctx: QueryCtx, ownerId: Id<"users">) {
-  const owner = await ctx.db.get(ownerId);
+/** The smarter-form features the form's company plan includes. */
+async function smartOf(ctx: QueryCtx, form: Doc<"forms">) {
   return {
-    hidden: await hasFeature(ctx, owner, "logic.hidden"),
-    piping: await hasFeature(ctx, owner, "logic.piping"),
-    calc: await hasFeature(ctx, owner, "logic.calc"),
-    redirect: await hasFeature(ctx, owner, "forms.redirect"),
-    /** Business: AI conditions and facts read from answers. */
-    ai: await hasFeature(ctx, owner, "logic.ai"),
+    hidden: await hasFeature(ctx, form, "logic.hidden"),
+    piping: await hasFeature(ctx, form, "logic.piping"),
+    calc: await hasFeature(ctx, form, "logic.calc"),
+    redirect: await hasFeature(ctx, form, "forms.redirect"),
+    /** AI conditions and facts read from answers. */
+    ai: await hasFeature(ctx, form, "logic.ai"),
   };
 }
 
 /** Pro: the brand's own font file and custom CSS, dropped if the plan lapses. */
 async function customLook(ctx: QueryCtx, form: Doc<"forms">) {
   const t = (form.theme ?? {}) as { customFont?: { name: string; storageId: Id<"_storage"> } | null; css?: string };
-  const fontOk = !!t.customFont && (await hasFeature(ctx, form.ownerId, "design.fonts"));
-  const cssOk = !!t.css?.trim() && (await hasFeature(ctx, form.ownerId, "design.css"));
+  const fontOk = !!t.customFont && (await hasFeature(ctx, form, "design.fonts"));
+  const cssOk = !!t.css?.trim() && (await hasFeature(ctx, form, "design.css"));
   if (!fontOk && !cssOk) return null;
   const url = fontOk ? await ctx.storage.getUrl(t.customFont!.storageId) : null;
   return {
@@ -67,10 +67,10 @@ async function partialsOn(ctx: QueryCtx, ownerId: Id<"users">) {
  */
 async function checkUploads(
   ctx: MutationCtx,
-  ownerId: Id<"users">,
+  form: Doc<"forms">,
   answers: { fileId?: Id<"_storage"> }[],
 ) {
-  const capMb = PLANS[await planOfId(ctx, ownerId)].uploadMb;
+  const capMb = PLANS[await planOfId(ctx, form)].uploadMb;
   for (const a of answers) {
     if (!a.fileId) continue;
     const meta = await ctx.db.system.get(a.fileId);
@@ -115,7 +115,7 @@ const LATE_GRACE_MS = 60_000;
 /** The form's quiz settings, when it is a quiz and the owner's plan has quizzes. */
 async function quizOf(ctx: QueryCtx | MutationCtx, form: Doc<"forms">) {
   if (!form.quiz?.enabled) return null;
-  return (await hasFeature(ctx, form.ownerId, "quiz")) ? form.quiz : null;
+  return (await hasFeature(ctx, form, "quiz")) ? form.quiz : null;
 }
 
 function publicCondition<C extends { source?: string; value?: string }>(c: C): C {
@@ -141,10 +141,10 @@ async function payload(ctx: QueryCtx, form: Doc<"forms">) {
     .sort((a, b) => a.order - b.order);
 
   const s = securityOf(form.security);
-  const smart = await smartOf(ctx, form.ownerId);
+  const smart = await smartOf(ctx, form);
   const thanks = form.thanks as { redirect?: string } | null | undefined;
   // Several endings, hidden options and limited places are Pro.
-  const advanced = await hasFeature(ctx, form.ownerId, "logic.advanced");
+  const advanced = await hasFeature(ctx, form, "logic.advanced");
   const taken = advanced ? await placesTaken(ctx, form._id, blocks) : new Map<string, number[]>();
   const quiz = await quizOf(ctx, form);
   const quizPublic = quiz
@@ -174,7 +174,7 @@ async function payload(ctx: QueryCtx, form: Doc<"forms">) {
     calc: smart.calc ? (form.calc ?? []) : [],
     /** Pro: people are sent to pay, through the owner's Stripe, after sending. */
     payment: await takesPayment(ctx, form),
-    uploadCapMb: PLANS[await planOfId(ctx, form.ownerId)].uploadMb,
+    uploadCapMb: PLANS[await planOfId(ctx, form)].uploadMb,
     custom: await customLook(ctx, form),
     rules: {
       spam: s.spam,
@@ -211,7 +211,7 @@ async function payload(ctx: QueryCtx, form: Doc<"forms">) {
     quiz: quizPublic,
     /** Business: an AI-written reply follows, and where it goes. */
     aiReply:
-      form.aiReply?.enabled && (await hasFeature(ctx, form.ownerId, "ai.reply"))
+      form.aiReply?.enabled && (await hasFeature(ctx, form, "ai.reply"))
         ? { delivery: form.aiReply.delivery }
         : null,
     endings: advanced
@@ -498,7 +498,7 @@ async function store(
   // The server's own working-out of the calculations is the one kept.
   const calcVars = form.calc ?? [];
   const calc =
-    calcVars.length && (await hasFeature(ctx, form.ownerId, "logic.calc"))
+    calcVars.length && (await hasFeature(ctx, form, "logic.calc"))
       ? computeAll(
           calcVars,
           blocks.map((b) => ({ _id: b._id, kind: b.kind, type: b.type, key: b.key, options: b.options, scores: b.scores })),
@@ -559,7 +559,10 @@ async function store(
   if (!args.partial && !preview) {
     const saved = await ctx.db.get(responseId);
     if (saved && after) await notifyResponse(ctx, after, saved);
-    // Business: the AI reply is queued first, so the confirmation knows to wait for it.
+    // AI logic read this response while it was filled in: it counts once
+    // against the company's AI, whether or not a reply is written too.
+    if (await usesAiLogic(ctx, form)) await chargeResponse(ctx, form, responseId);
+    // The AI reply is queued first, so the confirmation knows to wait for it.
     if (!existing?.aiReply) await queueReply(ctx, form, responseId);
     // Instant quiz results go out by email as soon as the mark is in.
     if (quizOn?.results === "instant" && quizOn.emailResults && "quiz" in full && !full.quiz.pending) {
@@ -608,7 +611,7 @@ export const submit = mutation({
     }
 
     const s = securityOf(form.security);
-    await checkUploads(ctx, form.ownerId, args.answers);
+    await checkUploads(ctx, form, args.answers);
     if (args.partial && !(await partialsOn(ctx, form.ownerId))) {
       throw new ConvexError("This form does not keep unfinished answers.");
     }
@@ -654,7 +657,7 @@ export const submit = mutation({
         .toLowerCase();
 
       // Limited places: a place is only taken if it is still free when sent.
-      if (blocks.some(hasLimits) && (await hasFeature(ctx, form.ownerId, "logic.advanced"))) {
+      if (blocks.some(hasLimits) && (await hasFeature(ctx, form, "logic.advanced"))) {
         const taken = await placesTaken(ctx, form._id, blocks, existing?._id);
         for (const a of args.answers) {
           const b = blocks.find((x) => x._id === a.blockId);

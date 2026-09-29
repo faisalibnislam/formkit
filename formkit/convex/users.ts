@@ -1,7 +1,9 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { aiAllowed, aiLimit, currentUser, requireUser, twoFactorPassed } from "./model/identity";
-import { planSummary, requireFeature } from "./model/plans";
+import { aiAllowed, currentUser, requireUser, twoFactorPassed } from "./model/identity";
+import { requireFeature } from "./model/plans";
+import { aiStatus } from "./model/aiMeter";
+import { currentSpace, personalSpace, roleIn, spaceIdentity, spaceKey, spacePlan } from "./model/spaces";
 
 /**
  * Everything the chrome needs to render: the person, their companies, whether
@@ -57,8 +59,18 @@ export const viewer = query({
       emailCopy: v.object({ on: v.boolean(), to: v.string() }),
       hideBadge: v.boolean(),
       staffRole: v.union(v.string(), v.null()),
-      /** See model/plans.ts `planSummary`. */
+      /** The plan of the company being worked in. See model/plans.ts `planSummary`. */
       plan: v.any(),
+      /** The company the app is showing, and this person's role in it. */
+      space: v.object({
+        key: v.string(),
+        kind: v.union(v.literal("me"), v.literal("company")),
+        companyId: v.union(v.id("companies"), v.null()),
+        ownerId: v.id("users"),
+        name: v.string(),
+        imageUrl: v.union(v.string(), v.null()),
+        role: v.union(v.literal("owner"), v.literal("admin"), v.literal("editor"), v.literal("viewer")),
+      }),
       ai: v.object({
         allowed: v.boolean(),
         used: v.number(),
@@ -88,6 +100,9 @@ export const viewer = query({
       .collect();
 
     const allowed = await aiAllowed(ctx, user._id);
+    const space = await currentSpace(ctx, user);
+    const who = await spaceIdentity(ctx, space);
+    const ai = await aiStatus(ctx, space);
 
     return {
       _id: user._id,
@@ -127,13 +142,21 @@ export const viewer = query({
       emailCopy: user.emailCopy ?? { on: false, to: user.email ?? "" },
       hideBadge: user.hideBadge === true,
       staffRole: user.staffRole ?? null,
-      plan: planSummary(user),
+      plan: await spacePlan(ctx, space),
+      space: {
+        key: spaceKey(space),
+        kind: space.brand === "me" ? ("me" as const) : ("company" as const),
+        companyId: space.brand === "me" ? null : space.brand,
+        ownerId: space.ownerId,
+        name: who.name,
+        imageUrl: who.imageUrl,
+        role: (await roleIn(ctx, space, user._id)) ?? "viewer",
+      },
       ai: {
         allowed,
-        // Credits count within the month; last month's use has already reset.
-        used:
-          allowed && user.aiPeriod === new Date().toISOString().slice(0, 7) ? (user.aiUsed ?? 0) : 0,
-        limit: allowed ? await aiLimit(ctx, user._id) : 0,
+        // New forms built by AI this month, in the company being worked in.
+        used: allowed ? ai.used.builds : 0,
+        limit: allowed ? ai.pool.builds : 0,
         // Live is the default; a saved `false` from before that change is not
         // the same as the person choosing patterns, which `aiLiveSet` records.
         live: user.aiLiveSet ? (user.aiLive ?? true) : true,
@@ -210,7 +233,7 @@ export const setPreferences = mutation({
   handler: async (ctx, { skyPref, appTheme, inAppPrefs, emailPrefs, emailCopy, hideBadge }) => {
     const user = await requireUser(ctx);
     if (emailCopy?.on) await requireFeature(ctx, user, "exports.copy");
-    if (hideBadge) await requireFeature(ctx, user, "brand.badge");
+    if (hideBadge) await requireFeature(ctx, personalSpace(user._id), "brand.badge");
     const clean = (s?: string) => (s === undefined ? undefined : s.trim().slice(0, 2000));
     await ctx.db.patch(user._id, {
       ...(hideBadge !== undefined ? { hideBadge } : {}),

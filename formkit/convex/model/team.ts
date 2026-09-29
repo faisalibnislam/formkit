@@ -2,33 +2,28 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { currentUser } from "./identity";
 import { hasFeature } from "./plans";
+import { canManage, membershipIn, roleIn, spaceOfForm } from "./spaces";
 
 /**
- * Business teams. A member works on every one of the owner's forms, as an
- * Admin (who also runs the team and approves forms), an Editor or a Viewer.
- * All of it follows the owner's plan: if Business lapses, members keep
- * nothing but the forms they were invited to one by one.
+ * Members. Every company (a person's own included) can have members, who work
+ * on all of its forms as an Admin (who also runs the company and approves
+ * forms), an Editor or a Viewer. Membership is on every plan; on a paid plan
+ * each member is a seat. See model/spaces.ts for how a company is keyed.
  */
 
 export type TeamRole = "admin" | "editor" | "viewer";
 
-export async function membershipOf(ctx: QueryCtx, ownerId: Id<"users">, userId: Id<"users">) {
-  if (ownerId === userId) return null;
-  const row = await ctx.db
-    .query("teamMembers")
-    .withIndex("by_user", (q) => q.eq("userId", userId))
-    .filter((q) => q.eq(q.field("ownerId"), ownerId))
-    .first();
-  if (!row || row.status !== "active") return null;
-  if (!(await hasFeature(ctx, ownerId, "team"))) return null;
-  return row;
+/** Someone's role on a form's company, when they are a member but not its owner. */
+export async function teamRoleOf(
+  ctx: QueryCtx,
+  space: { ownerId: Id<"users">; brand: "me" | Id<"companies"> },
+  userId: Id<"users">,
+): Promise<TeamRole | null> {
+  if (space.ownerId === userId) return null;
+  return (await membershipIn(ctx, space, userId))?.role ?? null;
 }
 
-export async function teamRoleOf(ctx: QueryCtx, ownerId: Id<"users">, userId: Id<"users">): Promise<TeamRole | null> {
-  return (await membershipOf(ctx, ownerId, userId))?.role ?? null;
-}
-
-/** The accounts whose teams this person is on, and in which role. */
+/** The accounts whose companies this person is a member of, with the membership row. */
 export async function teamsOf(ctx: QueryCtx, userId: Id<"users">) {
   const rows = await ctx.db
     .query("teamMembers")
@@ -38,14 +33,23 @@ export async function teamsOf(ctx: QueryCtx, userId: Id<"users">) {
   for (const row of rows) {
     if (row.status !== "active") continue;
     const owner = await ctx.db.get(row.ownerId);
-    if (owner && !owner.deactivatedAt && (await hasFeature(ctx, owner, "team"))) out.push({ row, owner });
+    if (owner && !owner.deactivatedAt) out.push({ row, owner });
   }
   return out;
 }
 
-/** Whether this person runs the account: its owner, or an admin on its team. */
+/**
+ * Whether this person runs an account's account-wide settings (API keys,
+ * retention, SSO, the audit log): its owner, or an admin in any of its companies.
+ */
 export async function managesAccount(ctx: QueryCtx, ownerId: Id<"users">, userId: Id<"users">) {
-  return ownerId === userId || (await teamRoleOf(ctx, ownerId, userId)) === "admin";
+  if (ownerId === userId) return true;
+  return (await teamsOf(ctx, userId)).some(({ row }) => row.ownerId === ownerId && row.role === "admin");
+}
+
+/** Whether this person runs a form's company: its owner, or one of its admins. */
+export async function managesSpaceOf(ctx: QueryCtx, form: Doc<"forms">, userId: Id<"users">) {
+  return canManage(await roleIn(ctx, spaceOfForm(form), userId));
 }
 
 /** Business: one line in the account's audit log. */
@@ -73,8 +77,8 @@ export async function audit(
  */
 export async function needsApproval(ctx: QueryCtx, form: Doc<"forms">, userId: Id<"users">) {
   const owner = await ctx.db.get(form.ownerId);
-  if (!owner?.approvals || !(await hasFeature(ctx, owner, "approvals"))) return false;
-  return !(await managesAccount(ctx, form.ownerId, userId));
+  if (!owner?.approvals || !(await hasFeature(ctx, form, "approvals"))) return false;
+  return !(await managesSpaceOf(ctx, form, userId));
 }
 
 /** What the builder shows about approval, for the person looking. */
@@ -82,7 +86,7 @@ export async function approvalView(ctx: QueryCtx, form: Doc<"forms">) {
   const me = await currentUser(ctx);
   if (!me) return null;
   const required = await needsApproval(ctx, form, me._id);
-  const canApprove = await managesAccount(ctx, form.ownerId, me._id);
+  const canApprove = await managesSpaceOf(ctx, form, me._id);
   const a = form.approval;
   const by = a ? await ctx.db.get(a.by) : null;
   return {
@@ -116,7 +120,7 @@ export async function teamTemplate(ctx: QueryCtx, slug: string, userId: Id<"user
     .withIndex("by_slug", (q) => q.eq("slug", slug))
     .collect();
   for (const t of rows) {
-    if (t.shared && t.ownerId && (await teamRoleOf(ctx, t.ownerId, userId))) return t;
+    if (t.shared && t.ownerId && (await teamsOf(ctx, userId)).some(({ row }) => row.ownerId === t.ownerId)) return t;
   }
   return null;
 }

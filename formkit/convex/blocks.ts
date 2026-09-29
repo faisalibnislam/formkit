@@ -68,7 +68,7 @@ export const add = mutation({
   returns: v.id("blocks"),
   handler: async (ctx, { formId, kind, at, ...fields }) => {
     const form = await formFor(ctx, formId);
-    if (fields.type === "hidden") await requireFeature(ctx, form.ownerId, "logic.hidden");
+    if (fields.type === "hidden") await requireFeature(ctx, form, "logic.hidden");
 
     const blocks = (
       await ctx.db
@@ -119,11 +119,11 @@ export const update = mutation({
     const block = await ctx.db.get(blockId);
     if (!block) throw new Error("That question no longer exists.");
     const form = await formFor(ctx, block.formId);
-    if (patch.type === "hidden" && block.type !== "hidden") await requireFeature(ctx, form.ownerId, "logic.hidden");
-    if (patch.scores?.some((n) => n !== 0)) await requireFeature(ctx, form.ownerId, "logic.calc");
-    if (patch.limits?.some((n) => n > 0)) await requireFeature(ctx, form.ownerId, "logic.advanced");
+    if (patch.type === "hidden" && block.type !== "hidden") await requireFeature(ctx, form, "logic.hidden");
+    if (patch.scores?.some((n) => n !== 0)) await requireFeature(ctx, form, "logic.calc");
+    if (patch.limits?.some((n) => n > 0)) await requireFeature(ctx, form, "logic.advanced");
     if (patch.answerKey?.length || patch.marks !== undefined) {
-      await requireFeature(ctx, form.ownerId, "quiz");
+      await requireFeature(ctx, form, "quiz");
       patch = {
         ...patch,
         ...(patch.answerKey ? { answerKey: patch.answerKey.map((a) => a.trim().slice(0, 200)).filter(Boolean).slice(0, 20) } : {}),
@@ -131,7 +131,7 @@ export const update = mutation({
       };
     }
     if (patch.extract) {
-      await requireFeature(ctx, form.ownerId, "logic.ai");
+      await requireFeature(ctx, form, "logic.ai");
       if ((patch.type ?? block.type) !== "hidden") throw new ConvexError("Only a hidden field can be filled in by AI.");
       patch = { ...patch, extract: { from: patch.extract.from, what: patch.extract.what.trim().slice(0, 300) } };
     }

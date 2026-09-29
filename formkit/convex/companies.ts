@@ -1,7 +1,8 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireUser } from "./model/identity";
-import { PLANS, planOf, requireFeature } from "./model/plans";
+import { requireFeature } from "./model/plans";
+import { canManage, roleIn } from "./model/spaces";
 import { claimHandle, releaseHandle } from "./model/handles";
 
 /**
@@ -45,15 +46,8 @@ export const add = mutation({
     const user = await requireUser(ctx);
     const name = args.name.trim();
     if (!name) throw new Error("A company needs a name.");
-    // One company on Free, five on Pro, as many as you like on Business.
-    const cap = PLANS[planOf(user)].companies;
-    if (cap !== null) {
-      const have = await ctx.db
-        .query("companies")
-        .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
-        .collect();
-      if (have.length >= cap) await requireFeature(ctx, user, cap < PLANS.pro.companies! ? "brands" : "brands.unlimited");
-    }
+    // As many companies as you like, on any plan: each is its own workspace
+    // with its own plan.
     return await ctx.db.insert("companies", {
       ownerId: user._id,
       name,
@@ -87,8 +81,11 @@ export const update = mutation({
   handler: async (ctx, { companyId, patch }) => {
     const user = await requireUser(ctx);
     const company = await ctx.db.get(companyId);
-    if (!company || company.ownerId !== user._id) throw new Error("That company is not yours.");
-    if (patch.badge === false) await requireFeature(ctx, user, "brand.badge");
+    const space = company ? { ownerId: company.ownerId, brand: company._id } : null;
+    if (!space || !canManage(await roleIn(ctx, space, user._id))) {
+      throw new Error("Only the company’s owner and admins can change it.");
+    }
+    if (patch.badge === false) await requireFeature(ctx, space, "brand.badge");
     await ctx.db.patch(companyId, patch);
     return null;
   },
@@ -102,6 +99,24 @@ export const remove = mutation({
     const user = await requireUser(ctx);
     const company = await ctx.db.get(companyId);
     if (!company || company.ownerId !== user._id) throw new Error("That company is not yours.");
+    // A company still paying keeps its subscription running; it is cancelled first.
+    if (company.polarSubscriptionId && company.plan && company.plan !== "free" && !company.planCancelAtPeriodEnd) {
+      throw new ConvexError("Cancel this company’s plan under Settings → Plan before deleting it.");
+    }
+
+    // Its members go, and anyone who had it open goes back to their own company.
+    const members = await ctx.db
+      .query("teamMembers")
+      .withIndex("by_company", (q) => q.eq("companyId", companyId))
+      .collect();
+    for (const m of members) {
+      if (m.userId) {
+        const u = await ctx.db.get(m.userId);
+        if (u?.space === companyId) await ctx.db.patch(u._id, { space: undefined });
+      }
+      await ctx.db.delete(m._id);
+    }
+    if (user.space === companyId) await ctx.db.patch(user._id, { space: undefined });
 
     const forms = await ctx.db
       .query("forms")

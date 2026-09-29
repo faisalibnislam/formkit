@@ -1,5 +1,7 @@
 import { v } from "convex/values";
 import { PLANS, planOf } from "./model/plans";
+import { aiStatus, period as aiPeriodNow } from "./model/aiMeter";
+import { personalSpace } from "./model/spaces";
 import { modelConfigured } from "./model/gemini";
 import { notify } from "./model/inbox";
 import { FLAGS, isFlagKey } from "./model/flags";
@@ -9,7 +11,6 @@ import {
   PERMS,
   ROLE_DEFAULTS,
   aiAllowed,
-  aiLimit,
   currentUser,
   platformValue,
   requireStaff,
@@ -111,8 +112,9 @@ export const overview = query({
       if (i >= 0 && i < range) signups[i]! += 1;
     }
 
-    // Ask Formkit: on for every customer unless turned off, credits by plan.
-    const freeDefault = (await platformValue<number>(ctx, "aiDefault")) ?? PLANS.free.aiCredits;
+    // Ask Formkit: on for every customer unless turned off, builds by plan.
+    const buildsUsed = await buildsThisMonth(ctx);
+    const freeDefault = (await platformValue<number>(ctx, "aiDefault")) ?? PLANS.free.ai.builds;
     const byUser = new Map(access.map((a) => [a.userId as string, a]));
     let capacity = 0;
     let used = 0;
@@ -123,7 +125,7 @@ export const overview = query({
       if (row?.enabled === false || u.deactivatedAt) continue;
       allowedCount += 1;
       const limit = localAiLimit(u, row, freeDefault);
-      const spent = u.aiPeriod === period ? (u.aiUsed ?? 0) : 0;
+      const spent = buildsUsed.get(`me:${u._id}`) ?? 0;
       capacity += limit;
       used += spent;
       if (spent > 0 && spent >= limit) outOfCredits += 1;
@@ -162,14 +164,21 @@ export const overview = query({
   },
 });
 
-/** An account's monthly credits without a read per account (see model/identity `aiLimit`). */
+/** New forms built by AI this month, per company key, read in one pass. */
+async function buildsThisMonth(ctx: Parameters<typeof aiStatus>[0]) {
+  const rows = await ctx.db.query("aiAllowance").collect();
+  const now = aiPeriodNow();
+  return new Map(rows.filter((r) => r.period === now).map((r) => [r.space, r.builds]));
+}
+
+/** An account's monthly builds on their own company without a read per account. */
 function localAiLimit(
   u: Doc<"users">,
   row: { limitOverride?: number; granted?: number } | undefined,
   freeDefault: number,
 ) {
   const plan = planOf(u);
-  const allowance = plan === "free" ? freeDefault : PLANS[plan].aiCredits;
+  const allowance = plan === "free" ? freeDefault : PLANS[plan].ai.builds;
   return (row?.limitOverride ?? allowance) + (row?.granted ?? 0);
 }
 
@@ -177,7 +186,7 @@ function localAiLimit(
 /* Users                                                               */
 /* ------------------------------------------------------------------ */
 
-async function describeUser(ctx: Parameters<typeof aiLimit>[0], u: Doc<"users">) {
+async function describeUser(ctx: Parameters<typeof aiStatus>[0], u: Doc<"users">) {
   const forms = await ctx.db
     .query("forms")
     .withIndex("by_owner", (q) => q.eq("ownerId", u._id))
@@ -195,8 +204,10 @@ async function describeUser(ctx: Parameters<typeof aiLimit>[0], u: Doc<"users">)
     responses: forms.reduce((n, f) => n + f.responsesCount, 0),
     ai: {
       allowed: await aiAllowed(ctx, u._id),
-      limit: await aiLimit(ctx, u._id),
-      used: u.aiPeriod === period ? (u.aiUsed ?? 0) : 0,
+      ...(await (async () => {
+        const s = await aiStatus(ctx, personalSpace(u._id));
+        return { limit: s.pool.builds, used: s.used.builds };
+      })()),
     },
     plan: {
       id: planOf(u),
@@ -439,7 +450,7 @@ export const setAiAccess = mutation({
     } else if (grant && (row?.enabled ?? false)) {
       await notify(ctx, userId, {
         kind: "ai",
-        title: `${grant} more Ask Formkit credits`,
+        title: `${grant} more AI form builds`,
         body: "Formkit added them to this month.",
         href: "/app/ask",
         action: "Open Ask Formkit",
@@ -447,7 +458,13 @@ export const setAiAccess = mutation({
       });
     }
 
-    if (resetUsage) await ctx.db.patch(userId, { aiUsed: 0 });
+    if (resetUsage) {
+      const row = await ctx.db
+        .query("aiAllowance")
+        .withIndex("by_space_period", (q) => q.eq("space", `me:${userId}`).eq("period", aiPeriodNow()))
+        .unique();
+      if (row) await ctx.db.patch(row._id, { builds: 0 });
+    }
 
     const what =
       enabled === true
@@ -512,13 +529,14 @@ export const aiStats = query({
     const period = new Date().toISOString().slice(0, 7);
     const access = await ctx.db.query("aiAccess").collect();
     const byUser = new Map(access.map((a) => [a.userId as string, a]));
-    const freeDefault = (await platformValue<number>(ctx, "aiDefault")) ?? PLANS.free.aiCredits;
+    const freeDefault = (await platformValue<number>(ctx, "aiDefault")) ?? PLANS.free.ai.builds;
+    const buildsUsed = await buildsThisMonth(ctx);
     const term = search?.trim().toLowerCase();
     const users = await ctx.db.query("users").collect();
     const rows = [];
     for (const u of users) {
       const row = byUser.get(u._id);
-      const spent = u.aiPeriod === period ? (u.aiUsed ?? 0) : 0;
+      const spent = buildsUsed.get(`me:${u._id}`) ?? 0;
       const enabled = row?.enabled !== false;
       const touched = !!row && (row.enabled === false || row.limitOverride !== undefined || (row.granted ?? 0) > 0);
       if (show === "on" && !(enabled && spent > 0)) continue;

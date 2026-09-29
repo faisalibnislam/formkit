@@ -150,7 +150,7 @@ export const setFormPayment = mutation({
     const cur = currency.toLowerCase();
     if (!CURRENCIES.includes(cur)) throw new ConvexError("Pick one of the listed currencies.");
     if (enabled) {
-      await requireFeature(ctx, form.ownerId, "payments");
+      await requireFeature(ctx, form, "payments");
       if (!(await accountOf(ctx, form.ownerId))) throw new ConvexError("Connect a Stripe account first.");
       if (fromCalc) {
         if (!(form.calc ?? []).some((c) => c.name === fromCalc)) throw new ConvexError("That calculation is not on this form.");
@@ -186,7 +186,7 @@ export async function owed(
 ): Promise<{ status: "pending"; amount: number; currency: string } | null> {
   const p = form.payment;
   if (!p?.enabled) return null;
-  if (!(await hasFeature(ctx, form.ownerId, "payments"))) return null;
+  if (!(await hasFeature(ctx, form, "payments"))) return null;
   if (!(await accountOf(ctx, form.ownerId))) return null;
   const amount = p.fromCalc ? toMinor(calc?.[p.fromCalc] ?? 0, p.currency) : (p.amount ?? 0);
   if (!(amount > 0)) return null;
@@ -197,7 +197,7 @@ export async function owed(
 export async function takesPayment(ctx: QueryCtx, form: Doc<"forms">) {
   const p = form.payment;
   if (!p?.enabled) return null;
-  if (!(await hasFeature(ctx, form.ownerId, "payments"))) return null;
+  if (!(await hasFeature(ctx, form, "payments"))) return null;
   if (!(await accountOf(ctx, form.ownerId))) return null;
   return {
     label: p.label ?? null,
@@ -215,7 +215,7 @@ export const forCheckout = internalQuery({
     const form = await ctx.db.get(r.formId);
     if (!form) return null;
     const account = await accountOf(ctx, form.ownerId);
-    if (!account || !(await hasFeature(ctx, form.ownerId, "payments"))) return null;
+    if (!account || !(await hasFeature(ctx, form, "payments"))) return null;
     return {
       key: account.key,
       payment: r.payment,

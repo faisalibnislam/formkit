@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { query, type QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { requireUser } from "./model/identity";
+import { currentSpace, spaceForms } from "./model/spaces";
 import { completionRate, formFor, ownerKeyOf, ownersOf } from "./model/forms";
 import { hasFeature } from "./model/plans";
 
@@ -89,19 +90,17 @@ export const overview = query({
     const current: Window = { from, to };
     const previous: Window = { from: from - span, to: from };
 
+    // One form, or every form in the company being worked in.
+    const space = args.formId ? null : await currentSpace(ctx, user);
     const forms = args.formId
       ? [await formFor(ctx, args.formId, "read")]
-      : (
-          await ctx.db
-            .query("forms")
-            .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
-            .collect()
-        ).filter((f) => !f.deletedAt && (!args.owner || ownerKeyOf(f) === args.owner));
+      : (await spaceForms(ctx, space!)).filter((f) => !f.deletedAt && (!args.owner || ownerKeyOf(f) === args.owner));
+    const ownerId = forms[0]?.ownerId ?? space?.ownerId ?? user._id;
     const ids = new Set(forms.map((f) => f._id as string));
     const owners = await ownersOf(ctx, forms);
     // Sources and devices are Pro - the form owner's plan for one form, the
     // viewer's own across all of theirs. Drop-off is on every plan.
-    const full = await hasFeature(ctx, args.formId ? forms[0]!.ownerId : user._id, "analytics.full");
+    const full = await hasFeature(ctx, args.formId ? forms[0]! : space!, "analytics.full");
 
     // Only the two windows being compared - never every response ever sent.
     const inWindows = (
@@ -115,7 +114,7 @@ export const overview = query({
         : await ctx.db
             .query("responses")
             .withIndex("by_owner_submitted", (q) =>
-              q.eq("ownerId", user._id).gte("submittedAt", previous.from).lt("submittedAt", current.to),
+              q.eq("ownerId", ownerId).gte("submittedAt", previous.from).lt("submittedAt", current.to),
             )
             .collect()
     ).filter((r) => ids.has(r.formId) && !r.preview);
@@ -124,8 +123,8 @@ export const overview = query({
     const recent = within(current);
     const before = within(previous);
     const [eventsNow, eventsBefore] = await Promise.all([
-      eventsIn(ctx, user._id, args.formId, current),
-      eventsIn(ctx, user._id, args.formId, previous),
+      eventsIn(ctx, ownerId, args.formId, current),
+      eventsIn(ctx, ownerId, args.formId, previous),
     ]);
 
     const now_ = summarise(eventsNow, recent, ids);

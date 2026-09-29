@@ -146,16 +146,18 @@ export const overview = query({
     const activeCut = now - 30 * DAY;
     const free = users.filter((u) => planOf(u) === "free" && !u.deactivatedAt);
     const activeFree = free.filter((u) => (formsByOwner.get(u._id) ?? []).some((f) => f.status === "published" || f.updatedAt > activeCut));
+    const allowance = await ctx.db.query("aiAllowance").collect();
+    const builds = new Map(allowance.filter((r) => r.period === period).map((r) => [r.space, r.builds]));
     const leads = activeFree
       .map((u) => {
         const own = formsByOwner.get(u._id) ?? [];
         const responses = own.reduce((n, f) => n + f.responsesCount, 0);
-        const aiUsed = u.aiPeriod === period ? (u.aiUsed ?? 0) : 0;
+        const aiUsed = builds.get(`me:${u._id}`) ?? 0;
         const reasons: string[] = [];
-        if (aiUsed >= PLANS.free.aiCredits) reasons.push("Used every AI credit");
+        if (aiUsed >= PLANS.free.ai.builds) reasons.push("Built every free AI form");
         if (responses >= 100) reasons.push(`${responses.toLocaleString("en-US")} responses`);
         if (own.filter((f) => f.status === "published").length >= 3) reasons.push("3+ live forms");
-        return { _id: u._id, name: u.name ?? "", email: u.email ?? "", responses, forms: own.length, reasons, score: responses + own.length * 20 + (aiUsed >= PLANS.free.aiCredits ? 200 : 0) };
+        return { _id: u._id, name: u.name ?? "", email: u.email ?? "", responses, forms: own.length, reasons, score: responses + own.length * 20 + (aiUsed >= PLANS.free.ai.builds ? 200 : 0) };
       })
       .filter((l) => l.reasons.length > 0)
       .sort((a, b) => b.score - a.score)

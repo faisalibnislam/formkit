@@ -5,6 +5,7 @@ import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { requireUser } from "./model/identity";
 import { formFor, ownersOf } from "./model/forms";
+import { currentSpace, spaceForms } from "./model/spaces";
 
 /**
  * The response inbox.
@@ -31,9 +32,10 @@ async function ownForms(ctx: QueryCtx, userId: Id<"users">) {
   ).filter((f) => !f.deletedAt);
 }
 
-/** Every response in scope - one form, or every form the person owns. */
+/** Every response in scope - one form, or every form in the company being worked in. */
 async function scope(ctx: QueryCtx, formId: Id<"forms"> | undefined) {
   const user = await requireUser(ctx);
+  const space = await currentSpace(ctx, user);
   if (formId) {
     const form = await formFor(ctx, formId, "read");
     const rows = await ctx.db
@@ -42,12 +44,12 @@ async function scope(ctx: QueryCtx, formId: Id<"forms"> | undefined) {
       .collect();
     return { forms: [form], rows };
   }
-  const forms = await ownForms(ctx, user._id);
+  const forms = (await spaceForms(ctx, space)).filter((f) => !f.deletedAt);
   const live = new Set(forms.map((f) => f._id as string));
   const rows = (
     await ctx.db
       .query("responses")
-      .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
+      .withIndex("by_owner", (q) => q.eq("ownerId", space.ownerId))
       .collect()
   ).filter((r) => live.has(r.formId));
   return { forms, rows };
@@ -188,7 +190,8 @@ export const recent = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, { limit = 6 }) => {
     const user = await requireUser(ctx);
-    const forms = await ownForms(ctx, user._id);
+    const space = await currentSpace(ctx, user);
+    const forms = (await spaceForms(ctx, space)).filter((f) => !f.deletedAt);
     const titles = new Map(forms.map((f) => [f._id as string, f.title]));
     // Newest first, stopping at the first response from before this week -
     // the week's count and the latest few come from one short walk.
@@ -197,7 +200,7 @@ export const recent = query({
     let week = 0;
     for await (const r of ctx.db
       .query("responses")
-      .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
+      .withIndex("by_owner", (q) => q.eq("ownerId", space.ownerId))
       .order("desc")) {
       // A partial saved earlier can be finished later, so allow a day's slack.
       if (r._creationTime < since - DAY && newest.length >= limit) break;
@@ -351,9 +354,10 @@ export const tagsInUse = query({
   args: {},
   handler: async (ctx) => {
     const user = await requireUser(ctx);
+    const space = await currentSpace(ctx, user);
     const rows = await ctx.db
       .query("responses")
-      .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
+      .withIndex("by_owner", (q) => q.eq("ownerId", space.ownerId))
       .collect();
     const seen = new Map<string, number>();
     for (const r of rows) for (const t of r.tags ?? []) seen.set(t, (seen.get(t) ?? 0) + 1);
@@ -582,11 +586,13 @@ export const unreadCount = query({
   args: {},
   handler: async (ctx) => {
     const user = await requireUser(ctx);
-    // Only the unread rows are read, not every response the person has.
+    // Only the unread rows are read, not every response the company has.
+    const space = await currentSpace(ctx, user);
+    const forms = new Set((await spaceForms(ctx, space)).filter((f) => !f.deletedAt).map((f) => f._id as string));
     const rows = await ctx.db
       .query("responses")
-      .withIndex("by_owner_status", (q) => q.eq("ownerId", user._id).eq("status", "new"))
+      .withIndex("by_owner_status", (q) => q.eq("ownerId", space.ownerId).eq("status", "new"))
       .collect();
-    return rows.filter((r) => !r.partial && !r.preview).length;
+    return rows.filter((r) => !r.partial && !r.preview && forms.has(r.formId)).length;
   },
 });

@@ -156,7 +156,7 @@ function ago(ms: number) {
  * owner's plan decides, whoever is doing the inviting.
  */
 async function roomForAnother(ctx: MutationCtx, form: Doc<"forms">) {
-  const cap = PLANS[await planOfId(ctx, form.ownerId)].collaborators;
+  const cap = PLANS[await planOfId(ctx, form)].collaborators;
   if (cap === null) return;
   const on = (
     await ctx.db
@@ -164,7 +164,7 @@ async function roomForAnother(ctx: MutationCtx, form: Doc<"forms">) {
       .withIndex("by_form", (q) => q.eq("formId", form._id))
       .collect()
   );
-  if (on.length >= cap) await requireFeature(ctx, form.ownerId, "collaborators");
+  if (on.length >= cap) await requireFeature(ctx, form, "collaborators");
 }
 
 export const invite = mutation({
@@ -410,7 +410,7 @@ export const join = mutation({
     }
     // Someone joining by link is not the one who can upgrade, so a full form
     // is a plain refusal rather than the upgrade sheet.
-    const cap = PLANS[await planOfId(ctx, form.ownerId)].collaborators;
+    const cap = PLANS[await planOfId(ctx, form)].collaborators;
     if (cap !== null && rows.length >= cap) {
       throw new Error("This form already has as many people as its owner’s plan allows. Ask them to make room.");
     }

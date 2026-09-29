@@ -4,7 +4,9 @@ import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { aiAllowed, requireUser } from "./model/identity";
 import { formFor } from "./model/forms";
-import { PLANS, hasFeature, planOfId } from "./model/plans";
+import { hasFeature } from "./model/plans";
+import { canSpend } from "./model/aiMeter";
+import { spaceOfForm } from "./model/spaces";
 import { conditionsOf, VALUELESS } from "./model/logicEval";
 import { CALC_OPS, opsFor } from "./model/logicOps";
 import { generate, ModelError, parseJson, voice } from "./model/gemini";
@@ -48,7 +50,7 @@ export const thinkContext = internalQuery({
     const form = await ctx.db.get(formId);
     if (!form || form.status !== "published" || form.deletedAt) return null;
     const owner = await ctx.db.get(form.ownerId);
-    if (!owner || !(await hasFeature(ctx, owner, "logic.ai"))) return null;
+    if (!owner || !(await hasFeature(ctx, form, "logic.ai"))) return null;
 
     const rules = (
       await ctx.db
@@ -82,9 +84,10 @@ export const thinkContext = internalQuery({
         .withIndex("by_form_at", (q) => q.eq("formId", formId).gt("at", since))
         .take(HOURLY + 1)
     ).length;
-    const used = owner.aiCheckPeriod === month() ? (owner.aiCheckUsed ?? 0) : 0;
-    const limit = PLANS[await planOfId(ctx, owner._id)].aiChecks;
-    return { ownerId: owner._id, checks, facts, left: Math.max(0, Math.min(limit - used, HOURLY - hour)) };
+    // The response these checks are for is charged once, when it is sent
+    // (publicForm.submit); here the company only needs AI left to spend.
+    const room = await canSpend(ctx, spaceOfForm(form), "responses");
+    return { ownerId: owner._id, checks, facts, left: room ? Math.max(0, HOURLY - hour) : 0 };
   },
 });
 
@@ -115,12 +118,6 @@ export const remember = internalMutation({
     if (!form) return null;
     const at = Date.now();
     for (const r of rows) await ctx.db.insert("aiJudgements", { formId, ...r, at });
-    const owner = await ctx.db.get(form.ownerId);
-    if (owner) {
-      const period = month();
-      const used = (owner.aiCheckPeriod === period ? (owner.aiCheckUsed ?? 0) : 0) + rows.length;
-      await ctx.db.patch(owner._id, { aiCheckPeriod: period, aiCheckUsed: used });
-    }
     return null;
   },
 });
@@ -282,8 +279,8 @@ export const describeContext = internalQuery({
       userId: user._id,
       allowed: await aiAllowed(ctx, user._id),
       usedToday: user.aiRuleDay === today() ? (user.aiRuleCount ?? 0) : 0,
-      advanced: await hasFeature(ctx, form.ownerId, "logic.advanced"),
-      ai: await hasFeature(ctx, form.ownerId, "logic.ai"),
+      advanced: await hasFeature(ctx, form, "logic.advanced"),
+      ai: await hasFeature(ctx, form, "logic.ai"),
       questions: blocks
         .filter((b) => b.kind === "field")
         .map((b) => ({

@@ -104,7 +104,7 @@ export const add = mutation({
   returns: v.object({ id: v.id("connections"), secret: v.union(v.string(), v.null()) }),
   handler: async (ctx, { formId, kind, url, label }) => {
     const form = await formFor(ctx, formId);
-    await requireFeature(ctx, form.ownerId, FEATURE[kind]);
+    await requireFeature(ctx, form, FEATURE[kind]);
     const existing = await ctx.db
       .query("connections")
       .withIndex("by_form", (q) => q.eq("formId", formId))
@@ -252,7 +252,7 @@ export const payloadFor = internalQuery({
         .collect()
     ).filter((c) => c.enabled && c.kind !== "sheets");
     const allowed = [];
-    for (const c of connections) if (await hasFeature(ctx, form.ownerId, FEATURE[c.kind])) allowed.push(c._id);
+    for (const c of connections) if (await hasFeature(ctx, form, FEATURE[c.kind])) allowed.push(c._id);
     const payload: Payload = {
       event: event ?? "response.created",
       form: { id: form._id, title: form.title },
@@ -451,7 +451,7 @@ export const sheetRows = internalQuery({
       .first();
     if (!c || !c.enabled || c.kind !== "sheets") return null;
     const form = await ctx.db.get(c.formId);
-    if (!form || form.deletedAt || !(await hasFeature(ctx, form.ownerId, "connect.sheets"))) return null;
+    if (!form || form.deletedAt || !(await hasFeature(ctx, form, "connect.sheets"))) return null;
     const blocks = await blocksOf(ctx, form._id);
     const responses = (
       await ctx.db

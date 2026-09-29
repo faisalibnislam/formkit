@@ -23,6 +23,7 @@ import type * as comments from "../comments.js";
 import type * as companies from "../companies.js";
 import type * as connections from "../connections.js";
 import type * as controls from "../controls.js";
+import type * as credits from "../credits.js";
 import type * as crons from "../crons.js";
 import type * as digests from "../digests.js";
 import type * as domains from "../domains.js";
@@ -42,6 +43,7 @@ import type * as logic from "../logic.js";
 import type * as model_access from "../model/access.js";
 import type * as model_aiForms from "../model/aiForms.js";
 import type * as model_aiIntent from "../model/aiIntent.js";
+import type * as model_aiMeter from "../model/aiMeter.js";
 import type * as model_aiPrices from "../model/aiPrices.js";
 import type * as model_aiReply from "../model/aiReply.js";
 import type * as model_apiKeys from "../model/apiKeys.js";
@@ -62,6 +64,7 @@ import type * as model_plans from "../model/plans.js";
 import type * as model_quiz from "../model/quiz.js";
 import type * as model_security from "../model/security.js";
 import type * as model_sheet from "../model/sheet.js";
+import type * as model_spaces from "../model/spaces.js";
 import type * as model_team from "../model/team.js";
 import type * as model_themePresets from "../model/themePresets.js";
 import type * as model_totp from "../model/totp.js";
@@ -74,6 +77,7 @@ import type * as responses from "../responses.js";
 import type * as restApi from "../restApi.js";
 import type * as revenue from "../revenue.js";
 import type * as security from "../security.js";
+import type * as spaces from "../spaces.js";
 import type * as sso from "../sso.js";
 import type * as support from "../support.js";
 import type * as team from "../team.js";
@@ -104,6 +108,7 @@ declare const fullApi: ApiFromModules<{
   "companies": typeof companies,
   "connections": typeof connections,
   "controls": typeof controls,
+  "credits": typeof credits,
   "crons": typeof crons,
   "digests": typeof digests,
   "domains": typeof domains,
@@ -123,6 +128,7 @@ declare const fullApi: ApiFromModules<{
   "model/access": typeof model_access,
   "model/aiForms": typeof model_aiForms,
   "model/aiIntent": typeof model_aiIntent,
+  "model/aiMeter": typeof model_aiMeter,
   "model/aiPrices": typeof model_aiPrices,
   "model/aiReply": typeof model_aiReply,
   "model/apiKeys": typeof model_apiKeys,
@@ -143,6 +149,7 @@ declare const fullApi: ApiFromModules<{
   "model/quiz": typeof model_quiz,
   "model/security": typeof model_security,
   "model/sheet": typeof model_sheet,
+  "model/spaces": typeof model_spaces,
   "model/team": typeof model_team,
   "model/themePresets": typeof model_themePresets,
   "model/totp": typeof model_totp,
@@ -155,6 +162,7 @@ declare const fullApi: ApiFromModules<{
   "restApi": typeof restApi,
   "revenue": typeof revenue,
   "security": typeof security,
+  "spaces": typeof spaces,
   "sso": typeof sso,
   "support": typeof support,
   "team": typeof team,

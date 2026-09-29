@@ -145,17 +145,4 @@ export async function aiAllowed(ctx: QueryCtx | MutationCtx, userId: Id<"users">
   return row?.enabled !== false;
 }
 
-/**
- * The monthly credits: the plan's allowance (Free's can be tuned from the
- * admin console), unless staff set a personal limit, plus any one-off grant.
- */
-export async function aiLimit(ctx: QueryCtx | MutationCtx, userId: Id<"users">) {
-  const plan = await planOfId(ctx, userId);
-  const allowance =
-    plan === "free" ? ((await platformValue<number>(ctx, "aiDefault")) ?? PLANS.free.aiCredits) : PLANS[plan].aiCredits;
-  const row = await ctx.db
-    .query("aiAccess")
-    .withIndex("by_user", (q) => q.eq("userId", userId))
-    .unique();
-  return (row?.limitOverride ?? allowance) + (row?.granted ?? 0);
-}
+

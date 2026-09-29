@@ -144,7 +144,8 @@ export const add = mutation({
   returns: v.id("domains"),
   handler: async (ctx, { host: raw, owner }) => {
     const user = await requireUser(ctx);
-    await requireFeature(ctx, user, "domains");
+    // The company the domain is for must be on a plan with custom domains.
+    await requireFeature(ctx, { ownerId: user._id, brand: owner }, "domains");
     const host = cleanHost(raw);
     if (!HOST.test(host)) throw new ConvexError("That does not look like a domain. Try something like forms.acme.com.");
     if (OURS.some((o) => host === o || host.endsWith(`.${o}`))) throw new ConvexError("Use a domain of your own.");
@@ -506,7 +507,7 @@ export const resolve = query({
     const handle =
       row.owner === "me" ? (owner.handle ?? null) : ((await ctx.db.get(row.owner))?.handle ?? null);
     if (!handle) return null;
-    return { handle, live: await hasFeature(ctx, owner, "domains") };
+    return { handle, live: await hasFeature(ctx, { ownerId: row.ownerId, brand: row.owner }, "domains") };
   },
 });
 
@@ -520,7 +521,7 @@ export const listing = query({
       .first();
     if (!row || row.status !== "active") return null;
     const owner = await ctx.db.get(row.ownerId);
-    if (!owner || !(await hasFeature(ctx, owner, "domains"))) return null;
+    if (!owner || !(await hasFeature(ctx, { ownerId: row.ownerId, brand: row.owner }, "domains"))) return null;
     const company = row.owner === "me" ? null : await ctx.db.get(row.owner);
     const forms = (
       await ctx.db

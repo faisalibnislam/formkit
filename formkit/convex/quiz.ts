@@ -40,7 +40,7 @@ export const save = mutation({
   returns: v.null(),
   handler: async (ctx, { formId, settings: s }) => {
     const form = await formFor(ctx, formId);
-    if (s.enabled) await requireFeature(ctx, form.ownerId, "quiz");
+    if (s.enabled) await requireFeature(ctx, form, "quiz");
     const releaseAt = s.results === "later" && s.releaseAt && s.releaseAt > Date.now() ? s.releaseAt : undefined;
     await ctx.db.patch(formId, {
       quiz: {
@@ -86,7 +86,7 @@ export const release = mutation({
   handler: async (ctx, { formId }) => {
     const form = await formFor(ctx, formId);
     if (!form.quiz?.enabled) throw new ConvexError("This form isn’t a quiz.");
-    await requireFeature(ctx, form.ownerId, "quiz");
+    await requireFeature(ctx, form, "quiz");
     await ctx.db.patch(formId, { quiz: { ...form.quiz, releasedAt: Date.now(), releaseAt: undefined } });
     if (form.quiz.emailResults) await ctx.scheduler.runAfter(0, internal.quiz.emailAll, { formId });
     return null;
@@ -239,7 +239,7 @@ export const emailJob = internalQuery({
     const r = await ctx.db.get(responseId);
     if (!r?.quiz || !r.respondentEmail || !r.resumeToken || r.quiz.emailedAt || r.quiz.pending) return null;
     const form = await ctx.db.get(r.formId);
-    if (!form?.quiz || !released(form) || !(await hasFeature(ctx, form.ownerId, "quiz"))) return null;
+    if (!form?.quiz || !released(form) || !(await hasFeature(ctx, form, "quiz"))) return null;
     const owner = await ctx.db.get(form.ownerId);
     const brand = await brandOf(ctx, form);
     return {

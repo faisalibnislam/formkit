@@ -1,15 +1,20 @@
 import { ConvexError, v } from "convex/values";
-import { action, httpAction, internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import { action, httpAction, internalAction, internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { platformValue, requireStaff, requireUser, setPlatformValue, writeAudit } from "./model/identity";
-import { PLANS, REPLY_PACK, planOf, planIncludes, type Interval, type PlanId } from "./model/plans";
+import { CREDIT_PACKS, PLANS, planOf, type CreditPackKey, type Interval, type PlanId } from "./model/plans";
+import { addCredits } from "./model/aiMeter";
+import { canManage, currentSpace, personalSpace, resolveSpace, roleIn, seatsOf, spaceKey, spacePlanId } from "./model/spaces";
 
 /**
  * Billing, through Polar (polar.sh) as the merchant of record.
  *
- * Four products - Pro and Business, each monthly and yearly - live in Polar;
- * their ids are kept in the `platform` table (Admin → Billing creates them).
+ * Plans belong to companies and are paid per seat: Pro and Business, each
+ * monthly and yearly, as seat-based products, plus three packs of AI credits.
+ * Their ids are kept in the `platform` table (Admin → Billing creates them).
+ * The older fixed-price products stay listed so subscriptions bought on them
+ * keep being recognised.
  * Checkout is a Polar-hosted page opened with the account's id as the
  * external customer id, so every webhook can be tied back to the account
  * without matching on email. Polar's webhooks are the only thing that changes
@@ -21,17 +26,26 @@ import { PLANS, REPLY_PACK, planOf, planIncludes, type Interval, type PlanId } f
 
 const SITE = process.env.SITE_URL ?? "https://formkit.app";
 
-type Products = Partial<Record<`${Exclude<PlanId, "free">}_${Interval}` | "replies_100", string>>;
+type PlanKey = `${Exclude<PlanId, "free">}_${Interval}`;
+type Products = Partial<Record<PlanKey | `${PlanKey}_seat` | "replies_100" | CreditPackKey, string>>;
+
+/** The plan and interval a product id stands for, seat-based or older. */
+function planOfProduct(products: Products, productId: string) {
+  const key = (Object.entries(products) as [string, string][]).find(([, id]) => id === productId)?.[0];
+  if (!key || key === "replies_100" || key.startsWith("credits_")) return null;
+  const [plan, interval] = key.split("_") as [Exclude<PlanId, "free">, Interval];
+  return { plan, interval, seated: key.endsWith("_seat") };
+}
 
 function apiBase() {
   return process.env.POLAR_SERVER === "sandbox" ? "https://sandbox-api.polar.sh" : "https://api.polar.sh";
 }
 
-async function polar<T>(path: string, body: unknown): Promise<T> {
+async function polar<T>(path: string, body: unknown, method: "POST" | "PATCH" = "POST"): Promise<T> {
   const token = process.env.POLAR_ACCESS_TOKEN;
   if (!token) throw new ConvexError("Billing is not set up yet. Try again soon.");
   const res = await fetch(`${apiBase()}${path}`, {
-    method: "POST",
+    method,
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify(body),
   });
@@ -52,19 +66,51 @@ export const me = internalQuery({
   handler: async (ctx) => {
     const user = await requireUser(ctx);
     const products = (await platformValue<Products>(ctx, "polarProducts")) ?? {};
+    const space = await currentSpace(ctx, user);
+    const company = space.brand === "me" ? null : await ctx.db.get(space.brand);
+    // The company's own subscription; a personal one counts once it is per seat.
+    const subscription =
+      space.brand === "me"
+        ? user.spaceBilling || space.ownerId !== user._id
+          ? ((await ctx.db.get(space.ownerId))?.polarSubscriptionId ?? null)
+          : null
+        : (company?.polarSubscriptionId ?? null);
     return {
       _id: user._id,
       email: user.email ?? null,
       name: user.name ?? null,
-      plan: planOf(user),
-      comped: !!user.planComp,
+      space: spaceKey(space),
+      company: company?.name ?? null,
+      manage: canManage(await roleIn(ctx, space, user._id)),
+      plan: await spacePlanId(ctx, space),
+      comped: space.brand === "me" ? !!user.planComp : !!company?.planComp,
+      subscription,
+      seats: await seatsOf(ctx, space),
       customer: user.polarCustomerId ?? null,
       products,
     };
   },
 });
 
-/** Opens Polar's checkout for a plan; the app sends the person to the url. */
+type Me = {
+  _id: Id<"users">;
+  email: string | null;
+  name: string | null;
+  space: string;
+  company: string | null;
+  manage: boolean;
+  plan: PlanId;
+  comped: boolean;
+  subscription: string | null;
+  seats: number;
+  customer: string | null;
+  products: Products;
+};
+
+/**
+ * Opens Polar's checkout for the company being worked in, for as many seats
+ * as it has members. A company already paying changes plan in the portal.
+ */
 export const checkout = action({
   args: {
     plan: v.union(v.literal("pro"), v.literal("business")),
@@ -72,53 +118,42 @@ export const checkout = action({
   },
   returns: v.object({ url: v.string() }),
   handler: async (ctx, { plan, interval }): Promise<{ url: string }> => {
-    const me: {
-      _id: Id<"users">;
-      email: string | null;
-      name: string | null;
-      plan: PlanId;
-      comped: boolean;
-      customer: string | null;
-      products: Products;
-    } = await ctx.runQuery(internal.billing.me, {});
-    const product = me.products[`${plan}_${interval}`];
+    const me: Me = await ctx.runQuery(internal.billing.me, {});
+    if (!me.manage) throw new ConvexError("Only the company’s owner and admins can change its plan.");
+    const product = me.products[`${plan}_${interval}_seat`];
     if (!product) throw new ConvexError("That plan is not on sale yet. Try again soon.");
-    // Someone already paying changes plan in the portal, where Polar prorates.
-    if (me.customer && me.plan !== "free" && !me.comped) {
-      return await portalUrl(me._id);
-    }
+    if (me.subscription && me.plan !== "free" && !me.comped && me.customer) return await portalUrl(me._id);
     const res = await polar<{ url: string }>("/v1/checkouts/", {
       products: [product],
+      seats: Math.max(1, me.seats),
       external_customer_id: me._id,
       ...(me.email ? { customer_email: me.email } : {}),
       ...(me.name ? { customer_name: me.name } : {}),
       success_url: `${SITE}/app/settings?tab=plan&welcome=${plan}`,
-      metadata: { userId: me._id, plan, interval },
+      metadata: { userId: me._id, space: me.space, plan, interval },
     });
     return { url: res.url };
   },
 });
 
 /**
- * Business: a one-off pack of AI replies. The credits land when Polar says
- * the order is paid, and roll over until used.
+ * A pack of AI credits for the company being worked in. The credits land
+ * when Polar says the order is paid, and last a year.
  */
-export const buyReplies = action({
-  args: {},
+export const buyCredits = action({
+  args: { pack: v.union(v.literal("credits_100"), v.literal("credits_420"), v.literal("credits_1050")) },
   returns: v.object({ url: v.string() }),
-  handler: async (ctx): Promise<{ url: string }> => {
-    const me: { _id: Id<"users">; email: string | null; name: string | null; plan: PlanId; products: Products } =
-      await ctx.runQuery(internal.billing.me, {});
-    if (!planIncludes(me.plan, "ai.reply")) throw new ConvexError("AI replies are part of Business.");
-    const product = me.products.replies_100;
-    if (!product) throw new ConvexError("Reply packs are not on sale yet. Try again soon.");
+  handler: async (ctx, { pack }): Promise<{ url: string }> => {
+    const me: Me = await ctx.runQuery(internal.billing.me, {});
+    const product = me.products[pack];
+    if (!product) throw new ConvexError("AI credits are not on sale yet. Try again soon.");
     const res = await polar<{ url: string }>("/v1/checkouts/", {
       products: [product],
       external_customer_id: me._id,
       ...(me.email ? { customer_email: me.email } : {}),
       ...(me.name ? { customer_name: me.name } : {}),
-      success_url: `${SITE}/app/settings?tab=plan&replies=added`,
-      metadata: { userId: me._id, pack: "replies_100" },
+      success_url: `${SITE}/app/settings?tab=plan&credits=added`,
+      metadata: { userId: me._id, space: me.space, pack },
     });
     return { url: res.url };
   },
@@ -131,12 +166,45 @@ async function portalUrl(userId: Id<"users">) {
   return { url: res.customer_portal_url };
 }
 
+/** What a company's subscription needs to follow its member count. */
+export const seatJob = internalQuery({
+  args: { key: v.string() },
+  handler: async (ctx, { key }) => {
+    const space = await resolveSpace(ctx, key);
+    if (!space) return null;
+    const holder = space.brand === "me" ? await ctx.db.get(space.ownerId) : await ctx.db.get(space.brand);
+    if (!holder?.polarSubscriptionId || holder.planComp) return null;
+    // Only per-seat subscriptions follow members; an older fixed-price one does not.
+    if (space.brand === "me" && !(holder as Doc<"users">).spaceBilling) return null;
+    return { subscriptionId: holder.polarSubscriptionId, seats: await seatsOf(ctx, space), billed: holder.planSeats ?? null };
+  },
+});
+
+/** Sets the subscription's seats to the company's members; Polar prorates the difference. */
+export const syncSeats = internalAction({
+  args: { key: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { key }) => {
+    const job: { subscriptionId: string; seats: number; billed: number | null } | null = await ctx.runQuery(
+      internal.billing.seatJob,
+      { key },
+    );
+    if (!job || job.seats === job.billed) return null;
+    try {
+      await polar(`/v1/subscriptions/${job.subscriptionId}`, { seats: Math.max(1, job.seats) }, "PATCH");
+    } catch (e) {
+      console.error(`Seats not updated for ${key}`, e);
+    }
+    return null;
+  },
+});
+
 /** Polar's own page for invoices, payment method, switching and cancelling. */
 export const portal = action({
   args: {},
   returns: v.object({ url: v.string() }),
   handler: async (ctx): Promise<{ url: string }> => {
-    const me: { _id: Id<"users">; customer: string | null } = await ctx.runQuery(internal.billing.me, {});
+    const me: Me = await ctx.runQuery(internal.billing.me, {});
     if (!me.customer) throw new ConvexError("There is no billing on this account yet.");
     return await portalUrl(me._id);
   },
@@ -193,6 +261,7 @@ type PolarSubscription = {
   current_period_end?: string | null;
   cancel_at_period_end?: boolean;
   ended_at?: string | null;
+  seats?: number | null;
   metadata?: Record<string, unknown>;
 };
 
@@ -220,6 +289,7 @@ export const polarWebhook = httpAction(async (ctx, req) => {
         customerId: o.customer_id ?? o.customer?.id ?? "",
         externalId: o.customer?.external_id ?? undefined,
         email: o.customer?.email ?? undefined,
+        space: typeof o.metadata?.space === "string" ? o.metadata.space : undefined,
       });
     }
   }
@@ -236,6 +306,8 @@ export const polarWebhook = httpAction(async (ctx, req) => {
       periodEnd: s.current_period_end ? Date.parse(s.current_period_end) : undefined,
       cancelAtPeriodEnd: s.cancel_at_period_end ?? false,
       endedAt: s.ended_at ? Date.parse(s.ended_at) : undefined,
+      seats: s.seats ?? undefined,
+      space: typeof s.metadata?.space === "string" ? s.metadata.space : undefined,
     });
   }
   return new Response(null, { status: 202 });
@@ -256,13 +328,15 @@ type PolarOrder = {
   product?: { id?: string };
   customer_id?: string;
   customer?: { id?: string; external_id?: string | null; email?: string };
+  metadata?: Record<string, unknown>;
 };
 
-/** A plan's monthly value in dollars: a yearly price spread over twelve months. */
-function monthlyValue(plan: PlanId, interval: Interval | undefined, paying: boolean) {
+/** A plan's monthly value in dollars: per seat, a yearly price spread over twelve months. */
+function monthlyValue(plan: PlanId, interval: Interval | undefined, paying: boolean, seats = 1) {
   if (!paying || plan === "free") return 0;
   const p = PLANS[plan].price;
-  return interval === "year" ? Math.round((p.year / 12) * 100) / 100 : p.month;
+  const each = interval === "year" ? p.year / 12 : p.month;
+  return Math.round(each * Math.max(1, seats) * 100) / 100;
 }
 
 export const recordOrder = internalMutation({
@@ -276,6 +350,7 @@ export const recordOrder = internalMutation({
     customerId: v.string(),
     externalId: v.optional(v.string()),
     email: v.optional(v.string()),
+    space: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, a) => {
@@ -287,12 +362,25 @@ export const recordOrder = internalMutation({
     const user = await findCustomer(ctx, a.externalId, a.customerId, a.email);
     const products = (await platformValue<Products>(ctx, "polarProducts")) ?? {};
     const match = (Object.entries(products) as [keyof Products, string][]).find(([, id]) => id === a.productId);
-    if (match?.[0] === "replies_100") {
-      if (user) await ctx.db.patch(user._id, { aiReplyCredits: (user.aiReplyCredits ?? 0) + REPLY_PACK.replies });
-      await ctx.db.insert("polarOrders", { orderId: a.orderId, userId: user?._id, email: user?.email ?? a.email, at: a.at, amount: a.amount, currency: a.currency, reason: "reply pack" });
+    // A pack of AI credits (or an older pack of 100 AI replies, now 100
+    // credits) goes to the company it was bought for.
+    const pack = match?.[0] === "replies_100" ? { credits: 100 } : CREDIT_PACKS.find((p) => p.key === match?.[0]);
+    if (pack) {
+      const space = (await resolveSpace(ctx, a.space)) ?? (user ? personalSpace(user._id) : null);
+      if (space) await addCredits(ctx, space, pack.credits);
+      await ctx.db.insert("polarOrders", {
+        orderId: a.orderId,
+        userId: user?._id,
+        email: user?.email ?? a.email,
+        at: a.at,
+        amount: a.amount,
+        currency: a.currency,
+        reason: "credits",
+      });
       return null;
     }
-    const [plan, interval] = match ? (match[0].split("_") as [Exclude<PlanId, "free">, Interval]) : [undefined, undefined];
+    const known = planOfProduct(products, a.productId);
+    const [plan, interval] = known ? [known.plan, known.interval] : [undefined, undefined];
     await ctx.db.insert("polarOrders", {
       orderId: a.orderId,
       userId: user?._id,
@@ -320,26 +408,47 @@ export const applySubscription = internalMutation({
     periodEnd: v.optional(v.number()),
     cancelAtPeriodEnd: v.boolean(),
     endedAt: v.optional(v.number()),
+    seats: v.optional(v.number()),
+    space: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, a) => {
+    // The payer: the account whose Polar customer holds the subscription.
     const user = await findCustomer(ctx, a.externalId, a.customerId, a.email);
     await setPlatformValue(ctx, "polarLastEvent", { type: a.type, at: Date.now(), matched: !!user });
     if (!user) {
       console.warn(`Polar ${a.type}: no account for customer ${a.customerId}`);
       return null;
     }
-    // An event for a subscription this account has since replaced changes nothing.
-    if (user.polarSubscriptionId && user.polarSubscriptionId !== a.subscriptionId && a.status !== "active") {
+    const products = (await platformValue<Products>(ctx, "polarProducts")) ?? {};
+    const known = planOfProduct(products, a.productId);
+    const plan = known?.plan ?? "pro";
+    const interval = known?.interval ?? "month";
+
+    // The company it pays for: named at checkout, else the one already on this
+    // subscription, else the payer's own (subscriptions from before companies).
+    let space = await resolveSpace(ctx, a.space);
+    if (!space) {
+      const co = await ctx.db
+        .query("companies")
+        .withIndex("by_subscription", (q) => q.eq("polarSubscriptionId", a.subscriptionId))
+        .first();
+      if (co) space = { ownerId: co.ownerId, brand: co._id };
+    }
+    if (!space) space = personalSpace(user._id);
+    const holder: Doc<"users"> | Doc<"companies"> | null =
+      space.brand === "me" ? await ctx.db.get(space.ownerId) : await ctx.db.get(space.brand);
+    if (!holder) return null;
+
+    // An event for a subscription this company has since replaced changes nothing.
+    if (holder.polarSubscriptionId && holder.polarSubscriptionId !== a.subscriptionId && a.status !== "active") {
       return null;
     }
-    const products = (await platformValue<Products>(ctx, "polarProducts")) ?? {};
-    const match = (Object.entries(products) as [keyof Products, string][]).find(([, id]) => id === a.productId);
-    const [plan, interval] = (match?.[0] ?? "pro_month").split("_") as [Exclude<PlanId, "free">, Interval];
     const revoked = a.type === "subscription.revoked" || a.status === "revoked";
-    const was = planOf(user);
-    await ctx.db.patch(user._id, {
-      plan: revoked ? "free" : plan,
+    const was = planOf(holder);
+    const seats = a.seats ?? holder.planSeats ?? 1;
+    const patch = {
+      plan: revoked ? ("free" as const) : plan,
       planInterval: interval,
       planStatus: revoked ? "revoked" : a.status,
       // A cancelled or unpaid plan runs to the end of the period paid for;
@@ -350,22 +459,42 @@ export const applySubscription = internalMutation({
           ? a.periodEnd
           : undefined,
       planCancelAtPeriodEnd: a.cancelAtPeriodEnd,
-      polarCustomerId: a.customerId || user.polarCustomerId,
       polarSubscriptionId: a.subscriptionId,
-    });
-    const after = (await ctx.db.get(user._id))!;
+      planSeats: seats,
+    };
+    if (space.brand === "me") {
+      await ctx.db.patch(space.ownerId, {
+        ...patch,
+        polarCustomerId: a.customerId || user.polarCustomerId,
+        // Paying per seat ends the grandfathering of an older account-wide plan.
+        ...(known?.seated ? { spaceBilling: true } : {}),
+      });
+    } else {
+      await ctx.db.patch(space.brand, { ...patch, billedTo: user._id });
+      if (a.customerId && !user.polarCustomerId) await ctx.db.patch(user._id, { polarCustomerId: a.customerId });
+    }
+    const after = (space.brand === "me" ? await ctx.db.get(space.ownerId) : await ctx.db.get(space.brand))!;
     const now = planOf(after);
-    if (now !== was) {
-      await writeAudit(ctx, null, `Plan ${was} → ${now}`, user.email ?? user._id, `Polar ${a.type}`);
+    const label = space.brand === "me" ? (user.email ?? user._id) : `${(holder as Doc<"companies">).name} (${user.email ?? user._id})`;
+    if (now !== was) await writeAudit(ctx, null, `Plan ${was} → ${now}`, label, `Polar ${a.type}`);
+    // Members may have joined while checkout was open: the seats catch up.
+    if (!revoked && a.status === "active") {
+      await ctx.scheduler.runAfter(0, internal.billing.syncSeats, { key: spaceKey(space) });
     }
 
     // The history the admin revenue figures read. Comped plans are not revenue.
-    const paidBefore = !!user.plan && user.plan !== "free" && !user.planComp && ["active", "trialing", "past_due"].includes(user.planStatus ?? "");
-    const paidAfter = !revoked && ["active", "trialing", "past_due"].includes(a.status) && !user.planComp;
-    const prevMrr = monthlyValue((user.plan ?? "free") as PlanId, user.planInterval, paidBefore && !user.planCancelAtPeriodEnd);
-    const mrr = monthlyValue(revoked ? "free" : plan, interval, paidAfter && !a.cancelAtPeriodEnd);
+    const paidBefore =
+      !!holder.plan && holder.plan !== "free" && !holder.planComp && ["active", "trialing", "past_due"].includes(holder.planStatus ?? "");
+    const paidAfter = !revoked && ["active", "trialing", "past_due"].includes(a.status) && !holder.planComp;
+    const prevMrr = monthlyValue(
+      (holder.plan ?? "free") as PlanId,
+      holder.planInterval,
+      paidBefore && !holder.planCancelAtPeriodEnd,
+      holder.planSeats ?? 1,
+    );
+    const mrr = monthlyValue(revoked ? "free" : plan, interval, paidAfter && !a.cancelAtPeriodEnd, seats);
     const rank = { free: 0, pro: 1, business: 2 } as const;
-    const prevPlan = (user.plan ?? "free") as PlanId;
+    const prevPlan = (holder.plan ?? "free") as PlanId;
     const nextPlan: PlanId = revoked ? "free" : plan;
     const kind:
       | "started"
@@ -380,19 +509,23 @@ export const applySubscription = internalMutation({
       ? "ended"
       : !paidBefore && paidAfter
         ? "started"
-        : a.status === "past_due" && user.planStatus !== "past_due"
+        : a.status === "past_due" && holder.planStatus !== "past_due"
           ? "past_due"
-          : a.cancelAtPeriodEnd && !user.planCancelAtPeriodEnd
+          : a.cancelAtPeriodEnd && !holder.planCancelAtPeriodEnd
             ? "cancelling"
-            : !a.cancelAtPeriodEnd && user.planCancelAtPeriodEnd
+            : !a.cancelAtPeriodEnd && holder.planCancelAtPeriodEnd
               ? "resumed"
               : rank[nextPlan] > rank[prevPlan]
                 ? "upgraded"
                 : rank[nextPlan] < rank[prevPlan]
                   ? "downgraded"
-                  : interval !== user.planInterval && paidBefore
+                  : interval !== holder.planInterval && paidBefore
                     ? "switched"
-                    : null;
+                    : mrr !== prevMrr && paidBefore && paidAfter
+                      ? rank[nextPlan] === rank[prevPlan] && mrr > prevMrr
+                        ? "upgraded"
+                        : "downgraded"
+                      : null;
     if (kind) {
       await ctx.db.insert("billingEvents", {
         userId: user._id,
@@ -405,7 +538,10 @@ export const applySubscription = internalMutation({
         prevMrr,
       });
     }
-    if (kind === "started") await ctx.db.patch(user._id, { planSince: Date.now() });
+    if (kind === "started") {
+      if (space.brand === "me") await ctx.db.patch(space.ownerId, { planSince: Date.now() });
+      else await ctx.db.patch(space.brand, { planSince: Date.now() });
+    }
     return null;
   },
 });
@@ -446,10 +582,13 @@ export const adminStatus = query({
   handler: async (ctx) => {
     await requireStaff(ctx, "billing");
     const users = await ctx.db.query("users").collect();
-    const paying = users.filter((u) => !u.planComp && planOf(u) !== "free");
-    const monthly = (u: Doc<"users">) => {
+    const companies = (await ctx.db.query("companies").collect()).filter((c) => c.plan || c.planComp);
+    // Every paid plan: personal ones on accounts, and companies' own.
+    const holders: (Doc<"users"> | Doc<"companies">)[] = [...users, ...companies];
+    const paying = holders.filter((u) => !u.planComp && planOf(u) !== "free");
+    const monthly = (u: Doc<"users"> | Doc<"companies">) => {
       const p = PLANS[planOf(u)];
-      return u.planInterval === "year" ? p.price.year / 12 : p.price.month;
+      return (u.planInterval === "year" ? p.price.year / 12 : p.price.month) * Math.max(1, u.planSeats ?? 1);
     };
     return {
       token: !!process.env.POLAR_ACCESS_TOKEN,
@@ -459,9 +598,9 @@ export const adminStatus = query({
       products: (await platformValue<Products>(ctx, "polarProducts")) ?? {},
       lastEvent: await platformValue<{ type: string; at: number; matched: boolean }>(ctx, "polarLastEvent"),
       counts: {
-        pro: users.filter((u) => planOf(u) === "pro").length,
-        business: users.filter((u) => planOf(u) === "business").length,
-        comped: users.filter((u) => u.planComp).length,
+        pro: holders.filter((u) => planOf(u) === "pro").length,
+        business: holders.filter((u) => planOf(u) === "business").length,
+        comped: holders.filter((u) => u.planComp).length,
         paying: paying.length,
       },
       mrr: Math.round(paying.reduce((n, u) => n + monthly(u), 0) * 100) / 100,
@@ -479,9 +618,9 @@ export const staffCheck = internalQuery({
 });
 
 /**
- * Creates whichever products Polar doesn't have yet - the four plans and the
- * pack of AI replies - at the listed prices, and remembers their ids. Ones
- * already made are left alone: a new copy of a plan would change its id, and
+ * Creates whichever products Polar doesn't have yet - the four per-seat plans
+ * and the three packs of AI credits - at the listed prices, and remembers their
+ * ids. Ones already made are left alone: a new copy would change its id, and
  * people already paying for the old one would no longer be recognised.
  */
 export const createProducts = action({
@@ -493,26 +632,36 @@ export const createProducts = action({
     const made: string[] = [];
     for (const plan of ["pro", "business"] as const) {
       for (const interval of ["month", "year"] as const) {
-        const key = `${plan}_${interval}` as const;
+        const key = `${plan}_${interval}_seat` as const;
         if (have[key]) continue;
         const res = await polar<{ id: string }>("/v1/products/", {
-          name: `Formkit ${PLANS[plan].name} (${interval === "month" ? "monthly" : "yearly"})`,
+          name: `Formkit ${PLANS[plan].name} (${interval === "month" ? "monthly" : "yearly"}, per seat)`,
           description: PLANS[plan].tagline,
           recurring_interval: interval,
-          prices: [{ amount_type: "fixed", price_amount: PLANS[plan].price[interval] * 100, price_currency: "usd" }],
+          prices: [
+            {
+              amount_type: "seat_based",
+              price_currency: "usd",
+              seat_tiers: {
+                seat_tier_type: "volume",
+                tiers: [{ min_seats: 1, max_seats: null, price_per_seat: PLANS[plan].price[interval] * 100 }],
+              },
+            },
+          ],
         });
         next[key] = res.id;
         made.push(key);
       }
     }
-    if (!have.replies_100) {
-      const pack = await polar<{ id: string }>("/v1/products/", {
-        name: `Formkit AI replies: ${REPLY_PACK.replies}`,
-        description: `${REPLY_PACK.replies} more AI replies for Business forms. They roll over until used.`,
-        prices: [{ amount_type: "fixed", price_amount: REPLY_PACK.price * 100, price_currency: "usd" }],
+    for (const pack of CREDIT_PACKS) {
+      if (have[pack.key]) continue;
+      const res = await polar<{ id: string }>("/v1/products/", {
+        name: `Formkit AI credits: ${pack.credits.toLocaleString("en-US")}`,
+        description: `${pack.credits.toLocaleString("en-US")} AI credits for one company, used once its monthly AI allowance runs out. They last a year.`,
+        prices: [{ amount_type: "fixed", price_amount: pack.price * 100, price_currency: "usd" }],
       });
-      next.replies_100 = pack.id;
-      made.push("replies_100");
+      next[pack.key] = res.id;
+      made.push(pack.key);
     }
     // Saved after each run, so a failure part-way keeps what was made.
     if (made.length) await ctx.runMutation(internal.billing.storeProducts, { products: next });
@@ -532,16 +681,28 @@ export const storeProducts = internalMutation({
 /** Product ids pasted by hand, for products made in Polar's dashboard. */
 export const saveProducts = mutation({
   args: {
-    pro_month: v.string(),
-    pro_year: v.string(),
-    business_month: v.string(),
-    business_year: v.string(),
+    pro_month_seat: v.optional(v.string()),
+    pro_year_seat: v.optional(v.string()),
+    business_month_seat: v.optional(v.string()),
+    business_year_seat: v.optional(v.string()),
+    credits_100: v.optional(v.string()),
+    credits_420: v.optional(v.string()),
+    credits_1050: v.optional(v.string()),
+    // The older fixed-price products, kept so their subscribers are recognised.
+    pro_month: v.optional(v.string()),
+    pro_year: v.optional(v.string()),
+    business_month: v.optional(v.string()),
+    business_year: v.optional(v.string()),
     replies_100: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, ids) => {
     const staff = await requireStaff(ctx, "billing");
-    const clean = Object.fromEntries(Object.entries(ids).map(([k, val]) => [k, val.trim()]).filter(([, val]) => val));
+    const clean = Object.fromEntries(
+      Object.entries(ids)
+        .map(([k, val]) => [k, (val ?? "").trim()])
+        .filter(([, val]) => val),
+    );
     await setPlatformValue(ctx, "polarProducts", clean);
     await writeAudit(ctx, staff, "Updated Polar products");
     return null;

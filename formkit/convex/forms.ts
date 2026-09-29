@@ -4,7 +4,8 @@ import { internalMutation, mutation, query, type MutationCtx } from "./_generate
 import { Doc, Id } from "./_generated/dataModel";
 import { requireUser } from "./model/identity";
 import { approvalView, audit, needsApproval, teamTemplate, teamsOf } from "./model/team";
-import { PLANS, planOfId, planSummary, requireFeature } from "./model/plans";
+import { PLANS, planOfId, requireFeature } from "./model/plans";
+import { currentSpace, personalSpace, resolveSpace, roleIn, spaceForms, spaceOfForm, spacePlan } from "./model/spaces";
 import { validKey } from "./model/calc";
 import {
   completionRate,
@@ -107,10 +108,8 @@ export const list = query({
   },
   handler: async (ctx, { filter = "all", search }) => {
     const user = await requireUser(ctx);
-    const all = await ctx.db
-      .query("forms")
-      .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
-      .collect();
+    // The company being worked in; "shared" is forms elsewhere this person is a guest on.
+    const all = await spaceForms(ctx, await currentSpace(ctx, user));
 
     // Forms other people put this person on, live ones only.
     const shares = (
@@ -125,21 +124,6 @@ export const list = query({
       if (!f || f.deletedAt || f.ownerId === user._id) continue;
       const owner = await ctx.db.get(f.ownerId);
       sharedForms.push({ form: f, role: r.role, owner: owner?.name ?? owner?.email ?? "Someone" });
-    }
-    // Business: every form on the teams this person is on.
-    for (const { row, owner } of await teamsOf(ctx, user._id)) {
-      const forms = await ctx.db
-        .query("forms")
-        .withIndex("by_owner", (q) => q.eq("ownerId", owner._id))
-        .collect();
-      for (const f of forms) {
-        if (f.deletedAt || sharedForms.some((x) => x.form._id === f._id)) continue;
-        sharedForms.push({
-          form: f,
-          role: row.role === "viewer" ? "viewer" : "editor",
-          owner: `${owner.name ?? owner.email ?? "Someone"}'s team`,
-        });
-      }
     }
 
     const term = search?.trim().toLowerCase();
@@ -206,28 +190,16 @@ export const summary = query({
   args: {},
   handler: async (ctx) => {
     const user = await requireUser(ctx);
-    const all = await ctx.db
-      .query("forms")
-      .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
-      .collect();
+    const all = await spaceForms(ctx, await currentSpace(ctx, user));
     const shared = (
       await ctx.db
         .query("collaborators")
         .withIndex("by_email", (q) => q.eq("email", (user.email ?? "").toLowerCase()))
         .collect()
     ).filter((r) => r.status === "active" && r.userId === user._id).length;
-    let teamForms = 0;
-    for (const { owner } of await teamsOf(ctx, user._id)) {
-      teamForms += (
-        await ctx.db
-          .query("forms")
-          .withIndex("by_owner", (q) => q.eq("ownerId", owner._id))
-          .collect()
-      ).filter((f) => !f.deletedAt).length;
-    }
     const live = all.filter((f) => !f.deletedAt);
     return {
-      counts: countsOf(all, shared + teamForms),
+      counts: countsOf(all, shared),
       responses: live.reduce((n, f) => n + f.responsesCount, 0),
     };
   },
@@ -238,12 +210,7 @@ export const picker = query({
   args: {},
   handler: async (ctx) => {
     const user = await requireUser(ctx);
-    const forms = (
-      await ctx.db
-        .query("forms")
-        .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
-        .collect()
-    )
+    const forms = (await spaceForms(ctx, await currentSpace(ctx, user)))
       .filter((f) => !f.deletedAt)
       .sort((a, b) => b.updatedAt - a.updatedAt);
     const owners = await ownersOf(ctx, forms);
@@ -257,10 +224,9 @@ export const picker = query({
   },
 });
 
-async function ownerPlanOf(ctx: Parameters<typeof decorate>[0], ownerId: Id<"users">) {
-  const owner = await ctx.db.get(ownerId);
-  if (!owner) return null;
-  const p = planSummary(owner);
+/** The form's company plan: what this form can do, whoever is editing it. */
+async function ownerPlanOf(ctx: Parameters<typeof decorate>[0], form: Doc<"forms">) {
+  const p = await spacePlan(ctx, spaceOfForm(form));
   return { id: p.id, name: p.name, features: p.features, limits: p.limits };
 }
 
@@ -299,7 +265,7 @@ export const get = query({
       aiReply: form.aiReply ?? null,
       quiz: form.quiz ?? null,
       /** The owner's plan: what this form can do, whoever is editing it. */
-      ownerPlan: await ownerPlanOf(ctx, form.ownerId),
+      ownerPlan: await ownerPlanOf(ctx, form),
       /** Business approvals: whether this person must ask, and what is waiting. */
       approval: await approvalView(ctx, form),
       notify: form.notify ?? null,
@@ -338,21 +304,19 @@ export const create = mutation({
 
     const title = args.title?.trim() || template?.name || "Untitled form";
 
-    // A new form defaults to the one company with "use branding" on, otherwise
-    // to the person - identity is person-first.
-    let brand = args.brand;
-    if (!brand) {
-      const companies = await ctx.db
-        .query("companies")
-        .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
-        .collect();
-      const branded = companies.find((c) => c.useBranding);
-      brand = branded ? branded._id : "me";
-    }
+    // A new form belongs to the company being worked in (or the one named),
+    // whoever of its members makes it.
+    const space = args.brand
+      ? (args.brand === "me" ? personalSpace(user._id) : await resolveSpace(ctx, args.brand)) ?? personalSpace(user._id)
+      : await currentSpace(ctx, user);
+    const role = await roleIn(ctx, space, user._id);
+    if (!role) throw new ConvexError("You are not a member of that company.");
+    if (role === "viewer") throw new ConvexError("Your role in this company is read-only.");
 
     const formId = await ctx.db.insert("forms", {
-      ownerId: user._id,
-      brand,
+      ownerId: space.ownerId,
+      brand: space.brand,
+      createdBy: space.ownerId === user._id ? undefined : user._id,
       title,
       slug: await uniqueSlug(ctx, title),
       status: "draft",
@@ -492,8 +456,8 @@ export const setEndings = mutation({
   returns: v.null(),
   handler: async (ctx, { formId, endings }) => {
     const form = await formFor(ctx, formId);
-    if (endings.length) await requireFeature(ctx, form.ownerId, "logic.advanced");
-    if (endings.some((e) => e.redirect?.trim())) await requireFeature(ctx, form.ownerId, "forms.redirect");
+    if (endings.length) await requireFeature(ctx, form, "logic.advanced");
+    if (endings.some((e) => e.redirect?.trim())) await requireFeature(ctx, form, "forms.redirect");
     await ctx.db.patch(formId, {
       endings: endings.slice(0, 12).map((e) => ({
         id: e.id.slice(0, 40),
@@ -516,7 +480,7 @@ export const setCalc = mutation({
   returns: v.null(),
   handler: async (ctx, { formId, calc }) => {
     const form = await formFor(ctx, formId);
-    if (calc.length) await requireFeature(ctx, form.ownerId, "logic.calc");
+    if (calc.length) await requireFeature(ctx, form, "logic.calc");
     const keys = new Set(
       (
         await ctx.db
@@ -870,7 +834,7 @@ export const versions = query({
       .withIndex("by_form", (q) => q.eq("formId", formId))
       .collect();
     // How far back the owner's plan reaches; older versions are kept, not shown.
-    const days = PLANS[await planOfId(ctx, form.ownerId)].historyDays;
+    const days = PLANS[await planOfId(ctx, form)].historyDays;
     const since = days === null ? 0 : Date.now() - days * 24 * 60 * 60 * 1000;
     return rows
       .filter((r) => r.publishedAt >= since || r.number === form.liveVersion)
@@ -896,7 +860,7 @@ export const restoreVersion = mutation({
     if (!version) throw new Error("That version no longer exists.");
     const form = await formFor(ctx, version.formId);
     const now = Date.now();
-    const days = PLANS[await planOfId(ctx, form.ownerId)].historyDays;
+    const days = PLANS[await planOfId(ctx, form)].historyDays;
     if (days !== null && version.publishedAt < now - days * 24 * 60 * 60 * 1000) {
       throw new Error(`That version is older than your plan's ${days} days of history.`);
     }

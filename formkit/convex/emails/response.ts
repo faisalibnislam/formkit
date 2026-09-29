@@ -202,21 +202,31 @@ export function renderCommentEmail({ heading, quote: text, link }: { heading: st
 }
 
 /** Business: an invitation onto someone's whole team. */
-export function renderTeamInvite({ inviter, role, link }: { inviter: string; role: string; link: string }) {
+export function renderTeamInvite({
+  inviter,
+  company,
+  role,
+  link,
+}: {
+  inviter: string;
+  company: string;
+  role: string;
+  link: string;
+}) {
   const can =
     role === "admin"
-      ? "You can work on every form, manage the team and approve forms."
+      ? "You can work on every form, and run the company: its members, plan and settings."
       : role === "editor"
         ? "You can edit every form and read its responses."
         : "You can read every form and its responses.";
   const as = role === "admin" ? "an Admin" : role === "editor" ? "an Editor" : "a Viewer";
   return renderShell({
-    eyebrow: "Team invitation",
-    heading: `${inviter} added you to their team`,
+    eyebrow: "Invitation",
+    heading: `${inviter} added you to ${company}`,
     lede: `As ${as}. ${can}`,
     body: `${paragraph(
-      "Sign in, or make an account, with this email address, and the team's forms are waiting under Shared.",
+      `Sign in, or make an account, with this email address, and ${company} is in the company menu at the top of Formkit.`,
     )}${button("Open Formkit", link)}`,
-    reason: `${inviter} added this address to their team on Formkit.`,
+    reason: `${inviter} added this address to ${company} on Formkit.`,
   });
 }

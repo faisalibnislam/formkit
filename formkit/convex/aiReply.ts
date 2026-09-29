@@ -4,8 +4,9 @@ import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { aiAllowed, requireUser } from "./model/identity";
 import { brandOf, formFor } from "./model/forms";
-import { PLANS, REPLY_PACK, hasFeature, planOf, requireFeature } from "./model/plans";
-import { chargeReply, month, refundReply, replyAllowance } from "./model/aiReply";
+import { CREDIT_PACKS, hasFeature, requireFeature } from "./model/plans";
+import { aiStatus, chargeResponse, refundResponse, usesAiLogic } from "./model/aiMeter";
+import { currentSpace } from "./model/spaces";
 import { senderFor } from "./emailDomains";
 import { FROM, notifyDefaults, send } from "./notifications";
 import { paragraph, renderShell, safeColor, type Brand } from "./emails/kit";
@@ -204,7 +205,10 @@ export const settle = internalMutation({
     const r = await ctx.db.get(a.responseId);
     if (!r?.aiReply) return null;
     if (!a.ok) {
-      await refundReply(ctx, r.ownerId, r.aiReply.charged);
+      // A reply that could not be written is not charged, unless AI logic
+      // also read this response.
+      const form = await ctx.db.get(r.formId);
+      if (form && !(await usesAiLogic(ctx, form))) await refundResponse(ctx, form, a.responseId);
       await ctx.db.patch(a.responseId, {
         aiReply: { status: "failed", reason: a.reason ?? "The AI could not write a reply.", at: Date.now() },
       });
@@ -397,13 +401,17 @@ export const retry = mutation({
   returns: v.null(),
   handler: async (ctx, { responseId }) => {
     const { r, form } = await ownReply(ctx, responseId);
-    await requireFeature(ctx, form.ownerId, "ai.reply");
+    await requireFeature(ctx, form, "ai.reply");
     if (!form.aiReply?.prompt.trim()) throw new ConvexError("Write the AI reply instructions first, under Settings → AI reply.");
     if (r.aiReply?.status === "pending") return null;
-    const owner = await ctx.db.get(form.ownerId);
-    const charged = owner ? await chargeReply(ctx, owner) : null;
-    if (!charged) throw new ConvexError(`No AI replies left this month. Add ${REPLY_PACK.replies} more for $${REPLY_PACK.price} under Settings → Plan.`);
-    await ctx.db.patch(responseId, { aiReply: { status: "pending", charged, at: Date.now() } });
+    // Free when the response was already counted; otherwise it counts now.
+    const charged = await chargeResponse(ctx, form, responseId);
+    if (!charged) {
+      throw new ConvexError(
+        `No AI responses left this month. ${CREDIT_PACKS[0].credits} AI credits are $${CREDIT_PACKS[0].price} under Settings → Plan.`,
+      );
+    }
+    await ctx.db.patch(responseId, { aiReply: { status: "pending", at: Date.now() } });
     await ctx.scheduler.runAfter(0, internal.aiReply.generate, { responseId });
     return null;
   },
@@ -454,7 +462,7 @@ export const save = mutation({
   returns: v.null(),
   handler: async (ctx, { formId, settings: s }) => {
     const form = await formFor(ctx, formId);
-    if (s.enabled) await requireFeature(ctx, form.ownerId, "ai.reply");
+    if (s.enabled) await requireFeature(ctx, form, "ai.reply");
     if (s.enabled && !s.prompt.trim()) throw new ConvexError("Write the instructions for the AI first.");
     await ctx.db.patch(formId, {
       aiReply: {
@@ -494,7 +502,7 @@ export const tryContext = internalQuery({
     return {
       userId: user._id,
       allowed: await aiAllowed(ctx, user._id),
-      business: await hasFeature(ctx, form.ownerId, "ai.reply"),
+      business: await hasFeature(ctx, form, "ai.reply"),
       usedToday: user.aiRuleDay === new Date().toISOString().slice(0, 10) ? (user.aiRuleCount ?? 0) : 0,
       title: form.title,
       brand: (await brandOf(ctx, form)).name,
@@ -566,18 +574,11 @@ export const tryIt = action({
   },
 });
 
-/** The Plan tab's view of AI replies and AI logic checks this month. */
+/** The company's AI this month: what its plan includes, what is used, and its credits. */
 export const usage = query({
   args: {},
   handler: async (ctx) => {
     const user = await requireUser(ctx);
-    const plan = planOf(user);
-    const a = replyAllowance(user);
-    return {
-      plan,
-      replies: { monthly: a.monthly, used: Math.min(a.used, a.monthly), credits: a.credits, left: a.left },
-      checks: { limit: PLANS[plan].aiChecks, used: user.aiCheckPeriod === month() ? (user.aiCheckUsed ?? 0) : 0 },
-      pack: REPLY_PACK,
-    };
+    return await aiStatus(ctx, await currentSpace(ctx, user));
   },
 });

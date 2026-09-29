@@ -52,10 +52,10 @@ export async function formFor(
     .first();
 
   if (!share || share.status !== "active") {
-    // Business: the owner's team works on every form.
-    const team = await teamRoleOf(ctx, form.ownerId, user._id);
+    // The company's members work on every form in it.
+    const team = await teamRoleOf(ctx, form, user._id);
     if (!team) throw new Error("You do not have access to that form.");
-    if (need === "write" && team === "viewer") throw new Error("Your role on this team is read-only.");
+    if (need === "write" && team === "viewer") throw new Error("Your role in this company is read-only.");
     return form;
   }
   if (need === "write" && share.role !== "editor") {
@@ -166,7 +166,7 @@ export async function brandOf(ctx: QueryCtx, form: Doc<"forms">) {
       (form.brand === "me"
         ? (identity as { hideBadge?: boolean } | null)?.hideBadge === true
         : (identity as { badge?: boolean } | null)?.badge === false) &&
-      (await hasFeature(ctx, form.ownerId, "brand.badge"))
+      (await hasFeature(ctx, form, "brand.badge"))
     ),
   };
 }

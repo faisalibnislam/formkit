@@ -10,7 +10,10 @@ import {
 } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
-import { aiAllowed, aiLimit, requireUser } from "./model/identity";
+import { aiAllowed, requireUser } from "./model/identity";
+import { aiStatus, spendAi } from "./model/aiMeter";
+import { currentSpace, spaceOfForm } from "./model/spaces";
+import { CREDIT_COST } from "./model/plans";
 import { formFor, recount, uniqueSlug } from "./model/forms";
 import { hasFeature } from "./model/plans";
 import { logActivity } from "./model/access";
@@ -110,15 +113,12 @@ export type AskResult =
       items: { blockId: Id<"blocks">; before: string; after: string }[];
     }
   | { kind: "insight"; formId: Id<"forms">; title: string; text: string; items: { k: string; v: string; n: string }[] }
-  | { kind: "limit"; used: number; limit: number }
+  | { kind: "limit"; used: number; limit: number; what?: "builds" | "edits" }
   | { kind: "say"; text: string; note?: string };
 
 /* ------------------------------------------------------------------ */
 /* Reading                                                              */
 
-function currentPeriod() {
-  return new Date().toISOString().slice(0, 7);
-}
 
 async function snapshot(ctx: QueryCtx, form: Doc<"forms">): Promise<Snapshot> {
   const blocks = (
@@ -150,20 +150,28 @@ export const context = internalQuery({
   handler: async (ctx, { formId, riffId }) => {
     const user = await requireUser(ctx);
     const allowed = await aiAllowed(ctx, user._id);
-    const limit = await aiLimit(ctx, user._id);
-    const used = user.aiPeriod === currentPeriod() ? (user.aiUsed ?? 0) : 0;
-    const form = formId ? await snapshot(ctx, await formFor(ctx, formId, "read")) : null;
+    const doc = formId ? await formFor(ctx, formId, "read") : null;
+    // Work on a form is paid for by the form's company; a new form, by the
+    // company the person is working in.
+    const space = doc ? spaceOfForm(doc) : await currentSpace(ctx, user);
+    const status = await aiStatus(ctx, space);
+    const form = doc ? await snapshot(ctx, doc) : null;
     const riff = riffId ? await snapshot(ctx, await formFor(ctx, riffId, "read")) : null;
     return {
       userId: user._id,
       firstName: (user.name ?? "").split(/\s+/)[0] ?? "",
       allowed,
-      limit,
-      used,
+      space,
+      limit: status.pool.builds,
+      used: status.used.builds,
+      editLimit: status.pool.edits,
+      editsUsed: status.used.edits,
+      canBuild: status.left.builds > 0 || status.credits >= CREDIT_COST.builds,
+      canEdit: status.left.edits > 0 || status.credits >= CREDIT_COST.edits,
       form,
       riff,
       live: await flagOn(ctx, "ai.live", user._id),
-      brief: (await flagOn(ctx, "ai.brief", user._id)) && (await hasFeature(ctx, user, "ai.brief")),
+      brief: (await flagOn(ctx, "ai.brief", user._id)) && (await hasFeature(ctx, space, "ai.brief")),
     };
   },
 });
@@ -248,16 +256,13 @@ export const responsesFor = internalQuery({
 /* Writing                                                              */
 
 export const spend = internalMutation({
-  args: { userId: v.id("users") },
-  returns: v.number(),
-  handler: async (ctx, { userId }) => {
-    const user = await ctx.db.get(userId);
-    if (!user) throw new Error("That account no longer exists.");
-    const period = currentPeriod();
-    const used = (user.aiPeriod === period ? (user.aiUsed ?? 0) : 0) + 1;
-    await ctx.db.patch(userId, { aiPeriod: period, aiUsed: used });
-    return used;
+  args: {
+    ownerId: v.id("users"),
+    brand: v.union(v.literal("me"), v.id("companies")),
+    kind: v.union(v.literal("builds"), v.literal("edits")),
   },
+  returns: v.union(v.literal("allowance"), v.literal("credits"), v.null()),
+  handler: async (ctx, { ownerId, brand, kind }) => spendAi(ctx, { ownerId, brand }, kind),
 });
 
 async function nextOrder(ctx: MutationCtx, formId: Id<"forms">) {
@@ -551,29 +556,16 @@ export const run = action({
           note: "Nothing spent",
         };
       }
-      switch (intent) {
-        case "chat":
-          return await chat(m, text, args.history ?? [], seat, left);
-        case "create":
-          if (left <= 0) return { kind: "limit", used: seat.used, limit: seat.limit };
-          return await create(ctx, m, text, attach, seat);
-        case "revise":
-          return await revise(m, text, pending!, seat);
-        case "insight":
-          return await insight(ctx, m, text, seat.form);
-        default:
-          if (pending) return await revise(m, text, pending, seat);
-          if (!seat.form) {
-            return {
-              kind: "say",
-              text: "Pick a form to work on from the menu above, or describe a new one and I will build it.",
-            };
-          }
-          if (intent === "append") return await append(ctx, m, text, seat.form);
-          if (intent === "logic") return await logic(ctx, m, text, seat.form);
-          if (intent === "theme") return await theme(ctx, m, text, seat.form);
-          return await tone(m, text, seat.form);
+      if (intent === "create" && !seat.canBuild) return { kind: "limit", used: seat.used, limit: seat.limit, what: "builds" };
+      if (intent !== "create" && !seat.canEdit) {
+        return { kind: "limit", used: seat.editsUsed, limit: seat.editLimit, what: "edits" };
       }
+      const result = await answer();
+      // Everything but a new form is an AI edit, charged once it has worked.
+      if (intent !== "create" && result.kind !== "say" && result.kind !== "limit") {
+        await ctx.runMutation(internal.ai.spend, { ownerId: seat.space.ownerId, brand: seat.space.brand, kind: "edits" });
+      }
+      return result;
     } catch (e) {
       if (e instanceof ModelError) {
         if (intent === "chat") {
@@ -593,6 +585,31 @@ export const run = action({
       // An uploaded document is read once and not kept.
       if (attach?.storageId) await ctx.storage.delete(attach.storageId).catch(() => {});
     }
+
+    async function answer(): Promise<AskResult> {
+      switch (intent) {
+        case "chat":
+          return await chat(m, text, args.history ?? [], seat, left);
+        case "create":
+          return await create(ctx, m, text, attach, seat);
+        case "revise":
+          return await revise(m, text, pending!, seat);
+        case "insight":
+          return await insight(ctx, m, text, seat.form);
+        default:
+          if (pending) return await revise(m, text, pending, seat);
+          if (!seat.form) {
+            return {
+              kind: "say",
+              text: "Pick a form to work on from the menu above, or describe a new one and I will build it.",
+            };
+          }
+          if (intent === "append") return await append(ctx, m, text, seat.form);
+          if (intent === "logic") return await logic(ctx, m, text, seat.form);
+          if (intent === "theme") return await theme(ctx, m, text, seat.form);
+          return await tone(m, text, seat.form);
+      }
+    }
   },
 });
 
@@ -602,6 +619,7 @@ type Asker = Omit<Meter, "feature">;
 type Seat = {
   userId: Id<"users">;
   firstName: string;
+  space: { ownerId: Id<"users">; brand: "me" | Id<"companies"> };
   limit: number;
   used: number;
   form: Snapshot | null;
@@ -667,7 +685,8 @@ Theme: optional, one of ${THEME_PRESETS.map((t) => `${t.id} (${t.name})`).join("
   const checked = toDraft(parseJson<RawDraft>(raw));
   if (!checked) throw new ModelError("What came back was not a usable form.", "empty");
 
-  const used = await ctx.runMutation(internal.ai.spend, { userId: seat.userId });
+  const from = await ctx.runMutation(internal.ai.spend, { ownerId: seat.space.ownerId, brand: seat.space.brand, kind: "builds" });
+  const used = seat.used + (from === "allowance" ? 1 : 0);
   return { kind: "draft", draft: checked.draft, note: checked.note || undefined, revised: false, used, limit: seat.limit };
 }
 

@@ -23,8 +23,8 @@ export async function accessOf(
     .filter((q) => q.eq(q.field("userId"), user._id))
     .first();
   if (share?.status === "active") return { form, user, role: share.role };
-  // Business: the owner's team works on every form.
-  const team = await teamRoleOf(ctx, form.ownerId, user._id);
+  // The company's members work on every form in it.
+  const team = await teamRoleOf(ctx, form, user._id);
   if (!team) throw new Error("You do not have access to that form.");
   return { form, user, role: team === "viewer" ? "viewer" : "editor" };
 }
