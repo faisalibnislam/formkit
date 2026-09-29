@@ -87,6 +87,11 @@ export default defineSchema({
     planEndsAt: v.optional(v.number()),
     planCancelAtPeriodEnd: v.optional(v.boolean()),
     planComp: v.optional(v.union(v.literal("pro"), v.literal("business"))),
+    /** A free plan staff gave: when it lapses (none is for good), why, who and when. */
+    compEndsAt: v.optional(v.number()),
+    compNote: v.optional(v.string()),
+    compBy: v.optional(v.id("users")),
+    compAt: v.optional(v.number()),
     /** Pro: no "Made with Formkit" on forms published under the person's own name. */
     hideBadge: v.optional(v.boolean()),
     /** When the current paid plan began - for tenure and cohort figures. */
@@ -224,6 +229,11 @@ export default defineSchema({
     planEndsAt: v.optional(v.number()),
     planCancelAtPeriodEnd: v.optional(v.boolean()),
     planComp: v.optional(v.union(v.literal("pro"), v.literal("business"))),
+    /** A free plan staff gave: when it lapses (none is for good), why, who and when. */
+    compEndsAt: v.optional(v.number()),
+    compNote: v.optional(v.string()),
+    compBy: v.optional(v.id("users")),
+    compAt: v.optional(v.number()),
     planSince: v.optional(v.number()),
     planSeats: v.optional(v.number()),
     /** Who pays: their Polar customer carries the subscription. */
@@ -895,6 +905,26 @@ export default defineSchema({
     lots: v.array(v.object({ amount: v.number(), left: v.number(), at: v.number(), expires: v.number() })),
     updatedAt: v.number(),
   }).index("by_space", ["space"]),
+
+  /**
+   * Free plans and AI credits staff gave a company, and when they ended: the
+   * history the admin console shows. `space` is the company key ("me:<userId>"
+   * for a personal company, or the company id).
+   */
+  planGrants: defineTable({
+    space: v.string(),
+    ownerId: v.id("users"),
+    what: v.union(v.literal("gave"), v.literal("changed"), v.literal("ended"), v.literal("expired"), v.literal("credits")),
+    plan: v.optional(v.union(v.literal("pro"), v.literal("business"))),
+    endsAt: v.optional(v.number()),
+    credits: v.optional(v.number()),
+    note: v.optional(v.string()),
+    byId: v.optional(v.id("users")),
+    byName: v.string(),
+    at: v.number(),
+  })
+    .index("by_space", ["space", "at"])
+    .index("by_at", ["at"]),
 
   /**
    * What the AI costs: every Gemini call, added into one row per day, account,

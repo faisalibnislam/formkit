@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { PLANS, planOf } from "./model/plans";
+import { PLANS, compOf, planOf } from "./model/plans";
 import { aiStatus, period as aiPeriodNow } from "./model/aiMeter";
 import { personalSpace } from "./model/spaces";
 import { modelConfigured } from "./model/gemini";
@@ -209,7 +209,7 @@ async function describeUser(ctx: Parameters<typeof aiStatus>[0], u: Doc<"users">
     },
     plan: {
       id: planOf(u),
-      comp: u.planComp ?? null,
+      comp: compOf(u),
       billed: u.plan && u.plan !== "free" ? u.plan : null,
       status: u.planStatus ?? null,
       interval: u.planInterval ?? null,
@@ -275,9 +275,9 @@ export const usersPage = query({
         plan === "all"
           ? true
           : plan === "comped"
-            ? !!u.planComp
+            ? !!compOf(u)
             : plan === "paying"
-              ? planOf(u) !== "free" && !u.planComp
+              ? planOf(u) !== "free" && !compOf(u)
               : planOf(u) === plan,
       )
       .sort((a, b) => b._creationTime - a._creationTime);

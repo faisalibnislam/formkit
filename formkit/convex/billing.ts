@@ -3,7 +3,8 @@ import { action, httpAction, internalAction, internalMutation, internalQuery, mu
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { platformValue, requireStaff, requireUser, setPlatformValue, writeAudit } from "./model/identity";
-import { CREDIT_PACKS, PLANS, planOf, type CreditPackKey, type Interval, type PlanId } from "./model/plans";
+import { giveComp, endComp } from "./model/grants";
+import { CREDIT_PACKS, PLANS, compOf, planOf, type CreditPackKey, type Interval, type PlanId } from "./model/plans";
 import { addCredits } from "./model/aiMeter";
 import { canManage, currentSpace, personalSpace, resolveSpace, roleIn, seatsOf, spaceKey, spacePlanId } from "./model/spaces";
 
@@ -83,7 +84,7 @@ export const me = internalQuery({
       company: company?.name ?? null,
       manage: canManage(await roleIn(ctx, space, user._id)),
       plan: await spacePlanId(ctx, space),
-      comped: space.brand === "me" ? !!user.planComp : !!company?.planComp,
+      comped: space.brand === "me" ? !!compOf(user) : !!compOf(company),
       subscription,
       seats: await seatsOf(ctx, space),
       customer: user.polarCustomerId ?? null,
@@ -173,7 +174,7 @@ export const seatJob = internalQuery({
     const space = await resolveSpace(ctx, key);
     if (!space) return null;
     const holder = space.brand === "me" ? await ctx.db.get(space.ownerId) : await ctx.db.get(space.brand);
-    if (!holder?.polarSubscriptionId || holder.planComp) return null;
+    if (!holder?.polarSubscriptionId || compOf(holder)) return null;
     // Only per-seat subscriptions follow members; an older fixed-price one does not.
     if (space.brand === "me" && !(holder as Doc<"users">).spaceBilling) return null;
     return { subscriptionId: holder.polarSubscriptionId, seats: await seatsOf(ctx, space), billed: holder.planSeats ?? null };
@@ -484,8 +485,8 @@ export const applySubscription = internalMutation({
 
     // The history the admin revenue figures read. Comped plans are not revenue.
     const paidBefore =
-      !!holder.plan && holder.plan !== "free" && !holder.planComp && ["active", "trialing", "past_due"].includes(holder.planStatus ?? "");
-    const paidAfter = !revoked && ["active", "trialing", "past_due"].includes(a.status) && !holder.planComp;
+      !!holder.plan && holder.plan !== "free" && !compOf(holder) && ["active", "trialing", "past_due"].includes(holder.planStatus ?? "");
+    const paidAfter = !revoked && ["active", "trialing", "past_due"].includes(a.status) && !compOf(holder);
     const prevMrr = monthlyValue(
       (holder.plan ?? "free") as PlanId,
       holder.planInterval,
@@ -582,10 +583,10 @@ export const adminStatus = query({
   handler: async (ctx) => {
     await requireStaff(ctx, "billing");
     const users = await ctx.db.query("users").collect();
-    const companies = (await ctx.db.query("companies").collect()).filter((c) => c.plan || c.planComp);
+    const companies = (await ctx.db.query("companies").collect()).filter((c) => c.plan || compOf(c));
     // Every paid plan: personal ones on accounts, and companies' own.
     const holders: (Doc<"users"> | Doc<"companies">)[] = [...users, ...companies];
-    const paying = holders.filter((u) => !u.planComp && planOf(u) !== "free");
+    const paying = holders.filter((u) => !compOf(u) && planOf(u) !== "free");
     const monthly = (u: Doc<"users"> | Doc<"companies">) => {
       const p = PLANS[planOf(u)];
       return (u.planInterval === "year" ? p.price.year / 12 : p.price.month) * Math.max(1, u.planSeats ?? 1);
@@ -600,7 +601,7 @@ export const adminStatus = query({
       counts: {
         pro: holders.filter((u) => planOf(u) === "pro").length,
         business: holders.filter((u) => planOf(u) === "business").length,
-        comped: holders.filter((u) => u.planComp).length,
+        comped: holders.filter((u) => compOf(u)).length,
         paying: paying.length,
       },
       mrr: Math.round(paying.reduce((n, u) => n + monthly(u), 0) * 100) / 100,
@@ -709,7 +710,11 @@ export const saveProducts = mutation({
   },
 });
 
-/** A plan given by hand - a friend, a partner, a support gesture. */
+/**
+ * A plan given by hand to someone's personal company - a friend, a partner, a
+ * support gesture. Admin → Companies does the same for any company, with an
+ * end date and a note; both go through model/grants.ts.
+ */
 export const compPlan = mutation({
   args: { userId: v.id("users"), plan: v.union(v.literal("pro"), v.literal("business"), v.null()) },
   returns: v.null(),
@@ -717,13 +722,9 @@ export const compPlan = mutation({
     const staff = await requireStaff(ctx, "billing");
     const user = await ctx.db.get(userId);
     if (!user) throw new Error("That account no longer exists.");
-    await ctx.db.patch(userId, { planComp: plan ?? undefined });
-    await writeAudit(
-      ctx,
-      staff,
-      plan ? `Gave ${PLANS[plan].name} free of charge` : "Ended a free plan",
-      user.email ?? user._id,
-    );
+    const space = personalSpace(userId);
+    if (plan) await giveComp(ctx, staff, space, { plan, endsAt: null });
+    else await endComp(ctx, staff, space);
     return null;
   },
 });

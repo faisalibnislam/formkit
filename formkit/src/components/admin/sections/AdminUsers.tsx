@@ -337,7 +337,10 @@ function UserPanel({
                 </span>
               </span>
             </div>
-            <Field label="Give a plan free of charge" help="Wins over anything they pay for. Ending it puts them back on what they pay for, or Free.">
+            <Field
+              label="Give their personal company a plan free"
+              help="Wins over anything they pay for, with no end date. For other companies, end dates and notes, use Companies."
+            >
               <Segmented
                 ariaLabel="Plan given free of charge"
                 size="sm"
@@ -355,6 +358,11 @@ function UserPanel({
                 ]}
               />
             </Field>
+            <div>
+              <Button variant="ghost" size="sm" onClick={() => router.push(`/admin?section=companies&owner=${current._id}`)}>
+                Their companies
+              </Button>
+            </div>
           </div>
         )}
 

@@ -1,7 +1,7 @@
 import { query } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { requireStaff } from "./model/identity";
-import { PLANS, planOf, type PlanId } from "./model/plans";
+import { PLANS, compOf, planOf, type PlanId } from "./model/plans";
 
 /**
  * Admin → Plans and revenue: who is on which plan, what it is worth, where
@@ -16,7 +16,7 @@ const DAY = 86_400_000;
 const PAYING = new Set(["active", "trialing", "past_due"]);
 
 function paying(u: Doc<"users">) {
-  return !!u.plan && u.plan !== "free" && !u.planComp && PAYING.has(u.planStatus ?? "") && planOf(u) !== "free";
+  return !!u.plan && u.plan !== "free" && !compOf(u) && PAYING.has(u.planStatus ?? "") && planOf(u) !== "free";
 }
 
 function mrrOf(u: Doc<"users">) {
@@ -68,7 +68,7 @@ export const overview = query({
     for (const u of users) {
       const p = planOf(u);
       byPlan[p].total++;
-      if (u.planComp) {
+      if (compOf(u)) {
         byPlan[p].comped++;
         continue;
       }

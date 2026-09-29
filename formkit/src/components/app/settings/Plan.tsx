@@ -67,7 +67,9 @@ function PlanBody({ viewer }: { viewer: NonNullable<FunctionReturnType<typeof ap
   const seats = plan.seats ?? 1;
   const perSeat = plan.id === "free" ? 0 : PLANS[plan.id].price[plan.interval ?? "month"];
   const status = plan.comped
-    ? "Given by Formkit, free of charge."
+    ? plan.compUntil
+      ? `A gift from Formkit, free of charge until ${date(plan.compUntil)}. Then ${company} goes back to Free, unless it has a plan of its own.`
+      : "A gift from Formkit, free of charge."
     : plan.id === "free"
       ? "Free for as long as you like, with no card on file. Members are unlimited."
       : plan.cancelAtPeriodEnd && plan.endsAt

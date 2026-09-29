@@ -143,13 +143,16 @@ export function planIncludes(plan: PlanId, feature: Feature) {
 /**
  * The plan an account is on right now.
  *
- * Staff can comp a plan by hand (`planComp`), which wins. Otherwise the paid
- * plan holds while the subscription is active, and after a cancellation until
- * the end of the period already paid for.
+ * Staff can comp a plan by hand (`planComp`), which wins until it lapses.
+ * Otherwise the paid plan holds while the subscription is active, and after a
+ * cancellation until the end of the period already paid for.
  */
-export function planOf(user: Pick<Doc<"users">, "plan" | "planStatus" | "planEndsAt" | "planComp"> | null): PlanId {
+export function planOf(
+  user: Pick<Doc<"users">, "plan" | "planStatus" | "planEndsAt" | "planComp" | "compEndsAt"> | null,
+): PlanId {
   if (!user) return "free";
-  if (user.planComp) return user.planComp;
+  const comp = compOf(user);
+  if (comp) return comp;
   const plan = user.plan ?? "free";
   if (plan === "free") return "free";
   const now = Date.now();
@@ -159,6 +162,25 @@ export function planOf(user: Pick<Doc<"users">, "plan" | "planStatus" | "planEnd
   // Cancelled or past due: kept to the end of what was paid for.
   if (user.planEndsAt && user.planEndsAt > now) return plan;
   return "free";
+}
+
+/**
+ * The free plan staff gave, while it lasts. A lapsed one is ignored at once,
+ * before the hourly sweep clears it (billing.expireComps).
+ */
+export function compOf(holder: Pick<Doc<"users">, "planComp" | "compEndsAt"> | null | undefined, now = Date.now()) {
+  if (!holder?.planComp) return null;
+  if (holder.compEndsAt && holder.compEndsAt <= now) return null;
+  return holder.planComp;
+}
+
+/**
+ * What an account pays for, leaving out a free plan staff gave. A company that
+ * inherits its owner's plan (grandfathered) inherits only this: a free plan is
+ * given to one company, and never spills into the owner's others.
+ */
+export function paidPlanOf(user: Parameters<typeof planOf>[0]): PlanId {
+  return user ? planOf({ ...user, planComp: undefined }) : "free";
 }
 
 /** A company: its owner, and "me" for their personal company or a company id. */
@@ -178,8 +200,8 @@ export async function planOfSpace(ctx: QueryCtx | MutationCtx, space: SpaceRef):
   if (space.brand === "me") return planOf(owner);
   const company = await ctx.db.get(space.brand);
   if (!company || company.ownerId !== space.ownerId) return "free";
-  if (company.plan || company.planComp) return planOf(company);
-  return owner.spaceBilling ? "free" : planOf(owner);
+  if (company.plan || compOf(company)) return planOf(company);
+  return owner.spaceBilling ? "free" : paidPlanOf(owner);
 }
 
 /** The best plan among the companies someone owns: for account-wide things (API keys, SSO, audit). */
@@ -241,7 +263,7 @@ export async function requireFeature(ctx: QueryCtx | MutationCtx, who: PlanSubje
 
 type BillingHolder = Pick<
   Doc<"users">,
-  "planInterval" | "planStatus" | "planEndsAt" | "planCancelAtPeriodEnd" | "planComp"
+  "planInterval" | "planStatus" | "planEndsAt" | "planCancelAtPeriodEnd" | "planComp" | "compEndsAt"
 > | null;
 
 /** Everything the app needs to draw a company's plan-aware screens, in one object. */
@@ -257,7 +279,9 @@ export function planSummary(id: PlanId, holder: BillingHolder, seats: number, bi
     status: holder?.planStatus ?? null,
     endsAt: holder?.planEndsAt ?? null,
     cancelAtPeriodEnd: holder?.planCancelAtPeriodEnd ?? false,
-    comped: !!holder?.planComp,
+    comped: !!compOf(holder),
+    /** When a free plan from Formkit ends; null is for good. */
+    compUntil: compOf(holder) ? (holder?.compEndsAt ?? null) : null,
     billed,
     seats,
     features: Object.fromEntries(

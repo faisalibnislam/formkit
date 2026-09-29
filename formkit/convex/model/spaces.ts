@@ -1,6 +1,6 @@
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import { planOf, planOfSpace, planSummary, type PlanId, type SpaceRef } from "./plans";
+import { compOf, planOf, planOfSpace, planSummary, type PlanId, type SpaceRef } from "./plans";
 
 /**
  * Companies: the workspaces everything lives in.
@@ -128,10 +128,10 @@ export async function spacePlan(ctx: QueryCtx | MutationCtx, space: SpaceRef) {
   if (space.brand === "me") return planSummary(id, owner, seats, !!owner?.polarSubscriptionId);
   const company = await ctx.db.get(space.brand);
   // A grandfathered company shows its owner's account-wide subscription.
-  const own = !!(company?.plan || company?.planComp);
+  const own = !!(company?.plan || compOf(company));
   return planSummary(
     id,
-    own ? (company ?? null) : owner,
+    own ? (company ?? null) : owner ? { ...owner, planComp: undefined } : null,
     seats,
     own ? !!company?.polarSubscriptionId : !!owner?.polarSubscriptionId,
   );

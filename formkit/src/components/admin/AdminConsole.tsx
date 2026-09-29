@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import {
+  Building2,
   ChartPie,
   Coins,
   LifeBuoy,
@@ -26,6 +27,7 @@ import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui";
 import { AdminOverview } from "./sections/AdminOverview";
 import { AdminUsers } from "./sections/AdminUsers";
+import { AdminCompanies } from "./sections/AdminCompanies";
 import { AdminAi } from "./sections/AdminAi";
 import { AdminModeration } from "./sections/AdminModeration";
 import { AdminSupport } from "./sections/AdminSupport";
@@ -49,6 +51,7 @@ import { AdminAudit } from "./sections/AdminAudit";
 type Key =
   | "overview"
   | "users"
+  | "companies"
   | "ai"
   | "moderation"
   | "support"
@@ -86,6 +89,15 @@ const SECTIONS: {
     permission: "users.view",
     title: "Users",
     lede: "Everyone on Formkit. Open someone to see their plan, change their AI limit, or change their standing.",
+  },
+  {
+    key: "companies",
+    label: "Companies",
+    group: "Customers",
+    icon: <Building2 size={17} strokeWidth={1.8} aria-hidden />,
+    permission: "users.view",
+    title: "Companies",
+    lede: "Every company on Formkit, personal ones included. Open one to see who is in it and what it pays, and to give it Pro or Business free of charge.",
   },
   {
     key: "ai",
@@ -311,6 +323,7 @@ export function AdminConsole() {
 
         {current.key === "overview" && <AdminOverview />}
         {current.key === "users" && <AdminUsers permissions={me.staff.permissions} />}
+        {current.key === "companies" && <AdminCompanies permissions={me.staff.permissions} />}
         {current.key === "ai" && <AdminAi />}
         {current.key === "moderation" && <AdminModeration />}
         {current.key === "support" && <AdminSupport />}

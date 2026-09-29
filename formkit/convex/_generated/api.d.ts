@@ -9,6 +9,7 @@
 
 import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
 import type * as admin from "../admin.js";
+import type * as adminCompanies from "../adminCompanies.js";
 import type * as ai from "../ai.js";
 import type * as aiLogic from "../aiLogic.js";
 import type * as aiReply from "../aiReply.js";
@@ -52,6 +53,7 @@ import type * as model_calc from "../model/calc.js";
 import type * as model_flags from "../model/flags.js";
 import type * as model_forms from "../model/forms.js";
 import type * as model_gemini from "../model/gemini.js";
+import type * as model_grants from "../model/grants.js";
 import type * as model_handles from "../model/handles.js";
 import type * as model_identity from "../model/identity.js";
 import type * as model_inbox from "../model/inbox.js";
@@ -94,6 +96,7 @@ import type * as users from "../users.js";
  */
 declare const fullApi: ApiFromModules<{
   "admin": typeof admin,
+  "adminCompanies": typeof adminCompanies,
   "ai": typeof ai,
   "aiLogic": typeof aiLogic,
   "aiReply": typeof aiReply,
@@ -137,6 +140,7 @@ declare const fullApi: ApiFromModules<{
   "model/flags": typeof model_flags,
   "model/forms": typeof model_forms,
   "model/gemini": typeof model_gemini,
+  "model/grants": typeof model_grants,
   "model/handles": typeof model_handles,
   "model/identity": typeof model_identity,
   "model/inbox": typeof model_inbox,

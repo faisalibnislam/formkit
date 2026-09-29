@@ -303,6 +303,32 @@ function aiStatusFixture() {
   return { plan, seats: SPACE_SEATS(), pool, used, left, credits: 86 };
 }
 
+/** Admin → Companies rows. */
+const ADMIN_COMPANIES = [
+  ["c1", "company", "Studio Nine", "studio-nine", "Maya Ortiz", "maya@studionine.co", "business", "given", 74, null, 4, 1, 6, 1117, 140],
+  ["c9", "company", "Fieldnote", "fieldnote", "Jonas Sand", "jonas@fieldnote.app", "business", "paid", null, "year", 12, 0, 18, 4210, 90],
+  ["me:u7", "me", "Aoife Byrne", "aoife", "Aoife Byrne", "aoife@byrne.ie", "pro", "paid", null, "month", 1, 0, 3, 212, 60],
+  ["c2", "company", "Northstar Labs", "northstar", "Maya Ortiz", "maya@studionine.co", "pro", "inherited", null, null, 2, 0, 2, 37, 30],
+  ["c4", "company", "Kiln Coffee", null, "Tom Okafor", "tom@kiln.coffee", "free", "free", null, null, 3, 2, 1, 9, 2],
+].map(([key, kind, name, handle, oname, email, plan, source, days, interval, seats, pending, forms, responses, age]) => ({
+  key,
+  kind,
+  name,
+  handle,
+  brandColor: null,
+  imageUrl: null,
+  owner: { _id: "u1", name: oname, email, suspended: false },
+  plan,
+  source,
+  comp: source === "given" ? { plan, endsAt: days ? now + (days as number) * DAY : null } : null,
+  billing: interval ? { plan, interval, status: "active", endsAt: null, cancelAtPeriodEnd: false, seats, live: true, monthly: 19 * (seats as number) } : null,
+  seats,
+  pending,
+  forms,
+  responses,
+  createdAt: now - (age as number) * DAY,
+}));
+
 const COMPANIES = [
   {
     _id: "c1",
@@ -1091,6 +1117,67 @@ export const QUERIES: Record<string, unknown> = {
   "admin:users": STAFF_USERS,
   "admin:usersPage": { total: 10020, page: 0, pageSize: 20, rows: STAFF_USERS },
   "admin:user": STAFF_USERS[0],
+  "adminCompanies:list": {
+    total: 5,
+    page: 0,
+    pageSize: 25,
+    rows: ADMIN_COMPANIES,
+    summary: {
+      companies: 1284,
+      personal: 10020,
+      paid: 212,
+      given: 14,
+      inherited: 9,
+      ending: 3,
+      byPlan: { free: 11069, pro: 168, business: 67 },
+      mrr: 2894.5,
+    },
+  },
+  "adminCompanies:detail": {
+    key: "c1",
+    kind: "company",
+    name: "Studio Nine",
+    handle: "studio-nine",
+    imageUrl: null,
+    brandColor: "#2e78bb",
+    website: "studionine.co",
+    createdAt: now - 140 * DAY,
+    owner: { _id: "u1", name: "Maya Ortiz", email: "maya@studionine.co", suspended: false, companies: 2 },
+    plan: "business",
+    source: "given",
+    comp: { plan: "business", endsAt: now + 74 * DAY, note: "Design partner for the quiz launch.", at: now - 291 * DAY, by: "Faisal" },
+    billing: null,
+    inheritedFrom: null,
+    seats: 4,
+    members: [
+      { _id: "t1", name: "Ravi Menon", email: "ravi@studionine.co", role: "admin", status: "active", userId: "u2" },
+      { _id: "t2", name: "Priya Shah", email: "priya@studionine.co", role: "editor", status: "active", userId: "u3" },
+      { _id: "t3", name: null, email: "leo@studionine.co", role: "viewer", status: "pending", userId: null },
+    ],
+    forms: {
+      count: 6,
+      live: 4,
+      responses: 1117,
+      recent: [
+        { _id: "f1", title: "Client Onboarding", status: "published", responses: 248 },
+        { _id: "f2", title: "Website Project Questionnaire", status: "published", responses: 86 },
+        { _id: "f5", title: "Event RSVP", status: "draft", responses: 0 },
+      ],
+    },
+    ai: {
+      plan: "business",
+      seats: 4,
+      pool: { builds: 800, edits: 200, responses: 200, reports: 40 },
+      used: { builds: 37, edits: 88, responses: 142, reports: 6 },
+      left: { builds: 763, edits: 112, responses: 58, reports: 34 },
+      credits: 250,
+    },
+    history: [
+      { _id: "g3", what: "credits", plan: null, endsAt: null, credits: 250, note: "Sorry for the outage on the 12th.", byName: "Faisal", at: now - 6 * DAY },
+      { _id: "g2", what: "changed", plan: "business", endsAt: now + 74 * DAY, credits: null, note: "Extended three months.", byName: "Faisal", at: now - 20 * DAY },
+      { _id: "g1", what: "gave", plan: "pro", endsAt: now - 20 * DAY, credits: null, note: "Design partner for the quiz launch.", byName: "Faisal", at: now - 291 * DAY },
+    ],
+  },
   "action:domains:inspect": {
     provider: { id: "namecheap", name: "Namecheap" },
     nameservers: ["dns1.registrar-servers.com", "dns2.registrar-servers.com"],

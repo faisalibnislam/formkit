@@ -391,6 +391,92 @@
   background: var(--neutral-900);
   color: #ffffff;
 }
+.fk-planbadge[data-given="true"] {
+  box-shadow: inset 0 0 0 1px rgba(201, 138, 30, 0.55);
+}
+
+/* Admin → Companies. */
+.fk-admin-co {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.fk-admin-aside {
+  position: sticky;
+  top: 24px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+}
+.fk-admin-cohead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.fk-admin-plantext {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+.fk-admin-note {
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--neutral-200);
+  font-size: 13.5px;
+  color: var(--color-text-secondary);
+}
+.fk-admin-meter {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 13.5px;
+}
+.fk-admin-meter > span {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.fk-admin-meter em {
+  font-style: normal;
+  color: var(--color-text-tertiary);
+}
+.fk-admin-history {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fk-admin-history li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 14px;
+  border-left: 2px solid var(--neutral-150);
+  font-size: 13.5px;
+}
+.fk-admin-historynote {
+  font-size: 12.5px;
+  color: var(--color-text-secondary);
+}
+.fk-admin-chipx {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.fk-admin-chipx:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
 
 /* Admin → Plans and revenue. */
 .fk-rev-bars {
