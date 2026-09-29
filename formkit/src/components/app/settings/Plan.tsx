@@ -7,7 +7,7 @@ import { useAction, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "../../../../convex/_generated/api";
 import { FEATURES, PLANS, type Feature, type Interval, type PlanId, type PlanSummary } from "../../../../convex/model/plans";
-import { Button, ProgressBar, Segmented } from "@/components/ui";
+import { Button, Modal, ProgressBar, Segmented } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 import { PlanCards, bestSavingPercent } from "@/components/plan/PlanCards";
 import { useCheckout } from "@/components/plan/UpgradeSheet";
@@ -44,12 +44,61 @@ function PlanBody({ viewer }: { viewer: NonNullable<FunctionReturnType<typeof ap
   const search = useSearchParams();
   const toast = useToast();
   const portal = useAction(api.billing.portal);
+  const refresh = useAction(api.billing.refresh);
   const { go, busy } = useCheckout();
-  const [interval, setInterval] = useState<Interval>("year");
-  const [opening, setOpening] = useState(false);
   const plan = viewer.plan as PlanSummary;
+  const [interval, setInterval] = useState<Interval>(plan.interval ?? "year");
+  const [opening, setOpening] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [asking, setAsking] = useState<{ plan: Exclude<PlanId, "free">; interval: Interval } | "cancel" | null>(null);
   const welcome = search.get("welcome") as PlanId | null;
   useUpgradeFromLink(plan.id, go);
+
+  // Paying through Polar right now, with a subscription Formkit can change.
+  const live =
+    plan.billed && plan.id !== "free" && !plan.comped && ["active", "trialing", "past_due"].includes(plan.status ?? "");
+
+  // Back from checkout: ask Polar straight away rather than wait for its
+  // webhook, and again a little later if the payment is still settling.
+  const want = useRef<PlanId | null>(null);
+  useEffect(() => {
+    want.current = welcome && welcome !== plan.id ? welcome : null;
+  }, [welcome, plan.id]);
+  useEffect(() => {
+    if (!welcome || welcome === "free") return;
+    const timers = [0, 4000, 12000].map((ms) =>
+      window.setTimeout(() => {
+        if (want.current) void refresh({}).catch(() => undefined);
+      }, ms),
+    );
+    return () => timers.forEach((t) => window.clearTimeout(t));
+  }, [welcome, refresh]);
+
+  const check = async () => {
+    setChecking(true);
+    try {
+      const r = await refresh({});
+      toast(
+        r.plan === "free"
+          ? r.found
+            ? "Polar has a plan for you, but on another company"
+            : "Polar has no paid plan for this company"
+          : `${company} is on ${PLANS[r.plan as PlanId].name}`,
+        {
+          detail:
+            r.plan === "free"
+              ? r.found
+                ? "Switch company with the menu beside the logo to find it."
+                : "If you were charged, write to us from the Contact page and we will sort it out."
+              : "Up to date with Polar.",
+        },
+      );
+    } catch (e) {
+      toast(errorText(e, "Polar could not be reached. Try again in a moment."));
+    } finally {
+      setChecking(false);
+    }
+  };
 
   const manage = async () => {
     setOpening(true);
@@ -99,7 +148,7 @@ function PlanBody({ viewer }: { viewer: NonNullable<FunctionReturnType<typeof ap
         title={`${company} is on ${plan.name}`}
         lede={status}
         aside={
-          plan.billed ? (
+          canChange ? (
             <Button variant="secondary" size="sm" onClick={manage} disabled={opening}>
               {opening ? "Opening…" : "Invoices and billing"}
             </Button>
@@ -115,6 +164,22 @@ function PlanBody({ viewer }: { viewer: NonNullable<FunctionReturnType<typeof ap
         <Row label="Guests on each form" hint="People invited to one form, besides the company’s members.">
           <strong>{plan.limits.collaborators === null ? "Unlimited" : plan.limits.collaborators}</strong>
         </Row>
+        {canChange && (
+          <div className="fk-plan-actions">
+            {live && !plan.cancelAtPeriodEnd && (
+              <Button variant="ghost" size="sm" onClick={() => setAsking("cancel")}>
+                Cancel plan
+              </Button>
+            )}
+            {live && plan.cancelAtPeriodEnd && <ResumeButton name={plan.name} />}
+            <span className="fk-plan-actions-hint">
+              Paid, but this shows the wrong plan?{" "}
+              <button type="button" className="fk-linkbtn" onClick={() => void check()} disabled={checking}>
+                {checking ? "Checking…" : "Check with Polar"}
+              </button>
+            </span>
+          </div>
+        )}
       </Panel>
 
       <AiThisMonth canBuy={canChange} />
@@ -143,38 +208,64 @@ function PlanBody({ viewer }: { viewer: NonNullable<FunctionReturnType<typeof ap
           interval={interval}
           current={plan.id}
           highlight={plan.id === "free" ? "pro" : plan.id === "pro" ? "business" : undefined}
-          cta={(id) =>
-            id === plan.id ? (
-              <Button variant="secondary" disabled style={{ width: "100%" }}>
-                Your plan
-              </Button>
-            ) : id === "free" ? (
-              plan.billed && !plan.cancelAtPeriodEnd ? (
-                <Button variant="ghost" style={{ width: "100%" }} onClick={manage} disabled={opening}>
-                  Cancel in billing
+          cta={(id) => {
+            const sameInterval = !live || (plan.interval ?? "month") === interval;
+            if (id === plan.id && (id === "free" || sameInterval || !live)) {
+              return (
+                <Button variant="secondary" disabled style={{ width: "100%" }}>
+                  Your plan
+                </Button>
+              );
+            }
+            if (id === "free") {
+              return live && !plan.cancelAtPeriodEnd ? (
+                <Button variant="ghost" style={{ width: "100%" }} disabled={!canChange} onClick={() => setAsking("cancel")}>
+                  Move to Free
                 </Button>
               ) : (
                 <Button variant="ghost" disabled style={{ width: "100%" }}>
-                  Always available
+                  {plan.cancelAtPeriodEnd && plan.endsAt ? `From ${date(plan.endsAt)}` : "Always available"}
                 </Button>
-              )
-            ) : (
+              );
+            }
+            const paid = id as Exclude<PlanId, "free">;
+            const label =
+              id === plan.id
+                ? `Switch to ${interval === "year" ? "yearly" : "monthly"}`
+                : PLAN_RANK[id] < PLAN_RANK[plan.id]
+                  ? `Switch to ${PLANS[id].name}`
+                  : `Upgrade to ${PLANS[id].name}`;
+            return (
               <Button
                 variant={id === "pro" && plan.id === "free" ? "primary" : "secondary"}
                 style={{ width: "100%" }}
                 disabled={busy !== null || plan.comped || !canChange}
-                onClick={() => go(id as Exclude<PlanId, "free">, interval)}
+                onClick={() => (live ? setAsking({ plan: paid, interval }) : go(paid, interval))}
               >
-                {busy === id
-                  ? "Opening checkout…"
-                  : PLAN_RANK[id] < PLAN_RANK[plan.id]
-                    ? `Switch to ${PLANS[id].name}`
-                    : `Upgrade to ${PLANS[id].name}`}
+                {busy === id ? "One moment…" : label}
               </Button>
-            )
-          }
+            );
+          }}
         />
       </Panel>
+
+      {asking === "cancel" && (
+        <CancelDialog company={company} plan={plan} onClose={() => setAsking(null)} />
+      )}
+      {asking && asking !== "cancel" && (
+        <SwitchDialog
+          company={company}
+          plan={plan}
+          seats={seats}
+          to={asking}
+          busy={busy !== null}
+          onClose={() => setAsking(null)}
+          onConfirm={async () => {
+            await go(asking.plan, asking.interval);
+            setAsking(null);
+          }}
+        />
+      )}
 
       <Panel title="Everything, plan by plan">
         <table className="fk-plan-table">
@@ -203,6 +294,133 @@ function PlanBody({ viewer }: { viewer: NonNullable<FunctionReturnType<typeof ap
 }
 
 const PLAN_RANK: Record<PlanId, number> = { free: 0, pro: 1, business: 2 };
+
+const perSeat = (p: Exclude<PlanId, "free">, i: Interval) => PLANS[p].price[i];
+const money = (n: number) => `$${n.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
+
+/** Changing a paid plan in place: what it will cost, before it happens. */
+function SwitchDialog({
+  company,
+  plan,
+  seats,
+  to,
+  busy,
+  onClose,
+  onConfirm,
+}: {
+  company: string;
+  plan: PlanSummary;
+  seats: number;
+  to: { plan: Exclude<PlanId, "free">; interval: Interval };
+  busy: boolean;
+  onClose: () => void;
+  onConfirm: () => Promise<void>;
+}) {
+  const each = perSeat(to.plan, to.interval);
+  const total = each * seats;
+  const up = PLAN_RANK[to.plan] > PLAN_RANK[plan.id];
+  const every = to.interval === "year" ? "a year" : "a month";
+  return (
+    <Modal
+      title={
+        to.plan === plan.id
+          ? `Bill ${company} ${to.interval === "year" ? "yearly" : "monthly"}?`
+          : `${up ? "Upgrade" : "Switch"} ${company} to ${PLANS[to.plan].name}?`
+      }
+      description={`${seats} ${seats === 1 ? "seat" : "seats"} at ${money(each)} ${every} each: ${money(total)} ${every}. Polar credits what is left of this period and charges the difference.`}
+      onClose={onClose}
+      width={480}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Not now
+          </Button>
+          <Button disabled={busy} onClick={() => void onConfirm()}>
+            {busy ? "Switching…" : to.plan === plan.id ? "Switch billing" : `${up ? "Upgrade" : "Switch"} to ${PLANS[to.plan].name}`}
+          </Button>
+        </>
+      }
+    >
+      <p style={{ margin: 0, fontSize: 14, color: "var(--color-text-secondary)", lineHeight: 1.55 }}>
+        {up
+          ? `Everything in ${PLANS[to.plan].name} is on as soon as you confirm.`
+          : to.plan !== plan.id
+            ? `Features outside ${PLANS[to.plan].name} stop straight away. Nothing is deleted, and they come back if you switch again.`
+            : "Nothing about the plan changes, only how often it is billed."}{" "}
+        The same card is charged; receipts are under Invoices and billing.
+      </p>
+    </Modal>
+  );
+}
+
+/** Cancelling: the plan runs to the end of the period, then the company is on Free. */
+function CancelDialog({ company, plan, onClose }: { company: string; plan: PlanSummary; onClose: () => void }) {
+  const cancel = useAction(api.billing.cancel);
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  return (
+    <Modal
+      title={`Cancel ${company}’s ${plan.name} plan?`}
+      description={`${company} keeps ${plan.name} until the end of the period already paid for, and is not charged again. Then it moves to Free.`}
+      onClose={onClose}
+      width={480}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Keep {plan.name}
+          </Button>
+          <Button
+            variant="destructive"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                await cancel({});
+                toast(`${plan.name} is cancelled`, { detail: "It stays on until the end of the period. You can take it back until then." });
+                onClose();
+              } catch (e) {
+                toast(errorText(e, "That could not be cancelled. Try again in a moment."));
+                setBusy(false);
+              }
+            }}
+          >
+            {busy ? "Cancelling…" : "Cancel plan"}
+          </Button>
+        </>
+      }
+    >
+      <p style={{ margin: 0, fontSize: 14, color: "var(--color-text-secondary)", lineHeight: 1.55 }}>
+        Nothing is deleted. On Free, features outside it stop: a custom domain goes back to your formkit.app link, and
+        the monthly AI allowance drops to Free’s. Everything you built or collected stays yours and exportable.
+      </p>
+    </Modal>
+  );
+}
+
+function ResumeButton({ name }: { name: string }) {
+  const resume = useAction(api.billing.resume);
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  return (
+    <Button
+      size="sm"
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        try {
+          await resume({});
+          toast(`${name} is back on`, { detail: "It renews as before." });
+        } catch (e) {
+          toast(errorText(e, "That could not be changed. Try again in a moment."));
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      {busy ? "One moment…" : `Keep ${name}`}
+    </Button>
+  );
+}
 
 const KINDS = [
   { key: "builds", label: "New forms built by AI", hint: "Ask Formkit making a whole form." },

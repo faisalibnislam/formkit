@@ -18,8 +18,10 @@ import { canManage, currentSpace, personalSpace, resolveSpace, roleIn, seatsOf, 
  * keep being recognised.
  * Checkout is a Polar-hosted page opened with the account's id as the
  * external customer id, so every webhook can be tied back to the account
- * without matching on email. Polar's webhooks are the only thing that changes
- * an account's plan; the app never assumes a payment went through.
+ * without matching on email. Polar's webhooks change plans as they happen;
+ * `syncCustomer` asks Polar directly as well (after checkout, before a new
+ * one, and on request), so a webhook that never arrived cannot leave a
+ * paying company on Free. The app never assumes a payment went through.
  *
  * Environment (Convex): POLAR_ACCESS_TOKEN, POLAR_WEBHOOK_SECRET, and
  * POLAR_SERVER=sandbox while testing (production otherwise).
@@ -42,21 +44,32 @@ function apiBase() {
   return process.env.POLAR_SERVER === "sandbox" ? "https://sandbox-api.polar.sh" : "https://api.polar.sh";
 }
 
-async function polar<T>(path: string, body: unknown, method: "POST" | "PATCH" = "POST"): Promise<T> {
+async function polar<T>(path: string, body?: unknown, method: "GET" | "POST" | "PATCH" = "POST"): Promise<T> {
   const token = process.env.POLAR_ACCESS_TOKEN;
   if (!token) throw new ConvexError("Billing is not set up yet. Try again soon.");
   const res = await fetch(`${apiBase()}${path}`, {
     method,
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify(body),
+    ...(method === "GET" ? {} : { body: JSON.stringify(body ?? {}) }),
   });
   const text = await res.text();
   if (!res.ok) {
-    console.error(`Polar ${path} ${res.status}: ${text.slice(0, 500)}`);
-    throw new ConvexError(`Polar refused the request (${res.status}).`);
+    console.error(`Polar ${method} ${path} ${res.status}: ${text.slice(0, 500)}`);
+    if (res.status === 404) throw new ConvexError({ code: "not_found", message: "Polar has no record of that." });
+    let detail = "";
+    try {
+      const j = JSON.parse(text) as { detail?: unknown };
+      detail = typeof j.detail === "string" ? j.detail : Array.isArray(j.detail) ? String((j.detail[0] as { msg?: string })?.msg ?? "") : "";
+    } catch {
+      /* not JSON */
+    }
+    throw new ConvexError(detail ? `Polar: ${detail}` : `Polar refused the request (${res.status}).`);
   }
   return JSON.parse(text) as T;
 }
+
+const notFound = (e: unknown) =>
+  e instanceof ConvexError && typeof e.data === "object" && (e.data as { code?: string })?.code === "not_found";
 
 /* ------------------------------------------------------------------ */
 /* Checkout and the customer portal                                    */
@@ -69,13 +82,17 @@ export const me = internalQuery({
     const products = (await platformValue<Products>(ctx, "polarProducts")) ?? {};
     const space = await currentSpace(ctx, user);
     const company = space.brand === "me" ? null : await ctx.db.get(space.brand);
-    // The company's own subscription; a personal one counts once it is per seat.
-    const subscription =
-      space.brand === "me"
-        ? user.spaceBilling || space.ownerId !== user._id
-          ? ((await ctx.db.get(space.ownerId))?.polarSubscriptionId ?? null)
-          : null
-        : (company?.polarSubscriptionId ?? null);
+    // The subscription this company's plan comes from, and who pays for it.
+    const holder = space.brand === "me" ? await ctx.db.get(space.ownerId) : company;
+    const subscription = holder?.polarSubscriptionId ?? null;
+    const live =
+      !!subscription &&
+      !!holder?.plan &&
+      holder.plan !== "free" &&
+      ["active", "trialing", "past_due"].includes(holder.planStatus ?? "") &&
+      planOf(holder) !== "free";
+    const payerId = space.brand === "me" ? space.ownerId : (company?.billedTo ?? space.ownerId);
+    const payer = payerId === user._id ? user : await ctx.db.get(payerId);
     return {
       _id: user._id,
       email: user.email ?? null,
@@ -86,6 +103,10 @@ export const me = internalQuery({
       plan: await spacePlanId(ctx, space),
       comped: space.brand === "me" ? !!compOf(user) : !!compOf(company),
       subscription,
+      live,
+      current: live && holder?.plan && holder.plan !== "free" ? { plan: holder.plan, interval: holder.planInterval ?? "month" } : null,
+      cancelling: live && !!holder?.planCancelAtPeriodEnd,
+      payer: { _id: payerId, name: payer?.name ?? payer?.email ?? null, me: payerId === user._id },
       seats: await seatsOf(ctx, space),
       customer: user.polarCustomerId ?? null,
       products,
@@ -103,27 +124,61 @@ type Me = {
   plan: PlanId;
   comped: boolean;
   subscription: string | null;
+  live: boolean;
+  current: { plan: Exclude<PlanId, "free">; interval: Interval } | null;
+  cancelling: boolean;
+  payer: { _id: Id<"users">; name: string | null; me: boolean };
   seats: number;
   customer: string | null;
   products: Products;
 };
 
 /**
- * Opens Polar's checkout for the company being worked in, for as many seats
- * as it has members. A company already paying changes plan in the portal.
+ * Moves the company being worked in to a plan. A company already paying
+ * changes plan (or monthly and yearly) on its subscription, in place: Polar
+ * works out the difference. Otherwise Polar's checkout opens, for as many
+ * seats as it has members. Polar is asked first, so a payment whose webhook
+ * never arrived is found rather than paid twice.
  */
 export const checkout = action({
   args: {
     plan: v.union(v.literal("pro"), v.literal("business")),
     interval: v.union(v.literal("month"), v.literal("year")),
   },
-  returns: v.object({ url: v.string() }),
-  handler: async (ctx, { plan, interval }): Promise<{ url: string }> => {
-    const me: Me = await ctx.runQuery(internal.billing.me, {});
+  returns: v.object({ url: v.optional(v.string()), changed: v.optional(v.string()) }),
+  handler: async (ctx, { plan, interval }): Promise<{ url?: string; changed?: string }> => {
+    let me: Me = await ctx.runQuery(internal.billing.me, {});
     if (!me.manage) throw new ConvexError("Only the company’s owner and admins can change its plan.");
+    if (me.comped) throw new ConvexError("This company has a plan from Formkit. Ask support to change it.");
     const product = me.products[`${plan}_${interval}_seat`];
     if (!product) throw new ConvexError("That plan is not on sale yet. Try again soon.");
-    if (me.subscription && me.plan !== "free" && !me.comped && me.customer) return await portalUrl(me._id);
+
+    if (!me.live) {
+      await ctx.runAction(internal.billing.syncCustomer, { userId: me.payer._id, why: "before checkout" }).catch(() => null);
+      me = await ctx.runQuery(internal.billing.me, {});
+      // A subscription Formkit had missed: it is on the plan it paid for now.
+      if (me.live && me.current) return { changed: `found:${me.current.plan}` };
+    }
+
+    if (me.live && me.subscription) {
+      if (!me.payer.me) {
+        throw new ConvexError(`${me.payer.name ?? "Someone else"} pays for this company. Ask them to change its plan.`);
+      }
+      if (me.current?.plan === plan && me.current.interval === interval && !me.cancelling) return { changed: plan };
+      if (me.cancelling) {
+        await applyPolar(ctx, "resumed", await polar<PolarSubscription>(`/v1/subscriptions/${me.subscription}`, { cancel_at_period_end: false }, "PATCH"));
+      }
+      if (me.current?.plan !== plan || me.current.interval !== interval) {
+        const updated = await polar<PolarSubscription>(
+          `/v1/subscriptions/${me.subscription}`,
+          { product_id: product, proration_behavior: "prorate" },
+          "PATCH",
+        );
+        await applyPolar(ctx, "changed plan", updated, me.space);
+      }
+      return { changed: plan };
+    }
+
     const res = await polar<{ url: string }>("/v1/checkouts/", {
       products: [product],
       seats: Math.max(1, me.seats),
@@ -136,6 +191,142 @@ export const checkout = action({
     return { url: res.url };
   },
 });
+
+/** Cancels at the end of the period paid for; nothing is charged again. */
+export const cancel = action({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const me: Me = await ctx.runQuery(internal.billing.me, {});
+    if (!me.manage) throw new ConvexError("Only the company’s owner and admins can change its plan.");
+    if (!me.live || !me.subscription) throw new ConvexError("This company has no paid plan to cancel.");
+    if (!me.payer.me) throw new ConvexError(`${me.payer.name ?? "Someone else"} pays for this company. Ask them to cancel it.`);
+    await applyPolar(ctx, "cancelled", await polar<PolarSubscription>(`/v1/subscriptions/${me.subscription}`, { cancel_at_period_end: true }, "PATCH"), me.space);
+    return null;
+  },
+});
+
+/** Takes back a cancellation before the period ends. */
+export const resume = action({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const me: Me = await ctx.runQuery(internal.billing.me, {});
+    if (!me.manage) throw new ConvexError("Only the company’s owner and admins can change its plan.");
+    if (!me.live || !me.subscription || !me.cancelling) throw new ConvexError("There is no cancellation to take back.");
+    if (!me.payer.me) throw new ConvexError(`${me.payer.name ?? "Someone else"} pays for this company.`);
+    await applyPolar(ctx, "resumed", await polar<PolarSubscription>(`/v1/subscriptions/${me.subscription}`, { cancel_at_period_end: false }, "PATCH"), me.space);
+    return null;
+  },
+});
+
+/**
+ * Asks Polar what this person pays for and brings every company up to date:
+ * after checkout, and from "Check with Polar" when a plan looks wrong.
+ */
+export const refresh = action({
+  args: {},
+  returns: v.object({ plan: v.string(), found: v.number() }),
+  handler: async (ctx): Promise<{ plan: string; found: number }> => {
+    const me: Me = await ctx.runQuery(internal.billing.me, {});
+    const ids = [...new Set([me._id, me.payer._id])];
+    let found = 0;
+    for (const userId of ids) {
+      const r = await ctx.runAction(internal.billing.syncCustomer, { userId, why: "checked from the app" });
+      found += r.subscriptions;
+    }
+    const after: Me = await ctx.runQuery(internal.billing.me, {});
+    return { plan: after.plan, found };
+  },
+});
+
+/** Admin: the same check, for any company's payer. */
+export const adminSync = action({
+  args: { key: v.string() },
+  returns: v.object({ found: v.number() }),
+  handler: async (ctx, { key }): Promise<{ found: number }> => {
+    const payer: Id<"users"> | null = await ctx.runQuery(internal.billing.payerOf, { key });
+    if (!payer) throw new ConvexError("That company no longer exists.");
+    const r = await ctx.runAction(internal.billing.syncCustomer, { userId: payer, why: "checked from the admin console" });
+    return { found: r.subscriptions };
+  },
+});
+
+export const payerOf = internalQuery({
+  args: { key: v.string() },
+  handler: async (ctx, { key }) => {
+    await requireStaff(ctx, "billing");
+    const space = await resolveSpace(ctx, key);
+    if (!space) return null;
+    if (space.brand === "me") return space.ownerId;
+    return (await ctx.db.get(space.brand))?.billedTo ?? space.ownerId;
+  },
+});
+
+/** Every subscription Polar has for this person, applied oldest first. */
+export const syncCustomer = internalAction({
+  args: { userId: v.id("users"), why: v.string() },
+  returns: v.object({ customer: v.boolean(), subscriptions: v.number() }),
+  handler: async (ctx, { userId, why }): Promise<{ customer: boolean; subscriptions: number }> => {
+    let customer: { id: string } | null = null;
+    try {
+      customer = await polar<{ id: string }>(`/v1/customers/external/${encodeURIComponent(userId)}`, undefined, "GET");
+    } catch (e) {
+      if (!notFound(e)) throw e;
+    }
+    if (!customer) return { customer: false, subscriptions: 0 };
+    await ctx.runMutation(internal.billing.noteCustomer, { userId, customerId: customer.id });
+    const list = await polar<{ items: PolarSubscription[] }>(
+      `/v1/subscriptions/?customer_id=${encodeURIComponent(customer.id)}&limit=100`,
+      undefined,
+      "GET",
+    );
+    const live = new Set(["active", "trialing", "past_due"]);
+    const subs = list.items
+      .filter((x) => x.status !== "incomplete" && x.status !== "incomplete_expired")
+      // Ended ones first, so the one still running has the last word.
+      .sort((a, b) => Number(live.has(a.status)) - Number(live.has(b.status)));
+    for (const sub of subs) await applyPolar(ctx, why, sub);
+    return { customer: true, subscriptions: subs.filter((x) => live.has(x.status)).length };
+  },
+});
+
+export const noteCustomer = internalMutation({
+  args: { userId: v.id("users"), customerId: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { userId, customerId }) => {
+    const u = await ctx.db.get(userId);
+    if (u && u.polarCustomerId !== customerId) await ctx.db.patch(userId, { polarCustomerId: customerId });
+    return null;
+  },
+});
+
+/** A subscription as Polar returns it, applied the way its webhook would be. */
+async function applyPolar(
+  ctx: { runMutation: import("./_generated/server").ActionCtx["runMutation"] },
+  why: string,
+  s: PolarSubscription,
+  space?: string,
+) {
+  await ctx.runMutation(internal.billing.applySubscription, { ...subArgs("subscription.updated", s), via: why, ...(space && !subArgs("", s).space ? { space } : {}) });
+}
+
+function subArgs(type: string, s: PolarSubscription) {
+  return {
+    type,
+    subscriptionId: s.id,
+    status: s.status,
+    productId: s.product_id ?? s.product?.id ?? "",
+    customerId: s.customer_id ?? s.customer?.id ?? "",
+    externalId: s.customer?.external_id ?? (s.metadata?.userId as string | undefined) ?? undefined,
+    email: s.customer?.email ?? undefined,
+    periodEnd: s.current_period_end ? Date.parse(s.current_period_end) : undefined,
+    cancelAtPeriodEnd: s.cancel_at_period_end ?? false,
+    endedAt: s.ended_at ? Date.parse(s.ended_at) : undefined,
+    seats: s.seats ?? undefined,
+    space: typeof s.metadata?.space === "string" ? s.metadata.space : undefined,
+  };
+}
 
 /**
  * A pack of AI credits for the company being worked in. The credits land
@@ -206,8 +397,15 @@ export const portal = action({
   returns: v.object({ url: v.string() }),
   handler: async (ctx): Promise<{ url: string }> => {
     const me: Me = await ctx.runQuery(internal.billing.me, {});
-    if (!me.customer) throw new ConvexError("There is no billing on this account yet.");
-    return await portalUrl(me._id);
+    if (!me.payer.me && me.live) {
+      throw new ConvexError(`${me.payer.name ?? "Someone else"} pays for this company, so its invoices are in their billing.`);
+    }
+    try {
+      return await portalUrl(me._id);
+    } catch (e) {
+      if (notFound(e)) throw new ConvexError("There are no payments on your account yet.");
+      throw e;
+    }
   },
 });
 
@@ -268,7 +466,16 @@ type PolarSubscription = {
 
 export const polarWebhook = httpAction(async (ctx, req) => {
   const body = await req.text();
-  if (!(await verified(req, body))) return new Response("Invalid signature", { status: 403 });
+  if (!(await verified(req, body))) {
+    await ctx.runMutation(internal.billing.logEvent, {
+      type: "rejected",
+      ok: false,
+      note: process.env.POLAR_WEBHOOK_SECRET
+        ? "The signature did not match POLAR_WEBHOOK_SECRET, or the delivery was over five minutes old."
+        : "POLAR_WEBHOOK_SECRET is not set in Convex.",
+    });
+    return new Response("Invalid signature", { status: 403 });
+  }
   let event: { type: string; data: PolarSubscription };
   try {
     event = JSON.parse(body);
@@ -295,21 +502,7 @@ export const polarWebhook = httpAction(async (ctx, req) => {
     }
   }
   if (event.type.startsWith("subscription.")) {
-    const s = event.data;
-    await ctx.runMutation(internal.billing.applySubscription, {
-      type: event.type,
-      subscriptionId: s.id,
-      status: s.status,
-      productId: s.product_id ?? s.product?.id ?? "",
-      customerId: s.customer_id ?? s.customer?.id ?? "",
-      externalId: s.customer?.external_id ?? (s.metadata?.userId as string | undefined) ?? undefined,
-      email: s.customer?.email ?? undefined,
-      periodEnd: s.current_period_end ? Date.parse(s.current_period_end) : undefined,
-      cancelAtPeriodEnd: s.cancel_at_period_end ?? false,
-      endedAt: s.ended_at ? Date.parse(s.ended_at) : undefined,
-      seats: s.seats ?? undefined,
-      space: typeof s.metadata?.space === "string" ? s.metadata.space : undefined,
-    });
+    await ctx.runMutation(internal.billing.applySubscription, { ...subArgs(event.type, event.data), via: "webhook" });
   }
   return new Response(null, { status: 202 });
 });
@@ -411,20 +604,27 @@ export const applySubscription = internalMutation({
     endedAt: v.optional(v.number()),
     seats: v.optional(v.number()),
     space: v.optional(v.string()),
+    /** Where it came from: "webhook", or why Formkit asked Polar. */
+    via: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, a) => {
+    const via = a.via ?? "webhook";
+    const log = (ok: boolean, note: string, extra: { space?: string; plan?: string } = {}) =>
+      logPolar(ctx, { type: via === "webhook" ? a.type : `sync: ${via}`, ok, note, subscriptionId: a.subscriptionId, ...extra });
     // The payer: the account whose Polar customer holds the subscription.
     const user = await findCustomer(ctx, a.externalId, a.customerId, a.email);
-    await setPlatformValue(ctx, "polarLastEvent", { type: a.type, at: Date.now(), matched: !!user });
+    if (via === "webhook") await setPlatformValue(ctx, "polarLastEvent", { type: a.type, at: Date.now(), matched: !!user });
     if (!user) {
       console.warn(`Polar ${a.type}: no account for customer ${a.customerId}`);
+      await log(false, `No Formkit account for Polar customer ${a.customerId || "(none)"}${a.email ? ` (${a.email})` : ""}.`);
       return null;
     }
     const products = (await platformValue<Products>(ctx, "polarProducts")) ?? {};
     const known = planOfProduct(products, a.productId);
     const plan = known?.plan ?? "pro";
     const interval = known?.interval ?? "month";
+    if (!known) await log(false, `Product ${a.productId} is not one of Formkit's saved products; treated as Pro monthly.`);
 
     // The company it pays for: named at checkout, else the one already on this
     // subscription, else the payer's own (subscriptions from before companies).
@@ -439,10 +639,14 @@ export const applySubscription = internalMutation({
     if (!space) space = personalSpace(user._id);
     const holder: Doc<"users"> | Doc<"companies"> | null =
       space.brand === "me" ? await ctx.db.get(space.ownerId) : await ctx.db.get(space.brand);
-    if (!holder) return null;
+    if (!holder) {
+      await log(false, `The company ${a.space ?? ""} it was bought for no longer exists.`);
+      return null;
+    }
 
     // An event for a subscription this company has since replaced changes nothing.
     if (holder.polarSubscriptionId && holder.polarSubscriptionId !== a.subscriptionId && a.status !== "active") {
+      await log(true, `Skipped: an older subscription (${a.status}); the company has moved on to another.`, { space: spaceKey(space) });
       return null;
     }
     const revoked = a.type === "subscription.revoked" || a.status === "revoked";
@@ -478,6 +682,10 @@ export const applySubscription = internalMutation({
     const now = planOf(after);
     const label = space.brand === "me" ? (user.email ?? user._id) : `${(holder as Doc<"companies">).name} (${user.email ?? user._id})`;
     if (now !== was) await writeAudit(ctx, null, `Plan ${was} → ${now}`, label, `Polar ${a.type}`);
+    await log(true, `${label}: ${PLANS[now].name} (${a.status}${a.cancelAtPeriodEnd ? ", cancelling" : ""}, ${seats} ${seats === 1 ? "seat" : "seats"}).`, {
+      space: spaceKey(space),
+      plan: now,
+    });
     // Members may have joined while checkout was open: the seats catch up.
     if (!revoked && a.status === "active") {
       await ctx.scheduler.runAfter(0, internal.billing.syncSeats, { key: spaceKey(space) });
@@ -544,6 +752,33 @@ export const applySubscription = internalMutation({
       else await ctx.db.patch(space.brand, { planSince: Date.now() });
     }
     return null;
+  },
+});
+
+/** Keeps the last 200 things Polar told Formkit, for Admin → Billing. */
+async function logPolar(
+  ctx: import("./_generated/server").MutationCtx,
+  e: { type: string; ok: boolean; note: string; subscriptionId?: string; space?: string; plan?: string },
+) {
+  await ctx.db.insert("polarEvents", { at: Date.now(), ...e });
+  const old = await ctx.db.query("polarEvents").withIndex("by_at").order("desc").take(260);
+  for (const row of old.slice(200)) await ctx.db.delete(row._id);
+}
+
+export const logEvent = internalMutation({
+  args: { type: v.string(), ok: v.boolean(), note: v.string() },
+  returns: v.null(),
+  handler: async (ctx, e) => {
+    await logPolar(ctx, e);
+    return null;
+  },
+});
+
+export const recentEvents = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireStaff(ctx, "billing");
+    return await ctx.db.query("polarEvents").withIndex("by_at").order("desc").take(30);
   },
 });
 

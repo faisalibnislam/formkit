@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { ChevronLeft, ChevronRight, Gift, Search, Sparkles, UserRound, X } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
@@ -425,6 +425,7 @@ function CompanyPanel({
           )}
           {billing && (
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <SyncButton companyKey={c.key} />
               <Button size="sm" iconLeft={<Gift size={15} strokeWidth={1.8} aria-hidden />} onClick={() => setGiving(true)}>
                 {c.source === "given" ? "Change or extend" : "Give a plan free"}
               </Button>
@@ -569,6 +570,35 @@ function CompanyPanel({
       {ending && <EndModal company={c} onClose={() => setEnding(false)} />}
       {crediting && <CreditsModal company={c} onClose={() => setCrediting(false)} />}
     </>
+  );
+}
+
+/** Asks Polar what the company's payer has, and applies it: for "paid, but shows Free". */
+function SyncButton({ companyKey }: { companyKey: string }) {
+  const sync = useAction(api.billing.adminSync);
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        try {
+          const r = await sync({ key: companyKey });
+          toast(r.found ? `Polar has ${r.found} running ${r.found === 1 ? "subscription" : "subscriptions"}` : "Polar has nothing running", {
+            detail: "Applied. See Billing for what came of it.",
+          });
+        } catch (e) {
+          toast(errorText(e, "Polar could not be reached."));
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      {busy ? "Checking…" : "Check with Polar"}
+    </Button>
   );
 }
 

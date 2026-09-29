@@ -24,8 +24,12 @@ export function ProChip({ plan = "pro", onClick }: { plan?: Exclude<PlanId, "fre
   );
 }
 
-/** Sends the person to Polar's checkout for a plan. */
-export function useCheckout() {
+/**
+ * Moves the company being worked in to a plan. A company already paying is
+ * switched in place (Polar works out the difference); otherwise Polar's
+ * checkout opens. `onDone` runs after an in-place change.
+ */
+export function useCheckout(onDone?: () => void) {
   const checkout = useAction(api.billing.checkout);
   const toast = useToast();
   const [busy, setBusy] = useState<PlanId | null>(null);
@@ -33,14 +37,24 @@ export function useCheckout() {
     async (plan: Exclude<PlanId, "free">, interval: Interval) => {
       setBusy(plan);
       try {
-        const { url } = await checkout({ plan, interval });
-        window.location.assign(url);
+        const res = await checkout({ plan, interval });
+        if (res.url) return window.location.assign(res.url);
+        setBusy(null);
+        if (res.changed?.startsWith("found:")) {
+          const found = res.changed.slice(6) as Exclude<PlanId, "free">;
+          toast(`Found your ${PLANS[found].name} plan`, { detail: "Polar already had your payment. It is on now." });
+        } else {
+          toast(`Switched to ${PLANS[plan].name}, ${interval === "year" ? "yearly" : "monthly"}`, {
+            detail: "Polar works out the difference on the next invoice.",
+          });
+        }
+        onDone?.();
       } catch (e) {
         setBusy(null);
         toast(errorText(e, "Checkout could not open. Try again in a moment."));
       }
     },
-    [checkout, toast],
+    [checkout, toast, onDone],
   );
   return { go, busy };
 }
@@ -54,7 +68,7 @@ export function UpgradeSheet() {
   const [ask, setAsk] = useState<UpgradeAsk | null>(null);
   const [interval, setInterval] = useState<Interval>("year");
   const plan = usePlan();
-  const { go, busy } = useCheckout();
+  const { go, busy } = useCheckout(() => setAsk(null));
 
   useEffect(() => onUpgradeRequest((a) => setAsk(a)), []);
   if (!ask) return null;
@@ -106,7 +120,7 @@ export function UpgradeSheet() {
               disabled={busy !== null}
               onClick={() => go(id as Exclude<PlanId, "free">, interval)}
             >
-              {busy === id ? "Opening checkout…" : `Upgrade to ${PLANS[id].name}`}
+              {busy === id ? "One moment…" : `Upgrade to ${PLANS[id].name}`}
             </Button>
           )
         }

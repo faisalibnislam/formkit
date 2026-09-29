@@ -168,7 +168,42 @@ export function AdminBilling() {
           </Button>
         </div>
       </section>
+
+      <PolarLog />
     </>
+  );
+}
+
+/**
+ * What Polar told Formkit lately, and what came of each: the first place to
+ * look when someone paid and their company still says Free.
+ */
+function PolarLog() {
+  const rows = useQuery(api.billing.recentEvents, {});
+  return (
+    <section className="fk-panel">
+      <h3>What Polar sent</h3>
+      <p className="fk-panel-lede">
+        Webhooks and checks with Polar, newest first. None at all after a payment means Polar is not reaching Formkit:
+        check the webhook address and secret above, and that it sends subscription and order events.
+      </p>
+      {rows && rows.length === 0 ? (
+        <p className="fk-admin-quiet" style={{ margin: 0 }}>Nothing yet.</p>
+      ) : (
+        (rows ?? []).map((r) => (
+          <div key={r._id} className="fk-admin-row" style={{ fontSize: 13.5, alignItems: "flex-start" }}>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              {r.note}
+              <span className="fk-admin-sub">
+                {r.type} · {new Date(r.at).toLocaleString("en-US")}
+                {r.subscriptionId ? ` · ${r.subscriptionId}` : ""}
+              </span>
+            </span>
+            <Badge tone={r.ok ? "success" : "error"}>{r.ok ? "Applied" : "Not applied"}</Badge>
+          </div>
+        ))
+      )}
+    </section>
   );
 }
 

@@ -907,6 +907,20 @@ export default defineSchema({
   }).index("by_space", ["space"]),
 
   /**
+   * What Polar told Formkit, and what came of it: the last 200 webhooks and
+   * syncs, for Admin → Billing. `ok` false is one that changed nothing.
+   */
+  polarEvents: defineTable({
+    at: v.number(),
+    type: v.string(),
+    ok: v.boolean(),
+    note: v.string(),
+    subscriptionId: v.optional(v.string()),
+    space: v.optional(v.string()),
+    plan: v.optional(v.string()),
+  }).index("by_at", ["at"]),
+
+  /**
    * Free plans and AI credits staff gave a company, and when they ended: the
    * history the admin console shows. `space` is the company key ("me:<userId>"
    * for a personal company, or the company id).
