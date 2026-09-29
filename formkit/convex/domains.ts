@@ -249,12 +249,29 @@ export const attach = internalAction({
 async function check(
   ctx: { runMutation: import("./_generated/server").ActionCtx["runMutation"] },
   row: Doc<"domains">,
-) {
+  retried = false,
+): Promise<void> {
   const project = process.env.VERCEL_PROJECT_ID;
   const [pd, cfg] = await Promise.all([
     vercelCall<ProjectDomain>("GET", `/v9/projects/${project}/domains/${row.host}`),
     vercelCall<DomainConfig>("GET", `/v6/domains/${row.host}/config`),
   ]);
+  // Added while custom domains were switched off, or removed in Vercel since:
+  // put it on the project now, then read it again.
+  if (pd.status === 404 && project && !retried) {
+    const added = await vercelCall<ProjectDomain>("POST", `/v10/projects/${project}/domains`, { name: row.host });
+    if (added.ok || added.data.error?.code === "domain_already_in_use_by_project") {
+      return check(ctx, row, true);
+    }
+    if (added.status === 409 && !retried) {
+      await ctx.runMutation(internal.domains.record, {
+        domainId: row._id,
+        status: "failed",
+        detail: "That domain is already used by another site on Vercel.",
+      });
+      return;
+    }
+  }
   if (!pd.ok) {
     await ctx.runMutation(internal.domains.record, {
       domainId: row._id,
