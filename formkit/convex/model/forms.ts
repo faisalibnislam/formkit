@@ -179,6 +179,53 @@ export async function formIdentity(ctx: QueryCtx, form: Doc<"forms">) {
   };
 }
 
+/** Who a form is published under: the person ("me") or one of their companies. */
+export type FormOwner = { key: string; kind: "me" | "company"; name: string; imageUrl: string | null };
+
+export const ownerKeyOf = (form: Pick<Doc<"forms">, "brand">) => (form.brand === "me" ? "me" : (form.brand as string));
+
+/**
+ * The owner of each form, looked up once per company rather than once per
+ * form. Lists that span every form (the inbox, analytics, pickers) label each
+ * one with it, since a person with several companies cannot tell otherwise.
+ */
+export async function ownersOf(ctx: QueryCtx, forms: Pick<Doc<"forms">, "_id" | "brand" | "ownerId">[]) {
+  const people = new Map<string, FormOwner>();
+  const companies = new Map<string, FormOwner>();
+  const out = new Map<string, FormOwner>();
+  for (const f of forms) {
+    if (f.brand === "me") {
+      let who = people.get(f.ownerId);
+      if (!who) {
+        const user = await ctx.db.get(f.ownerId);
+        who = {
+          key: "me",
+          kind: "me",
+          name: user?.name?.trim() || "You",
+          imageUrl: user?.avatarId ? await ctx.storage.getUrl(user.avatarId) : (user?.image ?? null),
+        };
+        people.set(f.ownerId, who);
+      }
+      out.set(f._id, who);
+      continue;
+    }
+    const id = f.brand as Id<"companies">;
+    let co = companies.get(id);
+    if (!co) {
+      const row = await ctx.db.get(id);
+      co = {
+        key: id,
+        kind: "company",
+        name: row?.name ?? "A company",
+        imageUrl: row?.logoId ? await ctx.storage.getUrl(row.logoId) : null,
+      };
+      companies.set(id, co);
+    }
+    out.set(f._id, co);
+  }
+  return out;
+}
+
 /**
  * Everything a form owns, gone: its questions, rules, responses and the files
  * people uploaded to them, versions, comments, people, links, activity and

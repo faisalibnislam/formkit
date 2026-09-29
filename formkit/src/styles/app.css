@@ -420,20 +420,22 @@
   flex: 1 1 0;
   padding: 18px 20px 20px;
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-  background: rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(12px);
+  /* No backdrop blur: the sky behind animates without pause, so a blurred
+     tab had to be re-rendered every frame inside a scrolling row, and Chrome
+     would now and then drop the whole row for a frame (the tabs "flicker").
+     Over soft gradients a slightly stronger tint looks the same. */
+  background: rgba(255, 255, 255, 0.34);
   color: var(--neutral-900);
   text-decoration: none;
   transition: var(--transition-surface);
 }
 .fk-tab:hover {
-  background: rgba(255, 255, 255, 0.42);
+  background: rgba(255, 255, 255, 0.46);
 }
 .fk-tab[data-active="true"] {
   z-index: 5;
   padding: 20px 22px 24px;
   background: var(--paper);
-  backdrop-filter: none;
   box-shadow:
     0 -16px 36px -20px rgba(44, 48, 52, 0.3),
     -14px 0 28px -22px rgba(44, 48, 52, 0.22),
@@ -6440,5 +6442,146 @@ html.fk-own-bar::-webkit-scrollbar {
   }
   .fk-setpanel .fk-proprow > div:first-child {
     min-width: 62% !important;
+  }
+}
+
+/* ---------- who a form belongs to ---------- */
+.fk-owner-mark {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--neutral-150);
+  color: var(--neutral-700);
+  font-weight: 600;
+  line-height: 1;
+}
+.fk-owner-mark[data-kind="company"] {
+  border-radius: 28%;
+  background: var(--blue-50);
+  color: var(--blue-700);
+}
+.fk-owner-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.fk-owner-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  font-size: 12.5px;
+  color: var(--color-text-tertiary);
+}
+.fk-owner-line > span:last-child {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fk-resp-toolbar > .ui-select {
+  max-width: 280px;
+  min-width: 0;
+}
+@media (max-width: 640px) {
+  .fk-resp-toolbar > .ui-select {
+    flex: 1 1 40%;
+    max-width: none;
+  }
+}
+
+/* ---------- owner and links (publish dialog, Settings) ---------- */
+.fk-pubcard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 18px;
+  background: var(--neutral-50);
+  box-shadow: inset 0 0 0 1px var(--color-border-default);
+}
+.fk-pubowner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.fk-pubowner-name {
+  display: block;
+  overflow: hidden;
+  font-size: 15.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fk-pubowner-meta {
+  display: block;
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+}
+.fk-publinks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fk-publink {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 6px 6px 12px;
+  border-radius: 12px;
+  background: var(--neutral-0);
+  box-shadow: inset 0 0 0 1px var(--color-border-default);
+}
+.fk-publink-note {
+  flex: 0 0 auto;
+  width: 96px;
+  font-size: 12.5px;
+  color: var(--color-text-tertiary);
+}
+.fk-publink-url {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 14px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--neutral-900);
+}
+.fk-publink:not([data-live="true"]) .fk-publink-url {
+  color: var(--color-text-secondary, var(--neutral-600));
+}
+.fk-publink-btn {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--neutral-700);
+  cursor: pointer;
+}
+.fk-publink-btn:hover {
+  background: var(--neutral-100);
+  color: var(--neutral-900);
+}
+.fk-pubgone {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--neutral-800);
+}
+.fk-pubgone li + li {
+  margin-top: 4px;
+}
+@media (max-width: 520px) {
+  .fk-publink-note {
+    display: none;
   }
 }

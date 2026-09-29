@@ -17,10 +17,11 @@ import {
   purgeFormData,
   countBlocks,
   recount,
+  ownersOf,
 } from "./model/forms";
 import { builtinTemplate } from "./model/builtinTemplates";
 import { closedReason, nameOf, tellFormTeam } from "./model/inbox";
-import { formUrl } from "./model/handles";
+import { formkitUrl, formUrl } from "./model/handles";
 import { hashPassword, newSalt, publicSecurity, securityOf } from "./model/security";
 
 const DELETED_WINDOW_DAYS = 60;
@@ -237,15 +238,22 @@ export const picker = query({
   args: {},
   handler: async (ctx) => {
     const user = await requireUser(ctx);
-    return (
+    const forms = (
       await ctx.db
         .query("forms")
         .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
         .collect()
     )
       .filter((f) => !f.deletedAt)
-      .sort((a, b) => b.updatedAt - a.updatedAt)
-      .map((f) => ({ _id: f._id, title: f.title, status: f.status, responses: f.responsesCount }));
+      .sort((a, b) => b.updatedAt - a.updatedAt);
+    const owners = await ownersOf(ctx, forms);
+    return forms.map((f) => ({
+      _id: f._id,
+      title: f.title,
+      status: f.status,
+      responses: f.responsesCount,
+      owner: owners.get(f._id)!,
+    }));
   },
 });
 
@@ -276,6 +284,16 @@ export const get = query({
       theme: form.theme ?? null,
       logos: await themeLogos(ctx, form.theme),
       identity: await formIdentity(ctx, form),
+      /** Every address the form answers at: its own domain first, when it has one. */
+      links: await (async () => {
+        const primary = await formUrl(ctx, form);
+        const fallback = await formkitUrl(ctx, form);
+        return { primary, formkit: fallback === primary ? null : fallback };
+      })(),
+      /** The person whose account the form sits in, whoever is editing it. */
+      ownerName: (await ctx.db.get(form.ownerId))?.name?.trim() || null,
+      /** Whether the person looking is the owner: only they can move it between their names. */
+      mine: (await requireUser(ctx))._id === form.ownerId,
       calc: form.calc ?? [],
       endings: form.endings ?? [],
       aiReply: form.aiReply ?? null,

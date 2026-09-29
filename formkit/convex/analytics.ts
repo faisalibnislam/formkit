@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { query, type QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { requireUser } from "./model/identity";
-import { completionRate, formFor } from "./model/forms";
+import { completionRate, formFor, ownerKeyOf, ownersOf } from "./model/forms";
 import { hasFeature } from "./model/plans";
 
 /**
@@ -70,6 +70,8 @@ function summarise(events: Doc<"formEvents">[], responses: Doc<"responses">[], i
 export const overview = query({
   args: {
     formId: v.optional(v.id("forms")),
+    /** Only the forms published under this owner: "me", or a company id. */
+    owner: v.optional(v.string()),
     /** Legacy: the last so many days, to now. */
     days: v.optional(v.number()),
     /** The first moment in range - the viewer's local midnight. */
@@ -94,8 +96,9 @@ export const overview = query({
             .query("forms")
             .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
             .collect()
-        ).filter((f) => !f.deletedAt);
+        ).filter((f) => !f.deletedAt && (!args.owner || ownerKeyOf(f) === args.owner));
     const ids = new Set(forms.map((f) => f._id as string));
+    const owners = await ownersOf(ctx, forms);
     // Sources and devices are Pro - the form owner's plan for one form, the
     // viewer's own across all of theirs. Drop-off is on every plan.
     const full = await hasFeature(ctx, args.formId ? forms[0]!.ownerId : user._id, "analytics.full");
@@ -266,6 +269,7 @@ export const overview = query({
           views: f.views ?? 0,
           completionRate: completionRate(f),
           inRange: inRange.get(f._id) ?? 0,
+          owner: owners.get(f._id)!,
         }))
         .sort((a, b) => b.inRange - a.inRange || b.responses - a.responses),
     };

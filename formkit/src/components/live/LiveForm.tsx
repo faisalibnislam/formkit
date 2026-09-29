@@ -98,9 +98,9 @@ export function LiveForm({
   if (data.state === "draft") {
     return (
       <Shell theme={null}>
-        <h1>Not published yet</h1>
+        <h1>This form is not available</h1>
         <p className="fk-live-lede">
-          Whoever sent you this link has not finished the form. Ask them for it again in a while.
+          It is not open for answers at the moment. Check with whoever sent you the link.
         </p>
       </Shell>
     );

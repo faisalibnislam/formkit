@@ -44,7 +44,7 @@ import { useToast } from "@/components/ui/Toast";
 import { LogoLockup } from "@/components/live/LogoLockup";
 import { FONTS, fontStack, loadFont, loadFontPreviews } from "./fonts";
 import { openPreview } from "./previewBus";
-import { tracked } from "./saveStatus";
+import { PublishedUnderPicker } from "./PublishedUnder";
 import {
   COLUMN,
   LOGO_PX,
@@ -92,7 +92,6 @@ export function DesignTab({ formId }: { formId: Id<"forms"> }) {
   const toast = useToast();
   const form = useSeededQuery(api.forms.get, { formId });
   const viewer = useViewer();
-  const update = useMutation(api.forms.update);
   const uploadUrl = useMutation(api.users.generateUploadUrl);
 
   const [section, setSection] = useState<Section>("theme");
@@ -488,34 +487,13 @@ export function DesignTab({ formId }: { formId: Id<"forms"> }) {
 
         {section === "branding" && (
           <div>
-            {companies.length > 0 && (
+            {companies.length > 0 && form.mine && (
               <div style={{ padding: "2px 0 14px" }}>
                 <div style={{ fontSize: 14, marginBottom: 8 }}>Published under</div>
-                <Select
-                  size="sm"
-                  ariaLabel="Published under"
-                  value={form.brand}
-                  onChange={async (v) => {
-                    await tracked(
-                      update({ formId, patch: { brand: v === "me" ? "me" : (v as Id<"companies">) } }),
-                    );
-                    const co = companies.find((c) => c._id === v);
-                    toast(`Published under ${co ? co.name : "your own name"}`, {
-                      detail:
-                        co && !co.handle
-                          ? "It has no link claimed yet, so this form shares from formkit.app/f/"
-                          : undefined,
-                    });
-                  }}
-                  options={[
-                    { value: "me", label: `${viewer?.name ?? "You"} (you)` },
-                    ...companies.map((c) => ({ value: c._id, label: c.name || "Untitled company" })),
-                  ]}
-                />
+                <PublishedUnderPicker formId={formId} form={form} />
                 <div className="fk-proprow-hint" style={{ marginTop: 10, wordBreak: "break-all" }}>
-                  {identity?.handle
-                    ? `formkit.app/${identity.handle}/${form.slug}`
-                    : `formkit.app/f/${form.slug} (no link claimed yet)`}
+                  {form.links.primary}
+                  {!identity?.handle && !form.links.formkit ? " (no link claimed yet)" : ""}
                 </div>
               </div>
             )}

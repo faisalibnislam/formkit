@@ -6,6 +6,7 @@ import {
 import { NextResponse, type NextRequest } from "next/server";
 import { fetchQuery } from "convex/nextjs";
 import { api } from "../convex/_generated/api";
+import { isOwnHost } from "@/lib/site";
 
 /**
  * Route protection.
@@ -41,9 +42,6 @@ const VIEWS: Record<string, string> = {
    to formkit.app. When the owner's plan no longer has custom domains, every
    request is sent on to their formkit.app link so nothing shared breaks. */
 
-const OWN_HOSTS = new Set(
-  ["formkit.app", "www.formkit.app", "localhost", "127.0.0.1", new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://formkit.app").hostname].filter(Boolean),
-);
 const MAIN = process.env.NEXT_PUBLIC_SITE_URL ?? "https://formkit.app";
 
 type Resolved = { handle: string; live: boolean } | null;
@@ -63,9 +61,7 @@ async function resolveHost(host: string): Promise<Resolved> {
   return value;
 }
 
-function isOwnHost(host: string) {
-  return OWN_HOSTS.has(host) || host.endsWith(".vercel.app") || host.endsWith(".localhost");
-}
+
 
 async function customDomain(request: NextRequest) {
   const host = (request.headers.get("host") ?? request.nextUrl.host).split(":")[0]!.toLowerCase();

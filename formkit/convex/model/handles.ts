@@ -113,6 +113,27 @@ export async function releaseHandle(ctx: MutationCtx, userId: Id<"users">, handl
 }
 
 /** The public URL a form goes out at, resolved from its identity. */
+/** The identity's live custom domain, while the owner's plan has custom domains. */
+export async function liveDomainOf(ctx: QueryCtx | MutationCtx, ownerId: Id<"users">, brand: "me" | Id<"companies">) {
+  const domain = (
+    await ctx.db
+      .query("domains")
+      .withIndex("by_owner", (q) => q.eq("ownerId", ownerId))
+      .collect()
+  ).find((d) => d.owner === brand && d.status === "active");
+  return domain && (await hasFeature(ctx, ownerId, "domains")) ? domain.host : null;
+}
+
+/** The form's formkit.app address, which keeps working beside a custom domain. */
+export async function formkitUrl(
+  ctx: QueryCtx | MutationCtx,
+  form: { brand: "me" | Id<"companies">; slug: string; ownerId: Id<"users"> },
+) {
+  const handle =
+    form.brand === "me" ? ((await ctx.db.get(form.ownerId))?.handle ?? null) : ((await ctx.db.get(form.brand))?.handle ?? null);
+  return handle ? `formkit.app/${handle}/${form.slug}` : `formkit.app/f/${form.slug}`;
+}
+
 export async function formUrl(
   ctx: QueryCtx | MutationCtx,
   form: { brand: "me" | Id<"companies">; slug: string; ownerId: Id<"users"> },

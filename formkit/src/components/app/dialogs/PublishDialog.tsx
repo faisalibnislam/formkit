@@ -7,7 +7,9 @@ import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import { Button, Modal } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
+import Link from "next/link";
 import { StatDot } from "../ds";
+import { FormLinks, OwnerSummary } from "../editor/PublishedUnder";
 import { tracked } from "../editor/saveStatus";
 
 /**
@@ -15,8 +17,10 @@ import { tracked } from "../editor/saveStatus";
  * how many questions have changed since the live version, and swaps its
  * footer to Done / Unpublish / Publish changes.
  *
- * Unpublishing takes the form back to a draft and keeps every response.
- * Closing is a separate thing, and has its own dialog.
+ * Both states lead with who the form belongs to and its links. Unpublishing
+ * asks first: it takes the form back to a draft, keeps every response, and
+ * kills the link (a 404, or the owner's own domain home). Closing is a
+ * separate thing, and has its own dialog.
  */
 export function PublishDialog({
   formId,
@@ -40,6 +44,7 @@ export function PublishDialog({
   const approve = useMutation(api.approvals.approve);
   const decline = useMutation(api.approvals.decline);
   const [note, setNote] = useState("");
+  const [confirming, setConfirming] = useState(false);
 
   if (!form) return null;
   const live = form.status !== "draft";
@@ -118,16 +123,35 @@ export function PublishDialog({
 
   return (
     <Modal
-      title={live ? "This form is published" : "Ready to publish?"}
+      title={confirming ? "Unpublish this form?" : live ? "This form is published" : "Ready to publish?"}
       description={
-        live
-          ? "Anyone with the link can answer it. Unpublish to take it back to a draft."
-          : "A quick check before anyone can answer it."
+        confirming
+          ? "It goes back to being a draft."
+          : live
+            ? "Anyone with the link can answer it."
+            : "Check who it belongs to, where it will live, and a few basics."
       }
       onClose={onClose}
       width={580}
       footer={
-        reviewing ? (
+        confirming ? (
+          <>
+            <Button variant="secondary" onClick={() => setConfirming(false)}>
+              Keep it live
+            </Button>
+            <Button
+              variant="destructive"
+              iconLeft={<EyeOff size={16} strokeWidth={1.8} aria-hidden />}
+              onClick={async () => {
+                await tracked(unpublish({ formId }));
+                toast("Unpublished", { detail: "The link is off. Every response is kept." });
+                onClose();
+              }}
+            >
+              Unpublish
+            </Button>
+          </>
+        ) : reviewing ? (
           <>
             <Button
               variant="secondary"
@@ -175,11 +199,7 @@ export function PublishDialog({
             <Button
               variant="secondary"
               iconLeft={<EyeOff size={16} strokeWidth={1.8} aria-hidden />}
-              onClick={async () => {
-                await tracked(unpublish({ formId }));
-                toast("Unpublished", { detail: "It is a draft again. Every response is kept." });
-                onClose();
-              }}
+              onClick={() => setConfirming(true)}
             >
               Unpublish
             </Button>
@@ -208,7 +228,41 @@ export function PublishDialog({
         )
       }
     >
+      {confirming ? (
+        <div className="fk-pubcard">
+          <FormLinks form={form} live={false} label="Stops working" alsoLabel="Also stops" />
+          <ul className="fk-pubgone">
+            <li>
+              Anyone who opens the link{form.links.formkit ? "s" : ""}{" "}
+              {form.links.formkit
+                ? `is sent to the home page of ${form.links.primary.split("/")[0]}, which lists the forms still open there.`
+                : "gets a “page not found” page."}
+            </li>
+            <li>Embeds stop showing the form too.</li>
+            <li>Every response, and the form itself, is kept. Publish again and the same link comes back.</li>
+          </ul>
+        </div>
+      ) : (
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div className="fk-pubcard">
+          <OwnerSummary
+            form={form}
+            action={
+              form.mine ? (
+                <Link
+                  href={`/app/forms/${formId}?tab=settings`}
+                  className="ui-btn"
+                  data-variant="ghost"
+                  data-size="sm"
+                  onClick={onClose}
+                >
+                  Change
+                </Link>
+              ) : undefined
+            }
+          />
+          <FormLinks form={form} live={live && form.status !== "archived"} />
+        </div>
         {approval && (reviewing || mustAsk || approval.state === "declined") && (
           <div className="fk-amber" style={{ flexDirection: "column", alignItems: "stretch", gap: 10 }}>
             <span>
@@ -256,6 +310,7 @@ export function PublishDialog({
           </div>
         ))}
       </div>
+      )}
     </Modal>
   );
 }

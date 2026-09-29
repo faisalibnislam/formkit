@@ -26,6 +26,7 @@ import { PageSkeleton } from "./Skeleton";
 import { useLastDefined } from "./useFirstLoad";
 import { LockedNote, ProChip } from "@/components/plan/UpgradeSheet";
 import { useGate } from "@/components/plan/usePlan";
+import { formOptions, ownerOptions, ownersFrom, OwnerLine } from "./owners";
 
 /**
  * Analytics. Every number is counted from stored data inside the range picked
@@ -88,6 +89,7 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
   const record = useMutation(api.exports.record);
   const [range, setRange] = useState<Range>("30");
   const [picked, setPicked] = useState<string>("all");
+  const [pickedOwner, setPickedOwner] = useState<string>("all");
   // The server's reading of the reader's midnight, so both draw the same range
   // on the first paint; the browser's own clock otherwise.
   const seedClock = useSeedClock();
@@ -99,6 +101,10 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
   // Names for the picker only - the light list, not every form's questions.
   const forms = useSeededQuery(api.forms.picker, formId ? "skip" : {});
 
+  // Whose forms, when there is more than one owner to choose between.
+  const owners = ownersFrom(forms);
+  const multi = !formId && owners.length > 1;
+  const owner = multi && owners.some((o) => o.key === pickedOwner) ? pickedOwner : "all";
   const scope = formId ?? (picked !== "all" ? (picked as Id<"forms">) : undefined);
   const span = (() => {
     if (range !== "custom") {
@@ -111,7 +117,12 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
     const [lo, hi] = a <= b ? [a, b] : [b, a];
     return { from: Math.max(lo, hi - 365 * DAY), to: hi + DAY };
   })();
-  const fresh = useSeededQuery(api.analytics.overview, { formId: scope, from: span.from, to: span.to });
+  const fresh = useSeededQuery(api.analytics.overview, {
+    formId: scope,
+    owner: !scope && owner !== "all" ? owner : undefined,
+    from: span.from,
+    to: span.to,
+  });
   // Changing the range keeps the last figures up until the new ones land.
   const data = useLastDefined(fresh);
 
@@ -130,7 +141,13 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
   function exportAnalytics(format: "csv" | "xlsx") {
     if (!data) return;
     const title =
-      scope && forms ? (forms.find((f) => f._id === scope)?.title ?? "Form") : formId ? "This form" : "All forms";
+      scope && forms
+        ? (forms.find((f) => f._id === scope)?.title ?? "Form")
+        : formId
+          ? "This form"
+          : owner !== "all"
+            ? `${owners.find((o) => o.key === owner)?.name ?? "Their"} forms`
+            : "All forms";
     const filename = downloadAnalytics(data, title, format);
     void record({
       formId: scope,
@@ -188,16 +205,26 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
           </span>
         )}
         <span className="fk-range-note">{note}</span>
+        {multi && (
+          <Select
+            size="sm"
+            value={owner}
+            onChange={(next) => {
+              setPickedOwner(next);
+              const form = forms?.find((f) => f._id === picked);
+              if (next !== "all" && form && form.owner.key !== next) setPicked("all");
+            }}
+            ariaLabel="Whose forms"
+            options={ownerOptions(owners, forms)}
+          />
+        )}
         {!formId && (
           <Select
             size="sm"
             value={picked}
             onChange={setPicked}
             ariaLabel="Which form"
-            options={[
-              { value: "all", label: "All forms" },
-              ...(forms ?? []).map((f) => ({ value: f._id, label: f.title })),
-            ]}
+            options={formOptions(forms, owner, owners)}
           />
         )}
         <span className="fk-section-spacer" />
@@ -367,6 +394,7 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
                       <Link key={f._id} href={`/app/forms/${f._id}?tab=analytics`} className="fk-row">
                         <span className="fk-row-main">
                           <span className="fk-row-title">{f.title}</span>
+                          {multi && owner === "all" && <OwnerLine owner={f.owner} />}
                           <span className="fk-row-meta">
                             {f.inRange.toLocaleString("en-US")} in this range · {f.responses.toLocaleString("en-US")} in
                             all · {f.completionRate}% completed

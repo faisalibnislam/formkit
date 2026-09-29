@@ -1,4 +1,5 @@
 import { LiveForm } from "@/components/live/LiveForm";
+import { guardFormLink } from "@/components/live/deadLink";
 
 /**
  * A form at a claimed link - formkit.app/<handle>/<slug>.
@@ -8,5 +9,6 @@ import { LiveForm } from "@/components/live/LiveForm";
  */
 export default async function ClaimedFormPage({ params }: PageProps<"/[handle]/[slug]">) {
   const { handle, slug } = await params;
+  await guardFormLink(slug, handle);
   return <LiveForm slug={slug} handle={handle} />;
 }

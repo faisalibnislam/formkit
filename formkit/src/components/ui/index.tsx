@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Fragment,
   forwardRef,
   useEffect,
   useId,
@@ -242,7 +243,18 @@ export function ProgressBar({ value, color }: { value: number; color?: string })
 
 /* ---------- select ---------- */
 
-export type SelectOption = { value: string; label: string; note?: string };
+export type SelectOption = {
+  value: string;
+  label: string;
+  note?: string;
+  /** Options sharing a group sit under its heading, in the order given. */
+  group?: string;
+  /** A small mark before the label: a logo, an avatar. */
+  icon?: ReactNode;
+};
+
+/** The widest a dropdown menu grows to fit its options, unless its trigger is wider. */
+const MENU_MAX = 380;
 
 /**
  * The app's own dropdown, never the operating system's.
@@ -292,6 +304,8 @@ export function Select({
     ? options.filter((o) => `${o.label} ${o.note ?? ""}`.toLowerCase().includes(q))
     : options;
   const wide = options.some((o) => o.note);
+  // The menu sizes to its longest option (up to a cap); placing it estimates that.
+  const longest = Math.max(0, ...options.map((o) => o.label.length));
 
   useEffect(() => {
     if (!open) return;
@@ -303,7 +317,7 @@ export function Select({
       const needed = Math.min(searchable ? 340 : 280, options.length * 42 + (searchable ? 60 : 12));
       const below = window.innerHeight - r.bottom;
       setPlacement(below < needed && r.top > needed ? "above" : "below");
-      const menuWidth = Math.max(r.width, wide ? 300 : 0, searchable ? 260 : 0);
+      const menuWidth = Math.min(MENU_MAX, Math.max(r.width, wide ? 300 : 0, searchable ? 260 : 0, longest * 8 + 64));
       setAlignRight(r.left + menuWidth > window.innerWidth - 8);
       setRect({ top: r.top, bottom: r.bottom, left: r.left, right: r.right, width: r.width });
     };
@@ -322,7 +336,7 @@ export function Select({
       window.removeEventListener("resize", place);
       document.removeEventListener("pointerdown", onDown);
     };
-  }, [open, options.length, searchable, wide]);
+  }, [open, options.length, searchable, wide, longest]);
 
   useEffect(() => {
     if (open && searchable) search.current?.focus();
@@ -378,6 +392,7 @@ export function Select({
         aria-label={ariaLabel}
         onClick={() => toggle(!open)}
       >
+        {selected?.icon && <span className="ui-select-icon">{selected.icon}</span>}
         <span
           style={{
             flex: 1,
@@ -419,10 +434,11 @@ export function Select({
             bottom: placement === "above" ? window.innerHeight - rect.top + 6 : undefined,
             left: alignRight ? undefined : rect.left,
             right: alignRight ? window.innerWidth - rect.right : undefined,
-            width: wide || searchable ? undefined : rect.width,
-            // A note beside the label needs room, or the label clips.
-            minWidth: Math.max(rect.width, wide ? 300 : 0, searchable ? 260 : 0),
-            maxWidth: "calc(100vw - 16px)",
+            // As wide as its longest option, never narrower than the trigger:
+            // a short trigger ("All forms") must not squeeze long names into
+            // three lines each. A note beside the label needs room too.
+            minWidth: Math.min(Math.max(rect.width, wide ? 300 : 0, searchable ? 260 : 0), window.innerWidth - 16),
+            maxWidth: `min(${Math.max(MENU_MAX, rect.width)}px, calc(100vw - 16px))`,
           }}
         >
           {searchable && (
@@ -442,8 +458,13 @@ export function Select({
           <div id={id} role="listbox" aria-label={ariaLabel} className="ui-select-list">
             {shown.length === 0 && <div className="ui-select-empty">Nothing matches “{query}”.</div>}
             {shown.map((o, k) => (
+              <Fragment key={o.value}>
+              {o.group && o.group !== shown[k - 1]?.group && (
+                <div className="ui-select-group" role="presentation">
+                  {o.group}
+                </div>
+              )}
               <button
-                key={o.value}
                 type="button"
                 role="option"
                 aria-selected={o.value === value}
@@ -452,8 +473,11 @@ export function Select({
                 onMouseEnter={() => setCursor(k)}
                 onClick={() => pick(o)}
               >
+                {o.icon && <span className="ui-select-icon">{o.icon}</span>}
                 <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: "block", ...optionStyle?.(o) }}>{o.label}</span>
+                  <span className="ui-select-label" title={o.label} style={optionStyle?.(o)}>
+                    {o.label}
+                  </span>
                   {o.note && (
                     <span
                       style={{
@@ -467,8 +491,9 @@ export function Select({
                     </span>
                   )}
                 </span>
-                {o.value === value && <Check size={15} strokeWidth={2} aria-hidden />}
+                {o.value === value && <Check size={15} strokeWidth={2} aria-hidden style={{ flex: "0 0 auto" }} />}
               </button>
+              </Fragment>
             ))}
           </div>
         </div>

@@ -60,6 +60,8 @@ import { PageSkeleton } from "./Skeleton";
 import { useFirstLoad } from "./useFirstLoad";
 import { ProChip } from "@/components/plan/UpgradeSheet";
 import { useGate } from "@/components/plan/usePlan";
+import { formOptions, ownerOptions, ownersFrom, OwnerLine, type Owner } from "./owners";
+import { responseStats } from "./respStats";
 
 /**
  * The response inbox, for one form or for everything, and - across every
@@ -190,13 +192,28 @@ function Responses({
 
   const [chosenKind, setKind] = useState<Kind>("all");
   const [pickedForm, setPickedForm] = useState<string>("all");
+  const [pickedOwner, setPickedOwner] = useState<string>("all");
+  // "Today" and "this week" for a narrowed list count from when the page opened.
+  const [openedAt] = useState(() => Date.now());
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState<string | null>(openId);
   const [asc, setAsc] = useState(false);
   const [confirm, setConfirm] = useState<string[] | null>(null);
 
   const all = useMemo(() => data?.responses ?? [], [data]);
-  const scoped = all.filter((r) => (formId || pickedForm === "all" ? true : r.formId === pickedForm));
+  // Whose forms: the person's own, or one company's. Only offered when there
+  // is more than one owner to choose between.
+  const owners = useMemo(() => ownersFrom(data?.forms), [data]);
+  const ownerOf = useMemo(() => new Map<string, Owner>((data?.forms ?? []).map((f) => [f._id, f.owner])), [data]);
+  const multi = !formId && owners.length > 1;
+  const owner = multi && owners.some((o) => o.key === pickedOwner) ? pickedOwner : "all";
+  const scoped = all.filter((r) =>
+    formId
+      ? true
+      : pickedForm !== "all"
+        ? r.formId === pickedForm
+        : owner === "all" || ownerOf.get(r.formId)?.key === owner,
+  );
   const real = scoped.filter((r) => !r.preview);
   const previews = scoped.length - real.length;
   // Previews with nothing left in them fall back to everything.
@@ -243,7 +260,8 @@ function Responses({
     });
   }
 
-  const filtered = kind !== "all" || !!needle || (!formId && pickedForm !== "all");
+  const narrowed = !formId && (pickedForm !== "all" || owner !== "all");
+  const filtered = kind !== "all" || !!needle || narrowed;
   function exportHere(format: "csv" | "xlsx") {
     if (rows.length === 0) {
       toast("Nothing to export", { detail: "No responses match what is shown." });
@@ -260,7 +278,8 @@ function Responses({
 
   if (!loaded) return <PageSkeleton kind="table" />;
 
-  const s = data?.stats;
+  // The server counts everything; narrowed to one owner or form, count here.
+  const s = narrowed ? responseStats(scoped, openedAt) : data?.stats;
   const signed = (n: number | null | undefined, suffix = "") =>
     n === null || n === undefined || n === 0 ? undefined : `${n > 0 ? "+" : "−"}${Math.abs(n)}${suffix}`;
 
@@ -309,16 +328,30 @@ function Responses({
           icon={<Search size={17} strokeWidth={1.8} aria-hidden />}
           wrapStyle={{ width: 260, maxWidth: "100%" }}
         />
+        {multi && (
+          <Select
+            size="sm"
+            value={owner}
+            onChange={(next) => {
+              setPickedOwner(next);
+              // A form from another owner no longer belongs in the picker.
+              if (next !== "all" && pickedForm !== "all" && ownerOf.get(pickedForm)?.key !== next) setPickedForm("all");
+              setPicked(new Set());
+            }}
+            ariaLabel="Whose forms"
+            options={ownerOptions(owners, data?.forms)}
+          />
+        )}
         {!formId && (
           <Select
             size="sm"
             value={pickedForm}
-            onChange={setPickedForm}
+            onChange={(next) => {
+              setPickedForm(next);
+              setPicked(new Set());
+            }}
             ariaLabel="Which form"
-            options={[
-              { value: "all", label: "All forms" },
-              ...(data?.forms ?? []).map((f) => ({ value: f._id, label: f.title })),
-            ]}
+            options={formOptions(data?.forms, owner, owners)}
           />
         )}
         <Segmented
@@ -435,7 +468,10 @@ function Responses({
                     {badgeFor(r)}
                   </span>
                   <span className="fk-resp-card-foot">
-                    <span>{r.formTitle}</span>
+                    <span>
+                      {r.formTitle}
+                      {multi && owner === "all" && ownerOf.get(r.formId) && <> · {ownerOf.get(r.formId)!.name}</>}
+                    </span>
                     {r.partial && (
                       <span>
                         {r.answeredCount} of {r.totalCount} answered
@@ -506,7 +542,14 @@ function Responses({
                         </td>
                         <td className="fk-table-name">{who(r)}</td>
                         <td className="fk-table-quiet">{r.respondentEmail ?? "-"}</td>
-                        {!formId && <td>{r.formTitle}</td>}
+                        {!formId && (
+                          <td>
+                            <span style={{ display: "block" }}>{r.formTitle}</span>
+                            {multi && owner === "all" && ownerOf.get(r.formId) && (
+                              <OwnerLine owner={ownerOf.get(r.formId)!} />
+                            )}
+                          </td>
+                        )}
                         <td className="fk-table-quiet">
                           {r.partial ? `${r.answeredCount} of ${r.totalCount}` : `${r.answeredCount}`}
                           {r.files.length > 0 && (
@@ -690,7 +733,10 @@ function ResponseDrawer({
       icon: <Building2 size={14} strokeWidth={1.8} aria-hidden />,
       text: response.respondentCompany,
     },
-    { icon: <FileText size={14} strokeWidth={1.8} aria-hidden />, text: response.formTitle },
+    {
+      icon: <FileText size={14} strokeWidth={1.8} aria-hidden />,
+      text: form?.identity ? `${response.formTitle} · ${form.identity.name}` : response.formTitle,
+    },
     response.source && { icon: <Link2 size={14} strokeWidth={1.8} aria-hidden />, text: response.source },
     response.device && { icon: <Monitor size={14} strokeWidth={1.8} aria-hidden />, text: response.device },
     duration(response.durationMs) && {

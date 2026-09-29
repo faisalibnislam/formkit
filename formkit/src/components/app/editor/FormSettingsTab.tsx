@@ -18,6 +18,7 @@ import { AiReplySection } from "./AiReplySection";
 import { QuizSection } from "./QuizSection";
 import { DraftArea, DraftPill } from "./Draft";
 import { openPreview } from "./previewBus";
+import { FormLinks, OwnerSummary, PublishedUnderPicker } from "./PublishedUnder";
 import { tracked } from "./saveStatus";
 import { useSettingsDraft } from "./useSettingsDraft";
 import { ProChip } from "@/components/plan/UpgradeSheet";
@@ -177,6 +178,31 @@ export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
       </div>
 
       {section === "general" && (
+        <Card
+          title="Owner and links"
+          lede="Who this form belongs to, and where people find it. Changing the owner moves the form to that company’s or person’s link and branding."
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <OwnerSummary form={form} />
+            {form.mine && (viewer?.companies.length ?? 0) > 0 && (
+              <Row label="Published under" hint="Your own name, or one of your companies">
+                <div style={{ width: 280, maxWidth: "100%" }}>
+                  <PublishedUnderPicker formId={formId} form={form} />
+                </div>
+              </Row>
+            )}
+            <FormLinks form={form} live={form.status === "published" || form.status === "closed"} />
+            {form.status !== "published" && form.status !== "closed" && (
+              <p className="fk-proprow-hint" style={{ margin: 0 }}>
+                Not published, so the link does not open yet. Visitors get a “page not found”
+                {form.links.formkit ? ", or your domain’s home page" : ""}.
+              </p>
+            )}
+          </div>
+        </Card>
+      )}
+
+      {section === "general" && (
         <Card title="General">
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <Field label="Form name">
@@ -194,9 +220,6 @@ export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
                 placeholder="What this form is for, in a line."
                 onCommit={(description) => tracked(update({ formId, patch: { description } }))}
               />
-            </Field>
-            <Field label="Public link">
-              <Input readOnly value={`https://${form.url}`} onFocus={(e) => e.currentTarget.select()} />
             </Field>
             <Row label="Language" hint="English (US) for now">
               <span className="fk-static-pill">English (US)</span>

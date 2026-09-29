@@ -111,7 +111,7 @@ const FORMS: Row[] = [
     slug: "contact",
     description: "The one on the studio site.",
     status: "published",
-    brand: "c1",
+    brand: "c2",
     url: "formkit.app/studio-nine/contact",
     questions: 4,
     pages: 1,
@@ -300,7 +300,23 @@ const COMPANIES = [
     brandColor: "#2e78bb",
     useBranding: true,
   },
+  {
+    _id: "c2",
+    name: "Northstar Labs",
+    handle: "northstar",
+    logoUrl: null,
+    brandColor: "#c4614f",
+    useBranding: false,
+  },
 ];
+
+/** Who each form is published under, as the server's `ownersOf` reports it. */
+function ownerOf(formId: string) {
+  const brand = (FORMS.find((f) => f._id === formId)?.brand as string | undefined) ?? "me";
+  if (brand === "me") return { key: "me", kind: "me", name: "Maya Ortiz", imageUrl: null };
+  const co = COMPANIES.find((c) => c._id === brand);
+  return { key: brand, kind: "company", name: co?.name ?? "A company", imageUrl: co?.logoUrl ?? null };
+}
 
 /** Preview switches read from the page's own URL: ?fk_gate=2fa|deactivated, ?fk_sky=morning. */
 function flag(name: string) {
@@ -433,6 +449,9 @@ const FORM_DETAIL = {
   theme: null,
   logos: [],
   identity: { kind: "company", name: "Studio Nine", logoUrl: null, handle: "studio-nine" },
+  links: { primary: "forms.studionine.co/client-onboarding", formkit: "formkit.app/studio-nine/client-onboarding" },
+  ownerName: "Maya Ortiz",
+  mine: true,
   notify: null,
   security: { multiple: true, editAfter: false, password: false, passwordSet: false, spam: true, rateLimit: true, requireEmail: false },
   closing: { closeAfter: 400, timezone: "Pacific/Auckland" },
@@ -537,7 +556,7 @@ export const QUERIES: Record<string, unknown> = {
   },
   "responses:list": {
     stats: { total: 1117, today: 2, todayChange: 1, week: 8, weekChange: 14, unread: 3, partial: 2, completed: 1115, previews: 1 },
-    forms: Object.entries(FORM_TITLES).map(([_id, title]) => ({ _id, title })),
+    forms: Object.entries(FORM_TITLES).map(([_id, title]) => ({ _id, title, owner: ownerOf(_id) })),
     responses: RESPONSES,
   },
   "responses:get": RESPONSES[0],
@@ -670,6 +689,7 @@ export const QUERIES: Record<string, unknown> = {
       views: (f.responses as number) * 3,
       completionRate: f.completionRate,
       inRange: Math.round((f.responses as number) / 4),
+      owner: ownerOf(f._id as string),
     })),
   },
   "collaborators:list": {
@@ -1278,7 +1298,7 @@ function derived(name: string): unknown {
   }
   if (name === "forms:picker") {
     const list = QUERIES["forms:list"] as { forms: { _id: string; title: string; status: string; responses: number }[] };
-    return list.forms.map((f) => ({ _id: f._id, title: f.title, status: f.status, responses: f.responses }));
+    return list.forms.map((f) => ({ _id: f._id, title: f.title, status: f.status, responses: f.responses, owner: ownerOf(f._id) }));
   }
   if (name === "responses:recent") {
     const list = QUERIES["responses:list"] as { stats: Record<string, number>; responses: { preview?: boolean }[] };

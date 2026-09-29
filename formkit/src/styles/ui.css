@@ -445,6 +445,29 @@
   text-align: left;
   cursor: pointer;
 }
+.ui-select-label {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.ui-select-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+.ui-select-group {
+  padding: 10px 12px 4px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ui-select-group:first-child {
+  padding-top: 4px;
+}
 .ui-select-option:hover,
 .ui-select-option[data-active="true"] {
   background: var(--neutral-100);

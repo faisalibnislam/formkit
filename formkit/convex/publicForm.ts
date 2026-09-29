@@ -14,7 +14,7 @@ import { flagOn } from "./model/flags";
 import { PLANS, hasFeature, planOfId } from "./model/plans";
 import { computeAll } from "./model/calc";
 import { accessOf } from "./model/access";
-import { formUrl } from "./model/handles";
+import { formUrl, liveDomainOf } from "./model/handles";
 
 /**
  * The published form, as a respondent sees it.
@@ -233,6 +233,31 @@ async function payload(ctx: QueryCtx, form: Doc<"forms">) {
       })),
   };
 }
+
+/**
+ * Whether a public link still leads anywhere. An unpublished, archived or
+ * deleted form's link is dead: the page sends people to the owner's own
+ * domain when they have one (its home lists what is open), and is a 404
+ * otherwise. A closed form is still there, saying it is closed.
+ */
+export const linkState = query({
+  args: { slug: v.string(), handle: v.optional(v.string()) },
+  handler: async (ctx, { slug, handle }) => {
+    const form = await resolve(ctx, slug, handle);
+    if (form && (form.status === "published" || form.status === "closed")) return { live: true as const, home: null };
+    let owner: { ownerId: Id<"users">; brand: "me" | Id<"companies"> } | null = form
+      ? { ownerId: form.ownerId, brand: form.brand }
+      : null;
+    if (!owner && handle) {
+      const claim = await ctx.db
+        .query("handles")
+        .withIndex("by_value", (q) => q.eq("value", handle))
+        .first();
+      if (claim) owner = { ownerId: claim.userId, brand: claim.ownerType === "company" && claim.companyId ? claim.companyId : "me" };
+    }
+    return { live: false as const, home: owner ? await liveDomainOf(ctx, owner.ownerId, owner.brand) : null };
+  },
+});
 
 export const bySlug = query({
   args: { slug: v.string(), handle: v.optional(v.string()), password: v.optional(v.string()) },

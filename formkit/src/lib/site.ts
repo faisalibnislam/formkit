@@ -53,3 +53,15 @@ export const FOOTER_COLUMNS = [
 /** Two honest product facts that several pages state rather than hide. */
 export const UPLOAD_CAP_MB = 20;
 export const LANGUAGE = "English (US)";
+
+/**
+ * Formkit's own hosts. Any other host reaching the app is a customer's custom
+ * domain (forms.acme.com), which the proxy maps onto their forms.
+ */
+const OWN_HOSTS = new Set(
+  ["formkit.app", "www.formkit.app", "localhost", "127.0.0.1", new URL(SITE_URL).hostname].filter(Boolean),
+);
+
+export function isOwnHost(host: string) {
+  return OWN_HOSTS.has(host) || host.endsWith(".vercel.app") || host.endsWith(".localhost");
+}

@@ -4,7 +4,7 @@ import { internalMutation, mutation, query, type QueryCtx } from "./_generated/s
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { requireUser } from "./model/identity";
-import { formFor } from "./model/forms";
+import { formFor, ownersOf } from "./model/forms";
 
 /**
  * The response inbox.
@@ -168,9 +168,12 @@ export const list = query({
     const { forms, rows } = await scope(ctx, formId);
     const titles = new Map(forms.map((f) => [f._id as string, f.title]));
     const sorted = [...rows].sort((a, b) => b.submittedAt - a.submittedAt);
+    const owners = await ownersOf(ctx, forms);
     return {
       stats: stats(rows, Date.now()),
-      forms: forms.map((f) => ({ _id: f._id, title: f.title })),
+      forms: forms
+        .sort((a, b) => b.updatedAt - a.updatedAt)
+        .map((f) => ({ _id: f._id, title: f.title, owner: owners.get(f._id)! })),
       responses: await Promise.all(sorted.map((r) => shape(ctx, r, titles.get(r.formId) ?? "A form"))),
     };
   },
