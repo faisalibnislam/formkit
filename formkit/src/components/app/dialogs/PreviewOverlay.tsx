@@ -145,18 +145,20 @@ export function PreviewOverlay({
                 </span>
               </div>
             )}
-            <div className="fk-preview-frame" ref={frame}>
-              {data && (
-                <FormRunner
-                  key={`${run}-${closed}`}
-                  data={data as OpenForm}
-                  mode="preview"
-                  closed={closed}
-                  onSubmit={onSubmit}
-                  upload={upload}
-                  scrollRoot={frame}
-                />
-              )}
+            <div className="fk-preview-screen">
+              <div className="fk-preview-frame" ref={frame}>
+                {data && (
+                  <FormRunner
+                    key={`${run}-${closed}`}
+                    data={data as OpenForm}
+                    mode="preview"
+                    closed={closed}
+                    onSubmit={onSubmit}
+                    upload={upload}
+                    scrollRoot={frame}
+                  />
+                )}
+              </div>
             </div>
           </div>
         </div>

@@ -1937,6 +1937,13 @@
   background: #0b0d0f;
 }
 /* The form inside sizes itself to the device, not to the window. */
+.fk-preview-screen {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
 .fk-preview-frame {
   flex: 1;
   min-height: 0;
@@ -3073,10 +3080,39 @@
   flex-wrap: wrap;
   margin-top: clamp(30px, 4vw, 44px);
 }
+/* The Formkit badge: a pill pinned to the bottom-right of the window (or of
+   the preview screen, which positions it). */
 .fk-live-credit {
-  margin-top: 46px;
-  font-size: 13px;
-  opacity: 0.5;
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--neutral-900, #15191c);
+  box-shadow:
+    0 8px 24px -8px rgba(10, 30, 60, 0.28),
+    0 0 0 1px rgba(10, 30, 60, 0.1);
+  text-decoration: none;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.fk-live-credit:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 12px 28px -8px rgba(10, 30, 60, 0.34),
+    0 0 0 1px rgba(10, 30, 60, 0.14);
+}
+.fk-live-credit:focus-visible {
+  outline: 2px solid #2d7fd0;
+  outline-offset: 2px;
+}
+.fk-preview-screen .fk-live-credit {
+  position: absolute;
 }
 .fk-live-choices {
   display: flex;

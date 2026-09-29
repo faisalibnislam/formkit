@@ -17,6 +17,7 @@ import { LiveReply } from "./LiveReply";
 import { QuizResult } from "./QuizResult";
 import { applyLogic, conditionsOf, type Rule as LogicRule } from "../../../convex/model/logicEval";
 import { LogoLockup } from "./LogoLockup";
+import { Logo } from "@/components/brand/Logo";
 
 /**
  * The form, as somebody answering it sees it - on the public link, and in the
@@ -566,7 +567,12 @@ export function FormRunner({
     cursor: busy ? "progress" : "pointer",
   });
 
-  const credit = data.brand.badge === false ? null : <div className="fk-live-credit">Made with Formkit</div>;
+  const credit =
+    data.brand.badge === false ? null : (
+      <a className="fk-live-credit" href="https://www.formkit.app" target="_blank" rel="noopener" aria-label="Made with Formkit">
+        <Logo size={20} tone="current" />
+      </a>
+    );
   const split = theme.layout === "split";
 
   /* ---------- closed ---------- */
