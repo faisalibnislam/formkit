@@ -886,6 +886,26 @@ export const logEvent = internalMutation({
   },
 });
 
+/**
+ * Admin: the Polar organization Formkit's token belongs to, and whether it
+ * lets one customer hold several subscriptions (each company is its own).
+ */
+export const polarOrg = action({
+  args: {},
+  returns: v.array(v.object({ name: v.string(), slug: v.string(), multiple: v.union(v.boolean(), v.null()) })),
+  handler: async (ctx): Promise<{ name: string; slug: string; multiple: boolean | null }[]> => {
+    await ctx.runQuery(internal.billing.staffCheck, {});
+    const res = await polar<{
+      items: { name: string; slug: string; subscription_settings?: { allow_multiple_subscriptions?: boolean } }[];
+    }>("/v1/organizations/?limit=10", undefined, "GET");
+    return res.items.map((o) => ({
+      name: o.name,
+      slug: o.slug,
+      multiple: o.subscription_settings?.allow_multiple_subscriptions ?? null,
+    }));
+  },
+});
+
 export const recentEvents = query({
   args: {},
   handler: async (ctx) => {

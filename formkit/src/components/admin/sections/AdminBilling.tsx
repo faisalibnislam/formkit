@@ -169,6 +169,7 @@ export function AdminBilling() {
         </div>
       </section>
 
+      <PolarOrg />
       <PolarLog />
     </>
   );
@@ -178,6 +179,53 @@ export function AdminBilling() {
  * What Polar told Formkit lately, and what came of each: the first place to
  * look when someone paid and their company still says Free.
  */
+/** Which Polar organization the token is for, and whether several subscriptions are allowed there. */
+function PolarOrg() {
+  const check = useAction(api.billing.polarOrg);
+  const toast = useToast();
+  const [orgs, setOrgs] = useState<{ name: string; slug: string; multiple: boolean | null }[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  return (
+    <section className="fk-panel">
+      <h3>Polar organization</h3>
+      <p className="fk-panel-lede">
+        Each company is its own subscription, so the organization Formkit’s token belongs to must allow multiple
+        subscriptions (Polar → Settings → Subscriptions).
+      </p>
+      {(orgs ?? []).map((o) => (
+        <div key={o.slug} className="fk-admin-row" style={{ fontSize: 13.5 }}>
+          <span style={{ flex: 1 }}>
+            {o.name}
+            <span className="fk-admin-sub">polar.sh/dashboard/{o.slug}</span>
+          </span>
+          <Badge tone={o.multiple ? "success" : o.multiple === false ? "error" : "neutral"}>
+            {o.multiple ? "Multiple subscriptions on" : o.multiple === false ? "Multiple subscriptions off" : "Setting not reported"}
+          </Badge>
+        </div>
+      ))}
+      <div>
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            try {
+              setOrgs(await check({}));
+            } catch (e) {
+              toast(errorText(e, "Polar could not be reached."));
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          {busy ? "Asking Polar…" : orgs ? "Check again" : "Check with Polar"}
+        </Button>
+      </div>
+    </section>
+  );
+}
+
 function PolarLog() {
   const rows = useQuery(api.billing.recentEvents, {});
   return (
