@@ -216,6 +216,20 @@ const PROVIDERS: [RegExp, string, string][] = [
   [/digitalocean\.com$/, "digitalocean", "DigitalOcean"],
 ];
 
+/** Whether Formkit answers on the domain: true, false, or null when it can't be reached yet. */
+async function servedHere(host: string): Promise<boolean | null> {
+  const abort = new AbortController();
+  const timer = setTimeout(() => abort.abort(), 8000);
+  try {
+    const res = await fetch(`https://${host}/api/formkit-domain`, { signal: abort.signal, redirect: "manual" });
+    return res.headers.get("x-formkit") === "1";
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 type Inspected = {
   provider: { id: string; name: string } | null;
   nameservers: string[];
@@ -223,6 +237,8 @@ type Inspected = {
   a: string[];
   pointsHere: boolean;
   proxied: boolean;
+  /** Formkit is what answers on the name: true, false, or null when unreachable. */
+  servedHere: boolean | null;
 };
 
 async function lookup(name: string, type: "NS" | "CNAME" | "A" | "TXT"): Promise<string[] | null> {
@@ -252,6 +268,7 @@ export const inspect = action({
     a: v.array(v.string()),
     pointsHere: v.boolean(),
     proxied: v.boolean(),
+    servedHere: v.union(v.boolean(), v.null()),
   }),
   handler: async (ctx, { domainId }): Promise<Inspected> => {
     const row: Doc<"domains"> | null = await ctx.runQuery(internal.domains.ownRow, { domainId });
@@ -273,6 +290,7 @@ export const inspect = action({
       a: as,
       pointsHere,
       proxied,
+      servedHere: pointsHere ? await servedHere(row.host) : null,
     };
   },
 });
@@ -370,12 +388,24 @@ async function check(
   }
   const apex = pd.data.apexName ?? apexOf(row.host);
   const records = recordsFor(row.host, apex, cfg.ok ? cfg.data : null, pd.data.verification);
-  const live = pd.data.verified !== false && cfg.ok && cfg.data.misconfigured === false;
+  const dnsOk = pd.data.verified !== false && cfg.ok && cfg.data.misconfigured === false;
+  // Vercel can call a name valid while another of its projects answers it
+  // (a *.example.com wildcard on the customer's own site, say). Only count it
+  // live once Formkit itself is what answers.
+  const answer = dnsOk ? await servedHere(row.host) : null;
+  const live = dnsOk && answer === true;
+  const apexName = apexOf(row.host);
   await ctx.runMutation(internal.domains.record, {
     domainId: row._id,
     status: live ? "active" : "pending",
     records,
-    detail: live ? undefined : "Waiting for the DNS record. Changes can take up to a few hours to spread.",
+    detail: live
+      ? undefined
+      : dnsOk && answer === false
+        ? `Another website on Vercel is answering ${row.host}, probably your ${apexName} site. In Vercel, open that project → Settings → Domains and remove ${row.host}, or the *.${apexName} wildcard, from it.`
+        : dnsOk
+          ? "The record is in place. Waiting for the secure (https) certificate, which usually takes a few minutes."
+          : "Waiting for the DNS record. Changes can take up to a few hours to spread.",
   });
 }
 
@@ -413,16 +443,25 @@ export const pending = internalQuery({
   args: {},
   handler: async (ctx) => {
     const week = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    return (
+    const hour = Date.now() - 60 * 60 * 1000;
+    const waiting = (
       await ctx.db
         .query("domains")
         .withIndex("by_status", (q) => q.eq("status", "pending"))
         .collect()
     ).filter((d) => d.addedAt > week);
+    // Live ones are looked at once an hour, in case someone else starts answering them.
+    const live = (
+      await ctx.db
+        .query("domains")
+        .withIndex("by_status", (q) => q.eq("status", "active"))
+        .collect()
+    ).filter((d) => (d.checkedAt ?? 0) < hour);
+    return [...waiting, ...live];
   },
 });
 
-/** Every ten minutes, domains still waiting on DNS are looked at again, for a week. */
+/** Every ten minutes: domains waiting on DNS (for a week), and live ones due their hourly look. */
 export const recheckPending = internalAction({
   args: {},
   returns: v.null(),

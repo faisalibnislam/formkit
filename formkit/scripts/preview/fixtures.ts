@@ -993,6 +993,7 @@ export const QUERIES: Record<string, unknown> = {
     a: [],
     pointsHere: false,
     proxied: false,
+    servedHere: null,
   },
   "domains:mine": {
     configured: true,

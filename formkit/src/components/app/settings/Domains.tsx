@@ -100,6 +100,17 @@ export function DomainsPanel({
               for {d.identity.name}
             </span>
             <span style={{ flex: 1 }} />
+            {d.status === "active" && (
+              <Button
+                variant="ghost"
+                size="sm"
+                iconLeft={<RefreshCw size={15} strokeWidth={1.8} aria-hidden />}
+                disabled={check.busy === d._id}
+                onClick={() => check.run(d._id)}
+              >
+                {check.busy === d._id ? "Checking…" : "Check again"}
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"

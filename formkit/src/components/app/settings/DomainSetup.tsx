@@ -222,6 +222,11 @@ export function DomainSetup({
 
   const seen: { tone: "ok" | "wait" | "bad"; text: string } = !dns
     ? { tone: "wait", text: reading ? "Looking up your domain…" : "We could not read public DNS just now." }
+    : dns.pointsHere && dns.servedHere === false
+      ? {
+          tone: "bad",
+          text: `Your record is right, but another website on Vercel is answering ${host}, probably your ${apex} site. In Vercel, open that project → Settings → Domains and remove ${host}, or the *.${apex} wildcard, from it. Then press Check now.`,
+        }
     : dns.pointsHere
       ? {
           tone: "ok",

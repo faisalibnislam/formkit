@@ -71,6 +71,11 @@ async function customDomain(request: NextRequest) {
   const host = (request.headers.get("host") ?? request.nextUrl.host).split(":")[0]!.toLowerCase();
   if (isOwnHost(host)) return null;
   const path = request.nextUrl.pathname;
+  // Formkit's domain check asks for this to be sure it is Formkit answering,
+  // not another site on Vercel that also claims the name.
+  if (path === "/api/formkit-domain") {
+    return new NextResponse("formkit", { headers: { "x-formkit": "1", "cache-control": "no-store" } });
+  }
   const found = await resolveHost(host);
   if (!found) return NextResponse.redirect(new URL(MAIN));
   if (!found.live) {
