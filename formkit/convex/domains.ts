@@ -127,7 +127,9 @@ export const mine = query({
           owner: d.owner,
           host: d.host,
           status: d.status,
-          records: d.records ?? [],
+          // Until Vercel has been asked, show the record it will almost certainly want.
+          records: d.records?.length ? d.records : recordsFor(d.host, apexOf(d.host), null, undefined),
+          apex: apexOf(d.host),
           detail: d.detail ?? null,
           checkedAt: d.checkedAt ?? null,
           identity: await identityOf(ctx, user, d.owner).catch(() => ({ name: "A removed company", handle: null })),
@@ -190,6 +192,88 @@ export const remove = mutation({
     await ctx.db.delete(domainId);
     await ctx.scheduler.runAfter(0, internal.domains.detach, { host: row.host });
     return null;
+  },
+});
+
+/* ------------------------------------------------------------------ */
+/* Reading public DNS, to guide the customer                           */
+/* ------------------------------------------------------------------ */
+
+/** Who hosts a domain's DNS, from its nameservers. */
+const PROVIDERS: [RegExp, string, string][] = [
+  [/registrar-servers\.com$/, "namecheap", "Namecheap"],
+  [/domaincontrol\.com$/, "godaddy", "GoDaddy"],
+  [/ns\.cloudflare\.com$/, "cloudflare", "Cloudflare"],
+  [/(googledomains\.com|squarespacedns\.com|domains\.squarespace\.com)$/, "squarespace", "Squarespace"],
+  [/awsdns-/, "route53", "Amazon Route 53"],
+  [/vercel-dns\.com$/, "vercel", "Vercel"],
+  [/(dns-parking\.com|hostinger\.com)$/, "hostinger", "Hostinger"],
+  [/porkbun\.com$/, "porkbun", "Porkbun"],
+  [/(name\.com|name-services\.com)$/, "namecom", "Name.com"],
+  [/(ui-dns\.(com|org|de|biz)|ionos)/, "ionos", "IONOS"],
+  [/wixdns\.net$/, "wix", "Wix"],
+  [/(bluehost\.com|hostgator\.com)$/, "bluehost", "Bluehost"],
+  [/digitalocean\.com$/, "digitalocean", "DigitalOcean"],
+];
+
+type Inspected = {
+  provider: { id: string; name: string } | null;
+  nameservers: string[];
+  cname: string[];
+  a: string[];
+  pointsHere: boolean;
+  proxied: boolean;
+};
+
+async function lookup(name: string, type: "NS" | "CNAME" | "A" | "TXT"): Promise<string[] | null> {
+  try {
+    const res = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(name)}&type=${type}`, {
+      headers: { accept: "application/dns-json" },
+    });
+    const data = (await res.json()) as { Status?: number; Answer?: { type: number; data: string }[] };
+    const want = { NS: 2, CNAME: 5, A: 1, TXT: 16 }[type];
+    return (data.Answer ?? []).filter((a) => a.type === want).map((a) => a.data.replace(/\.$/, "").replace(/^"|"$/g, "").toLowerCase());
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * What public DNS says about a domain right now: who hosts its DNS, and
+ * what, if anything, its name points at. Guides the setup steps; the real
+ * check is still Vercel's.
+ */
+export const inspect = action({
+  args: { domainId: v.id("domains") },
+  returns: v.object({
+    provider: v.union(v.object({ id: v.string(), name: v.string() }), v.null()),
+    nameservers: v.array(v.string()),
+    cname: v.array(v.string()),
+    a: v.array(v.string()),
+    pointsHere: v.boolean(),
+    proxied: v.boolean(),
+  }),
+  handler: async (ctx, { domainId }): Promise<Inspected> => {
+    const row: Doc<"domains"> | null = await ctx.runQuery(internal.domains.ownRow, { domainId });
+    if (!row) throw new ConvexError("That domain is no longer on your account.");
+    const apex = apexOf(row.host);
+    const [ns, cname, a] = await Promise.all([lookup(apex, "NS"), lookup(row.host, "CNAME"), lookup(row.host, "A")]);
+    const nameservers = ns ?? [];
+    const match = PROVIDERS.find(([re]) => nameservers.some((n) => re.test(n)));
+    const cnames = cname ?? [];
+    const as = a ?? [];
+    const vercelIp = (ip: string) => ip === "76.76.21.21" || ip.startsWith("216.198.79.") || ip.startsWith("64.29.17.");
+    const pointsHere = cnames.some((c) => /vercel-dns(-\d+)?\.com$/.test(c)) || (!cnames.length && as.length > 0 && as.every(vercelIp));
+    // Cloudflare's proxy answers with its own addresses and hides the CNAME.
+    const proxied = match?.[1] === "cloudflare" && !cnames.length && as.length > 0 && !as.every(vercelIp);
+    return {
+      provider: match ? { id: match[1], name: match[2] } : null,
+      nameservers,
+      cname: cnames,
+      a: as,
+      pointsHere,
+      proxied,
+    };
   },
 });
 

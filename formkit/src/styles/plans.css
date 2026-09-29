@@ -549,3 +549,297 @@ button.fk-prochip[data-plan="business"]:hover {
   height: 1px;
   background: var(--neutral-150);
 }
+
+/* Custom domains: the setup guide. */
+.fk-domainrow-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.fk-domainrow-head svg {
+  display: inline-block;
+}
+.fk-domain-live {
+  margin: 10px 0 0;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+.fk-domain-live a {
+  color: var(--color-text-primary);
+  font-weight: 500;
+  text-decoration: none;
+}
+.fk-dsetup {
+  margin-top: 14px;
+}
+.fk-dsetup-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--yellow-100, #fff6d6);
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--color-text-primary);
+}
+.fk-dsetup-note svg,
+.fk-dsetup-seen svg,
+.fk-dsetup-link svg,
+.fk-dsetup-help svg,
+.fk-dsetup-select svg {
+  display: inline-block;
+  flex: 0 0 auto;
+}
+.fk-dsetup-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fk-dsetup-steps > li {
+  position: relative;
+  display: flex;
+  gap: 14px;
+  padding-bottom: 20px;
+}
+.fk-dsetup-steps > li:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  top: 30px;
+  bottom: 4px;
+  left: 13px;
+  width: 2px;
+  background: var(--neutral-150);
+}
+.fk-dsetup-num {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--neutral-900);
+  color: var(--neutral-0);
+  font-size: 13px;
+  font-weight: 500;
+}
+.fk-dsetup-body {
+  flex: 1;
+  min-width: 0;
+  padding-top: 3px;
+}
+.fk-dsetup-body h4 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 500;
+}
+.fk-dsetup-body > p {
+  margin: 0 0 8px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+.fk-dsetup-body strong {
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+.fk-dsetup-body code,
+.fk-dsetup-faq code {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--neutral-100);
+  font-family: inherit;
+  font-size: 0.95em;
+  color: var(--color-text-primary);
+}
+.fk-dsetup-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--blue-700);
+  text-decoration: none;
+}
+.fk-dsetup-table {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 4px 0 10px;
+  font-size: 13.5px;
+}
+.fk-dsetup-tr {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 0.8fr) minmax(0, 1.6fr) 84px;
+  gap: 8px;
+  align-items: center;
+}
+.fk-dsetup-th {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-tertiary);
+}
+.fk-dsetup-type {
+  font-weight: 600;
+}
+.fk-dsetup-ttl {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+.fk-dsetup-tip {
+  margin: 0 0 14px !important;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--blue-50);
+  color: var(--blue-900, var(--color-text-primary)) !important;
+}
+.fk-dsetup-provider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+  font-size: 13.5px;
+  color: var(--color-text-secondary);
+}
+.fk-dsetup-select {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.fk-dsetup-select select {
+  appearance: none;
+  height: 34px;
+  padding: 0 34px 0 12px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--neutral-0);
+  box-shadow: inset 0 0 0 1px var(--neutral-200);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.fk-dsetup-select svg {
+  position: absolute;
+  right: 12px;
+  pointer-events: none;
+  color: var(--color-text-secondary);
+}
+.fk-dsetup-howto {
+  margin: 0;
+  padding-left: 20px;
+  list-style: decimal;
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+.fk-dsetup-howto li + li {
+  margin-top: 4px;
+}
+.fk-dsetup-seen {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 2px 0 10px !important;
+  color: var(--color-text-primary) !important;
+}
+.fk-dsetup-seen svg {
+  margin-top: 2px;
+  color: var(--color-text-tertiary);
+}
+.fk-dsetup-seen[data-tone="ok"] svg {
+  color: var(--green-600);
+}
+.fk-dsetup-seen[data-tone="bad"] svg {
+  color: var(--red-600);
+}
+.fk-dsetup-detail {
+  font-size: 13px !important;
+}
+.fk-dsetup-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.fk-dsetup-actions .fk-proprow-hint {
+  flex: 1 1 260px;
+  font-size: 12.5px;
+}
+.fk-dsetup-help {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 42px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.fk-dsetup-help[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+.fk-dsetup-faq {
+  margin: 10px 0 0 42px;
+  padding-left: 18px;
+  list-style: disc;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+.fk-dsetup-faq li + li {
+  margin-top: 6px;
+}
+.fk-dsetup-faq strong {
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+.fk-spin {
+  animation: fk-spin 0.9s linear infinite;
+}
+@keyframes fk-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (max-width: 640px) {
+  .fk-dsetup-tr {
+    grid-template-columns: 54px minmax(0, 1fr);
+  }
+  .fk-dsetup-th {
+    display: none;
+  }
+  .fk-dsetup-tr > span:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+  .fk-dsetup-ttl {
+    display: none;
+  }
+  .fk-dsetup-help,
+  .fk-dsetup-faq {
+    margin-left: 0;
+  }
+  .fk-dsetup-steps > li {
+    gap: 10px;
+  }
+}
+.fk-dsetup-tr > span {
+  min-width: 0;
+}
+.fk-dsetup-tr .fk-dns-cell {
+  width: 100%;
+}
+.fk-dsetup-select {
+  max-width: 100%;
+  min-width: 0;
+}
+.fk-dsetup-select select {
+  max-width: 100%;
+  text-overflow: ellipsis;
+}

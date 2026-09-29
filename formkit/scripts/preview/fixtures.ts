@@ -986,6 +986,14 @@ export const QUERIES: Record<string, unknown> = {
   "admin:users": STAFF_USERS,
   "admin:usersPage": { total: 10020, page: 0, pageSize: 20, rows: STAFF_USERS },
   "admin:user": STAFF_USERS[0],
+  "action:domains:inspect": {
+    provider: { id: "namecheap", name: "Namecheap" },
+    nameservers: ["dns1.registrar-servers.com", "dns2.registrar-servers.com"],
+    cname: [],
+    a: [],
+    pointsHere: false,
+    proxied: false,
+  },
   "domains:mine": {
     configured: true,
     domains: [
@@ -993,6 +1001,7 @@ export const QUERIES: Record<string, unknown> = {
         _id: "d1",
         owner: "me",
         host: "forms.mayaortiz.design",
+        apex: "mayaortiz.design",
         status: "pending",
         records: [{ type: "CNAME", name: "forms", value: "cname.vercel-dns.com" }],
         detail: "Waiting for the DNS record. Changes can take up to a few hours to spread.",

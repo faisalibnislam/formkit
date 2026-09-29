@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/Toast";
 import { ProChip } from "@/components/plan/UpgradeSheet";
 import { openUpgrade, upgradeOnPlanError, useGate } from "@/components/plan/usePlan";
 import { Panel, errorText } from "./bits";
+import { DomainSetup, useDomainCheck } from "./DomainSetup";
 
 /** DNS records to copy into the customer's DNS provider. */
 export function DnsRecords({ records }: { records: { type: string; name: string; value: string; priority?: number }[] }) {
@@ -75,10 +76,10 @@ export function DomainsPanel({
   const data = useQuery(api.domains.mine, {});
   const add = useMutation(api.domains.add);
   const remove = useMutation(api.domains.remove);
-  const checkNow = useAction(api.domains.checkNow);
+  const check = useDomainCheck();
   const gate = useGate("domains");
   const [host, setHost] = useState("");
-  const [owner, setOwner] = useState<string>("me");
+  const [owner, setOwner] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
   const free = identities.filter((i) => !data?.domains.some((d) => d.owner === i.value));
@@ -89,40 +90,16 @@ export function DomainsPanel({
       lede="Put your forms on a domain of your own: forms.acme.com/intake instead of formkit.app/acme/intake. The formkit.app link keeps working too."
       aside={gate.locked ? <ProChip onClick={() => openUpgrade({ feature: "domains" })} /> : null}
     >
-      {data && !data.configured && !gate.locked && (
-        <p className="fk-proprow-hint" style={{ margin: "0 0 12px" }}>
-          Custom domains are being switched on for Formkit. You can add yours now; it connects as soon as they are.
-        </p>
-      )}
-
       {(data?.domains ?? []).map((d) => (
         <div key={d._id} className="fk-domainrow">
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <div className="fk-domainrow-head">
             <Globe size={17} strokeWidth={1.8} aria-hidden />
             <strong style={{ fontWeight: 500 }}>{d.host}</strong>
             <StatusBadge status={d.status} />
-            <span className="fk-proprow-hint">for {d.identity.name}</span>
+            <span className="fk-proprow-hint" style={{ margin: 0 }}>
+              for {d.identity.name}
+            </span>
             <span style={{ flex: 1 }} />
-            {d.status !== "active" && (
-              <Button
-                variant="ghost"
-                size="sm"
-                iconLeft={<RefreshCw size={15} strokeWidth={1.8} aria-hidden />}
-                disabled={busy === d._id}
-                onClick={async () => {
-                  setBusy(d._id);
-                  try {
-                    await checkNow({ domainId: d._id });
-                  } catch (e) {
-                    toast(errorText(e, "That check did not run."));
-                  } finally {
-                    setBusy(null);
-                  }
-                }}
-              >
-                {busy === d._id ? "Checking…" : "Check now"}
-              </Button>
-            )}
             <Button
               variant="ghost"
               size="sm"
@@ -136,16 +113,26 @@ export function DomainsPanel({
             </Button>
           </div>
           {d.status === "active" ? (
-            <p className="fk-proprow-hint" style={{ margin: "8px 0 0" }}>
-              Live. Share links for {d.identity.name}&rsquo;s forms now use {d.host}.
+            <p className="fk-domain-live">
+              Connected. Share links for {d.identity.name}&rsquo;s forms now use{" "}
+              <a href={`https://${d.host}`} target="_blank" rel="noreferrer">
+                {d.host}
+              </a>
+              .
             </p>
           ) : (
-            <>
-              <p className="fk-proprow-hint" style={{ margin: "8px 0 10px" }}>
-                {d.detail ?? "Add this record where your domain's DNS is managed."}
-              </p>
-              <DnsRecords records={d.records} />
-            </>
+            <DomainSetup
+              domainId={d._id}
+              host={d.host}
+              apex={d.apex}
+              records={d.records}
+              status={d.status}
+              detail={d.detail}
+              checkedAt={d.checkedAt}
+              configured={!!data?.configured}
+              checking={check.busy === d._id}
+              onCheck={() => check.run(d._id)}
+            />
           )}
         </div>
       ))}
@@ -164,7 +151,7 @@ export function DomainsPanel({
             <Field label="For">
               <Select
                 ariaLabel="Which identity"
-                value={owner}
+                value={owner ?? (free[0]!.value as string)}
                 onChange={setOwner}
                 options={free.map((i) => ({ value: i.value as string, label: i.label }))}
               />
@@ -175,7 +162,7 @@ export function DomainsPanel({
             onClick={gate.guard(async () => {
               setBusy("add");
               try {
-                const target = free.length > 1 ? owner : (free[0]!.value as string);
+                const target = free.length > 1 ? (owner ?? (free[0]!.value as string)) : (free[0]!.value as string);
                 await add({ host, owner: target as "me" | Id<"companies"> });
                 setHost("");
                 toast("Domain added", { detail: "Now add the DNS record shown." });
@@ -191,7 +178,8 @@ export function DomainsPanel({
         </div>
       )}
       <p className="fk-proprow-hint" style={{ margin: "14px 0 0" }}>
-        A subdomain like forms.acme.com is simplest: one CNAME record. Each company, and you, can have one.
+        Use a subdomain like forms.acme.com: it needs one CNAME record and leaves your main website alone. You and each
+        company can have one domain.
       </p>
     </Panel>
   );
