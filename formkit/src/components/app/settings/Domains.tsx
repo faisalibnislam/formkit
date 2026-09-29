@@ -64,8 +64,8 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 /**
- * Settings → Company → Custom domains: forms.acme.com for the person or any
- * of their companies. One domain per identity.
+ * Settings → Company → Custom domains: forms.acme.com for the company being
+ * worked in (the person's own, or any other). One domain per company.
  */
 export function DomainsPanel({
   identities,
@@ -111,17 +111,19 @@ export function DomainsPanel({
                 {check.busy === d._id ? "Checking…" : "Check again"}
               </Button>
             )}
-            <Button
-              variant="ghost"
-              size="sm"
-              iconLeft={<Trash2 size={15} strokeWidth={1.8} aria-hidden />}
-              onClick={async () => {
-                await remove({ domainId: d._id });
-                toast(`${d.host} removed`, { detail: "Your formkit.app link is the link again." });
-              }}
-            >
-              Remove
-            </Button>
+            {data?.canManage && (
+              <Button
+                variant="ghost"
+                size="sm"
+                iconLeft={<Trash2 size={15} strokeWidth={1.8} aria-hidden />}
+                onClick={async () => {
+                  await remove({ domainId: d._id });
+                  toast(`${d.host} removed`, { detail: "Your formkit.app link is the link again." });
+                }}
+              >
+                Remove
+              </Button>
+            )}
           </div>
           {d.status === "active" ? (
             <p className="fk-domain-live">
@@ -148,7 +150,7 @@ export function DomainsPanel({
         </div>
       ))}
 
-      {free.length > 0 && (
+      {free.length > 0 && data?.canManage && (
         <div className="fk-domainadd">
           <Field label="Domain">
             <Input

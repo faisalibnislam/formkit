@@ -4,7 +4,8 @@ import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { QueryCtx } from "./_generated/server";
 import { requireUser } from "./model/identity";
-import { hasFeature, requireFeature } from "./model/plans";
+import { hasFeature, requireFeature, type SpaceRef } from "./model/plans";
+import { canManage, currentSpace, roleIn } from "./model/spaces";
 
 /**
  * Custom domains (Pro): forms.acme.com for one identity - the person, or one
@@ -104,6 +105,9 @@ function apexOf(host: string) {
 /* The customer's side                                                 */
 /* ------------------------------------------------------------------ */
 
+/** The company a domain belongs to. */
+const spaceOfDomain = (row: Doc<"domains">): SpaceRef => ({ ownerId: row.ownerId, brand: row.owner });
+
 async function identityOf(ctx: QueryCtx, user: Doc<"users">, owner: "me" | Id<"companies">) {
   if (owner === "me") return { name: user.name ?? "You", handle: user.handle ?? null };
   const company = await ctx.db.get(owner);
@@ -111,16 +115,22 @@ async function identityOf(ctx: QueryCtx, user: Doc<"users">, owner: "me" | Id<"c
   return { name: company.name, handle: company.handle ?? null };
 }
 
+/** The domain of the company being worked in (each company has at most one). */
 export const mine = query({
   args: {},
   handler: async (ctx) => {
     const user = await requireUser(ctx);
-    const rows = await ctx.db
-      .query("domains")
-      .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
-      .collect();
+    const space = await currentSpace(ctx, user);
+    const owner = (await ctx.db.get(space.ownerId))!;
+    const rows = (
+      await ctx.db
+        .query("domains")
+        .withIndex("by_owner", (q) => q.eq("ownerId", space.ownerId))
+        .collect()
+    ).filter((d) => d.owner === space.brand);
     return {
       configured: !!process.env.VERCEL_API_TOKEN && !!process.env.VERCEL_PROJECT_ID,
+      canManage: canManage(await roleIn(ctx, space, user._id)),
       domains: await Promise.all(
         rows.map(async (d) => ({
           _id: d._id,
@@ -132,7 +142,7 @@ export const mine = query({
           apex: apexOf(d.host),
           detail: d.detail ?? null,
           checkedAt: d.checkedAt ?? null,
-          identity: await identityOf(ctx, user, d.owner).catch(() => ({ name: "A removed company", handle: null })),
+          identity: await identityOf(ctx, owner, d.owner).catch(() => ({ name: "A removed company", handle: null })),
         })),
       ),
     };
@@ -140,12 +150,19 @@ export const mine = query({
 });
 
 export const add = mutation({
-  args: { host: v.string(), owner: v.union(v.literal("me"), v.id("companies")) },
+  // `owner` is kept for older clients; the domain is always for the company being worked in.
+  args: { host: v.string(), owner: v.optional(v.union(v.literal("me"), v.id("companies"))) },
   returns: v.id("domains"),
-  handler: async (ctx, { host: raw, owner }) => {
-    const user = await requireUser(ctx);
+  handler: async (ctx, { host: raw }) => {
+    const me = await requireUser(ctx);
+    const space = await currentSpace(ctx, me);
+    if (!canManage(await roleIn(ctx, space, me._id))) {
+      throw new ConvexError("Only the company’s owner and admins can add a domain.");
+    }
+    const owner = space.brand;
+    const user = (await ctx.db.get(space.ownerId))!;
     // The company the domain is for must be on a plan with custom domains.
-    await requireFeature(ctx, { ownerId: user._id, brand: owner }, "domains");
+    await requireFeature(ctx, space, "domains");
     const host = cleanHost(raw);
     if (!HOST.test(host)) throw new ConvexError("That does not look like a domain. Try something like forms.acme.com.");
     if (OURS.some((o) => host === o || host.endsWith(`.${o}`))) throw new ConvexError("Use a domain of your own.");
@@ -162,7 +179,7 @@ export const add = mutation({
       .query("domains")
       .withIndex("by_host", (q) => q.eq("host", host))
       .first();
-    if (taken) throw new ConvexError(taken.ownerId === user._id ? "You have already added that domain." : "That domain is connected to another account.");
+    if (taken) throw new ConvexError(taken.ownerId === user._id ? "That domain is already added to one of your companies." : "That domain is connected to another account.");
 
     const mineRows = await ctx.db
       .query("domains")
@@ -189,7 +206,10 @@ export const remove = mutation({
   handler: async (ctx, { domainId }) => {
     const user = await requireUser(ctx);
     const row = await ctx.db.get(domainId);
-    if (!row || row.ownerId !== user._id) return null;
+    if (!row) return null;
+    if (!canManage(await roleIn(ctx, spaceOfDomain(row), user._id))) {
+      throw new ConvexError("Only the company’s owner and admins can remove its domain.");
+    }
     await ctx.db.delete(domainId);
     await ctx.scheduler.runAfter(0, internal.domains.detach, { host: row.host });
     return null;
@@ -321,7 +341,7 @@ export const ownRow = internalQuery({
   handler: async (ctx, { domainId }) => {
     const user = await requireUser(ctx);
     const row = await ctx.db.get(domainId);
-    return row && row.ownerId === user._id ? row : null;
+    return row && (await roleIn(ctx, spaceOfDomain(row), user._id)) ? row : null;
   },
 });
 
