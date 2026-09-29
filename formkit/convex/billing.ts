@@ -447,11 +447,30 @@ export const buyCredits = action({
   },
 });
 
+/**
+ * Polar's customer portal for this person. Seat-based plans make them a
+ * "team" customer in Polar, whose portal opens as one of its members: the
+ * owner member, or else a billing manager. The portal has a way back here.
+ */
 async function portalUrl(userId: Id<"users">) {
-  const res = await polar<{ customer_portal_url: string }>("/v1/customer-sessions/", {
-    external_customer_id: userId,
-  });
-  return { url: res.customer_portal_url };
+  const body = { external_customer_id: userId, return_url: `${SITE}/app/settings?tab=plan` };
+  const open = (extra: Record<string, string> = {}) =>
+    polar<{ customer_portal_url: string }>("/v1/customer-sessions/", { ...body, ...extra }).then((r) => ({ url: r.customer_portal_url }));
+  try {
+    return await open();
+  } catch (e) {
+    const said = e instanceof ConvexError && typeof e.data === "string" ? e.data : "";
+    if (!said.includes("member_id")) throw e;
+  }
+  const members = await polar<{ items: { id: string; role: string }[] }>(
+    `/v1/customers/external/${encodeURIComponent(userId)}/members?limit=100`,
+    undefined,
+    "GET",
+  );
+  const member =
+    members.items.find((m) => m.role === "owner") ?? members.items.find((m) => m.role === "billing_manager");
+  if (!member) throw new ConvexError("Polar has no billing contact on your account yet. Write to us and we will sort it out.");
+  return await open({ member_id: member.id });
 }
 
 /** What a company's subscription needs to follow its member count. */
