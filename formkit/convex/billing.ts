@@ -78,17 +78,17 @@ async function productFor(
   plan: Exclude<PlanId, "free">,
   interval: Interval,
   taken: Set<string>,
-): Promise<string> {
+): Promise<{ id: string; key: string }> {
   const base = `${plan}_${interval}_seat` as const;
   if (!products[base]) throw new ConvexError("That plan is not on sale yet. Try again soon.");
   for (let n = 1; n <= 50; n++) {
     const key = (n === 1 ? base : `${base}_${n}`) as keyof Products;
     const id = products[key];
-    if (id && !taken.has(id)) return id;
+    if (id && !taken.has(id)) return { id, key };
     if (!id) {
       const made = await polar<{ id: string }>("/v1/products/", seatProductBody(plan, interval));
       await ctx.runMutation(internal.billing.addProduct, { key, id: made.id });
-      return made.id;
+      return { id: made.id, key: `${key} (new)` };
     }
   }
   throw new ConvexError("Too many companies on this plan for one account. Write to us and we will sort it out.");
@@ -219,7 +219,14 @@ export const checkout = action({
     // What the payer already has running in Polar, brought up to date first.
     const wasLive = me.live;
     const running = await syncWith(ctx, me.live ? me.payer._id : me._id, wasLive ? "before changing plan" : "before checkout").catch(
-      () => [] as PolarSubscription[],
+      async (e: unknown) => {
+        await ctx.runMutation(internal.billing.logEvent, {
+          type: "sync failed",
+          ok: false,
+          note: `Could not ask Polar what is running: ${e instanceof ConvexError ? String(typeof e.data === "string" ? e.data : (e.data as { message?: string })?.message) : String(e)}. Does POLAR_ACCESS_TOKEN allow reading customers and subscriptions?`,
+        });
+        return [] as PolarSubscription[];
+      },
     );
     me = await ctx.runQuery(internal.billing.me, {});
     // A subscription Formkit had missed: it is on the plan it paid for now.
@@ -238,7 +245,7 @@ export const checkout = action({
         const product = await productFor(ctx, me.products, plan, interval, taken);
         const updated = await polar<PolarSubscription>(
           `/v1/subscriptions/${me.subscription}`,
-          { product_id: product, proration_behavior: "prorate" },
+          { product_id: product.id, proration_behavior: "prorate" },
           "PATCH",
         );
         await applyPolar(ctx, "changed plan", updated, me.space);
@@ -247,8 +254,16 @@ export const checkout = action({
     }
 
     const product = await productFor(ctx, me.products, plan, interval, taken);
+    const names = Object.fromEntries(Object.entries(me.products).map(([k, id]) => [id, k]));
+    await ctx.runMutation(internal.billing.logEvent, {
+      type: "checkout",
+      ok: true,
+      note: `Checkout for ${me.company ?? "a personal company"} (${me.email ?? me._id}) on ${product.key}. Polar has ${
+        running?.length ?? 0
+      } running for this person${running?.length ? `: ${running.map((x) => names[x.product_id ?? x.product?.id ?? ""] ?? x.product_id).join(", ")}` : ""}. If Polar still says "already have an active subscription", its one-subscription-per-customer setting is on.`,
+    });
     const res = await polar<{ url: string }>("/v1/checkouts/", {
-      products: [product],
+      products: [product.id],
       seats: Math.max(1, me.seats),
       external_customer_id: me._id,
       ...(me.email ? { customer_email: me.email } : {}),
