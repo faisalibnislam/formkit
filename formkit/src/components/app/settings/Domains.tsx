@@ -64,7 +64,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 /**
- * Settings → Companies → Custom domains: forms.acme.com for the person or any
+ * Settings → Company → Custom domains: forms.acme.com for the person or any
  * of their companies. One domain per identity.
  */
 export function DomainsPanel({

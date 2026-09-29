@@ -29,11 +29,12 @@ import { PublicPage } from "@/components/site/PublicPage";
 import { PricingPlans } from "@/components/site/PricingPlans";
 import { JsonLd, breadcrumb, faqPage } from "@/components/site/JsonLd";
 import { SHARE_IMAGE, SITE_URL } from "@/lib/site";
-import { FEATURES, PLANS, type Feature, type PlanId } from "../../../convex/model/plans";
+import { PER_SEAT_NOTE } from "@/components/plan/PlanCards";
+import { CREDIT_COST, CREDIT_PACKS, FEATURES, PLANS, type Feature, type PlanId } from "../../../convex/model/plans";
 
 const TITLE = "Pricing: Free, Pro and Business";
 const DESCRIPTION =
-  "Formkit is free to start, with unlimited forms and responses. Pro ($3 a month) adds your own domain, branding and integrations; Business ($10 a month) adds your team.";
+  "Formkit is free to start, with unlimited forms, responses and members. Pro ($6 a seat a month) adds your own domain, integrations and AI on responses; Business ($19 a seat a month) adds team controls.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -62,18 +63,37 @@ const EVERYONE: { icon: typeof Check; title: string; line: string }[] = [
   { icon: ShieldCheck, title: "Spam protection", line: "A quiet check, plus limits on floods." },
 ];
 
-const ALLOWANCES: { label: string; unit?: string; value: (p: PlanId) => number | null; show: (p: PlanId) => string }[] = [
-  { label: "Ask Formkit credits a month", value: (p) => PLANS[p].aiCredits, show: (p) => String(PLANS[p].aiCredits) },
-  { label: "Largest upload", value: (p) => PLANS[p].uploadMb, show: (p) => `${PLANS[p].uploadMb} MB` },
+const ALLOWANCES: { label: string; note?: string; value: (p: PlanId) => number | null; show: (p: PlanId) => string }[] = [
   {
-    label: "Collaborators on a form",
-    value: (p) => PLANS[p].collaborators,
-    show: (p) => (PLANS[p].collaborators === null ? "Unlimited" : String(PLANS[p].collaborators)),
+    label: "New forms built by AI",
+    note: "A month, per seat on paid plans",
+    value: (p) => PLANS[p].ai.builds,
+    show: (p) => String(PLANS[p].ai.builds),
   },
   {
-    label: "Companies and brands",
-    value: (p) => PLANS[p].companies,
-    show: (p) => (PLANS[p].companies === null ? "Unlimited" : String(PLANS[p].companies)),
+    label: "AI edits to questions, logic and themes",
+    note: "A month, per seat on paid plans",
+    value: (p) => PLANS[p].ai.edits,
+    show: (p) => String(PLANS[p].ai.edits),
+  },
+  {
+    label: "Responses AI works on",
+    note: "Replies, AI logic and pulled facts",
+    value: (p) => PLANS[p].ai.responses,
+    show: (p) => (PLANS[p].ai.responses ? String(PLANS[p].ai.responses) : "None"),
+  },
+  {
+    label: "AI insights reports",
+    note: "A month, per seat on paid plans",
+    value: (p) => PLANS[p].ai.reports,
+    show: (p) => (PLANS[p].ai.reports ? String(PLANS[p].ai.reports) : "None"),
+  },
+  { label: "Largest upload", value: (p) => PLANS[p].uploadMb, show: (p) => `${PLANS[p].uploadMb} MB` },
+  {
+    label: "Guests on a form",
+    note: "Besides the company’s members",
+    value: (p) => PLANS[p].collaborators,
+    show: (p) => (PLANS[p].collaborators === null ? "Unlimited" : String(PLANS[p].collaborators)),
   },
   {
     label: "Version history",
@@ -94,19 +114,35 @@ function barFor(row: (typeof ALLOWANCES)[number], p: PlanId) {
 const FAQS = [
   {
     q: "Is the Free plan really free?",
-    a: "Yes, for as long as you like, with no card. Unlimited forms and responses, every question type, logic, partial responses, drop-off, themes and your own formkit.app link are all on Free.",
+    a: "Yes, for as long as you like, with no card. Unlimited forms and responses, every question type, logic, partial responses, drop-off, themes, your own formkit.app link and unlimited members are all on Free.",
+  },
+  {
+    q: "What is a company?",
+    a: "A workspace with its own forms, responses, brand, members and plan. Everyone starts with a personal company, and you can make as many more as you like, one for each business or client. Each company is upgraded on its own, so a paid plan for one does not touch the others.",
+  },
+  {
+    q: "How does per seat pricing work?",
+    a: "Every member of a company is one seat, you included. Pro is $6 a seat a month and Business $19, so a company of three on Pro pays $18 a month. Seats follow your members: add someone and the next bill adds a seat, remove them and it drops. Guests invited to a single form are free and never count as a seat.",
   },
   {
     q: "What does Pro add?",
-    a: "Looking like your own brand (a custom domain, no “Made with Formkit”, emails from your domain, your fonts and CSS), plus webhooks, Slack, Google Sheets, payments, smarter forms, unlimited collaborators and up to five companies.",
+    a: "Looking like your own brand (a custom domain, no “Made with Formkit”, emails from your domain, your fonts and CSS), webhooks, Slack, Google Sheets, payments, calculations and several endings, quizzes, unlimited guests on every form, and AI on your responses: replies written for each person, logic that reads answers, and insights reports.",
   },
   {
     q: "Who is Business for?",
-    a: "Teams and agencies: AI replies written for every person who answers (30 a month, then $5 for 100 more that roll over), AI insights on responses, AI logic that reads answers, quizzes and exams with a timer and marking, a team with unlimited seats, unlimited brands, shared templates, approval before publishing, an audit log, retention rules, API access and company sign-in.",
+    a: "Teams and agencies. It has everything in Pro with bigger AI allowances, plus approval before publishing, templates shared across the company, an audit log, retention rules, API access and company sign-in.",
+  },
+  {
+    q: "How do the AI allowances work?",
+    a: "Each seat adds its allowance to one pool the whole company shares, and the pool refills on the first of every month. A Pro company of three gets 150 AI form builds, 75 AI edits, 60 responses AI works on and 9 insights reports a month, used by whoever needs them. Free has 3 builds and 10 edits a month for the company, however many members it has.",
+  },
+  {
+    q: "What happens when the AI allowance runs out?",
+    a: "Nothing stops working unless you want it to. Buy AI credits and they are used once the month’s allowance is gone: a form build is 2 credits, an edit 1, a response AI works on 1 and an insights report 3. Packs are $5 for 100, $20 for 420 and $50 for 1,050, and credits last 12 months. Free companies can use credits for builds and edits.",
   },
   {
     q: "Can I switch between monthly and yearly?",
-    a: "Yes. Yearly works out cheaper. Pro is $35 instead of $36, Business $99 instead of $120. Change it from Settings → Plan whenever you like.",
+    a: "Yes. Yearly is two months free: Pro is $60 a seat a year instead of $72, Business $190 instead of $228. Change it from Settings → Plan whenever you like.",
   },
   {
     q: "Can I cancel any time?",
@@ -131,7 +167,8 @@ const groups = [...new Set(Object.values(FEATURES).map((f) => f.group))];
 const GROUP_ICON: Record<string, typeof Check> = {
   "Your brand": Palette,
   Responses: Inbox,
-  "Smarter forms": Sparkles,
+  "Smarter forms": GitBranch,
+  AI: Sparkles,
   Teams: Users,
   Connections: Webhook,
   Control: ShieldCheck,
@@ -193,8 +230,8 @@ export default function PricingPage() {
               <span>Simple when you grow.</span>
             </h1>
             <p className="fk-price-sub">
-              Unlimited forms and responses on Free, for as long as you like. Pro puts your own brand and tools on it;
-              Business brings your whole team.
+              Unlimited forms, responses and members on Free, for as long as you like. Pro puts your own brand, tools
+              and AI on it; Business adds the controls a team needs. Paid plans are per seat, company by company.
             </p>
             <ul className="fk-price-trust">
               <li>
@@ -318,11 +355,11 @@ export default function PricingPage() {
                 </span>
                 <h2 className="fk-price-h2">Built for the whole team.</h2>
                 <p className="fk-price-lede">
-                  Everyone on every form, with the controls an organisation needs.
+                  Everything in Pro, with the controls an organisation needs.
                 </p>
                 <ul className="fk-price-biz-list">
                   <li>
-                    <Users size={16} strokeWidth={1.8} aria-hidden /> Unlimited seats and brands
+                    <Sparkles size={16} strokeWidth={1.8} aria-hidden /> Bigger AI allowances on every seat
                   </li>
                   <li>
                     <BadgeCheck size={16} strokeWidth={1.8} aria-hidden /> Approval before publishing
@@ -345,7 +382,7 @@ export default function PricingPage() {
                 <div className="fk-biz-card">
                   <div className="fk-biz-head">
                     <b>Team</b>
-                    <span>Unlimited seats</span>
+                    <span>4 seats</span>
                   </div>
                   {[
                     ["MO", "Maya Ortiz", "Admin", "#2e78bb"],
@@ -377,6 +414,7 @@ export default function PricingPage() {
               <div className="fk-price-section-head">
                 <span className="fk-price-kicker">Allowances</span>
                 <h2 className="fk-price-h2">How far each plan goes.</h2>
+                <p className="fk-price-lede">{PER_SEAT_NOTE}</p>
               </div>
               <div className="fk-price-allow">
                 <div className="fk-price-allow-head">
@@ -389,7 +427,10 @@ export default function PricingPage() {
                 </div>
                 {ALLOWANCES.map((row) => (
                   <div key={row.label} className="fk-price-allow-row">
-                    <span className="fk-price-allow-label">{row.label}</span>
+                    <span className="fk-price-allow-label">
+                      {row.label}
+                      {row.note && <small>{row.note}</small>}
+                    </span>
                     {(["free", "pro", "business"] as const).map((p) => (
                       <span key={p} className="fk-price-allow-cell" data-plan={p}>
                         <span className="fk-price-allow-val">{row.show(p)}</span>
@@ -400,6 +441,26 @@ export default function PricingPage() {
                     ))}
                   </div>
                 ))}
+              </div>
+              <div className="fk-price-credits">
+                <div className="fk-price-credits-copy">
+                  <h3>
+                    <Sparkles size={16} strokeWidth={1.8} aria-hidden /> AI credits, for when the month runs out
+                  </h3>
+                  <p>
+                    Credits are used only after the month’s allowance is gone, and last 12 months. A form build is{" "}
+                    {CREDIT_COST.builds} credits, an edit {CREDIT_COST.edits}, a response AI works on {CREDIT_COST.responses}{" "}
+                    and an insights report {CREDIT_COST.reports}. Free companies can use them for builds and edits.
+                  </p>
+                </div>
+                <ul className="fk-price-packs">
+                  {CREDIT_PACKS.map((k) => (
+                    <li key={k.key}>
+                      <b>${k.price}</b>
+                      <span>{k.credits.toLocaleString("en-US")} credits</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </section>
 
@@ -419,7 +480,7 @@ export default function PricingPage() {
                       {(["free", "pro", "business"] as const).map((p) => (
                         <th key={p} scope="col" data-plan={p}>
                           <b>{PLANS[p].name}</b>
-                          <span>{p === "free" ? "$0" : `$${PLANS[p].price.month}/mo`}</span>
+                          <span>{p === "free" ? "$0" : `$${PLANS[p].price.month} a seat`}</span>
                         </th>
                       ))}
                     </tr>
@@ -475,7 +536,7 @@ export default function PricingPage() {
             <NightSky />
             <div className="fk-price-final-inner">
               <h2>Your next form is free.</h2>
-              <p>Start on Free and upgrade the day you need your own domain, payments or your team.</p>
+              <p>Start on Free and upgrade the day you need your own domain, payments or AI on your responses.</p>
               <div className="fk-price-final-ctas">
                 <Link href="/signup" className="fk-pill fk-pill-lg fk-pill-light">
                   Start building free <ArrowRight size={16} strokeWidth={1.8} aria-hidden />

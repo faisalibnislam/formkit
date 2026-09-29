@@ -18,8 +18,9 @@ import { ControlsSection } from "./settings/Controls";
 /**
  * Account settings.
  *
- * Identity is person-first: the account is a person, companies are optional and
- * plural, and each identity can claim one link of its own.
+ * Two kinds of settings: the account's own (profile, preferences, notifications,
+ * exports) and the company being worked in (its details and brand, members,
+ * plan and controls). Every account has its own company and can make more.
  *
  * On a wide screen the sections are the header's own dock, as every other
  * page's records are; on a narrow one they sit in the page, since the band
@@ -51,11 +52,11 @@ const ALIAS: Record<string, SettingsTab> = {
 
 export const SETTINGS_TABS: { value: SettingsTab; label: string; meta: string; icon: typeof CircleUser }[] = [
   { value: "account", label: "Account", meta: "Profile and password", icon: CircleUser },
-  { value: "plan", label: "Plan", meta: "Plan, usage and billing", icon: CreditCard },
-  { value: "company", label: "Companies", meta: "Optional: links, logos and brands", icon: Store },
-  { value: "team", label: "Team", meta: "People on every form, approvals", icon: UsersRound },
+  { value: "company", label: "Company", meta: "Name, logos, link and brand", icon: Store },
+  { value: "team", label: "Members", meta: "Who works in this company", icon: UsersRound },
+  { value: "plan", label: "Plan", meta: "Seats, AI and billing", icon: CreditCard },
   { value: "general", label: "Preferences", meta: "Dashboard appearance", icon: SlidersHorizontal },
-  { value: "members", label: "Sharing", meta: "People with access", icon: Users },
+  { value: "members", label: "Guests", meta: "People on single forms", icon: Users },
   { value: "notifications", label: "Notifications", meta: "Email and alerts", icon: Bell },
   { value: "exports", label: "Exports", meta: "Excel, CSV and email", icon: Download },
   { value: "controls", label: "Controls", meta: "Audit, retention, API, sign-in", icon: ShieldCheck },

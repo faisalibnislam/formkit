@@ -99,7 +99,6 @@ export const overview = query({
     const now = Date.now();
     const since = now - range * DAY;
     const week = now - 7 * DAY;
-    const period = new Date().toISOString().slice(0, 7);
     const customers = users.filter((u) => !u.staffRole);
 
     // Sign-ups a day across the range, oldest first.
@@ -191,7 +190,6 @@ async function describeUser(ctx: Parameters<typeof aiStatus>[0], u: Doc<"users">
     .query("forms")
     .withIndex("by_owner", (q) => q.eq("ownerId", u._id))
     .collect();
-  const period = new Date().toISOString().slice(0, 7);
   return {
     _id: u._id,
     name: u.name ?? "",
@@ -526,7 +524,6 @@ export const aiStats = query({
   args: { search: v.optional(v.string()), show: v.optional(v.union(v.literal("on"), v.literal("off"), v.literal("all"))) },
   handler: async (ctx, { search, show = "on" }) => {
     await requireStaff(ctx, "ai.access");
-    const period = new Date().toISOString().slice(0, 7);
     const access = await ctx.db.query("aiAccess").collect();
     const byUser = new Map(access.map((a) => [a.userId as string, a]));
     const freeDefault = (await platformValue<number>(ctx, "aiDefault")) ?? PLANS.free.ai.builds;

@@ -5,7 +5,7 @@
  * be put side by side with the design it is meant to be.
  */
 
-import { planSummary } from "../../convex/model/plans";
+import { CREDIT_COST, CREDIT_PACKS, PLANS, planSummary } from "../../convex/model/plans";
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
@@ -291,6 +291,18 @@ const CONTACTS = PEOPLE.map(([name, email, formId, ago, partial, status], i) => 
   forms: i === 0 ? [FORM_TITLES[formId]!, "Contact"] : [FORM_TITLES[formId]!],
 }));
 
+/** Seats in the company being shown: Studio Nine has three members besides Maya. */
+const SPACE_SEATS = () => (flag("fk_space") === "me" ? 1 : 4);
+
+/** The company's AI this month, as `aiStatus` reports it. */
+function aiStatusFixture() {
+  const plan = VIEWER.plan.id;
+  const pool = VIEWER.plan.limits.ai;
+  const used = { builds: 7, edits: 18, responses: plan === "free" ? 0 : 22, reports: plan === "free" ? 0 : 2 };
+  const left = Object.fromEntries(Object.entries(pool).map(([k, n]) => [k, Math.max(0, n - used[k as keyof typeof used])]));
+  return { plan, seats: SPACE_SEATS(), pool, used, left, credits: 86 };
+}
+
 const COMPANIES = [
   {
     _id: "c1",
@@ -368,14 +380,32 @@ export const VIEWER = {
   get plan() {
     const id = (flag("fk_plan") ?? "pro") as "free" | "pro" | "business";
     const state = flag("fk_plan_state");
-    return planSummary({
-      plan: id,
-      planInterval: "year",
-      planStatus: state === "past_due" ? "past_due" : "active",
-      planEndsAt: state ? now + 12 * DAY : undefined,
-      planCancelAtPeriodEnd: state === "cancelled",
-      polarCustomerId: id === "free" ? undefined : "cus_preview",
-    } as unknown as Parameters<typeof planSummary>[0]);
+    return planSummary(
+      id,
+      {
+        plan: id,
+        planInterval: "year",
+        planStatus: state === "past_due" ? "past_due" : "active",
+        planEndsAt: state ? now + 12 * DAY : undefined,
+        planCancelAtPeriodEnd: state === "cancelled",
+        polarCustomerId: id === "free" ? undefined : "cus_preview",
+      } as unknown as Parameters<typeof planSummary>[1],
+      SPACE_SEATS(),
+      id !== "free",
+    );
+  },
+  /** ?fk_space=me shows the personal company; otherwise Studio Nine. */
+  get space() {
+    const me = flag("fk_space") === "me";
+    return {
+      key: me ? "me:u1" : "c1",
+      kind: me ? "me" : "company",
+      companyId: me ? null : "c1",
+      ownerId: "u1",
+      name: me ? "Maya Ortiz" : "Studio Nine",
+      imageUrl: null,
+      role: "owner",
+    };
   },
   ai: { allowed: true, used: 3, limit: 50, live: true },
   companies: COMPANIES,
@@ -548,6 +578,25 @@ export const QUERIES: Record<string, unknown> = {
   "users:viewer": VIEWER,
   "flags:mine": { "ai.live": true, "ai.brief": true, "forms.partials": true, "app.dark": true, "exports.xlsx": true },
   "companies:list": COMPANIES.map((c) => ({ ...c, formCount: 4, logoId: null, ownerId: "u1" })),
+  get "companies:current"() {
+    if (flag("fk_space") === "me") return null;
+    return { ...COMPANIES[0], formCount: 4, logoId: null, ownerId: "u1", mine: true, canManage: true };
+  },
+  get "spaces:list"() {
+    const plan = VIEWER.plan.id;
+    return {
+      current: VIEWER.space.key,
+      spaces: [
+        { key: "me:u1", kind: "me", name: "Maya Ortiz", imageUrl: null, role: "owner", plan: "free", seats: 1, mine: true },
+        { key: "c1", kind: "company", name: "Studio Nine", imageUrl: null, role: "owner", plan, seats: 4, mine: true },
+        { key: "c2", kind: "company", name: "Northstar Labs", imageUrl: null, role: "owner", plan: "free", seats: 1, mine: true },
+        { key: "c9", kind: "company", name: "Fieldnote", imageUrl: null, role: "editor", plan: "business", seats: 12, mine: false },
+      ],
+    };
+  },
+  get "credits:status"() {
+    return { ...aiStatusFixture(), costs: CREDIT_COST, packs: CREDIT_PACKS };
+  },
   "forms:list": {
     counts: { all: 6, draft: 1, published: 4, closed: 1, archived: 0, deleted: 2, shared: 1 },
     forms: FORMS.map((f) => ({ ...f, sharedAs: null })),
@@ -959,7 +1008,9 @@ export const QUERIES: Record<string, unknown> = {
       { title: "Explain photosynthesis in a sentence.", given: "Plants turn light, water and CO₂ into sugar and oxygen.", got: 3, max: 3, manual: false, answer: null },
     ],
   },
-  "aiReply:usage": { plan: "business", replies: { monthly: 30, used: 22, credits: 100, left: 108 }, checks: { limit: 1000, used: 318 }, pack: { price: 5, replies: 100 } },
+  get "aiReply:usage"() {
+    return aiStatusFixture();
+  },
   "action:aiReply:tryIt": {
     subject: "Your project with Studio Nine, John",
     reply: "Hi John,\n\nThanks for telling us about the new marketing site and booking flow. Sites that let people book in two or three taps usually turn far more visits into enquiries, so you're right to put that first.\n\nWe'd start with a short discovery session, then design the booking flow alongside the pages so they feel like one thing.\n\nIf it helps, book a free 20-minute call and we'll sketch a plan together.",
@@ -1112,15 +1163,27 @@ export const QUERIES: Record<string, unknown> = {
     calcNames: ["total"],
     currencies: ["usd", "eur", "gbp", "cad", "aud", "inr", "bdt", "jpy"],
   },
-  "team:overview": {
-    members: [
-      { _id: "t1", email: "ravi@studionine.co", name: "Ravi Menon", role: "admin", status: "active", invitedAt: now - 20 * DAY },
-      { _id: "t2", email: "priya@studionine.co", name: "Priya Shah", role: "editor", status: "active", invitedAt: now - 9 * DAY },
-      { _id: "t3", email: "leo@studionine.co", name: null, role: "viewer", status: "pending", invitedAt: now - 2 * HOUR },
-    ],
-    teams: [],
-    approvals: true,
-    enabled: true,
+  get "team:overview"() {
+    const me = flag("fk_space") === "me";
+    const plan = VIEWER.plan.id;
+    return {
+      company: me ? "Maya Ortiz" : "Studio Nine",
+      owner: { name: "Maya Ortiz", email: "maya@studionine.co", me: true },
+      members: me
+        ? []
+        : [
+            { _id: "t1", email: "ravi@studionine.co", name: "Ravi Menon", role: "admin", status: "active", invitedAt: now - 20 * DAY, me: false },
+            { _id: "t2", email: "priya@studionine.co", name: "Priya Shah", role: "editor", status: "active", invitedAt: now - 9 * DAY, me: false },
+            { _id: "t3", email: "leo@studionine.co", name: null, role: "viewer", status: "pending", invitedAt: now - 2 * HOUR, me: false },
+          ],
+      myRole: "owner",
+      canManage: true,
+      plan,
+      seats: SPACE_SEATS(),
+      pricePerSeat: PLANS[plan].price,
+      approvals: true,
+      elsewhere: 1,
+    };
   },
   "approvals:waiting": [
     { formId: "f2", title: "Event RSVP", by: "Priya Shah", at: now - 3 * HOUR, note: "New venue details added" },

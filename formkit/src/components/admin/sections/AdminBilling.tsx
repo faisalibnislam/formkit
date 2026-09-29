@@ -9,16 +9,27 @@ import { useToast } from "@/components/ui/Toast";
 import { errorText } from "@/components/app/settings/bits";
 
 const KEYS = [
-  ["pro_month", "Pro, monthly, $3"],
-  ["pro_year", "Pro, yearly, $35"],
-  ["business_month", "Business, monthly, $10"],
-  ["business_year", "Business, yearly, $99"],
-  ["replies_100", "AI replies, 100 for a one-off $5"],
+  ["pro_month_seat", "Pro, monthly, $6 a seat"],
+  ["pro_year_seat", "Pro, yearly, $60 a seat"],
+  ["business_month_seat", "Business, monthly, $19 a seat"],
+  ["business_year_seat", "Business, yearly, $190 a seat"],
+  ["credits_100", "AI credits, 100 for $5"],
+  ["credits_420", "AI credits, 420 for $20"],
+  ["credits_1050", "AI credits, 1,050 for $50"],
+] as const;
+
+/** The fixed-price products from before seats, kept so their subscribers are still recognised. */
+const OLDER = [
+  ["pro_month", "Pro, monthly (before seats)"],
+  ["pro_year", "Pro, yearly (before seats)"],
+  ["business_month", "Business, monthly (before seats)"],
+  ["business_year", "Business, yearly (before seats)"],
+  ["replies_100", "AI replies pack (retired)"],
 ] as const;
 
 /**
  * Billing: whether Polar is connected, who is paying, and the products: four
- * plans and the one-off pack of AI replies.
+ * seat-based plans and three packs of AI credits.
  * The secrets live in the Convex deployment's environment; this page only
  * says whether they are there.
  */
@@ -68,8 +79,8 @@ export function AdminBilling() {
             Add the secret Polar shows in Convex as <code className="fk-admin-code">POLAR_WEBHOOK_SECRET</code>
           </Step>
           <Step done={KEYS.every(([k]) => products[k])} title="3. The products">
-            Once the token is in, “Create them in Polar” below makes any that are missing (the four plans and the
-            pack of AI replies) at the listed prices. Ones already made are kept. Or paste the ids of products you
+            Once the token is in, “Create them in Polar” below makes any that are missing (the four seat-based plans
+            and three packs of AI credits) at the listed prices. Ones already made are kept. Or paste the ids of products you
             made in Polar yourself.
           </Step>
         </div>
@@ -83,7 +94,7 @@ export function AdminBilling() {
 
       <section className="fk-panel">
         <h3>Products</h3>
-        <p className="fk-panel-lede">A monthly and a yearly product for each paid plan.</p>
+        <p className="fk-panel-lede">A monthly and a yearly product for each paid plan, priced per seat, and the credit packs.</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>
           {KEYS.map(([k, label]) => (
             <Field key={k} label={label}>
@@ -95,19 +106,34 @@ export function AdminBilling() {
             </Field>
           ))}
         </div>
+        {OLDER.some(([k]) => products[k]) && (
+          <details style={{ marginTop: 16 }}>
+            <summary className="fk-admin-quiet">Older products</summary>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12, marginTop: 12 }}>
+              {OLDER.map(([k, label]) => (
+                <Field key={k} label={label}>
+                  <Input
+                    value={ids[k] ?? ""}
+                    placeholder="Product id"
+                    onChange={(e) => setDraft({ ...ids, [k]: e.target.value })}
+                  />
+                </Field>
+              ))}
+            </div>
+          </details>
+        )}
         <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
           <Button
             size="sm"
             disabled={!draft}
             onClick={async () => {
               try {
-                await saveProducts({
-                  pro_month: ids.pro_month ?? "",
-                  pro_year: ids.pro_year ?? "",
-                  business_month: ids.business_month ?? "",
-                  business_year: ids.business_year ?? "",
-                  replies_100: ids.replies_100 ?? "",
-                });
+                await saveProducts(
+                  Object.fromEntries([...KEYS, ...OLDER].map(([k]) => [k, ids[k] ?? ""])) as Record<
+                    (typeof KEYS)[number][0] | (typeof OLDER)[number][0],
+                    string
+                  >,
+                );
                 setDraft(null);
                 toast("Products saved");
               } catch (e) {

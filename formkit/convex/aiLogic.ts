@@ -32,7 +32,6 @@ const HOURLY = 300;
 /** Rules written from a description, per person per day. */
 const DAILY_DESCRIBE = 40;
 
-const month = () => new Date().toISOString().slice(0, 7);
 const today = () => new Date().toISOString().slice(0, 10);
 
 async function sha(text: string) {

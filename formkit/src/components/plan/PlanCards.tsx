@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Check } from "lucide-react";
-import { PLANS, REPLY_PACK, type Interval, type PlanId } from "../../../convex/model/plans";
+import { PLANS, type Interval, type PlanId } from "../../../convex/model/plans";
 
 /**
  * The three plans side by side. Presentational only - no hooks - so the
@@ -11,14 +11,15 @@ import { PLANS, REPLY_PACK, type Interval, type PlanId } from "../../../convex/m
 export const PLAN_POINTS: Record<PlanId, { lead?: string; points: string[] }> = {
   free: {
     points: [
-      "Unlimited forms and responses",
+      "Unlimited forms, responses and companies",
+      "Unlimited members in every company",
       "Every question type, pages and logic",
       "Your own link, embedding and themes",
       "Notifications and confirmation emails",
       "Partial responses and drop-off by question",
       "CSV export and analytics",
-      `${PLANS.free.collaborators} collaborators on every form, one company`,
-      `${PLANS.free.aiCredits} Ask Formkit credits a month, ${PLANS.free.uploadMb} MB uploads`,
+      `AI builds ${PLANS.free.ai.builds} forms and makes ${PLANS.free.ai.edits} edits a month`,
+      `${PLANS.free.collaborators} guests on each form, ${PLANS.free.uploadMb} MB uploads`,
     ],
   },
   pro: {
@@ -27,42 +28,43 @@ export const PLAN_POINTS: Record<PlanId, { lead?: string; points: string[] }> = 
       "Your own domain, like forms.acme.com",
       "No “Made with Formkit”, emails from your domain",
       "Custom fonts and CSS",
-      "Where people come from, and their devices",
-      `Unlimited collaborators, up to ${PLANS.pro.companies} companies`,
       "Calculations, hidden fields, answer piping, redirects",
       "Several endings, hidden options and limited places",
+      "Quizzes and exams with a timer, marking and results",
       "Webhooks, Zapier, Make, Slack and Google Sheets",
       "Take payments with your own Stripe",
-      "Excel export and an email copy of every response",
-      `${PLANS.pro.aiCredits} AI credits, ${PLANS.pro.uploadMb} MB uploads`,
+      "Excel export, where people come from, their devices",
+      `AI replies, AI logic and insights on ${PLANS.pro.ai.responses} responses a month`,
+      `AI builds ${PLANS.pro.ai.builds} forms and makes ${PLANS.pro.ai.edits} edits a month`,
+      `Unlimited guests, ${PLANS.pro.uploadMb} MB uploads`,
     ],
   },
   business: {
     lead: "Everything in Pro, and",
     points: [
-      `AI replies to every response: ${PLANS.business.aiReplies} a month, then $${REPLY_PACK.price} per ${REPLY_PACK.replies}`,
-      "AI insights: sentiment, intent and lead scores",
-      `AI logic that reads answers, ${PLANS.business.aiChecks.toLocaleString("en-US")} checks a month`,
-      "Quizzes and exams with a timer, marking and results",
-      "A team with unlimited seats",
-      "Unlimited companies and brands",
-      "Templates shared with the team",
+      `AI on ${PLANS.business.ai.responses} responses and ${PLANS.business.ai.reports} insights reports a month`,
+      `AI builds ${PLANS.business.ai.builds} forms and makes ${PLANS.business.ai.edits} edits a month`,
+      "Templates shared with the company",
       "Approval before a form goes live",
       "Audit log and data retention rules",
       "API access",
       "Sign-in with your company’s Google or Microsoft",
-      "Priority support",
-      `${PLANS.business.aiCredits} AI credits, ${PLANS.business.uploadMb} MB uploads`,
+      "Priority support and a DPA",
+      `All version history, ${PLANS.business.uploadMb} MB uploads`,
     ],
   },
 };
+
+/** The AI allowances and uploads repeat per seat: said once under the cards. */
+export const PER_SEAT_NOTE =
+  "Prices and AI allowances are per seat: every member of a company is one. A company’s seats share one AI pool. Past it, AI credits keep things going, from $5 for 100.";
 
 export function priceLine(plan: PlanId, interval: Interval) {
   const p = PLANS[plan].price;
   if (plan === "free") return { amount: "$0", per: "forever" };
   return interval === "month"
-    ? { amount: `$${p.month}`, per: "a month" }
-    : { amount: `$${p.year}`, per: "a year" };
+    ? { amount: `$${p.month}`, per: "a seat a month" }
+    : { amount: `$${p.year}`, per: "a seat a year" };
 }
 
 /** "Save $21" against paying monthly for a year, or null when it is not a saving. */
@@ -125,8 +127,8 @@ export function PlanCards({
                 {id === "free"
                   ? "No card needed"
                   : interval === "month"
-                    ? `or $${plan.price.year} a year`
-                    : `$${(plan.price.year / 12).toFixed(2)} a month, billed yearly${
+                    ? `or $${plan.price.year} a seat a year`
+                    : `$${(plan.price.year / 12).toFixed(2)} a seat a month, billed yearly${
                         saving && saving / (plan.price.month * 12) >= 0.1 ? `, save $${saving}` : ""
                       }`}
               </div>

@@ -311,7 +311,7 @@ export const FEATURES = [
     icon: "users",
     bg: "var(--blue-300)",
     title: "Collaborators",
-    body: "Invite three people to any form as Editor, Commenter or Viewer. Invite as many as you like on Pro, or your whole team on Business. Comments stay on the question they are about.",
+    body: "Invite three guests to any form as Editor, Commenter or Viewer, or as many as you like on Pro. Everyone in your company works on every form, on any plan. Comments stay on the question they are about.",
     chip: "Three roles",
   },
   {
@@ -347,7 +347,7 @@ export const FEATURES = [
 export const LANDING_FAQS = [
   {
     q: "Is Formkit free?",
-    a: "Yes. Unlimited forms and unlimited responses, free for as long as you like. Pro, at $3 a month, adds your own domain, branding and integrations; Business, at $10 a month, adds your team.",
+    a: "Yes. Unlimited forms and unlimited responses, free for as long as you like. Pro, at $6 a seat a month, adds your own domain, integrations and AI on your responses; Business, at $19 a seat a month, adds the controls a team needs.",
   },
   {
     q: "Can I use my own branding?",

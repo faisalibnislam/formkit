@@ -3,7 +3,7 @@ import { ConvexError, v } from "convex/values";
 import { internalMutation, mutation, query, type MutationCtx } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { requireUser } from "./model/identity";
-import { approvalView, audit, needsApproval, teamTemplate, teamsOf } from "./model/team";
+import { approvalView, audit, needsApproval, teamTemplate } from "./model/team";
 import { PLANS, planOfId, requireFeature } from "./model/plans";
 import { currentSpace, personalSpace, resolveSpace, roleIn, spaceForms, spaceOfForm, spacePlan } from "./model/spaces";
 import { validKey } from "./model/calc";

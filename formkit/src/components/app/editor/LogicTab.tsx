@@ -646,7 +646,7 @@ function ConditionRow({
         value={source}
         options={SOURCES.filter((s) => s.value !== "calc" || calc.length > 0).map((s) => ({
           ...s,
-          note: s.value === "ai" && ai.locked ? "Business" : undefined,
+          note: s.value === "ai" && ai.locked ? "Pro" : undefined,
         }))}
         onChange={(v) => {
           if (v === source) return;

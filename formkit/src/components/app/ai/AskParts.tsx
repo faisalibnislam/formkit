@@ -367,11 +367,11 @@ export function AskCredits({ compact }: { compact?: boolean }) {
     <div className="fk-ask-credits" data-compact={compact ? "true" : undefined}>
       <div className="fk-ask-credits-row">
         <span className="fk-ask-credits-left">
-          {left} of {limit} form {limit === 1 ? "credit" : "credits"} left
+          {left} of {limit} AI {limit === 1 ? "build" : "builds"} left
         </span>
         {!compact && <span className="fk-ask-quiet">Resets on {nextMonthLabel()}</span>}
         <button type="button" className="fk-ask-link" onClick={() => setLimitOpen(true)}>
-          How credits work
+          What counts
         </button>
       </div>
       <div className="fk-ask-ticks" aria-hidden>
@@ -383,7 +383,7 @@ export function AskCredits({ compact }: { compact?: boolean }) {
   );
 }
 
-/** What credits are, and what to do when they run out. */
+/** What the AI allowance counts, and what to do when it runs out. */
 export function AskLimitModal() {
   const { left, limit, limitOpen, setLimitOpen } = useAsk();
   const plan = usePlan();
@@ -392,7 +392,7 @@ export function AskLimitModal() {
   const out = left <= 0;
   return (
     <Modal
-      title={out ? "That is this month's forms" : "How credits work"}
+      title={out ? "That is this month's AI-built forms" : "What counts"}
       description={
         out
           ? `You have built ${limit} ${limit === 1 ? "form" : "forms"} with Ask Formkit this month.`
@@ -409,7 +409,7 @@ export function AskLimitModal() {
                 openUpgrade({ plan: next });
               }}
             >
-              Get {PLANS[next].aiCredits} a month with {PLANS[next].name}
+              Get {PLANS[next].ai.builds} a month a seat with {PLANS[next].name}
             </Button>
           )}
           <Button onClick={() => setLimitOpen(false)}>Got it</Button>
@@ -417,17 +417,17 @@ export function AskLimitModal() {
       }
     >
       <div className="fk-ask-limit">
-        <p>Building a whole new form spends one credit. Everything else is free and does not count:</p>
+        <p>Each company has a monthly AI allowance. Building a whole new form counts as one AI build. Everything else Ask Formkit does counts as one AI edit:</p>
         <ul>
           <li>Changing a draft before you open it</li>
-          <li>Adding questions to a form</li>
-          <li>Rewriting questions in another tone</li>
+          <li>Adding or rewriting questions</li>
           <li>Writing logic rules and picking a theme</li>
-          <li>Reading what the responses say</li>
+          <li>Reading what the responses say, or answering a question</li>
         </ul>
         <p>
-          Credits come back on {nextMonthLabel()}.
-          {next ? ` ${PLANS[next].name} gives you ${PLANS[next].aiCredits} a month.` : ""}
+          Both come back on {nextMonthLabel()}. Until then, AI credits keep it going: 2 for a new form, 1 for an edit,
+          under Settings → Plan.
+          {next ? ` ${PLANS[next].name} gives ${PLANS[next].ai.builds} builds a month for each seat.` : ""}
         </p>
       </div>
     </Modal>

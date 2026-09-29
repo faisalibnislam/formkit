@@ -127,11 +127,11 @@ export const RIVALS: Rival[] = [
       },
       {
         q: "Can I publish under my own domain?",
-        a: "Formkit gives you formkit.app/your-name free. A fully custom domain, like forms.acme.com, is on Formkit Pro from $3 a month; neither product offers one on a free tier.",
+        a: "Formkit gives you formkit.app/your-name free. A fully custom domain, like forms.acme.com, is on Formkit Pro from $6 a seat a month; neither product offers one on a free tier.",
       },
       {
         q: "How many people can work on a form?",
-        a: "Two per form on Formkit's free plan, as Editor, Commenter or Viewer, and a whole team with unlimited seats on Business at $10 a month.",
+        a: "Three guests per form on Formkit's free plan, as Editor, Commenter or Viewer, plus unlimited members in each company. Pro and Business allow unlimited guests.",
       },
     ],
   },

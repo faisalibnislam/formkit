@@ -704,6 +704,12 @@
 .fk-price-allow-label {
   font-size: 14.5px;
 }
+.fk-price-allow-label small {
+  display: block;
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--color-text-tertiary, var(--color-text-secondary));
+}
 .fk-price-allow-cell {
   display: flex;
   flex-direction: column;
@@ -730,6 +736,71 @@
 }
 .fk-price-allow-cell[data-plan="business"] .fk-price-allow-bar i {
   background: var(--neutral-900);
+}
+
+/* AI credits: the top-up once a month's allowance is used. */
+.fk-price-credits {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px 32px;
+  margin-top: 16px;
+  padding: 22px 24px;
+  border-radius: 24px;
+  background: var(--neutral-50);
+  box-shadow: inset 0 0 0 1px var(--neutral-150);
+}
+.fk-price-credits-copy {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+.fk-price-credits-copy h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+.fk-price-credits-copy p {
+  margin: 8px 0 0;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+.fk-price-packs {
+  display: flex;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fk-price-packs li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 96px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px var(--neutral-150);
+}
+.fk-price-packs b {
+  font-size: 18px;
+  font-weight: 600;
+}
+.fk-price-packs span {
+  font-size: 12.5px;
+  color: var(--color-text-secondary);
+}
+@media (max-width: 520px) {
+  .fk-price-packs {
+    width: 100%;
+  }
+  .fk-price-packs li {
+    flex: 1;
+    min-width: 0;
+  }
 }
 
 /* Comparison table. */

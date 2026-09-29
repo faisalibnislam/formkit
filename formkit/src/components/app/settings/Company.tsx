@@ -27,132 +27,136 @@ import { Panel, Row, errorText } from "./bits";
 import { PageSkeleton } from "../Skeleton";
 import { DomainsPanel } from "./Domains";
 import { ProChip } from "@/components/plan/UpgradeSheet";
-import { openUpgrade, upgradeOnPlanError, useGate, usePlan } from "@/components/plan/usePlan";
+import { openUpgrade, upgradeOnPlanError, useGate } from "@/components/plan/usePlan";
+import { OwnerMark } from "../owners";
 
 /**
- * Settings → Companies. The person is the account; companies are optional and
- * plural, each with its own link, logo, details and brand. One claim path
- * serves the person and every company, so a name cannot be taken twice.
+ * Settings → Company: the company being worked in. A person's own company
+ * carries their name and link; any other has its logos, link, details and
+ * brand. Below, every company they can open, and making another. One claim
+ * path serves the person and every company, so a name cannot be taken twice.
  */
 
-type Company = FunctionReturnType<typeof api.companies.list>[number];
+type Company = NonNullable<FunctionReturnType<typeof api.companies.current>>;
 
 export function CompanySection() {
   const toast = useToast();
   const viewer = useViewer();
-  const companies = useQuery(api.companies.list, {});
-  const add = useMutation(api.companies.add);
+  const company = useQuery(api.companies.current, {});
   const setPrefs = useMutation(api.users.setPreferences);
-  const plan = usePlan();
   const badgeGate = useGate("brand.badge");
-  const brandsGate = useGate("brands");
-  const [open, setOpen] = useState<string | null>(null);
-  const [adding, setAdding] = useState(false);
-  const [name, setName] = useState("");
 
-  if (!viewer || !companies) return <PageSkeleton kind="panel" />;
-  const selected = companies.find((c) => c._id === open) ?? null;
-  const cap = plan?.limits.companies ?? null;
-  const full = cap !== null && companies.length >= cap;
-  // Free goes to Pro for five; Pro goes to Business for as many as you like.
-  const next = brandsGate.locked ? "brands" : "brands.unlimited";
+  if (!viewer || company === undefined) return <PageSkeleton kind="panel" />;
 
   return (
     <>
-      <HandleCard
-        owner="me"
-        current={viewer.handle}
-        title="Your own Formkit link"
-        lede="Claim your name and anything you publish as yourself is shared under it. Companies claim their own links further down."
-        placeholder="your-name"
-      />
-
-      <Panel title="Your own forms" lede="Forms you publish as yourself rather than under a company.">
-        <Row
-          label="Show “Made with Formkit”"
-          hint={
-            <>
-              A small credit at the bottom of the form and its confirmation email.{" "}
-              {badgeGate.locked && <ProChip onClick={() => openUpgrade({ feature: "brand.badge" })} />}
-            </>
-          }
-        >
-          <Switch
-            checked={!viewer.hideBadge || badgeGate.locked}
-            label="Show Made with Formkit on my own forms"
-            onChange={badgeGate.guard(async (on: boolean) => {
-              try {
-                await setPrefs({ hideBadge: !on });
-              } catch (e) {
-                if (!upgradeOnPlanError(e)) toast(errorText(e, "That did not save."));
-              }
-            })}
+      {company === null ? (
+        <>
+          <HandleCard
+            owner="me"
+            current={viewer.handle}
+            title="Your own Formkit link"
+            lede="Claim your name and anything published in your own company is shared under it. Other companies claim their own links."
+            placeholder="your-name"
           />
-        </Row>
-      </Panel>
 
-      <Panel
-        title="Companies"
-        lede="Optional: a studio, a side project, a client you invoice through. Each one claims its own link and carries its own logos and colour. One company on Free, five on Pro, as many as you need on Business."
-        aside={
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-            {full && (
-              <ProChip plan={next === "brands" ? "pro" : "business"} onClick={() => openUpgrade({ feature: next })} />
-            )}
-            <Button
-              variant="secondary"
-              iconLeft={<Plus size={16} strokeWidth={1.8} aria-hidden />}
-              onClick={() => (full ? openUpgrade({ feature: next }) : setAdding(true))}
+          <Panel title="Your own company" lede="Your personal workspace: forms here go out under your own name.">
+            <Row
+              label="Show “Made with Formkit”"
+              hint={
+                <>
+                  A small credit at the bottom of the form and its confirmation email.{" "}
+                  {badgeGate.locked && <ProChip onClick={() => openUpgrade({ feature: "brand.badge" })} />}
+                </>
+              }
             >
-              Add a company
-            </Button>
-          </span>
-        }
-      >
-        {companies.length === 0 ? (
-          <p className="fk-setpanel-empty">
-            You are on Formkit as yourself. Forms go out under your own name, which is all most people need.
-          </p>
-        ) : (
-          <div className="fk-corows">
-            {companies.map((c) => (
-              <div key={c._id} className="fk-corow" data-open={c._id === open ? "true" : undefined}>
-                <span className="fk-corow-mark" style={{ background: c.brandColor ?? "var(--blue-300)" }} aria-hidden>
-                  {c.markUrl || c.logoUrl ? (
-                    <img src={(c.markUrl ?? c.logoUrl)!} alt="" data-fit={c.markUrl ? undefined : "contain"} />
-                  ) : (
-                    c.name.trim().charAt(0).toUpperCase()
-                  )}
-                </span>
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span className="fk-corow-name">{c.name}</span>
-                  <span className="fk-corow-link">{c.handle ? `formkit.app/${c.handle}` : "No link claimed"}</span>
-                </span>
-                <span className="fk-corow-count">
-                  {c.formCount} {c.formCount === 1 ? "form" : "forms"}
-                </span>
-                <Button variant="secondary" size="sm" onClick={() => setOpen(c._id === open ? null : c._id)}>
-                  {c._id === open ? "Editing" : "Open"}
-                </Button>
-              </div>
-            ))}
+              <Switch
+                checked={!viewer.hideBadge || badgeGate.locked}
+                label="Show Made with Formkit on my own forms"
+                onChange={badgeGate.guard(async (on: boolean) => {
+                  try {
+                    await setPrefs({ hideBadge: !on });
+                  } catch (e) {
+                    if (!upgradeOnPlanError(e)) toast(errorText(e, "That did not save."));
+                  }
+                })}
+              />
+            </Row>
+          </Panel>
+
+          <DomainsPanel identities={[{ value: "me" as const, label: `${viewer.name} (you)`, handle: viewer.handle }]} />
+        </>
+      ) : company.canManage ? (
+        <>
+          <CompanyEditor key={company._id} company={company} />
+          {company.mine && (
+            <DomainsPanel identities={[{ value: company._id, label: company.name, handle: company.handle ?? null }]} />
+          )}
+        </>
+      ) : (
+        <Panel
+          title={company.name}
+          lede="Only the company’s owner and admins can change its details, logos and brand."
+        />
+      )}
+
+      <AllCompanies />
+    </>
+  );
+}
+
+/** Every company this person can open, with making another. */
+function AllCompanies() {
+  const toast = useToast();
+  const data = useQuery(api.spaces.list, {});
+  const open = useMutation(api.spaces.setCurrent);
+  const create = useMutation(api.spaces.create);
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState("");
+  if (!data) return null;
+  const PLAN = { free: "Free", pro: "Pro", business: "Business" } as const;
+
+  return (
+    <Panel
+      title="Your companies"
+      lede="Each company is its own workspace: its own forms, members, brand and plan. Make as many as you like, free."
+      aside={
+        <Button variant="secondary" iconLeft={<Plus size={16} strokeWidth={1.8} aria-hidden />} onClick={() => setAdding(true)}>
+          Create a company
+        </Button>
+      }
+    >
+      <div className="fk-corows">
+        {data.spaces.map((c) => (
+          <div key={c.key} className="fk-corow" data-open={c.key === data.current ? "true" : undefined}>
+            <OwnerMark owner={{ key: c.key, kind: c.kind, name: c.name, imageUrl: c.imageUrl }} size={38} />
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span className="fk-corow-name">{c.name}</span>
+              <span className="fk-corow-link">
+                {c.kind === "me" && c.mine ? "Personal" : c.role === "owner" ? "Owner" : c.role[0]!.toUpperCase() + c.role.slice(1)} ·{" "}
+                {PLAN[c.plan]}
+                {c.plan !== "free" ? ` · ${c.seats} ${c.seats === 1 ? "seat" : "seats"}` : ""}
+              </span>
+            </span>
+            {c.key === data.current ? (
+              <span className="fk-corow-count">Open now</span>
+            ) : (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => void open({ key: c.key }).catch((e) => toast(errorText(e, "That company could not be opened.")))}
+              >
+                Open
+              </Button>
+            )}
           </div>
-        )}
-      </Panel>
-
-      {selected && <CompanyEditor key={selected._id} company={selected} onDone={() => setOpen(null)} />}
-
-      <DomainsPanel
-        identities={[
-          { value: "me" as const, label: `${viewer.name} (you)`, handle: viewer.handle },
-          ...companies.map((c) => ({ value: c._id, label: c.name, handle: c.handle ?? null })),
-        ]}
-      />
+        ))}
+      </div>
 
       {adding && (
         <Modal
-          title="Add a company"
-          description="A brand a form can go out under. You can fill in the rest after."
+          title="Create a company"
+          description="A separate workspace with its own forms, members, brand and plan. Free to start."
           onClose={() => setAdding(false)}
           width={460}
           footer={
@@ -163,21 +167,18 @@ export function CompanySection() {
               <Button
                 disabled={!name.trim()}
                 onClick={async () => {
-                  let id;
                   try {
-                    id = await add({ name });
+                    await create({ name });
                   } catch (e) {
-                    setAdding(false);
-                    if (!upgradeOnPlanError(e)) toast(errorText(e, "That company could not be added."));
+                    toast(errorText(e, "That company could not be made."));
                     return;
                   }
-                  toast(`${name.trim()} added`, { detail: "Claim its link and add its logo below" });
+                  toast(`${name.trim()} is ready`, { detail: "You are working in it now. Add its logos below." });
                   setName("");
                   setAdding(false);
-                  setOpen(id);
                 }}
               >
-                Add company
+                Create company
               </Button>
             </>
           }
@@ -193,7 +194,7 @@ export function CompanySection() {
           </Field>
         </Modal>
       )}
-    </>
+    </Panel>
   );
 }
 
@@ -294,7 +295,7 @@ const DETAILS = [
 
 type DetailKey = (typeof DETAILS)[number]["key"] | "address" | "brandColor";
 
-function CompanyEditor({ company, onDone }: { company: Company; onDone: () => void }) {
+function CompanyEditor({ company }: { company: Company }) {
   const badgeGate = useGate("brand.badge");
   const toast = useToast();
   const update = useMutation(api.companies.update);
@@ -307,13 +308,6 @@ function CompanyEditor({ company, onDone }: { company: Company; onDone: () => vo
 
   return (
     <>
-      <div className="fk-coedit-bar">
-        <span>Editing {company.name}</span>
-        <button type="button" onClick={onDone}>
-          Done
-        </button>
-      </div>
-
       <Panel
         title="Company logos"
         lede="Two versions, so every place gets the one that fits. SVG or PNG with a transparent background works best, up to 5 MB each."
@@ -461,19 +455,21 @@ function CompanyEditor({ company, onDone }: { company: Company; onDone: () => vo
           >
             Save company
           </Button>
-          <Button variant="ghost" iconLeft={<Trash2 size={16} strokeWidth={1.8} aria-hidden />} onClick={() => setConfirm(true)}>
-            Remove company
-          </Button>
+          {company.mine && (
+            <Button variant="ghost" iconLeft={<Trash2 size={16} strokeWidth={1.8} aria-hidden />} onClick={() => setConfirm(true)}>
+              Delete company
+            </Button>
+          )}
         </div>
       </Panel>
 
       {confirm && (
         <Modal
-          title={`Remove ${company.name}?`}
+          title={`Delete ${company.name}?`}
           description={
             company.formCount
-              ? `Its ${company.formCount} ${company.formCount === 1 ? "form goes" : "forms go"} back to publishing under your own name. Its link is released.`
-              : "Its link is released. No forms use it."
+              ? `Its ${company.formCount} ${company.formCount === 1 ? "form moves" : "forms move"} to your own company, its members lose access, and its link is released.`
+              : "Its members lose access and its link is released."
           }
           onClose={() => setConfirm(false)}
           width={460}
@@ -485,12 +481,17 @@ function CompanyEditor({ company, onDone }: { company: Company; onDone: () => vo
               <Button
                 variant="destructive"
                 onClick={async () => {
-                  await remove({ companyId: company._id });
-                  toast(`${company.name} removed`, { detail: "Its forms now publish under your own name" });
-                  onDone();
+                  try {
+                    await remove({ companyId: company._id });
+                  } catch (e) {
+                    setConfirm(false);
+                    toast(errorText(e, "That company could not be deleted."));
+                    return;
+                  }
+                  toast(`${company.name} deleted`, { detail: "Its forms moved to your own company" });
                 }}
               >
-                Remove company
+                Delete company
               </Button>
             </>
           }

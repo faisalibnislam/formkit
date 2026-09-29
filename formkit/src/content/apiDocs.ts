@@ -87,7 +87,7 @@ export const API_DOCS: LegalSection[] = [
     title: "Errors",
     bullets: [
       "401: no key, or a key that is wrong or revoked.",
-      "403: the account is not on Business.",
+      "403: none of the account's companies is on Business.",
       "404: no such endpoint, or nothing with that id on this account.",
     ],
     code: ['{ "error": { "status": 404, "message": "Not found." } }'],

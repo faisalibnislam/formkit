@@ -31,7 +31,7 @@ function AuditPanel() {
       aside={gate.locked ? chip("audit") : null}
     >
       {gate.locked || !data?.enabled ? (
-        <p className="fk-proprow-hint">The log starts as soon as the account is on Business.</p>
+        <p className="fk-proprow-hint">The log starts as soon as the company is on Business.</p>
       ) : data.rows.length === 0 ? (
         <p className="fk-proprow-hint">Nothing yet.</p>
       ) : (

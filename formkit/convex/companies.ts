@@ -2,7 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireUser } from "./model/identity";
 import { requireFeature } from "./model/plans";
-import { canManage, roleIn } from "./model/spaces";
+import { canManage, currentSpace, roleIn, spaceForms } from "./model/spaces";
 import { claimHandle, releaseHandle } from "./model/handles";
 
 /**
@@ -33,6 +33,27 @@ export const list = query({
         formCount: forms.filter((f) => f.brand === c._id && !f.deletedAt).length,
       })),
     );
+  },
+});
+
+/** The company being worked in, for its settings; null when it is the person's own. */
+export const current = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireUser(ctx);
+    const space = await currentSpace(ctx, user);
+    if (space.brand === "me") return null;
+    const c = await ctx.db.get(space.brand);
+    if (!c) return null;
+    const role = await roleIn(ctx, space, user._id);
+    return {
+      ...c,
+      logoUrl: c.logoId ? await ctx.storage.getUrl(c.logoId) : null,
+      markUrl: c.markId ? await ctx.storage.getUrl(c.markId) : null,
+      formCount: (await spaceForms(ctx, space)).filter((f) => !f.deletedAt).length,
+      mine: c.ownerId === user._id,
+      canManage: canManage(role),
+    };
   },
 });
 
@@ -187,7 +208,9 @@ export const setLogo = mutation({
   handler: async (ctx, { companyId, storageId, kind = "full" }) => {
     const user = await requireUser(ctx);
     const company = await ctx.db.get(companyId);
-    if (!company || company.ownerId !== user._id) throw new Error("That company is not yours.");
+    if (!company || !canManage(await roleIn(ctx, { ownerId: company.ownerId, brand: company._id }, user._id))) {
+      throw new Error("Only the company’s owner and admins can change its logos.");
+    }
     const previous = kind === "square" ? company.markId : company.logoId;
     await ctx.db.patch(companyId, kind === "square" ? { markId: storageId ?? undefined } : { logoId: storageId ?? undefined });
     if (previous && previous !== storageId) await ctx.storage.delete(previous);

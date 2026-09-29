@@ -62,22 +62,26 @@ function PlanBody({ viewer }: { viewer: NonNullable<FunctionReturnType<typeof ap
     }
   };
 
+  const company = viewer.space.name;
+  const canChange = viewer.space.role === "owner" || viewer.space.role === "admin";
+  const seats = plan.seats ?? 1;
+  const perSeat = plan.id === "free" ? 0 : PLANS[plan.id].price[plan.interval ?? "month"];
   const status = plan.comped
-    ? "Given to you by Formkit, free of charge."
+    ? "Given by Formkit, free of charge."
     : plan.id === "free"
-      ? "Free for as long as you like, with no card on file."
+      ? "Free for as long as you like, with no card on file. Members are unlimited."
       : plan.cancelAtPeriodEnd && plan.endsAt
-        ? `Cancelled. ${plan.name} stays on until ${date(plan.endsAt)}, and you will not be charged again.`
+        ? `Cancelled. ${plan.name} stays on until ${date(plan.endsAt)}, and it will not be charged again.`
         : plan.status === "past_due" && plan.endsAt
-          ? `The last payment did not go through. Update your card before ${date(plan.endsAt)} to keep ${plan.name}.`
-          : `Billed ${plan.interval === "year" ? "yearly" : "monthly"} through Polar.`;
+          ? `The last payment did not go through. Update the card before ${date(plan.endsAt)} to keep ${plan.name}.`
+          : `${seats} ${seats === 1 ? "seat" : "seats"} at $${perSeat} a seat, billed ${plan.interval === "year" ? "yearly" : "monthly"} through Polar. Seats follow the members.`;
 
   return (
     <>
-      {search.get("replies") === "added" && (
+      {search.get("credits") === "added" && (
         <div className="fk-plan-welcome" role="status">
-          <strong>Thank you. Your AI replies are on their way.</strong> They appear below as soon as Polar confirms
-          the payment, and roll over until used.
+          <strong>Thank you. Your AI credits are on their way.</strong> They appear below as soon as Polar confirms
+          the payment, and last a year.
         </div>
       )}
       {welcome && welcome !== "free" && (
@@ -90,7 +94,7 @@ function PlanBody({ viewer }: { viewer: NonNullable<FunctionReturnType<typeof ap
       )}
 
       <Panel
-        title={`You are on ${plan.name}`}
+        title={`${company} is on ${plan.name}`}
         lede={status}
         aside={
           plan.billed ? (
@@ -100,29 +104,26 @@ function PlanBody({ viewer }: { viewer: NonNullable<FunctionReturnType<typeof ap
           ) : null
         }
       >
-        <Row label="Ask Formkit credits" hint="Resets on the first of each month.">
-          <span style={{ width: 200 }}>
-            <span className="fk-proprow-hint" style={{ display: "block", textAlign: "right", marginBottom: 6 }}>
-              {viewer.ai.used} of {viewer.ai.limit} used
-            </span>
-            <ProgressBar value={viewer.ai.limit ? (viewer.ai.used / viewer.ai.limit) * 100 : 0} />
-          </span>
-        </Row>
-        {plan.id === "business" && <AiAllowance />}
         <Row label="File uploads" hint="The largest single file a respondent can send.">
           <strong>{plan.limits.uploadMb} MB</strong>
         </Row>
         <Row label="Version history" hint="How far back you can restore a form.">
           <strong>{plan.limits.historyDays === null ? "All of it" : `${plan.limits.historyDays} days`}</strong>
         </Row>
-        <Row label="Collaborators" hint="People working on one form besides you.">
+        <Row label="Guests on each form" hint="People invited to one form, besides the company’s members.">
           <strong>{plan.limits.collaborators === null ? "Unlimited" : plan.limits.collaborators}</strong>
         </Row>
       </Panel>
 
+      <AiThisMonth canBuy={canChange} />
+
       <Panel
         title={plan.id === "business" ? "Plans" : "Upgrade"}
-        lede="Change or cancel any time. Moving between plans is prorated by Polar."
+        lede={
+          canChange
+            ? `Prices are per seat: every member of ${company} is one. Change or cancel any time; Polar prorates the difference.`
+            : `Only ${company}’s owner and admins can change its plan.`
+        }
         aside={
           <Segmented
             ariaLabel="Billing period"
@@ -159,7 +160,7 @@ function PlanBody({ viewer }: { viewer: NonNullable<FunctionReturnType<typeof ap
               <Button
                 variant={id === "pro" && plan.id === "free" ? "primary" : "secondary"}
                 style={{ width: "100%" }}
-                disabled={busy !== null || plan.comped}
+                disabled={busy !== null || plan.comped || !canChange}
                 onClick={() => go(id as Exclude<PlanId, "free">, interval)}
               >
                 {busy === id
@@ -201,52 +202,81 @@ function PlanBody({ viewer }: { viewer: NonNullable<FunctionReturnType<typeof ap
 
 const PLAN_RANK: Record<PlanId, number> = { free: 0, pro: 1, business: 2 };
 
-/** Business: AI replies and AI logic checks this month, and buying more replies. */
-function AiAllowance() {
-  const toast = useToast();
-  const usage = useQuery(api.aiReply.usage, {});
-  const buy = useAction(api.billing.buyReplies);
-  const [opening, setOpening] = useState(false);
-  if (!usage) return null;
-  const { replies, checks, pack } = usage;
+const KINDS = [
+  { key: "builds", label: "New forms built by AI", hint: "Ask Formkit making a whole form." },
+  { key: "edits", label: "AI edits", hint: "Adding or rewriting questions, logic, themes, questions to Ask Formkit." },
+  { key: "responses", label: "Responses AI works on", hint: "An AI reply, AI logic or details pulled out. Each response counts once." },
+  { key: "reports", label: "Insights reports", hint: "A read across your responses: themes, opportunities, complaints." },
+] as const;
 
-  const buyMore = async () => {
-    setOpening(true);
+/** The company's AI this month, its credits, and buying more. */
+function AiThisMonth({ canBuy }: { canBuy: boolean }) {
+  const toast = useToast();
+  const s = useQuery(api.credits.status, {});
+  const buy = useAction(api.billing.buyCredits);
+  const [opening, setOpening] = useState<string | null>(null);
+  if (!s) return null;
+
+  const buyPack = async (pack: "credits_100" | "credits_420" | "credits_1050") => {
+    setOpening(pack);
     try {
-      const { url } = await buy({});
+      const { url } = await buy({ pack });
       window.location.assign(url);
     } catch (e) {
-      setOpening(false);
+      setOpening(null);
       toast(errorText(e, "The checkout could not open. Try again in a moment."));
     }
   };
 
   return (
-    <>
+    <Panel
+      title="AI this month"
+      lede={
+        s.plan === "free"
+          ? "Free includes AI form building and edits. Everything resets on the 1st."
+          : `Shared by everyone in the company: each of its ${s.seats} ${s.seats === 1 ? "seat" : "seats"} adds to it. Everything resets on the 1st.`
+      }
+    >
+      {KINDS.map((k) =>
+        s.pool[k.key] === 0 && s.used[k.key] === 0 ? null : (
+          <Row key={k.key} label={k.label} hint={`${k.hint} After that, ${s.costs[k.key]} ${s.costs[k.key] === 1 ? "credit" : "credits"} each.`}>
+            <span style={{ width: 200 }}>
+              <span className="fk-proprow-hint" style={{ display: "block", textAlign: "right", marginBottom: 6 }}>
+                {Math.min(s.used[k.key], s.pool[k.key]).toLocaleString("en-US")} of {s.pool[k.key].toLocaleString("en-US")} used
+              </span>
+              <ProgressBar value={s.pool[k.key] ? (Math.min(s.used[k.key], s.pool[k.key]) / s.pool[k.key]) * 100 : 0} />
+            </span>
+          </Row>
+        ),
+      )}
       <Row
-        label="AI replies"
-        hint={`${replies.monthly} a month, reset on the first.${replies.credits ? ` Plus ${replies.credits} bought, which roll over until used.` : ""} Out of replies, people get your usual confirmation.`}
+        label="AI credits"
+        hint="Keep AI going once part of the month’s allowance runs out. Used only then, oldest first; they last a year."
       >
-        <span style={{ width: 200 }}>
-          <span className="fk-proprow-hint" style={{ display: "block", textAlign: "right", marginBottom: 6 }}>
-            {replies.used} of {replies.monthly} used{replies.credits ? ` · +${replies.credits}` : ""}
-          </span>
-          <ProgressBar value={replies.monthly ? (replies.used / replies.monthly) * 100 : 0} />
-        </span>
+        <strong>{s.credits.toLocaleString("en-US")}</strong>
       </Row>
-      <Row label={`${pack.replies} more AI replies`} hint={`A one-off $${pack.price}. They roll over until used.`}>
-        <Button variant="secondary" size="sm" onClick={buyMore} disabled={opening}>
-          {opening ? "Opening…" : `Buy for $${pack.price}`}
-        </Button>
-      </Row>
-      <Row label="AI logic checks" hint="“AI decides” conditions and facts pulled into hidden fields. Resets on the first.">
-        <span style={{ width: 200 }}>
-          <span className="fk-proprow-hint" style={{ display: "block", textAlign: "right", marginBottom: 6 }}>
-            {checks.used.toLocaleString("en-US")} of {checks.limit.toLocaleString("en-US")} used
-          </span>
-          <ProgressBar value={checks.limit ? (checks.used / checks.limit) * 100 : 0} />
-        </span>
-      </Row>
-    </>
+      {canBuy && (
+        <div className="fk-creditpacks">
+          {s.packs.map((p) => (
+            <button
+              key={p.key}
+              type="button"
+              className="fk-creditpack"
+              disabled={opening !== null}
+              onClick={() => void buyPack(p.key)}
+            >
+              <span className="fk-creditpack-n">{p.credits.toLocaleString("en-US")} credits</span>
+              <span className="fk-creditpack-price">{opening === p.key ? "Opening…" : `$${p.price}`}</span>
+              {p.credits > p.price * 20 && <span className="fk-creditpack-bonus">5% bonus</span>}
+            </button>
+          ))}
+        </div>
+      )}
+      {s.plan === "free" && (
+        <p className="fk-proprow-hint" style={{ margin: "10px 0 0" }}>
+          On Free, credits pay for AI form building and edits. AI replies, AI logic and insights are part of Pro.
+        </p>
+      )}
+    </Panel>
   );
 }

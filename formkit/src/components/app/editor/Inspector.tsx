@@ -662,7 +662,7 @@ function FillWithAi({ block, fields }: { block: Block; fields: Block[] }) {
             Pulls one fact out of an earlier answer when that page is finished.
           </span>
         </span>
-        {gate.locked && <ProChip plan="business" onClick={() => openUpgrade({ feature: "logic.ai" })} />}
+        {gate.locked && <ProChip plan="pro" onClick={() => openUpgrade({ feature: "logic.ai" })} />}
         <Switch
           checked={on}
           label="Fill it in with AI"

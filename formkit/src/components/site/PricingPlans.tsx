@@ -77,7 +77,7 @@ export function PricingPlans() {
                   <>
                     {interval === "year" && <s className="fk-price-was">{money(plan.price.month)}</s>}
                     <span className="fk-price-big">{money(Math.round(perMonth * 100) / 100)}</span>
-                    <span className="fk-price-per">a month</span>
+                    <span className="fk-price-per">a seat a month</span>
                   </>
                 )}
               </div>
@@ -85,8 +85,8 @@ export function PricingPlans() {
                 {id === "free"
                   ? "No card, no trial, no time limit"
                   : interval === "year"
-                    ? `${money(plan.price.year)} billed once a year${saved > 0 ? `, so you save ${money(saved)}` : ""}`
-                    : `Billed monthly, or ${money(plan.price.year)} a year`}
+                    ? `${money(plan.price.year)} a seat, billed once a year${saved > 0 ? `, so you save ${money(saved)}` : ""}`
+                    : `Billed monthly, or ${money(plan.price.year)} a seat a year`}
               </p>
 
               {id === "free" ? (
@@ -120,7 +120,7 @@ export function PricingPlans() {
           );
         })}
       </div>
-      <p className="fk-price-fine">Prices in US dollars. Tax is added at checkout where it applies. Cancel any time.</p>
+      <p className="fk-price-fine">Prices are per seat: every member of a company is one. In US dollars, with tax added at checkout where it applies. Cancel any time.</p>
     </div>
   );
 }

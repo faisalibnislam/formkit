@@ -259,7 +259,11 @@ export function AskProvider({
             break;
           case "limit":
             setLimitOpen(true);
-            say(`You have used all ${result.limit} form credits this month. Changing the forms you have is still free.`);
+            say(
+              result.what === "edits"
+                ? `That is this month's ${result.limit} AI edits for this company. AI credits keep Ask Formkit going, under Settings → Plan.`
+                : `That is this month's ${result.limit} AI-built forms for this company. AI credits keep it going (2 a form), under Settings → Plan.`,
+            );
             break;
           case "draft": {
             setCanvas({ kind: "draft", draft: result.draft, revised: result.revised });
@@ -272,7 +276,7 @@ export function AskProvider({
                 : `${n} ${n === 1 ? "question" : "questions"}, ${paged ? "across a few pages" : "on one page"}. ${
                     result.note ?? "Open it in the builder, or tell me what to change."
                   }`,
-              result.revised ? "Free. Changing a draft never costs a credit" : `${result.limit - result.used} of ${result.limit} credits left`,
+              result.revised ? "Counted as one AI edit" : `${Math.max(0, result.limit - result.used)} of ${result.limit} AI builds left this month`,
             );
             break;
           }

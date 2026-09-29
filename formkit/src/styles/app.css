@@ -6697,3 +6697,156 @@ html.fk-own-bar::-webkit-scrollbar {
   background: #fdf3dc;
   color: #8a5a0e;
 }
+
+/* ---------- the company switcher, beside the logo ---------- */
+.fk-switcher {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+}
+.fk-switcher[data-loading="true"] {
+  width: 160px;
+  height: 40px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.12);
+}
+.fk-switcher-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  max-width: 280px;
+  height: 42px;
+  padding: 0 12px 0 8px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--neutral-0);
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition-control);
+}
+.fk-switcher-btn:hover,
+.fk-switcher-btn[aria-expanded="true"] {
+  background: rgba(255, 255, 255, 0.18);
+}
+.fk-switcher-name {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fk-switcher-plan {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+.fk-switcher-menu {
+  min-width: 300px;
+  max-width: min(360px, calc(100vw - 32px));
+}
+.fk-switcher-item {
+  align-items: center;
+  gap: 11px;
+  text-align: left;
+}
+.fk-switcher-item[aria-checked="true"] {
+  background: var(--blue-50);
+}
+.fk-switcher-item-name {
+  display: block;
+  overflow: hidden;
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fk-switcher-item-meta {
+  display: block;
+  font-size: 12.5px;
+  color: var(--color-text-tertiary);
+}
+@media (max-width: 640px) {
+  .fk-switcher-plan,
+  .fk-switcher-name {
+    display: none;
+  }
+  .fk-switcher-btn {
+    padding: 0 10px 0 8px;
+  }
+}
+
+.fk-seatnote {
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--neutral-50);
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--neutral-700);
+}
+.fk-seatnote[data-paid="true"] {
+  background: var(--blue-50);
+  color: var(--blue-700);
+}
+
+/* ---------- AI credit packs ---------- */
+.fk-creditpacks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+@media (max-width: 640px) {
+  .fk-creditpacks {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.fk-creditpack {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 14px 16px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--neutral-50);
+  box-shadow: inset 0 0 0 1px var(--color-border-default);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: var(--transition-control);
+}
+.fk-creditpack:hover:not(:disabled) {
+  box-shadow: inset 0 0 0 1.5px var(--blue-500);
+  background: var(--blue-50);
+}
+.fk-creditpack:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.fk-creditpack-n {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--neutral-900);
+}
+.fk-creditpack-price {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+.fk-creditpack-bonus {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: #e7f5ec;
+  color: #2f7a4f;
+  font-size: 11.5px;
+  font-weight: 500;
+}

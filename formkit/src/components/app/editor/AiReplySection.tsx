@@ -79,7 +79,7 @@ export function AiReplySection({ formId, form }: { formId: Id<"forms">; form: Fo
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <Sparkles size={17} strokeWidth={1.8} aria-hidden style={{ display: "inline-block" }} />
           <h3 style={{ flex: 1, margin: 0 }}>AI replies</h3>
-          {gate.locked && <ProChip plan="business" onClick={() => openUpgrade({ feature: "ai.reply" })} />}
+          {gate.locked && <ProChip plan="pro" onClick={() => openUpgrade({ feature: "ai.reply" })} />}
         </div>
         <p className="fk-panel-lede">
           Everyone who answers gets a reply written for them, from your instructions and what they told you. Without it,
@@ -90,9 +90,9 @@ export function AiReplySection({ formId, form }: { formId: Id<"forms">; form: Fo
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14 }}>Write a reply to every response</div>
             <div className="fk-proprow-hint">
-              {usage && usage.replies.monthly > 0
-                ? `${usage.replies.used} of ${usage.replies.monthly} used this month${usage.replies.credits ? ` · ${usage.replies.credits} bought left` : ""}. Out of replies, people get your usual confirmation.`
-                : "30 a month on Business, then $5 for 100 more."}
+              {usage && usage.pool.responses > 0
+                ? `${Math.min(usage.used.responses, usage.pool.responses)} of ${usage.pool.responses} AI responses used this month${usage.credits ? ` · ${usage.credits} credits` : ""}. Out of both, people get your usual confirmation.`
+                : "Pro includes 20 AI responses a month for each seat, then AI credits."}
             </div>
           </div>
           <Switch

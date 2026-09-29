@@ -94,7 +94,7 @@ export function QuizSection({ formId, form }: { formId: Id<"forms">; form: Form 
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <GraduationCap size={18} strokeWidth={1.8} aria-hidden style={{ display: "inline-block" }} />
           <h3 style={{ flex: 1, margin: 0 }}>Quiz or exam</h3>
-          {gate.locked && <ProChip plan="business" onClick={() => openUpgrade({ feature: "quiz" })} />}
+          {gate.locked && <ProChip plan="pro" onClick={() => openUpgrade({ feature: "quiz" })} />}
         </div>
         <p className="fk-panel-lede">
           Mark every response as it arrives. Set the right answers and marks on each question under Build. Written answers

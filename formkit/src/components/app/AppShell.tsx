@@ -8,6 +8,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { PlanChip } from "@/components/plan/PlanBadge";
+import { CompanySwitcher } from "./CompanySwitcher";
 import {
   Bell,
   ChartPie,
@@ -430,12 +431,12 @@ function AppFrame({ children }: { children: ReactNode }) {
     ...{
       account: { label: "Signed in as:", value: viewer?.name ?? "" },
       plan: { label: "Plan:", value: viewer ? String((viewer.plan as { name: string }).name) : "" },
-      company: { label: "Companies:", value: viewer?.companies.length ? String(viewer.companies.length) : "None" },
+      company: { label: "Company:", value: viewer?.space.name ?? "" },
       general: { label: "Sky:", value: viewer ? skyWord[viewer.skyPref] : "" },
       members: { label: "Shared with:", value: sharing ? String(sharing.people.length) : "" },
       notifications: { label: "Sent to:", value: viewer?.emailPrefs.to ?? "" },
       exports: { label: "Responses:", value: formsList ? formsList.responses.toLocaleString("en-US") : "" },
-      team: { label: "Plan:", value: viewer ? (viewer.plan.features?.team ? "Unlimited seats" : "Business") : "" },
+      team: { label: "Seats:", value: viewer ? String(viewer.plan.seats ?? 1) : "" },
       controls: { label: "Sign-in:", value: viewer ? (viewer.plan.features?.sso ? "Your rules" : "Business") : "" },
     }[t.value],
   }));
@@ -446,11 +447,8 @@ function AppFrame({ children }: { children: ReactNode }) {
    * The chrome leads with the person. A second line names the company when
    * there is one and counts them when there are several - nothing when solo.
    */
-  const orgLine = viewer?.companies.length
-    ? viewer.companies.length === 1
-      ? viewer.companies[0]!.name
-      : `${viewer.companies.length} companies`
-    : "";
+  // The company being worked in names every page.
+  const orgLine = viewer?.space.name ?? "";
 
   const heroes: Record<string, { eyebrow: string; title: string; sub: string }> = {
     home: {
@@ -488,7 +486,7 @@ function AppFrame({ children }: { children: ReactNode }) {
     },
     ask: {
       eyebrow: viewer
-        ? `${Math.max(0, viewer.ai.limit - viewer.ai.used)} of ${viewer.ai.limit} form credits left`
+        ? `${Math.max(0, viewer.ai.limit - viewer.ai.used)} of ${viewer.ai.limit} AI form builds left this month`
         : "",
       title: "Ask Formkit",
       sub: "Describe a form, or ask for a change to one you already have.",
@@ -496,7 +494,7 @@ function AppFrame({ children }: { children: ReactNode }) {
   };
 
   const hero = inSettings
-    ? { eyebrow: "", title: "Settings", sub: "Your account, companies, sharing and exports." }
+    ? { eyebrow: orgLine, title: "Settings", sub: "Your account, and the company you are working in." }
     : heroes[current];
 
   const frame = (
@@ -567,6 +565,7 @@ function AppFrame({ children }: { children: ReactNode }) {
                 <Logo tone="inverse" wordmark={false} size={24} />
               </span>
             </Link>
+            {viewer && <CompanySwitcher />}
           </div>
 
           <div className="fk-app-bar-right">
@@ -639,7 +638,7 @@ function AppFrame({ children }: { children: ReactNode }) {
                       onClick={() => setAccountOpen(false)}
                     >
                       <Settings2 size={16} strokeWidth={1.8} aria-hidden />
-                      Companies and branding
+                      Company settings
                     </Link>
                     <span className="fk-menu-rule" />
                     <Link role="menuitem" href="/help" className="fk-menu-item" onClick={() => setAccountOpen(false)}>

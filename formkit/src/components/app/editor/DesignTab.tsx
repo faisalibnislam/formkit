@@ -516,9 +516,9 @@ export function DesignTab({ formId }: { formId: Id<"forms"> }) {
                 </span>
                 <span className="fk-proprow-hint" style={{ display: "block" }}>
                   {identity?.logoUrl
-                    ? "From Settings → Companies"
+                    ? "From Settings → Company"
                     : identity?.kind === "company"
-                      ? "No logo yet. Add one in Settings → Companies"
+                      ? "No logo yet. Add one in Settings → Company"
                       : "Your own forms carry your name. A company can carry a logo."}
                 </span>
               </span>
@@ -544,7 +544,7 @@ export function DesignTab({ formId }: { formId: Id<"forms"> }) {
             <p className="fk-proprow-hint" style={{ margin: "0 0 8px" }}>
               {identity?.logoUrl
                 ? "The logo of whoever this form is published under always leads the row. Add up to three more and they sit beside it, separated by a ×."
-                : "Add a logo to a company in Settings → Companies and it leads the row for its forms. Up to three more sit beside it, separated by a ×."}
+                : "Add a logo to a company in Settings → Company and it leads the row for its forms. Up to three more sit beside it, separated by a ×."}
             </p>
             <p className="fk-proprow-hint" style={{ margin: "0 0 12px", wordBreak: "break-word" }}>
               {chain}
