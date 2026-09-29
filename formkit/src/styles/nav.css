@@ -195,7 +195,8 @@
   margin: 2px 8px 6px;
 }
 
-.fk-nav-menu-item {
+.fk-nav-menu-item,
+.fk-nav a.fk-nav-menu-item {
   display: flex;
   align-items: center;
   gap: 11px;

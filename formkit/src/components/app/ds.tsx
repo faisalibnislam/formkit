@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowDownRight, ArrowUpRight, Check, FileText, X } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
+import { PlanAvatar } from "@/components/plan/PlanBadge";
 
 /**
  * The design system's data and navigation components, ported.
@@ -399,11 +400,14 @@ export function AvatarPill({
   image,
   onClick,
   expanded,
+  plan,
 }: {
   name: string;
   image?: string | null;
   onClick?: () => void;
   expanded?: boolean;
+  /** A paid plan rings and badges the face. */
+  plan?: string | null;
 }) {
   return (
     <button
@@ -414,7 +418,9 @@ export function AvatarPill({
       onClick={onClick}
     >
       <span className="fk-avatarpill-name">{name || "Account"}</span>
-      <Avatar name={name} image={image} />
+      <PlanAvatar plan={plan}>
+        <Avatar name={name} image={image} />
+      </PlanAvatar>
     </button>
   );
 }

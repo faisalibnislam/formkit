@@ -6636,3 +6636,64 @@ html.fk-own-bar::-webkit-scrollbar {
 .fk-corow-mark img:not([data-fit]) {
   object-fit: cover;
 }
+
+/* ---------- the plan, worn on the avatar ---------- */
+.fk-planavatar {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  border-radius: 50%;
+}
+.fk-planavatar[data-plan] > :first-child {
+  box-shadow:
+    0 0 0 2px var(--neutral-0),
+    0 0 0 3.5px var(--fk-plan-ring);
+}
+.fk-planavatar[data-plan="pro"] {
+  --fk-plan-ring: #5aa9e6;
+}
+.fk-planavatar[data-plan="business"] {
+  --fk-plan-ring: #d9a13b;
+}
+.fk-planavatar > .fk-plancoin {
+  position: absolute;
+  right: -4px;
+  bottom: -3px;
+}
+.fk-plancoin {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  color: #fff;
+  box-shadow:
+    0 0 0 2px var(--neutral-0),
+    0 2px 6px rgba(10, 30, 60, 0.28);
+}
+.fk-plancoin[data-plan="pro"] {
+  background: linear-gradient(140deg, #8ccaf5 0%, #3f8fd6 55%, #2466a8 100%);
+}
+.fk-plancoin[data-plan="business"] {
+  background: linear-gradient(140deg, #fbe29a 0%, #e0a93c 50%, #b37314 100%);
+}
+.fk-planchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 3px 9px 3px 4px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 500;
+}
+.fk-planchip .fk-plancoin {
+  box-shadow: none;
+}
+.fk-planchip[data-plan="pro"] {
+  background: #e8f3fc;
+  color: #1f5f99;
+}
+.fk-planchip[data-plan="business"] {
+  background: #fdf3dc;
+  color: #8a5a0e;
+}

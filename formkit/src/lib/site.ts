@@ -46,6 +46,7 @@ export const FOOTER_COLUMNS = [
       { label: "Getting started", href: "/help/create-first-form" },
       { label: "Logic rules", href: "/help/logic-basics" },
       { label: "Building with AI", href: "/help/ai-what" },
+      { label: "Contact us", href: "/contact" },
     ],
   },
 ] as const;

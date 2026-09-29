@@ -7,6 +7,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
+import { PlanChip } from "@/components/plan/PlanBadge";
 import {
   Bell,
   ChartPie,
@@ -15,7 +16,9 @@ import {
   Inbox,
   LayoutGrid,
   LayoutTemplate,
+  LifeBuoy,
   LogOut,
+  Mail,
   Menu,
   Plus,
   Search,
@@ -608,6 +611,7 @@ function AppFrame({ children }: { children: ReactNode }) {
               <AvatarPill
                 name={viewer?.name ?? ""}
                 image={viewer?.image ?? null}
+                plan={viewer?.plan?.id}
                 expanded={accountOpen}
                 onClick={() => setAccountOpen((v) => !v)}
               />
@@ -615,7 +619,10 @@ function AppFrame({ children }: { children: ReactNode }) {
                 <>
                   <span className="fk-menu-scrim" onClick={() => setAccountOpen(false)} aria-hidden />
                   <span className="fk-menu" data-align="right" role="menu">
-                    <span className="fk-menu-head">{viewer?.email}</span>
+                    <span className="fk-menu-head">
+                      <span style={{ display: "block" }}>{viewer?.email}</span>
+                      <PlanChip plan={viewer?.plan?.id} />
+                    </span>
                     <Link
                       role="menuitem"
                       href="/app/settings"
@@ -633,6 +640,15 @@ function AppFrame({ children }: { children: ReactNode }) {
                     >
                       <Settings2 size={16} strokeWidth={1.8} aria-hidden />
                       Companies and branding
+                    </Link>
+                    <span className="fk-menu-rule" />
+                    <Link role="menuitem" href="/help" className="fk-menu-item" onClick={() => setAccountOpen(false)}>
+                      <LifeBuoy size={16} strokeWidth={1.8} aria-hidden />
+                      Help center
+                    </Link>
+                    <Link role="menuitem" href="/contact" className="fk-menu-item" onClick={() => setAccountOpen(false)}>
+                      <Mail size={16} strokeWidth={1.8} aria-hidden />
+                      Contact support
                     </Link>
                     {viewer?.staffRole && (
                       <Link

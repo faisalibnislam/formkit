@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { PlanAvatar, PlanChip } from "@/components/plan/PlanBadge";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronDown, LayoutGrid, LifeBuoy, LogOut, Menu, X } from "lucide-react";
+import { ChevronDown, LayoutGrid, LifeBuoy, LogOut, Mail, Menu, X } from "lucide-react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useViewer } from "@/lib/seed";
 import { Logo } from "@/components/brand/Logo";
@@ -184,12 +185,14 @@ export function SiteNav({ current }: { current?: NavKey }) {
             aria-expanded={menuOpen}
             aria-label="Account menu"
           >
-            {viewer.image ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img className="fk-nav-initials fk-nav-avatar" src={viewer.image} alt="" />
-            ) : (
-              <span className="fk-nav-initials">{initials}</span>
-            )}
+            <PlanAvatar plan={viewer.plan?.id}>
+              {viewer.image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className="fk-nav-initials fk-nav-avatar" src={viewer.image} alt="" />
+              ) : (
+                <span className="fk-nav-initials">{initials}</span>
+              )}
+            </PlanAvatar>
             <span className="fk-nav-name">{viewer.name}</span>
             <span className="fk-nav-caret">
               <ChevronDown size={15} strokeWidth={1.8} aria-hidden />
@@ -222,6 +225,7 @@ export function SiteNav({ current }: { current?: NavKey }) {
                 >
                   {viewer.email}
                 </span>
+                <PlanChip plan={viewer.plan?.id} />
               </span>
               <span className="fk-nav-menu-rule" />
               <Link href="/app" role="menuitem" className="fk-nav-menu-item">
@@ -231,6 +235,10 @@ export function SiteNav({ current }: { current?: NavKey }) {
               <Link href="/help" role="menuitem" className="fk-nav-menu-item">
                 <LifeBuoy size={16} strokeWidth={1.8} aria-hidden />
                 Help center
+              </Link>
+              <Link href="/contact" role="menuitem" className="fk-nav-menu-item">
+                <Mail size={16} strokeWidth={1.8} aria-hidden />
+                Contact
               </Link>
               <span className="fk-nav-menu-rule" style={{ margin: "6px 8px" }} />
               <button

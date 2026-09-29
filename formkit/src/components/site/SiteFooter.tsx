@@ -100,7 +100,7 @@ export function SiteFooter() {
 
       <div className="fk-foot-bottom">
         <span>© {new Date().getFullYear()} Formkit</span>
-        <span>formkit.app</span>
+        <Link href="/contact">Contact</Link>
         <Link href="/privacy">Privacy</Link>
         <Link href="/terms">Terms</Link>
         <Link href="/dpa">DPA</Link>
