@@ -23,7 +23,11 @@ async function load(host: string) {
 export async function generateMetadata({ params }: PageProps<"/domain/[host]">): Promise<Metadata> {
   const { host } = await params;
   const data = await load(decodeURIComponent(host));
-  return { title: data ? `${data.name}: forms` : "Forms", robots: { index: false } };
+  return {
+    title: { absolute: data ? `${data.name}: forms` : "Forms" },
+    robots: { index: false },
+    ...(data?.markUrl ? { icons: { icon: data.markUrl, apple: data.markUrl } } : {}),
+  };
 }
 
 export default async function DomainHome({ params }: PageProps<"/domain/[host]">) {
@@ -36,6 +40,9 @@ export default async function DomainHome({ params }: PageProps<"/domain/[host]">
         {data.logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={data.logoUrl} alt={data.name} className="fk-domain-logo" />
+        ) : data.markUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={data.markUrl} alt={data.name} className="fk-domain-mark" data-image="true" />
         ) : (
           <span className="fk-domain-mark" style={{ background: data.color ?? "var(--neutral-900)" }} aria-hidden>
             {data.name.charAt(0).toUpperCase()}

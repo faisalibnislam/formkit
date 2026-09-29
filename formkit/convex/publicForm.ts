@@ -244,7 +244,11 @@ export const linkState = query({
   args: { slug: v.string(), handle: v.optional(v.string()) },
   handler: async (ctx, { slug, handle }) => {
     const form = await resolve(ctx, slug, handle);
-    if (form && (form.status === "published" || form.status === "closed")) return { live: true as const, home: null };
+    if (form && (form.status === "published" || form.status === "closed")) {
+      // The browser tab: the form's title, and its owner's square logo.
+      const brand = await brandOf(ctx, form);
+      return { live: true as const, home: null, title: form.title, name: brand.name, icon: brand.markUrl };
+    }
     let owner: { ownerId: Id<"users">; brand: "me" | Id<"companies"> } | null = form
       ? { ownerId: form.ownerId, brand: form.brand }
       : null;
@@ -255,7 +259,13 @@ export const linkState = query({
         .first();
       if (claim) owner = { ownerId: claim.userId, brand: claim.ownerType === "company" && claim.companyId ? claim.companyId : "me" };
     }
-    return { live: false as const, home: owner ? await liveDomainOf(ctx, owner.ownerId, owner.brand) : null };
+    return {
+      live: false as const,
+      home: owner ? await liveDomainOf(ctx, owner.ownerId, owner.brand) : null,
+      title: null,
+      name: null,
+      icon: null,
+    };
   },
 });
 

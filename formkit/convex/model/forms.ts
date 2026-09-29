@@ -152,6 +152,13 @@ export async function brandOf(ctx: QueryCtx, form: Doc<"forms">) {
       identity && "logoId" in identity && identity.logoId
         ? await ctx.storage.getUrl(identity.logoId)
         : null,
+    /** The square logo, or the person's picture: the browser tab's icon. */
+    markUrl:
+      identity && "markId" in identity && identity.markId
+        ? await ctx.storage.getUrl(identity.markId)
+        : identity && "avatarId" in identity && identity.avatarId
+          ? await ctx.storage.getUrl(identity.avatarId)
+          : null,
     color: (identity as { brandColor?: string } | null)?.brandColor ?? null,
     // The "Made with Formkit" credit comes off only when its owner asked
     // (per company, or once for their own forms) and their plan includes it.
@@ -168,13 +175,20 @@ export async function brandOf(ctx: QueryCtx, form: Doc<"forms">) {
 export async function formIdentity(ctx: QueryCtx, form: Doc<"forms">) {
   if (form.brand === "me") {
     const user = await ctx.db.get(form.ownerId);
-    return { kind: "me" as const, name: user?.name ?? "You", logoUrl: null, handle: user?.handle ?? null };
+    return {
+      kind: "me" as const,
+      name: user?.name ?? "You",
+      logoUrl: null,
+      markUrl: user?.avatarId ? await ctx.storage.getUrl(user.avatarId) : (user?.image ?? null),
+      handle: user?.handle ?? null,
+    };
   }
   const co = await ctx.db.get(form.brand as Id<"companies">);
   return {
     kind: "company" as const,
     name: co?.name ?? "Your company",
     logoUrl: co?.logoId ? await ctx.storage.getUrl(co.logoId) : null,
+    markUrl: co?.markId ? await ctx.storage.getUrl(co.markId) : null,
     handle: co?.handle ?? null,
   };
 }
@@ -217,7 +231,12 @@ export async function ownersOf(ctx: QueryCtx, forms: Pick<Doc<"forms">, "_id" | 
         key: id,
         kind: "company",
         name: row?.name ?? "A company",
-        imageUrl: row?.logoId ? await ctx.storage.getUrl(row.logoId) : null,
+        // The square logo reads at mark size; the full one, fitted, until there is one.
+        imageUrl: row?.markId
+          ? await ctx.storage.getUrl(row.markId)
+          : row?.logoId
+            ? await ctx.storage.getUrl(row.logoId)
+            : null,
       };
       companies.set(id, co);
     }

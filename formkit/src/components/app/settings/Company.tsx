@@ -93,7 +93,7 @@ export function CompanySection() {
 
       <Panel
         title="Companies"
-        lede="Optional: a studio, a side project, a client you invoice through. Each one claims its own link and carries its own logo and colour. One company on Free, five on Pro, as many as you need on Business."
+        lede="Optional: a studio, a side project, a client you invoice through. Each one claims its own link and carries its own logos and colour. One company on Free, five on Pro, as many as you need on Business."
         aside={
           <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
             {full && (
@@ -118,7 +118,11 @@ export function CompanySection() {
             {companies.map((c) => (
               <div key={c._id} className="fk-corow" data-open={c._id === open ? "true" : undefined}>
                 <span className="fk-corow-mark" style={{ background: c.brandColor ?? "var(--blue-300)" }} aria-hidden>
-                  {c.logoUrl ? <img src={c.logoUrl} alt="" /> : c.name.trim().charAt(0).toUpperCase()}
+                  {c.markUrl || c.logoUrl ? (
+                    <img src={(c.markUrl ?? c.logoUrl)!} alt="" data-fit={c.markUrl ? undefined : "contain"} />
+                  ) : (
+                    c.name.trim().charAt(0).toUpperCase()
+                  )}
                 </span>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span className="fk-corow-name">{c.name}</span>
@@ -311,27 +315,57 @@ function CompanyEditor({ company, onDone }: { company: Company; onDone: () => vo
       </div>
 
       <Panel
-        title="Company logo"
-        lede="Used on published forms, emails and exports. SVG or PNG, at least 200px tall, transparent background if you have one."
+        title="Company logos"
+        lede="Two versions, so every place gets the one that fits. SVG or PNG with a transparent background works best, up to 5 MB each."
       >
-        <ImageUpload
-          label="Logo"
-          help="Up to 5 MB. Without one, the first letter of the name stands in."
-          hasImage={!!company.logoUrl}
-          preview={
-            <span className="fk-logo-plate">
-              {company.logoUrl ? <img src={company.logoUrl} alt="" /> : <ImageIcon size={22} strokeWidth={1.6} aria-hidden />}
-            </span>
-          }
-          onUploaded={async (storageId) => {
-            await setLogo({ companyId: company._id, storageId });
-            toast("Logo uploaded");
-          }}
-          onCleared={async () => {
-            await setLogo({ companyId: company._id, storageId: null });
-            toast("Logo removed", { detail: "The initial is showing again" });
-          }}
-        />
+        <div className="fk-logoslots">
+          <div className="fk-logoslot">
+            <div className="fk-logoslot-head">
+              <span className="fk-logoslot-name">Full logo</span>
+              <span className="fk-logoslot-where">Form headers, emails and your domain’s home page</span>
+            </div>
+            <ImageUpload
+              label="Full logo"
+              help="Your wordmark, or the symbol with the name beside it. At least 200px tall."
+              hasImage={!!company.logoUrl}
+              preview={
+                <span className="fk-logo-plate" data-shape="wide">
+                  {company.logoUrl ? <img src={company.logoUrl} alt="" /> : <ImageIcon size={22} strokeWidth={1.6} aria-hidden />}
+                </span>
+              }
+              onUploaded={(storageId) => setLogo({ companyId: company._id, storageId, kind: "full" })}
+              onCleared={() => setLogo({ companyId: company._id, storageId: null, kind: "full" })}
+            />
+          </div>
+          <div className="fk-logoslot">
+            <div className="fk-logoslot-head">
+              <span className="fk-logoslot-name">Square logo</span>
+              <span className="fk-logoslot-where">The browser tab on your forms, and beside the company name in Formkit</span>
+            </div>
+            <ImageUpload
+              label="Square logo"
+              help={
+                company.markUrl
+                  ? "Just the symbol, cropped square. At least 512 × 512px."
+                  : company.logoUrl
+                    ? "Just the symbol, cropped square. Until there is one, the full logo is shrunk to fit."
+                    : "Just the symbol, cropped square. Until there is one, the first letter of the name stands in."
+              }
+              hasImage={!!company.markUrl}
+              preview={
+                <span className="fk-logo-plate" data-shape="square">
+                  {company.markUrl ? (
+                    <img src={company.markUrl} alt="" />
+                  ) : (
+                    <ImageIcon size={22} strokeWidth={1.6} aria-hidden />
+                  )}
+                </span>
+              }
+              onUploaded={(storageId) => setLogo({ companyId: company._id, storageId, kind: "square" })}
+              onCleared={() => setLogo({ companyId: company._id, storageId: null, kind: "square" })}
+            />
+          </div>
+        </div>
       </Panel>
 
       <HandleCard

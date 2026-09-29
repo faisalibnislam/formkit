@@ -26,7 +26,7 @@ export function ownerOfForm(form: Form): Owner {
     key: form.brand,
     kind: form.identity.kind,
     name: form.identity.name,
-    imageUrl: form.identity.logoUrl,
+    imageUrl: form.identity.markUrl ?? form.identity.logoUrl,
   };
 }
 
@@ -60,7 +60,7 @@ export function PublishedUnderPicker({ formId, form }: { formId: Id<"forms">; fo
             value: c._id,
             label: c.name || "Untitled company",
             icon: (
-              <OwnerMark owner={{ key: c._id, kind: "company", name: c.name, imageUrl: c.logoUrl }} size={20} />
+              <OwnerMark owner={{ key: c._id, kind: "company", name: c.name, imageUrl: c.markUrl ?? c.logoUrl }} size={20} />
             ),
             group: "Companies",
           })),

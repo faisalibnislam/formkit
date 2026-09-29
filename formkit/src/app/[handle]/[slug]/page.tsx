@@ -1,5 +1,10 @@
 import { LiveForm } from "@/components/live/LiveForm";
-import { guardFormLink } from "@/components/live/deadLink";
+import { formMetadata, guardFormLink } from "@/components/live/deadLink";
+
+export async function generateMetadata({ params }: PageProps<"/[handle]/[slug]">) {
+  const { handle, slug } = await params;
+  return formMetadata(slug, handle);
+}
 
 /**
  * A form at a claimed link - formkit.app/<handle>/<slug>.

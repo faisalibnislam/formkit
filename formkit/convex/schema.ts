@@ -201,7 +201,10 @@ export default defineSchema({
     taxId: v.optional(v.string()),
     address: v.optional(v.string()),
     brandColor: v.optional(v.string()),
+    /** The full logo: a wordmark or lockup, for form headers, emails and the domain home. */
     logoId: v.optional(v.id("_storage")),
+    /** The square logo: an icon, for small marks and the browser tab. */
+    markId: v.optional(v.id("_storage")),
     useBranding: v.optional(v.boolean()),
     badge: v.optional(v.boolean()),
   })

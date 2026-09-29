@@ -531,6 +531,7 @@ export const listing = query({
     return {
       name: company?.name ?? owner.name ?? "Forms",
       logoUrl: company?.logoId ? await ctx.storage.getUrl(company.logoId) : null,
+      markUrl: company?.markId ? await ctx.storage.getUrl(company.markId) : null,
       color: company?.brandColor ?? null,
       forms: forms
         .sort((a, b) => b.updatedAt - a.updatedAt)

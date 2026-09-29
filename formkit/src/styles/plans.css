@@ -843,3 +843,6 @@ button.fk-prochip[data-plan="business"]:hover {
   max-width: 100%;
   text-overflow: ellipsis;
 }
+.fk-domain-mark[data-image="true"] {
+  object-fit: cover;
+}

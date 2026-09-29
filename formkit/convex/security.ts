@@ -648,6 +648,7 @@ export const purgeDeactivated = internalMutation({
         .collect();
       for (const row of rows) {
         if (table === "companies" && "logoId" in row && row.logoId) await ctx.storage.delete(row.logoId).catch(() => undefined);
+        if (table === "companies" && "markId" in row && row.markId) await ctx.storage.delete(row.markId).catch(() => undefined);
         await ctx.db.delete(row._id);
       }
     }

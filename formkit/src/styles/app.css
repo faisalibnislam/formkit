@@ -6467,6 +6467,11 @@ html.fk-own-bar::-webkit-scrollbar {
   height: 100%;
   object-fit: cover;
 }
+/* A company with only a full logo: fitted inside the square rather than cropped. */
+.fk-owner-mark[data-kind="company"] img {
+  object-fit: contain;
+  background: #fff;
+}
 .fk-owner-line {
   display: inline-flex;
   align-items: center;
@@ -6584,4 +6589,50 @@ html.fk-own-bar::-webkit-scrollbar {
   .fk-publink-note {
     display: none;
   }
+}
+
+/* ---------- company logos: full and square ---------- */
+.fk-logoslots {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.fk-logoslot + .fk-logoslot {
+  padding-top: 22px;
+  border-top: 1px solid var(--color-border-default);
+}
+.fk-logoslot-head {
+  margin-bottom: 12px;
+}
+.fk-logoslot-name {
+  display: block;
+  font-size: 15px;
+  font-weight: 500;
+}
+.fk-logoslot-where {
+  display: block;
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+}
+.fk-logo-plate[data-shape="wide"] {
+  width: 200px;
+}
+.fk-logo-plate[data-shape="wide"] img {
+  max-width: 176px;
+  max-height: 64px;
+}
+.fk-logo-plate[data-shape="square"] img {
+  width: 76px;
+  height: 76px;
+  max-width: none;
+  max-height: none;
+  border-radius: 18px;
+  object-fit: cover;
+}
+/* A company's mark is a rounded square; a square logo fills it. */
+.fk-corow-mark {
+  border-radius: 28%;
+}
+.fk-corow-mark img:not([data-fit]) {
+  object-fit: cover;
 }

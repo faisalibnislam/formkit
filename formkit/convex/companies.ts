@@ -28,6 +28,7 @@ export const list = query({
       companies.map(async (c) => ({
         ...c,
         logoUrl: c.logoId ? await ctx.storage.getUrl(c.logoId) : null,
+        markUrl: c.markId ? await ctx.storage.getUrl(c.markId) : null,
         formCount: forms.filter((f) => f.brand === c._id && !f.deletedAt).length,
       })),
     );
@@ -112,6 +113,7 @@ export const remove = mutation({
 
     if (company.handle) await releaseHandle(ctx, user._id, company.handle);
     if (company.logoId) await ctx.storage.delete(company.logoId).catch(() => undefined);
+    if (company.markId) await ctx.storage.delete(company.markId).catch(() => undefined);
     await ctx.db.delete(companyId);
     return null;
   },
@@ -154,7 +156,8 @@ export const release = mutation({
 });
 
 /**
- * The company's logo.
+ * The company's logos: the full one (a wordmark or lockup) and the square one
+ * (an icon). `kind` says which; without it, the full one.
  *
  * The same one-use upload URL as an avatar - `users.generateUploadUrl` issues
  * it, since a person may only upload for their own account either way.
@@ -163,14 +166,15 @@ export const setLogo = mutation({
   args: {
     companyId: v.id("companies"),
     storageId: v.union(v.id("_storage"), v.null()),
+    kind: v.optional(v.union(v.literal("full"), v.literal("square"))),
   },
   returns: v.null(),
-  handler: async (ctx, { companyId, storageId }) => {
+  handler: async (ctx, { companyId, storageId, kind = "full" }) => {
     const user = await requireUser(ctx);
     const company = await ctx.db.get(companyId);
     if (!company || company.ownerId !== user._id) throw new Error("That company is not yours.");
-    const previous = company.logoId;
-    await ctx.db.patch(companyId, { logoId: storageId ?? undefined });
+    const previous = kind === "square" ? company.markId : company.logoId;
+    await ctx.db.patch(companyId, kind === "square" ? { markId: storageId ?? undefined } : { logoId: storageId ?? undefined });
     if (previous && previous !== storageId) await ctx.storage.delete(previous);
     return null;
   },
