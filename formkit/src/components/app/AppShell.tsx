@@ -569,6 +569,18 @@ function AppFrame({ children }: { children: ReactNode }) {
           </div>
 
           <div className="fk-app-bar-right">
+            {/* A company on Free, seen by someone who can change its plan. */}
+            {viewer?.plan?.id === "free" && (viewer.space.role === "owner" || viewer.space.role === "admin") && (
+              <Link
+                href="/app/settings?tab=plan"
+                className="fk-upgrade-cta"
+                aria-label={`Upgrade ${viewer.space.name}`}
+                title={`See plans for ${viewer.space.name}`}
+              >
+                <Sparkles size={16} strokeWidth={1.9} aria-hidden />
+                <span>Upgrade</span>
+              </Link>
+            )}
             <button type="button" className="fk-cta fk-only-wide" onClick={() => setCreateOpen(true)}>
               <Plus size={16} strokeWidth={1.9} aria-hidden />
               Create form
@@ -619,7 +631,10 @@ function AppFrame({ children }: { children: ReactNode }) {
                   <span className="fk-menu-scrim" onClick={() => setAccountOpen(false)} aria-hidden />
                   <span className="fk-menu" data-align="right" role="menu">
                     <span className="fk-menu-head">
-                      <span style={{ display: "block" }}>{viewer?.email}</span>
+                      {/* In a company, the plan below is the company's: say whose it is. */}
+                      <span style={{ display: "block" }}>
+                        {viewer?.space.kind === "company" ? viewer.space.name : viewer?.email}
+                      </span>
                       <PlanChip plan={viewer?.plan?.id} />
                     </span>
                     <Link

@@ -86,6 +86,8 @@ export default defineSchema({
     /** The end of the period paid for; a cancelled plan runs until then. */
     planEndsAt: v.optional(v.number()),
     planCancelAtPeriodEnd: v.optional(v.boolean()),
+    /** When the period paid for ends: the next renewal, or the last day of a cancelled plan. */
+    planPeriodEnd: v.optional(v.number()),
     planComp: v.optional(v.union(v.literal("pro"), v.literal("business"))),
     /** A free plan staff gave: when it lapses (none is for good), why, who and when. */
     compEndsAt: v.optional(v.number()),
@@ -228,6 +230,8 @@ export default defineSchema({
     planStatus: v.optional(v.string()),
     planEndsAt: v.optional(v.number()),
     planCancelAtPeriodEnd: v.optional(v.boolean()),
+    /** When the period paid for ends: the next renewal, or the last day of a cancelled plan. */
+    planPeriodEnd: v.optional(v.number()),
     planComp: v.optional(v.union(v.literal("pro"), v.literal("business"))),
     /** A free plan staff gave: when it lapses (none is for good), why, who and when. */
     compEndsAt: v.optional(v.number()),

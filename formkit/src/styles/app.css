@@ -126,6 +126,54 @@
   background: var(--neutral-800);
 }
 
+/* Upgrade, beside Create form, for a company on Free: the Pro gradient. */
+.fk-upgrade-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  flex: 0 0 auto;
+  padding: 0 20px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(135deg, #2f86c2 0%, #5aa3d6 55%, #86b2dc 100%);
+  box-shadow:
+    0 6px 18px rgba(47, 134, 194, 0.35),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: var(--transition-control);
+}
+.fk-upgrade-cta:hover {
+  box-shadow:
+    0 8px 22px rgba(47, 134, 194, 0.45),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+  filter: brightness(1.05);
+}
+.fk-upgrade-cta:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+@media (max-width: 640px) {
+  /* Just the mark on a phone, so the bar keeps its room. */
+  .fk-upgrade-cta {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    justify-content: center;
+  }
+  .fk-upgrade-cta span {
+    display: none;
+  }
+}
+@media (max-width: 480px) {
+  /* No room beside the company switcher on a phone; Plan is in the account menu. */
+  .fk-upgrade-cta {
+    display: none;
+  }
+}
+
 .fk-bell {
   position: relative;
   display: inline-flex;
@@ -6879,4 +6927,13 @@ html.fk-own-bar::-webkit-scrollbar {
 .fk-linkbtn:disabled {
   opacity: 0.6;
   cursor: default;
+}
+.fk-renew {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.fk-renew[data-busy] {
+  opacity: 0.6;
+  pointer-events: none;
 }

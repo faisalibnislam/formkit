@@ -7,7 +7,7 @@ import { useAction, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "../../../../convex/_generated/api";
 import { FEATURES, PLANS, type Feature, type Interval, type PlanId, type PlanSummary } from "../../../../convex/model/plans";
-import { Button, Modal, ProgressBar, Segmented } from "@/components/ui";
+import { Button, Modal, ProgressBar, Segmented, Switch } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 import { PlanCards, bestSavingPercent } from "@/components/plan/PlanCards";
 import { useCheckout } from "@/components/plan/UpgradeSheet";
@@ -73,6 +73,14 @@ function PlanBody({ viewer }: { viewer: NonNullable<FunctionReturnType<typeof ap
     );
     return () => timers.forEach((t) => window.clearTimeout(t));
   }, [welcome, refresh]);
+
+  // Subscriptions recorded before the renewal date was kept: fetch it once.
+  const filled = useRef(false);
+  useEffect(() => {
+    if (!live || plan.periodEnd || filled.current) return;
+    filled.current = true;
+    void refresh({}).catch(() => undefined);
+  }, [live, plan.periodEnd, refresh]);
 
   const check = async () => {
     setChecking(true);
@@ -164,14 +172,14 @@ function PlanBody({ viewer }: { viewer: NonNullable<FunctionReturnType<typeof ap
         <Row label="Guests on each form" hint="People invited to one form, besides the company’s members.">
           <strong>{plan.limits.collaborators === null ? "Unlimited" : plan.limits.collaborators}</strong>
         </Row>
+        {live && <RenewRow plan={plan} company={company} canChange={canChange} />}
         {canChange && (
           <div className="fk-plan-actions">
             {live && !plan.cancelAtPeriodEnd && (
-              <Button variant="ghost" size="sm" onClick={() => setAsking("cancel")}>
+              <Button variant="destructive" size="sm" onClick={() => setAsking("cancel")}>
                 Cancel plan
               </Button>
             )}
-            {live && plan.cancelAtPeriodEnd && <ResumeButton name={plan.name} />}
             <span className="fk-plan-actions-hint">
               Paid, but this shows the wrong plan?{" "}
               <button type="button" className="fk-linkbtn" onClick={() => void check()} disabled={checking}>
@@ -361,7 +369,9 @@ function CancelDialog({ company, plan, onClose }: { company: string; plan: PlanS
   return (
     <Modal
       title={`Cancel ${company}’s ${plan.name} plan?`}
-      description={`${company} keeps ${plan.name} until the end of the period already paid for, and is not charged again. Then it moves to Free.`}
+      description={`${company} keeps ${plan.name} ${
+        plan.periodEnd ? `until ${date(plan.periodEnd)}` : "until the end of the period already paid for"
+      }, and is not charged again. Then it moves to Free. You can turn auto-renew back on until then.`}
       onClose={onClose}
       width={480}
       footer={
@@ -397,28 +407,57 @@ function CancelDialog({ company, plan, onClose }: { company: string; plan: PlanS
   );
 }
 
-function ResumeButton({ name }: { name: string }) {
+/**
+ * Auto-renew, stated plainly: when the plan renews and for how much, or when
+ * it ends. One switch, no hoops: off cancels at the end of the period paid
+ * for, on takes that back.
+ */
+function RenewRow({ plan, company, canChange }: { plan: PlanSummary; company: string; canChange: boolean }) {
+  const cancel = useAction(api.billing.cancel);
   const resume = useAction(api.billing.resume);
   const toast = useToast();
   const [busy, setBusy] = useState(false);
+  const on = !plan.cancelAtPeriodEnd;
+  const when = plan.periodEnd ? date(plan.periodEnd) : null;
+  const seats = plan.billedSeats ?? plan.seats ?? 1;
+  const each = plan.id === "free" ? 0 : PLANS[plan.id].price[plan.interval ?? "month"];
+  const every = plan.interval === "year" ? "year" : "month";
+
+  const hint = on
+    ? `${when ? `Renews on ${when}` : `Renews every ${every}`} for ${money(each * seats)} (${seats} ${seats === 1 ? "seat" : "seats"} at ${money(each)}). Turn it off and ${plan.name} ends ${when ? `on ${when}` : "when this period does"}, with nothing more charged.`
+    : `${plan.name} ends ${when ? `on ${when}` : "at the end of this period"}, and you will not be charged again. Turn it on to keep ${plan.name}.`;
+
+  async function flip(next: boolean) {
+    if (busy) return;
+    setBusy(true);
+    try {
+      if (next) {
+        await resume({});
+        toast("Auto-renew is on", { detail: `${company} keeps ${plan.name}${when ? ` and renews on ${when}` : ""}.` });
+      } else {
+        await cancel({});
+        toast("Auto-renew is off", {
+          detail: `${plan.name} stays on ${when ? `until ${when}` : "to the end of this period"}. Nothing more is charged.`,
+        });
+      }
+    } catch (e) {
+      toast(errorText(e, "That could not be changed. Try again in a moment."));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
-    <Button
-      size="sm"
-      disabled={busy}
-      onClick={async () => {
-        setBusy(true);
-        try {
-          await resume({});
-          toast(`${name} is back on`, { detail: "It renews as before." });
-        } catch (e) {
-          toast(errorText(e, "That could not be changed. Try again in a moment."));
-        } finally {
-          setBusy(false);
-        }
-      }}
-    >
-      {busy ? "One moment…" : `Keep ${name}`}
-    </Button>
+    <Row label="Auto-renew" hint={plan.status === "past_due" ? `The last payment did not go through. ${hint}` : hint}>
+      {canChange ? (
+        <span className="fk-renew" data-busy={busy || undefined}>
+          <strong>{busy ? "Saving…" : on ? "On" : "Off"}</strong>
+          <Switch checked={on} onChange={(next) => void flip(next)} label={`Renew ${company}’s ${plan.name} plan automatically`} />
+        </span>
+      ) : (
+        <strong>{on ? "On" : "Off"}</strong>
+      )}
+    </Row>
   );
 }
 

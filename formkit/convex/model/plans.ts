@@ -263,7 +263,14 @@ export async function requireFeature(ctx: QueryCtx | MutationCtx, who: PlanSubje
 
 type BillingHolder = Pick<
   Doc<"users">,
-  "planInterval" | "planStatus" | "planEndsAt" | "planCancelAtPeriodEnd" | "planComp" | "compEndsAt"
+  | "planInterval"
+  | "planStatus"
+  | "planEndsAt"
+  | "planCancelAtPeriodEnd"
+  | "planPeriodEnd"
+  | "planSeats"
+  | "planComp"
+  | "compEndsAt"
 > | null;
 
 /** Everything the app needs to draw a company's plan-aware screens, in one object. */
@@ -279,6 +286,10 @@ export function planSummary(id: PlanId, holder: BillingHolder, seats: number, bi
     status: holder?.planStatus ?? null,
     endsAt: holder?.planEndsAt ?? null,
     cancelAtPeriodEnd: holder?.planCancelAtPeriodEnd ?? false,
+    /** When the period paid for ends: the next renewal, or the end of a cancelled plan. */
+    periodEnd: holder?.planPeriodEnd ?? holder?.planEndsAt ?? null,
+    /** Seats on the subscription, which the renewal charges for. */
+    billedSeats: holder?.planSeats ?? null,
     comped: !!compOf(holder),
     /** When a free plan from Formkit ends; null is for good. */
     compUntil: compOf(holder) ? (holder?.compEndsAt ?? null) : null,

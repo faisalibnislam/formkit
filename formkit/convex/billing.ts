@@ -776,6 +776,7 @@ export const applySubscription = internalMutation({
           ? a.periodEnd
           : undefined,
       planCancelAtPeriodEnd: a.cancelAtPeriodEnd,
+      planPeriodEnd: revoked ? undefined : a.periodEnd,
       polarSubscriptionId: a.subscriptionId,
       planSeats: seats,
     };

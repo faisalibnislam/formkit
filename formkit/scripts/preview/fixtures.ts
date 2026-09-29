@@ -414,6 +414,8 @@ export const VIEWER = {
         planStatus: state === "past_due" ? "past_due" : "active",
         planEndsAt: state ? now + 12 * DAY : undefined,
         planCancelAtPeriodEnd: state === "cancelled",
+        planPeriodEnd: now + 12 * DAY,
+        planSeats: SPACE_SEATS(),
         polarCustomerId: id === "free" ? undefined : "cus_preview",
       } as unknown as Parameters<typeof planSummary>[1],
       SPACE_SEATS(),
