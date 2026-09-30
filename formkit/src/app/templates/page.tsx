@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import { NightSky } from "@/components/brand/NightSky";
-import { Glyph } from "@/components/brand/Glyph";
 import { PublicPage } from "@/components/site/PublicPage";
 import { JsonLd, breadcrumb } from "@/components/site/JsonLd";
 import { TEMPLATES, TEMPLATE_CATEGORIES } from "@/content/templates";
+import { templatePreview } from "@/content/templatePreview";
+import { TemplateBrowser, type BrowserTemplate } from "@/components/templates/TemplateBrowser";
 import { SITE_URL } from "@/lib/site";
 
 const TITLE = "Form templates";
@@ -41,6 +41,27 @@ const HOW = [
     body: "Claim a handle and the form goes out at formkit.app/your-name/your-form. Free, like the rest of it.",
   },
 ];
+
+const CATEGORIES = TEMPLATE_CATEGORIES.filter((c) => TEMPLATES.some((t) => t.category === c));
+
+/** What each card needs, including a miniature of the form's first questions. */
+const BROWSER: BrowserTemplate[] = TEMPLATES.map((t) => {
+  const p = templatePreview(t.slug);
+  return {
+    slug: t.slug,
+    name: t.name,
+    blurb: t.blurb,
+    category: t.category ?? "Business",
+    icon: t.icon,
+    count: t.questions.length,
+    time: t.time,
+    logic: t.logic,
+    accent: p?.accent ?? "var(--blue-200)",
+    welcome: p?.welcome.title ?? t.name,
+    first: (p?.questions ?? []).slice(0, 3).map((q) => ({ title: q.title, type: q.type, options: q.options })),
+    words: t.questions.map((q) => q.title).join(" "),
+  };
+});
 
 export default function TemplatesPage() {
   return (
@@ -120,45 +141,7 @@ export default function TemplatesPage() {
           }}
         >
           <div className="fk-measure">
-            <nav className="fk-tpl-cats" aria-label="Template categories">
-              {TEMPLATE_CATEGORIES.filter((c) => TEMPLATES.some((t) => t.category === c)).map((c) => (
-                <a key={c} href={`#${c.toLowerCase()}`}>
-                  {c}
-                  <span>{TEMPLATES.filter((t) => t.category === c).length}</span>
-                </a>
-              ))}
-            </nav>
-            {TEMPLATE_CATEGORIES.filter((c) => TEMPLATES.some((t) => t.category === c)).map((c) => (
-              <section key={c} id={c.toLowerCase()} className="fk-tpl-group">
-                <h2 className="fk-tpl-group-head">{c}</h2>
-                <div className="fk-tpl-grid">
-                  {TEMPLATES.filter((t) => t.category === c).map((t) => (
-                    <Link key={t.slug} href={`/templates/${t.slug}`} className="fk-tpl-card">
-                      <span className="fk-tpl-tile">
-                        <Glyph name={t.icon} size={20} />
-                      </span>
-                      <span className="fk-tpl-name">{t.name}</span>
-                      <span className="fk-tpl-blurb">{t.blurb}</span>
-                      <span className="fk-tpl-meta">
-                        <span>{t.questions.length} questions</span>
-                        <span>·</span>
-                        <span>{t.time}</span>
-                        {t.logic && (
-                          <>
-                            <span>·</span>
-                            <span>Logic included</span>
-                          </>
-                        )}
-                      </span>
-                      <span className="fk-tpl-more">
-                        See the questions
-                        <ArrowRight size={15} strokeWidth={1.8} aria-hidden />
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              </section>
-            ))}
+            <TemplateBrowser templates={BROWSER} categories={CATEGORIES} />
 
             <h2
               style={{

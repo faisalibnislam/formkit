@@ -8,6 +8,8 @@ import { PublicPage } from "@/components/site/PublicPage";
 import { JsonLd, breadcrumb, faqPage } from "@/components/site/JsonLd";
 import { TEMPLATES, templateBySlug, templateTitle } from "@/content/templates";
 import { featureBySlug } from "@/content/features";
+import { templatePreview } from "@/content/templatePreview";
+import { QuestionJump, TemplatePreviewProvider, TemplatePreviewer } from "@/components/templates/TemplatePreviewer";
 import { SITE_URL } from "@/lib/site";
 
 export function generateStaticParams() {
@@ -47,6 +49,7 @@ export default async function TemplateDetailPage(props: PageProps<"/templates/[s
     ...TEMPLATES.filter((x) => x.slug !== t.slug && x.category !== t.category),
   ].slice(0, 8);
   const features = (t.features ?? []).map(featureBySlug).filter((f) => f !== null);
+  const preview = templatePreview(t.slug);
 
   return (
     <>
@@ -87,6 +90,7 @@ export default async function TemplateDetailPage(props: PageProps<"/templates/[s
         }}
       />
 
+      <TemplatePreviewProvider>
       <PublicPage current="templates">
         <section
           className="fk-hero"
@@ -96,7 +100,8 @@ export default async function TemplateDetailPage(props: PageProps<"/templates/[s
           }}
         >
           <NightSky />
-          <div className="fk-hero-inner fk-measure">
+          <div className="fk-hero-inner fk-tpl-hero">
+            <div className="fk-tpl-hero-copy">
             <nav aria-label="Breadcrumb" className="fk-crumbs">
               <Link href="/">Formkit</Link>
               <span>/</span>
@@ -150,6 +155,29 @@ export default async function TemplateDetailPage(props: PageProps<"/templates/[s
                 Free · no credit card
               </span>
             </div>
+            <ul className="fk-tpl-facts">
+              <li>
+                <b>{t.questions.length}</b> questions
+              </li>
+              <li>
+                <b>{t.pages}</b> {t.pages === "1" ? "page" : "pages"}
+              </li>
+              <li>
+                <b>{t.time}</b> to fill in
+              </li>
+              {t.category && (
+                <li>
+                  <b>{t.category}</b>
+                </li>
+              )}
+            </ul>
+            </div>
+            {preview && (
+              <div className="fk-tpl-hero-preview">
+                <TemplatePreviewer preview={preview} slug={t.slug} name={t.name} />
+                <p className="fk-tpl-hero-hint">This is the real template. Fill it in, then make it yours.</p>
+              </div>
+            )}
           </div>
         </section>
 
@@ -185,9 +213,10 @@ export default async function TemplateDetailPage(props: PageProps<"/templates/[s
               >
                 Every question in this template
               </h2>
+              {preview && <p className="fk-tpl-qhint">Pick a question to see it in the live preview above.</p>}
               <div style={{ marginTop: 10 }}>
                 {t.questions.map((question, i) => (
-                  <div key={question.title} className="fk-tpl-qrow">
+                  <QuestionJump key={question.title} index={i}>
                     <span className="fk-tpl-qindex">
                       {String(i + 1).padStart(2, "0")}
                     </span>
@@ -216,7 +245,7 @@ export default async function TemplateDetailPage(props: PageProps<"/templates/[s
                         {question.type}
                       </span>
                     </span>
-                  </div>
+                  </QuestionJump>
                 ))}
               </div>
 
@@ -392,6 +421,7 @@ export default async function TemplateDetailPage(props: PageProps<"/templates/[s
           </div>
         </main>
       </PublicPage>
+      </TemplatePreviewProvider>
     </>
   );
 }
