@@ -1,12 +1,18 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ArrowRight, ArrowUpRight, Check } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BookOpen, Plus } from "lucide-react";
 import { NightSky } from "@/components/brand/NightSky";
 import { Glyph } from "@/components/brand/Glyph";
 import { PublicPage } from "@/components/site/PublicPage";
 import { Reveal } from "@/components/site/Reveal";
 import { StoryScene } from "@/components/site/scenes";
 import { SceneCard } from "@/components/site/SceneCard";
+import { StoryChapters } from "@/components/site/StoryChapters";
+import { PlanLadder } from "@/components/site/PlanLadder";
+import { TemplateCard } from "@/components/templates/TemplateBrowser";
+import { templateCard } from "@/content/templateCards";
+import { planLadder } from "@/content/featurePlans";
+import { readingMinutes } from "@/components/site/HelpArticleBody";
 import { JsonLd, article, breadcrumb, faqPage } from "@/components/site/JsonLd";
 import { FEATURE_PAGES, type Story } from "@/content/features";
 import { templateBySlug } from "@/content/templates";
@@ -24,6 +30,7 @@ export function StoryPage({ story, base, crumb }: { story: Story; base: "feature
   const url = `${SITE_URL}/${base}/${story.slug}`;
   const templates = story.templates.map(templateBySlug).filter((t) => t !== null);
   const help = story.help.map(helpArticle).filter((a) => a !== null);
+  const ladder = base === "features" ? planLadder(story.slug) : null;
   const related = story.related.map((s) => FEATURE_PAGES.find((f) => f.slug === s)).filter((f) => f !== undefined);
 
   return (
@@ -74,27 +81,21 @@ export function StoryPage({ story, base, crumb }: { story: Story; base: "feature
 
         <main id="fk-main" className="fk-main fk-story-main">
           <Reveal className="fk-measure">
-            <h2 className="fk-story-h2" data-rise>
-              What it does
-            </h2>
-            <div className="fk-story-sections" data-count={story.sections.length}>
-              {story.sections.map((s, i) => (
-                <section key={s.title} className="fk-story-section" data-rise style={{ transitionDelay: `${i * 80}ms` }}>
-                  <span className="fk-story-num">{String(i + 1).padStart(2, "0")}</span>
-                  <h3>{s.title}</h3>
-                  <p>{s.body}</p>
-                  {s.points && (
-                    <ul>
-                      {s.points.map((p) => (
-                        <li key={p}>
-                          <Check size={15} strokeWidth={2.2} aria-hidden /> {p}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </section>
-              ))}
-            </div>
+            <section data-rise aria-labelledby="story-does">
+              <h2 id="story-does" className="fk-story-h2">
+                What it does
+              </h2>
+              <StoryChapters sections={story.sections} />
+            </section>
+
+            {ladder && (
+              <section className="fk-story-block" data-rise aria-labelledby="story-plans">
+                <h2 id="story-plans" className="fk-story-h2">
+                  Which plan includes it
+                </h2>
+                <PlanLadder ladder={ladder} />
+              </section>
+            )}
 
             {story.steps && (
               <section className="fk-story-block" data-rise>
@@ -118,18 +119,9 @@ export function StoryPage({ story, base, crumb }: { story: Story; base: "feature
                     Every template <ArrowRight size={15} strokeWidth={1.8} aria-hidden />
                   </Link>
                 </div>
-                <div className="fk-tpl-grid">
+                <div className="fk-tb-grid">
                   {templates.map((t) => (
-                    <Link key={t.slug} href={`/templates/${t.slug}`} className="fk-tpl-card">
-                      <span className="fk-tpl-tile">
-                        <Glyph name={t.icon} size={20} />
-                      </span>
-                      <span className="fk-tpl-name">{t.name}</span>
-                      <span className="fk-tpl-blurb">{t.blurb}</span>
-                      <span className="fk-tpl-more">
-                        See the questions <ArrowRight size={15} strokeWidth={1.8} aria-hidden />
-                      </span>
-                    </Link>
+                    <TemplateCard key={t.slug} t={templateCard(t)} />
                   ))}
                 </div>
               </section>
@@ -153,6 +145,9 @@ export function StoryPage({ story, base, crumb }: { story: Story; base: "feature
                   {help.map((a) => (
                     <li key={a.id}>
                       <Link href={`/help/${a.id}`}>
+                        <em className="fk-story-help-meta">
+                          <BookOpen size={13} strokeWidth={2} aria-hidden /> {readingMinutes(a.body)} min read
+                        </em>
                         {a.title}
                         <span>{a.summary}</span>
                       </Link>
@@ -164,10 +159,13 @@ export function StoryPage({ story, base, crumb }: { story: Story; base: "feature
 
             <section className="fk-story-block" data-rise>
               <h2 className="fk-story-h2">Questions</h2>
-              <div className="fk-story-faq">
-                {story.faqs.map((f) => (
-                  <details key={f.q} className="fk-price-q">
-                    <summary>{f.q}</summary>
+              <div className="fk-cmp-faq">
+                {story.faqs.map((f, k) => (
+                  <details key={f.q} open={k === 0}>
+                    <summary>
+                      {f.q}
+                      <Plus size={18} strokeWidth={2} aria-hidden />
+                    </summary>
                     <p>{f.a}</p>
                   </details>
                 ))}
