@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useMutation } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 import { Search } from "lucide-react";
 import { HELP_ARTICLES } from "@/content/help";
 
@@ -21,6 +23,15 @@ function snippet(body: string, term: string) {
 export function HelpSearch() {
   const [term, setTerm] = useState("");
   const query = term.trim().toLowerCase();
+  const log = useMutation(api.helpSignals.log);
+  const logged = useRef(new Set<string>());
+
+  // /help?q=… (the search box search engines are told about) opens with it filled in.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("q");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (q) setTerm(q);
+  }, []);
 
   const results = useMemo(() => {
     if (query.length < 2) return [];
@@ -33,6 +44,17 @@ export function HelpSearch() {
       .slice(0, 12)
       .map((a) => ({ article: a, match: snippet(a.body, query) }));
   }, [query]);
+
+  // A search that finds nothing, once they stop typing, tells us what to write next.
+  const missed = query.length >= 3 && results.length === 0;
+  useEffect(() => {
+    if (!missed || logged.current.has(query)) return;
+    const t = setTimeout(() => {
+      logged.current.add(query);
+      void log({ kind: "missed", key: query }).catch(() => {});
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [missed, query, log]);
 
   return (
     <div>
@@ -60,7 +82,7 @@ export function HelpSearch() {
           <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "16px 0 0", flexWrap: "wrap" }}>
             <p style={{ flex: 1, margin: 0, fontSize: 13.5, color: "var(--color-text-tertiary)" }}>
               {results.length === 0
-                ? `Nothing matches “${term.trim()}”. Try a shorter word, or browse the categories below.`
+                ? `Nothing matches “${term.trim()}”. Try a shorter word, or browse the categories below. We note searches like this and write the articles people look for.`
                 : `${results.length} article${results.length === 1 ? "" : "s"} match “${term.trim()}”`}
             </p>
             <button type="button" className="fk-help-clear" onClick={() => setTerm("")}>

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useMutation } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 
 /**
  * "Was this helpful?" - acknowledges either answer and says what happens next,
@@ -8,6 +10,11 @@ import { useState } from "react";
  */
 export function HelpFeedback({ articleId }: { articleId: string }) {
   const [answer, setAnswer] = useState<"yes" | "no" | null>(null);
+  const log = useMutation(api.helpSignals.log);
+  const choose = (a: "yes" | "no") => {
+    setAnswer(a);
+    void log({ kind: a === "yes" ? "helpful" : "unhelpful", key: articleId }).catch(() => {});
+  };
 
   return (
     <div
@@ -25,7 +32,7 @@ export function HelpFeedback({ articleId }: { articleId: string }) {
           <button
             type="button"
             className="fk-chip"
-            onClick={() => setAnswer("yes")}
+            onClick={() => choose("yes")}
             data-article={articleId}
           >
             Yes
@@ -33,7 +40,7 @@ export function HelpFeedback({ articleId }: { articleId: string }) {
           <button
             type="button"
             className="fk-chip"
-            onClick={() => setAnswer("no")}
+            onClick={() => choose("no")}
             data-article={articleId}
           >
             No
@@ -51,7 +58,7 @@ export function HelpFeedback({ articleId }: { articleId: string }) {
         >
           {answer === "yes"
             ? "Good, thank you. That tells us to leave this one alone."
-            : "Noted. This article is on the list to rewrite; if you tell support what you were trying to do, we will cover it."}
+            : "Noted, thank you. Articles people mark unhelpful are the ones we rewrite first. If you tell support what you were trying to do, we will cover it."}
         </p>
       )}
     </div>

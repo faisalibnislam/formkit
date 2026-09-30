@@ -37,6 +37,7 @@ import type * as exports from "../exports.js";
 import type * as flags from "../flags.js";
 import type * as forms from "../forms.js";
 import type * as handles from "../handles.js";
+import type * as helpSignals from "../helpSignals.js";
 import type * as http from "../http.js";
 import type * as inbox from "../inbox.js";
 import type * as insights from "../insights.js";
@@ -125,6 +126,7 @@ declare const fullApi: ApiFromModules<{
   "flags": typeof flags,
   "forms": typeof forms,
   "handles": typeof handles,
+  "helpSignals": typeof helpSignals,
   "http": typeof http,
   "inbox": typeof inbox,
   "insights": typeof insights,

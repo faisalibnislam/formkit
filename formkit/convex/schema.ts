@@ -867,6 +867,22 @@ export default defineSchema({
     priority: v.optional(v.boolean()),
   }).index("by_state", ["state"]),
 
+  /**
+   * What the help centre hears: searches that found nothing, and answers to
+   * "Was this helpful?". One row per term or article, counted, so a busy day
+   * never grows the table.
+   */
+  helpSignals: defineTable({
+    kind: v.union(v.literal("missed"), v.literal("helpful"), v.literal("unhelpful")),
+    /** The search term, lowercased, or the article id. */
+    key: v.string(),
+    count: v.number(),
+    firstAt: v.number(),
+    lastAt: v.number(),
+  })
+    .index("by_kind_key", ["kind", "key"])
+    .index("by_kind_last", ["kind", "lastAt"]),
+
   announcements: defineTable({
     title: v.string(),
     body: v.string(),

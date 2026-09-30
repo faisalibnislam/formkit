@@ -1374,6 +1374,17 @@ export const QUERIES: Record<string, unknown> = {
   },
   "admin:reports": [],
   "admin:tickets": [],
+  "helpSignals:summary": {
+    missed: [
+      { term: "zapier filter", count: 6, lastAt: Date.now() - 3600e3 },
+      { term: "signature", count: 4, lastAt: Date.now() - 7200e3 },
+      { term: "white label", count: 2, lastAt: Date.now() - 86400e3 },
+    ],
+    articles: [
+      { id: "custom-domain", yes: 9, no: 4, lastAt: Date.now() - 3600e3 },
+      { id: "billing", yes: 12, no: 1, lastAt: Date.now() - 7200e3 },
+    ],
+  },
   "admin:team": {
     perms: PERMS.map((key) => ({ key, label: key, detail: "" })),
     roles: [

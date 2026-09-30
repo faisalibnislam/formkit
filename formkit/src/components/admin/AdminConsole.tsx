@@ -10,6 +10,7 @@ import {
   ChartPie,
   Coins,
   LifeBuoy,
+  BookOpen,
   LogOut,
   MailCheck,
   Megaphone,
@@ -31,6 +32,7 @@ import { AdminCompanies } from "./sections/AdminCompanies";
 import { AdminAi } from "./sections/AdminAi";
 import { AdminModeration } from "./sections/AdminModeration";
 import { AdminSupport } from "./sections/AdminSupport";
+import { AdminHelp } from "./sections/AdminHelp";
 import { AdminAnnouncements } from "./sections/AdminAnnouncements";
 import { AdminMail } from "./sections/AdminMail";
 import { AdminTeam } from "./sections/AdminTeam";
@@ -55,6 +57,7 @@ type Key =
   | "ai"
   | "moderation"
   | "support"
+  | "help"
   | "announcements"
   | "mail"
   | "team"
@@ -152,6 +155,15 @@ const SECTIONS: {
     permission: "support",
     title: "Support",
     lede: "Questions customers have asked. Replies go out as Formkit.",
+  },
+  {
+    key: "help",
+    label: "Help centre",
+    group: "Operations",
+    icon: <BookOpen size={17} strokeWidth={1.8} aria-hidden />,
+    permission: "support",
+    title: "Help centre",
+    lede: "What people searched for and did not find, and which articles did not help.",
   },
   {
     key: "announcements",
@@ -327,6 +339,7 @@ export function AdminConsole() {
         {current.key === "ai" && <AdminAi />}
         {current.key === "moderation" && <AdminModeration />}
         {current.key === "support" && <AdminSupport />}
+        {current.key === "help" && <AdminHelp />}
         {current.key === "announcements" && <AdminAnnouncements />}
         {current.key === "mail" && <AdminMail />}
         {current.key === "team" && <AdminTeam meId={me.staff._id} />}

@@ -1,4 +1,6 @@
-import { Fragment } from "react";
+import { Fragment, type ReactNode } from "react";
+import Link from "next/link";
+import { HELP_ARTICLES } from "@/content/help";
 
 /**
  * Renders a help article body.
@@ -34,20 +36,41 @@ function parse(body: string): Block[] {
   return blocks;
 }
 
+/** "See <article title>." becomes a link to that article. */
+const BY_TITLE = new Map(HELP_ARTICLES.map((a) => [a.title, a.id]));
+const SEE = /(See |see )([A-Z][^.]*?[.?])(?=\s|$)/g;
+
+function inline(text: string): ReactNode {
+  const parts: ReactNode[] = [];
+  let at = 0;
+  for (const m of text.matchAll(SEE)) {
+    const raw = m[2]!;
+    const title = raw.endsWith("?") ? raw : raw.slice(0, -1);
+    const id = BY_TITLE.get(title);
+    if (!id) continue;
+    const start = m.index! + m[1]!.length;
+    parts.push(text.slice(at, start), <Link key={start} href={`/help/${id}`}>{title}</Link>);
+    at = start + title.length;
+  }
+  if (at === 0) return text;
+  parts.push(text.slice(at));
+  return parts;
+}
+
 export function HelpArticleBody({ body }: { body: string }) {
   return (
     <div className="fk-article">
       {parse(body).map((block, i) => (
         <Fragment key={i}>
           {block.kind === "heading" && <h2>{block.text}</h2>}
-          {block.kind === "para" && <p>{block.text}</p>}
+          {block.kind === "para" && <p>{inline(block.text)}</p>}
           {block.kind === "callout" && (
-            <aside className="fk-callout">{block.text}</aside>
+            <aside className="fk-callout">{inline(block.text)}</aside>
           )}
           {block.kind === "list" && (
             <ul>
               {block.items.map((item) => (
-                <li key={item}>{item}</li>
+                <li key={item}>{inline(item)}</li>
               ))}
             </ul>
           )}

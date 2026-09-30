@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { NightSky } from "@/components/brand/NightSky";
@@ -28,8 +29,9 @@ export const metadata: Metadata = {
 const POPULAR = [
   { label: "Create your first form", href: "/help/create-first-form" },
   { label: "Logic rules", href: "/help/logic-basics" },
-  { label: "Your own link", href: "/help/claim-handle" },
-  { label: "Exports", href: "/help/export-responses" },
+  { label: "Companies", href: "/help/add-company" },
+  { label: "Cancel or change a plan", href: "/help/auto-renew" },
+  { label: "Custom domains", href: "/help/custom-domain" },
 ];
 
 export default function HelpPage() {
@@ -117,18 +119,20 @@ export default function HelpPage() {
           }}
         >
           <div className="fk-measure fk-help-grid">
-            {HELP_CATEGORIES.map((cat) => (
-              <section key={cat.id} className="fk-help-cat" aria-labelledby={`c-${cat.id}`}>
+            {HELP_CATEGORIES.map((cat, i) => (
+              <Fragment key={cat.id}>
+              {cat.group !== HELP_CATEGORIES[i - 1]?.group && <h2 className="fk-help-group">{cat.group}</h2>}
+              <section id={cat.id} className="fk-help-cat" aria-labelledby={`c-${cat.id}`}>
                 <div className="fk-help-cat-head">
                   <span className="fk-help-cat-tile">
                     <Glyph name={cat.icon} size={18} />
                   </span>
-                  <h2
+                  <h3
                     id={`c-${cat.id}`}
                     style={{ margin: 0, fontSize: 18, fontWeight: 500 }}
                   >
                     {cat.name}
-                  </h2>
+                  </h3>
                 </div>
                 <p
                   style={{
@@ -149,6 +153,7 @@ export default function HelpPage() {
                   ))}
                 </div>
               </section>
+              </Fragment>
             ))}
           </div>
           <div className="fk-measure">

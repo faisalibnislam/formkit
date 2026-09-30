@@ -13,6 +13,8 @@ import { SITE_DATES } from "@/lib/dates";
 import { HELP_ARTICLES, HELP_CATEGORIES, helpArticle } from "@/content/help";
 import { SITE_URL } from "@/lib/site";
 
+const UPDATED = new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
+
 export function generateStaticParams() {
   return HELP_ARTICLES.map((a) => ({ slug: a.id }));
 }
@@ -46,6 +48,18 @@ export default async function HelpArticlePage(props: PageProps<"/help/[slug]">) 
   const prev = index > 0 ? HELP_ARTICLES[index - 1] : null;
   const next = index < HELP_ARTICLES.length - 1 ? HELP_ARTICLES[index + 1] : null;
   const cat = article.category;
+  const updated = article.updated ?? SITE_DATES.help;
+  // Chosen related articles, or the rest of the category after prev and next.
+  const related = (
+    article.related
+      ? article.related
+          .map(helpArticle)
+          .filter((a) => a !== null)
+          .filter((a) => a.id !== prev?.id && a.id !== next?.id)
+      : HELP_ARTICLES.filter(
+          (a) => a.category.id === cat.id && a.id !== article.id && a.id !== prev?.id && a.id !== next?.id,
+        )
+  ).slice(0, 3);
 
   return (
     <>
@@ -57,7 +71,7 @@ export default async function HelpArticlePage(props: PageProps<"/help/[slug]">) 
               headline: article.title,
               description: article.summary,
               url: `${SITE_URL}/help/${article.id}`,
-              updated: article.updated ?? SITE_DATES.help,
+              updated,
               section: cat.name,
             }),
             breadcrumb([
@@ -66,15 +80,6 @@ export default async function HelpArticlePage(props: PageProps<"/help/[slug]">) 
               { name: cat.name, url: `${SITE_URL}/help#${cat.id}` },
               { name: article.title, url: `${SITE_URL}/help/${article.id}` },
             ]),
-            {
-              "@type": "Article",
-              headline: article.title,
-              description: article.summary,
-              articleSection: cat.name,
-              url: `${SITE_URL}/help/${article.id}`,
-              publisher: { "@type": "Organization", name: "Formkit" },
-              inLanguage: "en-US",
-            },
           ],
         }}
       />
@@ -173,7 +178,26 @@ export default async function HelpArticlePage(props: PageProps<"/help/[slug]">) 
             </nav>
 
             <div style={{ minWidth: 0 }}>
+              <p className="fk-help-updated">
+                Last updated <time dateTime={updated}>{UPDATED.format(new Date(`${updated}T00:00:00Z`))}</time>
+              </p>
               <HelpArticleBody body={article.body} />
+
+              {related.length > 0 && (
+                <section className="fk-help-related">
+                  <h2>Related articles</h2>
+                  <ul className="fk-story-links">
+                    {related.map((a) => (
+                      <li key={a.id}>
+                        <Link href={`/help/${a.id}`}>
+                          {a.title}
+                          <span>{a.summary}</span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
 
               <HelpFeedback articleId={article.id} />
 
