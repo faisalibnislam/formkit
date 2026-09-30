@@ -9,7 +9,7 @@ import { PLANS } from "../../../convex/model/plans";
 
 /**
  * After the AI band, in ordinary sections that read the same on a phone and a
- * desktop: companies, the plans, and why to trust Formkit with answers.
+ * desktop: the plans.
  *
  * Each section fades its demo in once, when it scrolls into view; with
  * reduced motion everything is simply there.
@@ -42,7 +42,6 @@ export function MoreScenes() {
 
   return (
     <div ref={root}>
-      <Teams />
       <Plans />
     </div>
   );
@@ -53,58 +52,6 @@ function Kicker({ children, tone }: { children: string; tone?: "inverse" }) {
     <span className="fk-more-kicker" data-tone={tone}>
       {children}
     </span>
-  );
-}
-
-/** Companies: a workspace per business, with members and a plan each. */
-function Teams() {
-  const companies = [
-    ["Maya Ortiz", "Personal", "Free", "MO"],
-    ["Studio Nine", "4 members", "Pro", "SN"],
-    ["Northstar Labs", "12 members", "Business", "NL"],
-  ];
-  return (
-    <section id="teams" className="fk-more fk-more-teams">
-      <div className="fk-more-grid">
-        <div className="fk-more-demo fk-teamdemo" data-reveal aria-hidden>
-          <span className="fk-replydemo-label">Your companies</span>
-          {companies.map(([name, meta, plan, mark]) => (
-            <div key={name} className="fk-teamdemo-row">
-              <span className="fk-teamdemo-mark">{mark}</span>
-              <span className="fk-teamdemo-name">
-                {name}
-                <em>{meta}</em>
-              </span>
-              <span className="fk-teamdemo-plan" data-plan={plan.toLowerCase()}>
-                {plan}
-              </span>
-            </div>
-          ))}
-          <span className="fk-teamdemo-add">+ Create a company</span>
-        </div>
-        <div className="fk-more-copy">
-          <Kicker>Companies and teams</Kicker>
-          <h2 className="fk-lp-h2">A workspace for every business you run.</h2>
-          <p className="fk-lp-lede">
-            Everyone starts with a personal company, and can make as many more as they like: one for the studio, one
-            for each client. Each has its own forms, brand, members and plan, and you switch between them from the
-            top bar.
-          </p>
-          <ul className="fk-more-points">
-            <li>
-              <Check size={16} strokeWidth={2.2} aria-hidden /> Members work on every form, as Admin, Editor or Viewer
-            </li>
-            <li>
-              <Check size={16} strokeWidth={2.2} aria-hidden /> Free on Free, unlimited. On paid plans each member is a
-              seat
-            </li>
-            <li>
-              <Check size={16} strokeWidth={2.2} aria-hidden /> Guests invited to one form are always free
-            </li>
-          </ul>
-        </div>
-      </div>
-    </section>
   );
 }
 

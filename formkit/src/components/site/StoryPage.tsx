@@ -6,6 +6,7 @@ import { Glyph } from "@/components/brand/Glyph";
 import { PublicPage } from "@/components/site/PublicPage";
 import { Reveal } from "@/components/site/Reveal";
 import { StoryScene } from "@/components/site/scenes";
+import { SceneCard } from "@/components/site/SceneCard";
 import { JsonLd, article, breadcrumb, faqPage } from "@/components/site/JsonLd";
 import { FEATURE_PAGES, type Story } from "@/content/features";
 import { templateBySlug } from "@/content/templates";
@@ -178,29 +179,6 @@ export function StoryPage({ story, base, crumb }: { story: Story; base: "feature
         </main>
       </PublicPage>
     </>
-  );
-}
-
-/** A feature as a card, its scene playing small above the words. */
-function SceneCard({ story, base, wide }: { story: Story; base: "features" | "use-cases"; wide?: boolean }) {
-  return (
-    <Link href={`/${base}/${story.slug}`} className="fk-scard" data-wide={wide || undefined}>
-      <span className="fk-scard-scene" aria-hidden>
-        <StoryScene slug={story.slug} compact />
-      </span>
-      <span className="fk-scard-copy">
-        <span className="fk-scard-kicker">
-          <Glyph name={story.icon} size={14} /> {story.name}
-        </span>
-        <b>{story.title}</b>
-        <span className="fk-scard-foot">
-          <span className="fk-scard-plan">{story.plan}</span>
-          <span className="fk-scard-go">
-            Explore <ArrowRight size={14} strokeWidth={2} aria-hidden />
-          </span>
-        </span>
-      </span>
-    </Link>
   );
 }
 

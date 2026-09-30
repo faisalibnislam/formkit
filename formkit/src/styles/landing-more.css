@@ -6,9 +6,6 @@
   padding: clamp(64px, 8vw, 120px) clamp(24px, 7vw, 110px);
   background: #ffffff;
 }
-.fk-more-teams {
-  background: var(--mint-100);
-}
 .fk-more-plans {
   background: #ffffff;
 }
@@ -92,73 +89,6 @@
 .fk-more-demo:not([data-in]) {
   opacity: 0;
   transform: translateY(24px);
-}
-
-/* Companies. */
-.fk-teamdemo {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 18px;
-  border-radius: 24px;
-  background: #ffffff;
-  box-shadow:
-    0 18px 44px rgba(20, 60, 50, 0.1),
-    inset 0 0 0 1px var(--neutral-150);
-}
-.fk-teamdemo-label {
-  margin: 0 0 6px 6px;
-  color: var(--neutral-500);
-}
-.fk-teamdemo-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px;
-  border-radius: 16px;
-}
-.fk-teamdemo-row:nth-of-type(2) {
-  background: var(--blue-50);
-}
-.fk-teamdemo-mark {
-  display: inline-grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
-  background: var(--neutral-100);
-  font-size: 13px;
-  font-weight: 600;
-}
-.fk-teamdemo-name {
-  flex: 1;
-  min-width: 0;
-  font-size: 15px;
-}
-.fk-teamdemo-name em {
-  display: block;
-  font-size: 12.5px;
-  font-style: normal;
-  color: var(--neutral-500);
-}
-.fk-teamdemo-plan {
-  padding: 4px 12px;
-  border-radius: 999px;
-  background: var(--neutral-100);
-  font-size: 12.5px;
-}
-.fk-teamdemo-plan[data-plan="pro"] {
-  background: var(--blue-100);
-  color: #1d4f7c;
-}
-.fk-teamdemo-plan[data-plan="business"] {
-  background: var(--neutral-900);
-  color: #ffffff;
-}
-.fk-teamdemo-add {
-  margin: 6px 0 0 10px;
-  font-size: 14px;
-  color: var(--neutral-600);
 }
 
 /* Plans and trust. */
@@ -260,9 +190,6 @@
 @media (max-width: 900px) {
   .fk-more-grid {
     grid-template-columns: minmax(0, 1fr);
-  }
-  .fk-more-teams .fk-teamdemo {
-    order: 2;
   }
   .fk-plan-teaser {
     grid-template-columns: minmax(0, 1fr);
@@ -528,5 +455,45 @@
   .fk-aib [data-rise]:not([data-in]) {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* The AI band's night sky: twinkling stars over slow, soft glows. */
+.fk-stars {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+.fk-aib-glow-2 {
+  inset: 38% -20% auto auto;
+  width: 70%;
+  height: 700px;
+  background:
+    radial-gradient(45% 45% at 60% 50%, rgba(95, 155, 212, 0.22), transparent 70%),
+    radial-gradient(30% 30% at 30% 70%, rgba(163, 200, 231, 0.12), transparent 70%);
+  animation-duration: 24s;
+  animation-direction: alternate-reverse;
+}
+.fk-aib-glow-3 {
+  inset: auto auto -10% -15%;
+  width: 70%;
+  height: 700px;
+  background:
+    radial-gradient(40% 40% at 40% 50%, rgba(126, 201, 115, 0.13), transparent 70%),
+    radial-gradient(35% 35% at 70% 40%, rgba(95, 155, 212, 0.16), transparent 70%);
+  animation-duration: 30s;
+}
+.fk-aib::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(120% 60% at 50% 0%, transparent 60%, rgba(0, 0, 0, 0.18));
+}
+@media (prefers-reduced-motion: reduce) {
+  .fk-aib-glow {
+    animation: none;
   }
 }

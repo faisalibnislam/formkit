@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef } from "react";
-import { ArrowRight, ArrowUpRight } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Plus } from "lucide-react";
 import { SiteNav } from "@/components/site/SiteNav";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { CompareTable } from "@/components/site/CompareTable";
@@ -10,7 +10,10 @@ import { COMPARE_ASOF } from "@/content/compare";
 import { HELP_ARTICLES } from "@/content/help";
 import { LANDING_FAQS } from "@/content/landing";
 import { HeroScene } from "./HeroScene";
-import { ProductShot } from "./ProductShot";
+import { FormStage } from "./FormStage";
+import { LogicSection } from "./LogicSection";
+import { AnalyticsSection } from "./AnalyticsSection";
+import { LandingFeatures } from "./LandingFeatures";
 import { FeaturesScene } from "./FeaturesScene";
 import { MobileLanding } from "./MobileLanding";
 import { MoreScenes } from "./MoreScenes";
@@ -19,9 +22,9 @@ import { createEngine, UNPIN_AT, type Engine } from "./scrollEngine";
 
 /**
  * The marketing home: the headline in the night sky with form pieces that lean
- * with the pointer, one form seen three ways (builder, phone, response), then
- * AI takes the stage (building, deciding, answering), then everything else,
- * companies and the plans. Only the features carousel is driven by scroll.
+ * with the pointer, a form being made in layers, then AI takes the stage
+ * (building, deciding, answering), logic, analytics, every feature playing,
+ * and the plans. Only the features carousel is driven by scroll.
  *
  * The scroll choreography is an imperative effect writing to the DOM, not React
  * state. Driving 900vh of it through render would drop frames, and nothing must
@@ -135,16 +138,19 @@ export function LandingPage() {
       </div>
       <MobileLanding part="hero" />
 
-      {/* The same on every screen: one form three ways, then AI, the reason to pick Formkit. */}
-      <ProductShot />
+      {/* The same on every screen: a form being made, then AI, the reason to pick Formkit. */}
+      <FormStage />
       <AiBand />
+      <LogicSection />
+      <AnalyticsSection />
+      <LandingFeatures />
 
       <div className="fk-desk">
         <FeaturesScene onStep={stepFeatures} />
       </div>
       <MobileLanding part="features" />
 
-      {/* Companies and the plans. */}
+      {/* The plans. */}
       <MoreScenes />
 
       <section id="compare" className="fk-lp-compare">
@@ -183,11 +189,14 @@ export function LandingPage() {
           </div>
 
           <div className="fk-lp-faq-list">
-            {LANDING_FAQS.map((f) => (
-              <div key={f.q} className="fk-lp-faq-item">
-                <h3>{f.q}</h3>
+            {LANDING_FAQS.map((f, i) => (
+              <details key={f.q} className="fk-lp-faq-item" open={i === 0}>
+                <summary>
+                  <h3>{f.q}</h3>
+                  <Plus size={18} strokeWidth={2} aria-hidden />
+                </summary>
                 <p>{f.a}</p>
-              </div>
+              </details>
             ))}
           </div>
         </div>

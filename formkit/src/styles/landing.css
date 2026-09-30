@@ -617,3 +617,63 @@
     font-size: 14.5px;
   }
 }
+
+/* The FAQ as an accordion: the first answer open, the rest a click away. */
+.fk-lp-faq-item {
+  padding: 0;
+}
+.fk-lp-faq-item summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 0;
+  cursor: pointer;
+  list-style: none;
+}
+.fk-lp-faq-item summary::-webkit-details-marker {
+  display: none;
+}
+.fk-lp-faq-item summary:hover h3 {
+  color: var(--blue-700);
+}
+.fk-lp-faq-item summary svg {
+  flex: none;
+  color: var(--neutral-500);
+  transition: transform 0.25s ease, color 0.2s ease;
+}
+.fk-lp-faq-item[open] summary svg {
+  transform: rotate(45deg);
+  color: var(--neutral-900);
+}
+.fk-lp-faq-item p {
+  margin: -8px 0 0;
+  padding-bottom: 20px;
+}
+.fk-lp-faq-item[open] p {
+  animation: fk-faq-open 0.3s ease;
+}
+@keyframes fk-faq-open {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+/* Everything from /features, on the home page. */
+.fk-lf {
+  padding: clamp(64px, 8vw, 120px) clamp(20px, 6vw, 96px);
+  background: #ffffff;
+}
+.fk-lf-inner {
+  max-width: 1240px;
+  margin: 0 auto;
+}
+.fk-lf-head {
+  margin-bottom: clamp(28px, 4vw, 44px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .fk-lp-faq-item[open] p {
+    animation: none;
+  }
+}

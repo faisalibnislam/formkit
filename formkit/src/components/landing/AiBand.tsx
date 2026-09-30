@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import { ArrowRight, Check, Sparkles } from "lucide-react";
 import { AiBuildScene } from "@/components/site/scenes/AiBuildScene";
 import { LogicScene } from "@/components/site/scenes/LogicScene";
+import { StarField } from "./StarField";
 import { ReplyScene } from "@/components/site/scenes/ReplyScene";
 import { InsightsScene } from "@/components/site/scenes/InsightsScene";
 
@@ -86,7 +87,10 @@ export function AiBand() {
 
   return (
     <section ref={root} id="ai" className="fk-aib" aria-labelledby="ai-title">
+      <StarField />
       <div className="fk-aib-glow" aria-hidden />
+      <div className="fk-aib-glow fk-aib-glow-2" aria-hidden />
+      <div className="fk-aib-glow fk-aib-glow-3" aria-hidden />
       <header className="fk-aib-head" data-rise>
         <span className="fk-aib-badge">
           <Sparkles size={14} strokeWidth={2} aria-hidden /> AI in Formkit
