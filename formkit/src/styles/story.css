@@ -908,3 +908,329 @@
     animation: none;
   }
 }
+
+/* Use cases: a team's templates live on a phone, and the team picker. */
+.fk-story-benchlede {
+  margin: -8px 0 20px;
+  font-size: 15.5px;
+  color: var(--color-text-secondary);
+}
+.fk-wb {
+  display: grid;
+  grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+  gap: clamp(16px, 2.5vw, 28px);
+  padding: clamp(16px, 2.5vw, 28px);
+  border-radius: 32px;
+  background: var(--blue-50);
+}
+.fk-wb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fk-wb-list button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 0;
+  border-radius: 18px;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  color: var(--neutral-900);
+  cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+.fk-wb-list button:hover {
+  background: rgba(255, 255, 255, 0.6);
+}
+.fk-wb-list button[aria-selected="true"] {
+  background: #ffffff;
+  box-shadow: var(--shadow-card), var(--shadow-inset-hairline);
+}
+.fk-wb-icon {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: var(--accent, var(--blue-200));
+}
+.fk-wb-name {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+.fk-wb-name b {
+  font-size: 15px;
+  font-weight: 600;
+}
+.fk-wb-name small {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12.5px;
+  color: var(--neutral-500);
+}
+.fk-wb-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(20px, 3vw, 40px);
+}
+.fk-wb-phone {
+  animation: fk-wb-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.fk-wb-about {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: fk-wb-in 0.45s 0.05s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes fk-wb-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+.fk-wb-live {
+  align-self: flex-start;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--green-100);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--green-600);
+}
+.fk-wb-about h3 {
+  margin: 0;
+  font-size: clamp(22px, 2.4vw, 30px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.fk-wb-about p {
+  margin: 0;
+  max-width: 44ch;
+  font-size: 15.5px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+.fk-wb-pages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.fk-wb-pages li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px 5px 5px;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px var(--blue-200);
+  font-size: 13px;
+}
+.fk-wb-pages em {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--neutral-900);
+  color: #ffffff;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 700;
+}
+.fk-wb-ctas {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 10px;
+}
+.fk-wb-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--blue-700);
+}
+
+/* Compact: inside the team picker, the templates as chips above the phone. */
+.fk-wb[data-compact] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.55);
+}
+.fk-wb[data-compact] .fk-wb-list {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.fk-wb[data-compact] .fk-wb-list button {
+  padding: 6px 12px 6px 6px;
+  border-radius: 999px;
+  gap: 8px;
+}
+.fk-wb[data-compact] .fk-wb-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+}
+.fk-wb[data-compact] .fk-wb-name small {
+  display: none;
+}
+.fk-wb[data-compact] .fk-wb-name b {
+  font-size: 13.5px;
+}
+.fk-wb[data-compact] .fk-wb-stage {
+  display: block;
+  width: min(100%, 340px);
+}
+
+.fk-team-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.fk-team-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.fk-team-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 18px 0 6px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--neutral-50);
+  box-shadow: inset 0 0 0 1px var(--neutral-150);
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--neutral-800);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.fk-team-tabs button:hover {
+  background: var(--blue-50);
+}
+.fk-team-tabs button[aria-selected="true"] {
+  background: var(--neutral-900);
+  box-shadow: none;
+  color: #ffffff;
+}
+.fk-team-tab-ic {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: var(--neutral-900);
+}
+.fk-team-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
+  align-items: center;
+  gap: clamp(24px, 4vw, 56px);
+  padding: clamp(22px, 4vw, 44px);
+  border-radius: 32px;
+  background: var(--blue-50);
+  animation: fk-wb-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.fk-team-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+.fk-team-kicker {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--blue-700);
+}
+.fk-team-copy h2 {
+  margin: 0;
+  font-size: clamp(26px, 3.2vw, 40px);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+}
+.fk-team-copy p {
+  margin: 0;
+  max-width: 52ch;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+.fk-team-copy ul {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.fk-team-copy li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 500;
+}
+.fk-team-copy li svg {
+  color: var(--green-600);
+}
+.fk-team-plan {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: #ffffff;
+  font-size: 13px;
+  color: var(--neutral-700);
+}
+
+@media (max-width: 1000px) {
+  .fk-wb,
+  .fk-wb-stage,
+  .fk-team-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fk-wb-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .fk-wb-stage .fk-wb-phone {
+    justify-self: center;
+    width: min(100%, 340px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fk-wb-phone,
+  .fk-wb-about,
+  .fk-team-panel {
+    animation: none;
+  }
+}
+/* The preview's theme strip sits on light blue here, not the night sky. */
+.fk-wb .fk-tp-themes {
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px var(--neutral-150);
+}
+.fk-wb .fk-tp-themes span {
+  color: var(--neutral-700);
+}

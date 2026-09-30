@@ -10,11 +10,12 @@ import { SceneCard } from "@/components/site/SceneCard";
 import { StoryChapters } from "@/components/site/StoryChapters";
 import { PlanLadder } from "@/components/site/PlanLadder";
 import { TemplateCard } from "@/components/templates/TemplateBrowser";
-import { templateCard } from "@/content/templateCards";
+import { benchTemplate, templateCard } from "@/content/templateCards";
+import { TemplateWorkbench } from "@/components/site/TemplateWorkbench";
 import { planLadder } from "@/content/featurePlans";
 import { readingMinutes } from "@/components/site/HelpArticleBody";
 import { JsonLd, article, breadcrumb, faqPage } from "@/components/site/JsonLd";
-import { FEATURE_PAGES, type Story } from "@/content/features";
+import { FEATURE_PAGES, USE_CASES, type Story } from "@/content/features";
 import { templateBySlug } from "@/content/templates";
 import { helpArticle } from "@/content/help";
 import { SITE_URL } from "@/lib/site";
@@ -30,6 +31,7 @@ export function StoryPage({ story, base, crumb }: { story: Story; base: "feature
   const url = `${SITE_URL}/${base}/${story.slug}`;
   const templates = story.templates.map(templateBySlug).filter((t) => t !== null);
   const help = story.help.map(helpArticle).filter((a) => a !== null);
+  const bench = base === "use-cases" ? templates.map(benchTemplate).filter((b) => b !== null) : [];
   const ladder = base === "features" ? planLadder(story.slug) : null;
   const related = story.related.map((s) => FEATURE_PAGES.find((f) => f.slug === s)).filter((f) => f !== undefined);
 
@@ -111,7 +113,22 @@ export function StoryPage({ story, base, crumb }: { story: Story; base: "feature
               </section>
             )}
 
-            {templates.length > 0 && (
+            {base === "use-cases" && bench.length > 0 && (
+              <section className="fk-story-block" data-rise aria-labelledby="story-bench">
+                <div className="fk-story-blockhead">
+                  <h2 id="story-bench" className="fk-story-h2">
+                    The forms you&rsquo;ll run
+                  </h2>
+                  <Link href="/templates" className="fk-story-more">
+                    Every template <ArrowRight size={15} strokeWidth={1.8} aria-hidden />
+                  </Link>
+                </div>
+                <p className="fk-story-benchlede">Pick one and fill it in. These are the real templates, ready to use.</p>
+                <TemplateWorkbench templates={bench} />
+              </section>
+            )}
+
+            {base === "features" && templates.length > 0 && (
               <section className="fk-story-block" data-rise>
                 <div className="fk-story-blockhead">
                   <h2 className="fk-story-h2">Templates to start from</h2>
@@ -172,6 +189,26 @@ export function StoryPage({ story, base, crumb }: { story: Story; base: "feature
               </div>
             </section>
 
+            {base === "use-cases" && (
+              <section className="fk-story-block" data-rise aria-labelledby="story-teams">
+                <h2 id="story-teams" className="fk-story-h2">
+                  Other teams
+                </h2>
+                <div className="fk-teams">
+                  {USE_CASES.filter((u) => u.slug !== story.slug).map((u) => (
+                    <Link key={u.slug} href={`/use-cases/${u.slug}`} className="fk-team">
+                      <span className="fk-tpl-tile">
+                        <Glyph name={u.icon} size={20} />
+                      </span>
+                      <b>{u.name}</b>
+                      <span>{u.kicker}</span>
+                      <ArrowRight size={16} strokeWidth={1.8} aria-hidden />
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
+
             <FinalCta />
           </Reveal>
         </main>
@@ -208,6 +245,7 @@ export function StoryIndex({
   lead,
   crumb,
   showcase,
+  gridTitle = "Every feature, playing",
   children,
 }: {
   stories: Story[];
@@ -216,6 +254,8 @@ export function StoryIndex({
   lead: string;
   crumb: string;
   showcase?: ReactNode;
+  /** The heading over the cards when a showcase comes first. */
+  gridTitle?: string;
   children?: ReactNode;
 }) {
   return (
@@ -236,7 +276,7 @@ export function StoryIndex({
         <Reveal className="fk-measure">
           {showcase && <div data-rise>{showcase}</div>}
           <section className={showcase ? "fk-story-block" : undefined} data-rise>
-            {showcase && <h2 className="fk-story-h2">Every feature, playing</h2>}
+            {showcase && <h2 className="fk-story-h2">{gridTitle}</h2>}
             <div className="fk-bento">
               {stories.map((s, i) => (
                 <SceneCard key={s.slug} story={s} base={base} wide={i % 4 === 0 || i % 4 === 3} />
