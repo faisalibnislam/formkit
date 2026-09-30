@@ -114,7 +114,6 @@ export function AiBand() {
       {ROWS.map((r, i) => (
         <div key={r.id} id={r.id} className="fk-aib-row" data-flip={i % 2 === 1 || undefined} data-rise>
           <div className="fk-aib-copy">
-            <span className="fk-aib-n">{r.n}</span>
             <span className="fk-aib-kicker">{r.kicker}</span>
             <h3>{r.title}</h3>
             <p>{r.body}</p>

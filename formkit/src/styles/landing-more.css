@@ -329,17 +329,9 @@
   opacity: 0;
   transform: translateY(40px);
 }
-.fk-aib-n {
-  display: block;
-  font-size: clamp(56px, 7vw, 96px);
-  font-weight: 700;
-  letter-spacing: -0.05em;
-  line-height: 0.9;
-  color: rgba(255, 255, 255, 0.3);
-}
 .fk-aib-kicker {
   display: block;
-  margin-top: 12px;
+  margin-top: 0;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.1em;
