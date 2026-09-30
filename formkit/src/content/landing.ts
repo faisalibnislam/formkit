@@ -1,4 +1,40 @@
 /**
+ * The landing page's content.
+ *
+ * One continuous story on Client onboarding / Maya Okafor / Northstar website
+ * redesign - 8 of 11 questions, 72.5%, 2 minutes ago - reused across every
+ * section, so the page reads as one form travelling through the product.
+ *
+ * The four brand marks (Northstar, Merrow, Velto, Fieldnote) are invented and
+ * appear only as selectable answers inside a form question. They are never
+ * presented as customer proof.
+ */
+
+/** Glyphs for the field types the phone hero lists. */
+export const FIELD_ICONS: Record<string, string> = {
+  "Short text": "type",
+  "Long text": "message-square",
+  Number: "sliders-horizontal",
+  Email: "at-sign",
+  Phone: "user",
+  Website: "globe",
+  Name: "user",
+  "Multiple choice": "list-checks",
+  Dropdown: "compass",
+  Rating: "star",
+};
+
+/** The small form pieces that float around the hero headline and lean with the pointer. */
+export const FLOATIES = [
+  { kind: "check", depth: 26, pos: { left: "6%", top: "24%" } },
+  { kind: "toggle", depth: 40, pos: { right: "9%", top: "20%" } },
+  { kind: "radio", depth: 18, pos: { left: "11%", bottom: "24%" } },
+  { kind: "stars", depth: 34, pos: { right: "12%", bottom: "27%" } },
+  { kind: "field", depth: 14, pos: { left: "3%", top: "52%" } },
+  { kind: "upload", depth: 30, pos: { right: "4%", top: "56%" } },
+] as const;
+
+/**
  * The feature cards, desktop track and mobile grid alike. Each chip says
  * which plan has it, in the same words as the pricing page.
  */

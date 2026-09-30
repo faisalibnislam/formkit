@@ -9,18 +9,18 @@ import { CompareTable } from "@/components/site/CompareTable";
 import { COMPARE_ASOF } from "@/content/compare";
 import { HELP_ARTICLES } from "@/content/help";
 import { LANDING_FAQS } from "@/content/landing";
-import { Hero } from "./Hero";
+import { HeroScene } from "./HeroScene";
+import { ProductShot } from "./ProductShot";
 import { FeaturesScene } from "./FeaturesScene";
 import { MobileLanding } from "./MobileLanding";
 import { MoreScenes } from "./MoreScenes";
-import { HowItWorks } from "./HowItWorks";
 import { AiBand } from "./AiBand";
 import { createEngine, UNPIN_AT, type Engine } from "./scrollEngine";
 
 /**
- * The marketing home: the headline over one still picture of Formkit, one
- * short section on how the form works for the people filling it in, then AI
- * takes the stage (building, deciding, answering), then everything else,
+ * The marketing home: the headline in the night sky with form pieces that lean
+ * with the pointer, one form seen three ways (builder, phone, response), then
+ * AI takes the stage (building, deciding, answering), then everything else,
  * companies and the plans. Only the features carousel is driven by scroll.
  *
  * The scroll choreography is an imperative effect writing to the DOM, not React
@@ -45,6 +45,10 @@ export function LandingPage() {
       e.resolveAll();
       return;
     }
+
+    // The floating pieces around the headline run on their own clock and lean
+    // with the pointer, so they keep moving after the scroll loop has parked.
+    const stopFloaties = e.floaties();
 
     let eased = 0;
     let raf: number | null = null;
@@ -94,6 +98,7 @@ export function LandingPage() {
       window.removeEventListener("scroll", kick);
       window.removeEventListener("resize", onResize);
       window.clearTimeout(settle);
+      stopFloaties();
       if (raf !== null) cancelAnimationFrame(raf);
       engine.current = null;
     };
@@ -124,16 +129,20 @@ export function LandingPage() {
       <SiteNav />
       <span id="content" tabIndex={-1} />
 
-      <Hero />
+      {/* The hero has a desktop and a phone telling; CSS shows the one that fits. */}
+      <div className="fk-desk">
+        <HeroScene />
+      </div>
+      <MobileLanding part="hero" />
 
-      {/* The same on every screen: how it works, then AI, the reason to pick Formkit. */}
-      <HowItWorks />
+      {/* The same on every screen: one form three ways, then AI, the reason to pick Formkit. */}
+      <ProductShot />
       <AiBand />
 
       <div className="fk-desk">
         <FeaturesScene onStep={stepFeatures} />
       </div>
-      <MobileLanding />
+      <MobileLanding part="features" />
 
       {/* Companies and the plans. */}
       <MoreScenes />

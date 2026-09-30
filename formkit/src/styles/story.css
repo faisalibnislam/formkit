@@ -514,7 +514,7 @@
   width: 100%;
   background: var(--blue-400);
   transform-origin: left;
-  animation: fk-how-fill linear both;
+  animation: fk-show-fill linear both;
 }
 .fk-show-panel {
   display: grid;
@@ -550,6 +550,15 @@
 }
 .fk-show-scene .fk-story-hint {
   color: var(--neutral-600);
+}
+
+@keyframes fk-show-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
 
 /* Team cards on /features. */

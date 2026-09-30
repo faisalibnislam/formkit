@@ -1,0 +1,691 @@
+/* The landing page's second section (components/landing/ProductShot.tsx):
+   one form as the builder, a phone and a response, on a light canvas. The
+   only movement is following a question. */
+
+.fk-prod {
+  position: relative;
+  padding: clamp(56px, 7vw, 104px) clamp(20px, 5vw, 72px) clamp(56px, 7vw, 96px);
+  background:
+    radial-gradient(50% 45% at 72% 62%, rgba(163, 200, 231, 0.55), transparent 70%),
+    radial-gradient(40% 40% at 18% 30%, rgba(220, 238, 230, 0.8), transparent 70%),
+    #f7fafd;
+  overflow: hidden;
+}
+/* A canvas of dots, like a design tool's. */
+.fk-prod::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(33, 40, 46, 0.12) 1px, transparent 1.2px);
+  background-size: 22px 22px;
+  -webkit-mask-image: radial-gradient(80% 70% at 50% 60%, #000 30%, transparent 85%);
+  mask-image: radial-gradient(80% 70% at 50% 60%, #000 30%, transparent 85%);
+  pointer-events: none;
+}
+.fk-prod > * {
+  position: relative;
+}
+
+.fk-prod-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px 40px;
+  flex-wrap: wrap;
+  max-width: 1240px;
+  margin: 0 auto;
+}
+.fk-prod-head .fk-lp-h2 {
+  max-width: 17ch;
+  font-size: clamp(28px, 3.6vw, 48px);
+}
+.fk-prod-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fk-prod-picker > span {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--neutral-500);
+}
+.fk-prod-picker > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 5px;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px -14px rgba(20, 40, 70, 0.35), inset 0 0 0 1px var(--neutral-150);
+}
+.fk-prod-picker button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--neutral-700);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+.fk-prod-picker button:hover {
+  background: var(--neutral-100);
+  color: var(--neutral-900);
+}
+.fk-prod-picker button[aria-selected="true"] {
+  background: var(--neutral-900);
+  color: #ffffff;
+}
+.fk-prod-picker em {
+  font-style: normal;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--blue-600);
+}
+.fk-prod-picker [aria-selected="true"] em {
+  color: var(--blue-300);
+}
+
+/* The stage: three pieces composed as one cluster. */
+.fk-prod-stage {
+  position: relative;
+  max-width: 1240px;
+  height: 740px;
+  margin: clamp(32px, 4vw, 52px) auto 0;
+}
+.fk-prod-builder {
+  position: absolute;
+  left: 0;
+  top: 96px;
+  width: 58%;
+  z-index: 1;
+}
+.fk-prod-resp {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 30%;
+  z-index: 2;
+}
+.fk-prod-phone-wrap {
+  position: absolute;
+  left: 49%;
+  top: 176px;
+  width: 262px;
+  z-index: 3;
+}
+
+.fk-prod-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 5px 12px 5px 5px;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 6px 16px -10px rgba(20, 40, 70, 0.4), inset 0 0 0 1px var(--neutral-150);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--neutral-800);
+  white-space: nowrap;
+}
+.fk-prod-badge b {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--neutral-900);
+  color: #ffffff;
+  font-size: 11.5px;
+}
+.fk-prod-phone-wrap .fk-prod-badge {
+  margin: 14px 0 0 18px;
+}
+
+/* 1. The builder window. */
+.fk-prod-win {
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow:
+    0 50px 90px -40px rgba(12, 40, 80, 0.45),
+    0 12px 28px -18px rgba(12, 40, 80, 0.3),
+    inset 0 0 0 1px var(--neutral-150);
+  overflow: hidden;
+}
+.fk-prod-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--neutral-150);
+  font-size: 14px;
+}
+.fk-prod-dots {
+  display: inline-flex;
+  gap: 5px;
+  margin-right: 4px;
+}
+.fk-prod-dots i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--neutral-200);
+}
+.fk-prod-draft {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--green-100);
+  color: var(--green-600);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.fk-prod-eye {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-left: auto;
+  border-radius: 50%;
+  background: var(--neutral-100);
+  color: var(--neutral-700);
+}
+.fk-prod-publish {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--neutral-900);
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.fk-prod-ai {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  background: linear-gradient(90deg, var(--blue-50), #ffffff);
+  border-bottom: 1px solid var(--neutral-150);
+  font-size: 12.5px;
+  color: var(--neutral-700);
+}
+.fk-prod-ai svg {
+  flex: none;
+  color: var(--blue-600);
+}
+.fk-prod-ai span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fk-prod-ai q {
+  color: var(--neutral-900);
+  font-weight: 500;
+}
+.fk-prod-body {
+  display: grid;
+  grid-template-columns: 172px minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px;
+  background: var(--neutral-50);
+}
+.fk-prod-pages {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12.5px;
+}
+.fk-prod-pages > div {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: var(--neutral-700);
+}
+.fk-prod-pages > div[data-on] {
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px var(--neutral-150);
+  color: var(--neutral-900);
+  font-weight: 600;
+}
+.fk-prod-pages em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--neutral-500);
+}
+.fk-prod-pages small {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--neutral-500);
+}
+.fk-prod-pages .fk-prod-rule {
+  align-items: flex-start;
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 12px;
+  background: var(--neutral-900);
+  color: #ffffff;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.fk-prod-rule svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--blue-300);
+}
+.fk-prod-qs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fk-prod-qs button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px var(--neutral-150);
+  color: var(--neutral-900);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+.fk-prod-qs button:hover {
+  background: var(--blue-50);
+}
+.fk-prod-qs button[aria-pressed="true"] {
+  background: var(--blue-50);
+  box-shadow: inset 0 0 0 2px var(--blue-500);
+}
+.fk-prod-n {
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--neutral-400);
+}
+[aria-pressed="true"] .fk-prod-n {
+  color: var(--blue-700);
+}
+.fk-prod-q {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.fk-prod-q small {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--neutral-500);
+}
+.fk-prod-qs em {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  margin-top: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--neutral-900);
+  color: #ffffff;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* 2. The phone. */
+.fk-prod-phone {
+  position: relative;
+  padding: 9px;
+  border-radius: 42px;
+  background: linear-gradient(160deg, #2b343c, #10171d);
+  box-shadow:
+    0 60px 90px -40px rgba(12, 40, 80, 0.6),
+    0 18px 30px -18px rgba(12, 40, 80, 0.4),
+    inset 0 0 0 1.5px rgba(255, 255, 255, 0.12);
+}
+.fk-prod-notch {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  width: 72px;
+  height: 20px;
+  border-radius: 999px;
+  background: #10171d;
+  transform: translateX(-50%);
+  z-index: 1;
+}
+.fk-prod-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 500px;
+  padding: 46px 16px 18px;
+  border-radius: 34px;
+  background: linear-gradient(180deg, #d8e9f7 0%, #eaf3fb 100%);
+  color: var(--neutral-900);
+  overflow: hidden;
+}
+.fk-prod-url {
+  align-self: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.75);
+  font-size: 10.5px;
+  color: var(--neutral-600);
+}
+.fk-prod-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.fk-prod-brand i {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--neutral-900);
+  color: #ffffff;
+  font-style: normal;
+  font-size: 10px;
+}
+.fk-prod-brand small {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--neutral-600);
+}
+.fk-prod-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.8);
+  overflow: hidden;
+}
+.fk-prod-progress i {
+  display: block;
+  height: 100%;
+  background: var(--blue-600);
+  transition: width 0.35s ease;
+}
+.fk-prod-ask {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  padding: 16px 14px;
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 12px 26px -16px rgba(0, 20, 50, 0.35);
+  animation: fk-prod-swap 0.25s ease both;
+}
+@keyframes fk-prod-swap {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+.fk-prod-ask p {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.fk-prod-opts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fk-prod-opts span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--neutral-50);
+  box-shadow: inset 0 0 0 1px var(--neutral-150);
+  font-size: 13px;
+}
+.fk-prod-opts span[data-on] {
+  background: var(--neutral-900);
+  box-shadow: none;
+  color: #ffffff;
+  font-weight: 600;
+}
+.fk-prod-input {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--neutral-50);
+  box-shadow: inset 0 0 0 1.5px var(--blue-500);
+  font-size: 13px;
+  word-break: break-word;
+}
+.fk-prod-logic {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  margin-top: auto;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--blue-50);
+  color: var(--blue-700);
+  font-size: 11px;
+  font-weight: 600;
+}
+.fk-prod-next {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: none;
+  height: 40px;
+  border-radius: 999px;
+  background: var(--neutral-900);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* 3. The response. */
+.fk-prod-card {
+  padding: 16px;
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow:
+    0 50px 90px -40px rgba(12, 40, 80, 0.45),
+    0 12px 28px -18px rgba(12, 40, 80, 0.3),
+    inset 0 0 0 1px var(--neutral-150);
+}
+.fk-prod-resp-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--neutral-150);
+}
+.fk-prod-av {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--blue-100);
+  color: var(--blue-700);
+  font-size: 12px;
+  font-weight: 700;
+}
+.fk-prod-resp-head > span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+.fk-prod-resp-head b {
+  display: block;
+  font-size: 14.5px;
+}
+.fk-prod-resp-head em {
+  font-style: normal;
+  font-size: 12px;
+  color: var(--neutral-500);
+}
+.fk-prod-new {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--green-100);
+  color: var(--green-600);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.fk-prod-card dl {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 10px 0 0;
+}
+.fk-prod-card dl > div {
+  padding: 8px 10px;
+  border-radius: 10px;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+.fk-prod-card dl > div[data-on] {
+  background: var(--blue-50);
+  box-shadow: inset 3px 0 0 var(--blue-500);
+}
+.fk-prod-card dt {
+  font-size: 11.5px;
+  color: var(--neutral-500);
+}
+.fk-prod-card dd {
+  margin: 2px 0 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fk-prod-tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--neutral-150);
+}
+.fk-prod-tags > svg {
+  color: var(--blue-600);
+}
+.fk-prod-tags span {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--neutral-100);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.fk-prod-tags [data-tone="green"] {
+  background: var(--green-100);
+  color: var(--green-600);
+}
+.fk-prod-tags [data-tone="blue"] {
+  background: var(--blue-100);
+  color: var(--blue-700);
+}
+
+/* Narrower screens: the three pieces stack, in order. */
+@media (max-width: 1080px) {
+  .fk-prod-stage {
+    height: auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 28px 20px;
+  }
+  .fk-prod-builder,
+  .fk-prod-resp,
+  .fk-prod-phone-wrap {
+    position: static;
+    width: auto;
+  }
+  .fk-prod-builder {
+    grid-column: 1 / -1;
+  }
+  .fk-prod-phone-wrap {
+    order: 2;
+    justify-self: center;
+    width: 262px;
+  }
+  .fk-prod-resp {
+    order: 3;
+  }
+}
+@media (max-width: 700px) {
+  .fk-prod-stage {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fk-prod-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fk-prod-pages {
+    display: none;
+  }
+  .fk-prod-picker > div {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    border-radius: 22px;
+    scrollbar-width: none;
+  }
+  .fk-prod-picker button {
+    flex: none;
+  }
+  .fk-prod-badge {
+    white-space: normal;
+  }
+  .fk-prod-screen {
+    height: 470px;
+  }
+  .fk-prod-card dl > div:nth-child(n + 4):not([data-on]) {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fk-prod-ask {
+    animation: none;
+  }
+}
