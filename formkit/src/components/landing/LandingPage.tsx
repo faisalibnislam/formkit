@@ -139,7 +139,7 @@ export function LandingPage() {
       <a className="fk-skip" href="#content">
         Skip to content
       </a>
-      <SiteNav current="product" />
+      <SiteNav />
       <span id="content" tabIndex={-1} />
 
       {/* Two tellings of the same story; CSS shows the one that fits. */}

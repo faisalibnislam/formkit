@@ -6,7 +6,8 @@ import { NightSky } from "@/components/brand/NightSky";
 import { Glyph } from "@/components/brand/Glyph";
 import { PublicPage } from "@/components/site/PublicPage";
 import { JsonLd, breadcrumb, faqPage } from "@/components/site/JsonLd";
-import { TEMPLATES, templateBySlug } from "@/content/templates";
+import { TEMPLATES, templateBySlug, templateTitle } from "@/content/templates";
+import { featureBySlug } from "@/content/features";
 import { SITE_URL } from "@/lib/site";
 
 export function generateStaticParams() {
@@ -19,7 +20,7 @@ export async function generateMetadata(
   const { slug } = await props.params;
   const t = templateBySlug(slug);
   if (!t) return {};
-  const title = `${t.name} form template`;
+  const title = templateTitle(t);
   return {
     title,
     description: t.meta,
@@ -40,7 +41,12 @@ export default async function TemplateDetailPage(props: PageProps<"/templates/[s
   const t = templateBySlug(slug);
   if (!t) notFound();
 
-  const others = TEMPLATES.filter((x) => x.slug !== t.slug);
+  // Neighbours from the same category first, then a few from elsewhere.
+  const others = [
+    ...TEMPLATES.filter((x) => x.slug !== t.slug && x.category === t.category),
+    ...TEMPLATES.filter((x) => x.slug !== t.slug && x.category !== t.category),
+  ].slice(0, 8);
+  const features = (t.features ?? []).map(featureBySlug).filter((f) => f !== null);
 
   return (
     <>
@@ -109,7 +115,7 @@ export default async function TemplateDetailPage(props: PageProps<"/templates/[s
                 color: "#ffffff",
               }}
             >
-              {t.name} form template
+              {templateTitle(t)}
             </h1>
             <p
               style={{
@@ -300,6 +306,31 @@ export default async function TemplateDetailPage(props: PageProps<"/templates/[s
                 ))}
               </div>
 
+              {features.length > 0 && (
+                <>
+                  <h2
+                    style={{
+                      margin: "clamp(30px,4vw,48px) 0 0",
+                      fontSize: "clamp(20px,2.2vw,28px)",
+                      fontWeight: 600,
+                      letterSpacing: "-.02em",
+                    }}
+                  >
+                    Make more of it
+                  </h2>
+                  <ul className="fk-story-links" style={{ marginTop: 14 }}>
+                    {features.map((f) => (
+                      <li key={f.slug}>
+                        <Link href={`/features/${f.slug}`}>
+                          {f.name}
+                          <span>{f.meta}</span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+
               <h2
                 style={{
                   margin: "clamp(30px,4vw,48px) 0 0",
@@ -308,7 +339,7 @@ export default async function TemplateDetailPage(props: PageProps<"/templates/[s
                   letterSpacing: "-.02em",
                 }}
               >
-                Other templates
+                {t.category ? `More ${t.category.toLowerCase()} templates` : "Other templates"}
               </h2>
               <div
                 style={{
@@ -324,6 +355,9 @@ export default async function TemplateDetailPage(props: PageProps<"/templates/[s
                     {o.name}
                   </Link>
                 ))}
+                <Link href="/templates" className="fk-chip">
+                  All {TEMPLATES.length} templates
+                </Link>
               </div>
             </div>
 

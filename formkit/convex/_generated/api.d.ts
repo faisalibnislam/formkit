@@ -61,6 +61,7 @@ import type * as model_logicCopy from "../model/logicCopy.js";
 import type * as model_logicEval from "../model/logicEval.js";
 import type * as model_logicOps from "../model/logicOps.js";
 import type * as model_money from "../model/money.js";
+import type * as model_moreTemplates from "../model/moreTemplates.js";
 import type * as model_places from "../model/places.js";
 import type * as model_plans from "../model/plans.js";
 import type * as model_quiz from "../model/quiz.js";
@@ -148,6 +149,7 @@ declare const fullApi: ApiFromModules<{
   "model/logicEval": typeof model_logicEval,
   "model/logicOps": typeof model_logicOps,
   "model/money": typeof model_money,
+  "model/moreTemplates": typeof model_moreTemplates,
   "model/places": typeof model_places,
   "model/plans": typeof model_plans,
   "model/quiz": typeof model_quiz,

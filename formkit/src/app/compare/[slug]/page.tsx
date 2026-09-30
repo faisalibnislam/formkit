@@ -40,7 +40,7 @@ export default async function CompareDetailPage(props: PageProps<"/compare/[slug
   const r = rivalBySlug(slug);
   if (!r) notFound();
 
-  const other = RIVALS.find((x) => x.slug !== r.slug)!;
+  const other = RIVALS[(RIVALS.indexOf(r) + 1) % RIVALS.length];
 
   return (
     <>
@@ -195,11 +195,12 @@ export default async function CompareDetailPage(props: PageProps<"/compare/[slug
                 color: "var(--color-text-tertiary)",
               }}
             >
-              Based on each product&rsquo;s published free tier, {COMPARE_ASOF}. A dash
-              means the feature exists but is narrower, never that it is missing.
+              Based on each product&rsquo;s published pricing page, {COMPARE_ASOF}, and
+              the free plan unless a row says otherwise. A dash means the feature exists
+              but is narrower. Plans change, so check theirs before you decide.
             </p>
 
-            <CompareTable columns={[r.column, 2]} />
+            <CompareTable rival={r} />
 
             <h2
               style={{

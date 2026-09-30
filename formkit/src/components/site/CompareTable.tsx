@@ -2,12 +2,16 @@
 
 import { useState } from "react";
 import { Check, Minus, X } from "lucide-react";
-import { COMPARE_ROWS, COLUMNS, type Cell } from "@/content/compare";
+import { COMPARE_ROWS, COLUMNS, type Cell, type Rival } from "@/content/compare";
 import { Logo } from "@/components/brand/Logo";
 
 /** Each product by its own logo; the name stays for screen readers. */
-export function ProductLogo({ name, height = 22 }: { name: (typeof COLUMNS)[number]; height?: number }) {
+export function ProductLogo({ name, height = 22 }: { name: string; height?: number }) {
   if (name === "Formkit") return <Logo size={height} />;
+  // Only the two on the hub table have a wordmark; the rest go by name.
+  if (name !== "Google Forms" && name !== "Typeform") {
+    return <span style={{ fontSize: Math.round(height * 0.78), fontWeight: 600, letterSpacing: "-.01em" }}>{name}</span>;
+  }
   const src = name === "Google Forms" ? "/brands/google-forms.svg" : "/brands/typeform-ink.svg";
   // Typeform's letters fill their box; Google's leave room. Evened out by eye.
   const h = Math.round(name === "Typeform" ? height * 0.8 : height);
@@ -56,8 +60,25 @@ function Mark({ cell }: { cell: Cell }) {
   );
 }
 
-export function CompareTable({ columns }: { columns?: (0 | 1 | 2)[] }) {
-  const shown = columns ?? [0, 1, 2];
+type Matrix = { names: string[]; rows: { label: string; cells: Cell[] }[] };
+
+/** The hub's columns, or one rival's own rows set against Formkit. */
+function matrixOf(columns?: (0 | 1 | 2)[], rival?: Rival): Matrix {
+  if (rival?.rows) {
+    return {
+      names: [rival.name, "Formkit"],
+      rows: rival.rows.map((r) => ({ label: r.label, cells: [r.them, r.us] })),
+    };
+  }
+  const shown = columns ?? (rival?.column !== undefined ? [rival.column, 2] : [0, 1, 2]);
+  return {
+    names: shown.map((i) => COLUMNS[i]),
+    rows: COMPARE_ROWS.map((r) => ({ label: r.label, cells: shown.map((i) => r.cells[i]) })),
+  };
+}
+
+export function CompareTable({ columns, rival }: { columns?: (0 | 1 | 2)[]; rival?: Rival }) {
+  const { names, rows } = matrixOf(columns, rival);
 
   return (
     <>
@@ -65,7 +86,7 @@ export function CompareTable({ columns }: { columns?: (0 | 1 | 2)[] }) {
       <table
         style={{
           width: "100%",
-          minWidth: shown.length > 2 ? 760 : 560,
+          minWidth: names.length > 2 ? 760 : 560,
           borderCollapse: "collapse",
         }}
       >
@@ -85,9 +106,9 @@ export function CompareTable({ columns }: { columns?: (0 | 1 | 2)[] }) {
             >
               Capability
             </th>
-            {shown.map((i) => (
+            {names.map((name) => (
               <th
-                key={COLUMNS[i]}
+                key={name}
                 scope="col"
                 style={{
                   padding: "18px clamp(16px,2vw,26px)",
@@ -98,16 +119,16 @@ export function CompareTable({ columns }: { columns?: (0 | 1 | 2)[] }) {
                   fontWeight: 600,
                   letterSpacing: "-.01em",
                   color: "var(--neutral-900)",
-                  background: COLUMNS[i] === "Formkit" ? "var(--blue-50)" : undefined,
+                  background: name === "Formkit" ? "var(--blue-50)" : undefined,
                 }}
               >
-                <ProductLogo name={COLUMNS[i]} />
+                <ProductLogo name={name} />
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {COMPARE_ROWS.map((row) => (
+          {rows.map((row) => (
             <tr key={row.label}>
               <th
                 scope="row"
@@ -122,14 +143,14 @@ export function CompareTable({ columns }: { columns?: (0 | 1 | 2)[] }) {
               >
                 {row.label}
               </th>
-              {shown.map((i) => (
+              {names.map((name, i) => (
                 <td
-                  key={COLUMNS[i]}
+                  key={name}
                   style={{
                     padding: "14px clamp(16px,2vw,26px)",
                     borderBottom: "1px solid var(--neutral-200)",
                     verticalAlign: "middle",
-                    background: COLUMNS[i] === "Formkit" ? "var(--blue-50)" : undefined,
+                    background: name === "Formkit" ? "var(--blue-50)" : undefined,
                   }}
                 >
                   <Mark cell={row.cells[i]} />
@@ -140,7 +161,7 @@ export function CompareTable({ columns }: { columns?: (0 | 1 | 2)[] }) {
         </tbody>
       </table>
       </div>
-      <CompareList shown={shown} />
+      <CompareList names={names} rows={rows} />
     </>
   );
 }
@@ -149,9 +170,9 @@ export function CompareTable({ columns }: { columns?: (0 | 1 | 2)[] }) {
  * The same matrix on a phone, where three columns of notes cannot sit side by
  * side: one product against Formkit at a time, each capability a row.
  */
-function CompareList({ shown }: { shown: (0 | 1 | 2)[] }) {
-  const rivals = shown.filter((i) => COLUMNS[i] !== "Formkit");
-  const formkit = shown.find((i) => COLUMNS[i] === "Formkit");
+function CompareList({ names, rows }: Matrix) {
+  const rivals = names.map((_, i) => i).filter((i) => names[i] !== "Formkit");
+  const formkit = names.indexOf("Formkit");
   const [rival, setRival] = useState(rivals[0]);
 
   return (
@@ -160,13 +181,13 @@ function CompareList({ shown }: { shown: (0 | 1 | 2)[] }) {
         <div className="fk-cmp-pick" role="radiogroup" aria-label="Compare Formkit with">
           {rivals.map((i) => (
             <button
-              key={COLUMNS[i]}
+              key={names[i]}
               type="button"
               role="radio"
               aria-checked={rival === i}
               onClick={() => setRival(i)}
             >
-              <ProductLogo name={COLUMNS[i]} height={16} />
+              <ProductLogo name={names[i]} height={16} />
             </button>
           ))}
         </div>
@@ -175,27 +196,27 @@ function CompareList({ shown }: { shown: (0 | 1 | 2)[] }) {
         <span />
         {rival !== undefined && (
           <span>
-            <ProductLogo name={COLUMNS[rival]} height={15} />
+            <ProductLogo name={names[rival]} height={15} />
           </span>
         )}
-        {formkit !== undefined && (
+        {formkit >= 0 && (
           <span data-us>
             <ProductLogo name="Formkit" height={15} />
           </span>
         )}
       </div>
       <ul>
-        {COMPARE_ROWS.map((row) => (
+        {rows.map((row) => (
           <li key={row.label}>
             <span className="fk-cmp-label">{row.label}</span>
             <span className="fk-cmp-cells">
               {rival !== undefined && (
                 <span>
-                  <span className="sr-only">{COLUMNS[rival]}: </span>
+                  <span className="sr-only">{names[rival]}: </span>
                   <Mark cell={row.cells[rival]} />
                 </span>
               )}
-              {formkit !== undefined && (
+              {formkit >= 0 && (
                 <span data-us>
                   <span className="sr-only">Formkit: </span>
                   <Mark cell={row.cells[formkit]} />

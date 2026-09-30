@@ -1,10 +1,13 @@
 /**
- * The six built-in form templates.
+ * The form templates, as the site describes them: the first six here, in
+ * full; the rest in moreTemplates.ts, built from the app's own definitions.
  *
  * Each gets its own indexable route (`/templates/<slug>`) rather than the hash
  * routing the prototype used - the handoff calls that the highest-value SEO
  * task in the build.
  */
+
+import { MORE_TEMPLATES } from "./moreTemplates";
 
 export type TemplateQuestion = {
   /** The question as the respondent reads it. */
@@ -27,6 +30,10 @@ export type FormTemplate = {
   blurb: string;
   /** The meta description for this template's own page. */
   meta: string;
+  /** The group it is listed under on /templates. */
+  category?: string;
+  /** Feature pages it shows off (src/content/features.ts slugs). */
+  features?: string[];
   lead: string;
   questions: TemplateQuestion[];
   who: string[];
@@ -42,6 +49,8 @@ const q = (title: string, type: string, icon: string): TemplateQuestion => ({
 export const TEMPLATES: FormTemplate[] = [
   {
     slug: "client-onboarding",
+    category: "Agency",
+    features: ["logic", "branding", "ai-replies"],
     name: "Client onboarding",
     icon: "briefcase",
     time: "4 min",
@@ -85,6 +94,8 @@ export const TEMPLATES: FormTemplate[] = [
   },
   {
     slug: "website-questionnaire",
+    category: "Agency",
+    features: ["logic", "branding"],
     name: "Website questionnaire",
     icon: "monitor",
     time: "6 min",
@@ -131,6 +142,8 @@ export const TEMPLATES: FormTemplate[] = [
   },
   {
     slug: "customer-feedback",
+    category: "Feedback",
+    features: ["insights", "ai-replies"],
     name: "Customer feedback",
     icon: "message-square",
     time: "2 min",
@@ -169,6 +182,8 @@ export const TEMPLATES: FormTemplate[] = [
   },
   {
     slug: "lead-qualification",
+    category: "Sales",
+    features: ["logic", "ai-replies", "insights"],
     name: "Lead qualification",
     icon: "magnet",
     time: "3 min",
@@ -209,6 +224,8 @@ export const TEMPLATES: FormTemplate[] = [
   },
   {
     slug: "event-registration",
+    category: "Events",
+    features: ["payments", "logic"],
     name: "Event registration",
     icon: "calendar",
     time: "3 min",
@@ -250,6 +267,8 @@ export const TEMPLATES: FormTemplate[] = [
   },
   {
     slug: "product-research",
+    category: "Feedback",
+    features: ["insights"],
     name: "Product research",
     icon: "scan-search",
     time: "4 min",
@@ -291,6 +310,16 @@ export const TEMPLATES: FormTemplate[] = [
     ],
   },
 ];
+
+TEMPLATES.push(...MORE_TEMPLATES);
+
+/** The groups /templates lists them under, in order. */
+export const TEMPLATE_CATEGORIES = ["Business", "Agency", "Sales", "Marketing", "Feedback", "HR", "Events", "Education", "Personal"];
+
+/** "Contact form template", not "Contact form form template". */
+export function templateTitle(t: { name: string }) {
+  return /\bform$/i.test(t.name) ? `${t.name} template` : `${t.name} form template`;
+}
 
 export function templateBySlug(slug: string) {
   return TEMPLATES.find((t) => t.slug === slug) ?? null;

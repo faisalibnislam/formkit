@@ -17,6 +17,21 @@ import {
   Plus,
   ShoppingBag,
   UserRound,
+  Bug,
+  CalendarCheck,
+  Camera,
+  ClipboardCheck,
+  Gauge,
+  GraduationCap,
+  Handshake,
+  Heart,
+  LogOut,
+  Mic,
+  Quote,
+  Receipt,
+  Rocket,
+  Star,
+  Users,
 } from "lucide-react";
 import type { ComponentType } from "react";
 
@@ -37,6 +52,21 @@ const ICONS: Record<string, ComponentType<{ size?: number; strokeWidth?: number 
   "shopping-bag": ShoppingBag,
   bookmark: Bookmark,
   plus: Plus,
+  bug: Bug,
+  "calendar-check": CalendarCheck,
+  camera: Camera,
+  "clipboard-check": ClipboardCheck,
+  gauge: Gauge,
+  "graduation-cap": GraduationCap,
+  handshake: Handshake,
+  heart: Heart,
+  "log-out": LogOut,
+  mic: Mic,
+  quote: Quote,
+  receipt: Receipt,
+  rocket: Rocket,
+  star: Star,
+  users: Users,
 };
 
 export function TemplateIcon({ name, size = 22 }: { name: string; size?: number }) {

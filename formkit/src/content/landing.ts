@@ -266,7 +266,7 @@ export const FEATURES = [
     icon: "sparkles",
     bg: "var(--blue-200)",
     title: "Build with AI",
-    body: "Describe the form, or paste a brief or a document, and Ask Formkit drafts it: questions, pages and logic. Then change it by asking.",
+    body: "Describe the form and Ask Formkit drafts it: questions, pages and logic. On Pro it can start from a brief or a document too.",
     chip: "3 a month free · 50 a seat on Pro",
   },
   {
@@ -376,7 +376,7 @@ export const LANDING_FAQS = [
   },
   {
     q: "What can the AI do?",
-    a: "Build a form from a sentence, a brief or a document; edit questions, logic and themes when you ask; decide where someone goes next from what they wrote; write a personal reply to every response; and report on what your responses say.",
+    a: "Build a form from a sentence (or, on Pro, a brief or a document); edit questions, logic and themes when you ask; decide where someone goes next from what they wrote; write a personal reply to every response; and report on what your responses say.",
   },
   {
     q: "What happens when the AI allowance runs out?",

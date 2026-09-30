@@ -69,8 +69,8 @@ function AiBuild() {
           <Kicker>Build with AI</Kicker>
           <h2 className="fk-lp-h2">Describe it. Formkit builds it.</h2>
           <p className="fk-lp-lede">
-            Write what you need in a sentence, or paste a brief, a document or an old form. Ask Formkit drafts the
-            questions, the pages and the logic, in your wording. Then change anything by asking: “make the budget
+            Write what you need in a sentence and Ask Formkit drafts the questions, the pages and the logic, in your
+            wording. On Pro, paste a brief or upload a document instead. Then change anything by asking: “make the budget
             question a range”, “add a thank-you page”.
           </p>
           <ul className="fk-more-points">

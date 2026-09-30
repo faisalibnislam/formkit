@@ -1,5 +1,6 @@
 /**
- * The thirteen templates Formkit ships with.
+ * The templates Formkit ships with: the first thirteen here, the rest in
+ * moreTemplates.ts.
  *
  * These are the real questions a new form is built from. The marketing copy for
  * the same six lives in `src/content/templates.ts` - that file describes them
@@ -10,6 +11,8 @@
  * Convex only bundles what is under `convex/`, which is why the two are not one
  * module.
  */
+
+import { MORE_ORDER, MORE_TEMPLATES } from "./moreTemplates";
 
 type Field = {
   kind: "field";
@@ -546,6 +549,8 @@ export const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
   },
 ];
 
+BUILTIN_TEMPLATES.push(...MORE_TEMPLATES);
+
 /** The order the library shows them in. */
 const ORDER = [
   "contact-form",
@@ -561,6 +566,7 @@ const ORDER = [
   "project-discovery",
   "support-request",
   "order-form",
+  ...MORE_ORDER,
 ];
 BUILTIN_TEMPLATES.sort((a, b) => ORDER.indexOf(a.slug) - ORDER.indexOf(b.slug));
 

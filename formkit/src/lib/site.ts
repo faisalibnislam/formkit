@@ -19,7 +19,7 @@ export const SHARE_IMAGE = {
 
 /** Routes the public navigation offers, in order. */
 export const NAV_LINKS = [
-  { id: "product", label: "Product", href: "/#ask" },
+  { id: "features", label: "Features", href: "/features" },
   { id: "templates", label: "Templates", href: "/templates" },
   { id: "pricing", label: "Pricing", href: "/pricing" },
   { id: "compare", label: "Compare", href: "/compare" },
@@ -32,11 +32,12 @@ export const FOOTER_COLUMNS = [
   {
     heading: "PRODUCT",
     links: [
-      { label: "Form builder", href: "/#ask" },
+      { label: "Features", href: "/features" },
+      { label: "Use cases", href: "/use-cases" },
       { label: "Templates", href: "/templates" },
       { label: "Pricing", href: "/pricing" },
       { label: "Compare", href: "/compare" },
-      { label: "Dashboard", href: "/app" },
+      { label: "Changelog", href: "/changelog" },
     ],
   },
   {
@@ -46,6 +47,7 @@ export const FOOTER_COLUMNS = [
       { label: "Getting started", href: "/help/create-first-form" },
       { label: "Logic rules", href: "/help/logic-basics" },
       { label: "Building with AI", href: "/help/ai-what" },
+      { label: "API docs", href: "/api-docs" },
       { label: "Contact us", href: "/contact" },
     ],
   },

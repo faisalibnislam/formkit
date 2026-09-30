@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { HELP_ARTICLES } from "@/content/help";
 import { TEMPLATES } from "@/content/templates";
 import { RIVALS } from "@/content/compare";
+import { FEATURE_PAGES, USE_CASES } from "@/content/features";
 import { SITE_URL } from "@/lib/site";
 import { SITE_DATES, lastMod } from "@/lib/dates";
 
@@ -16,6 +17,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE_URL}/`, lastModified: at(SITE_DATES.home), priority: 1, changeFrequency: "weekly" },
     { url: `${SITE_URL}/pricing`, lastModified: at(SITE_DATES.pricing), priority: 0.9, changeFrequency: "monthly" },
     { url: `${SITE_URL}/templates`, lastModified: at(SITE_DATES.templates), priority: 0.9, changeFrequency: "weekly" },
+    { url: `${SITE_URL}/features`, lastModified: at(SITE_DATES.features), priority: 0.9, changeFrequency: "monthly" },
+    { url: `${SITE_URL}/use-cases`, lastModified: at(SITE_DATES.useCases), priority: 0.7, changeFrequency: "monthly" },
+    { url: `${SITE_URL}/changelog`, lastModified: at(SITE_DATES.changelog), priority: 0.6, changeFrequency: "weekly" },
     { url: `${SITE_URL}/compare`, lastModified: at(SITE_DATES.compare), priority: 0.8, changeFrequency: "monthly" },
     { url: `${SITE_URL}/help`, lastModified: at(SITE_DATES.help), priority: 0.8, changeFrequency: "weekly" },
     { url: `${SITE_URL}/api-docs`, lastModified: at(SITE_DATES.apiDocs), priority: 0.4, changeFrequency: "monthly" },
@@ -31,6 +35,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${SITE_URL}/templates/${t.slug}`,
       lastModified: lastMod(t.updated, SITE_DATES.templates),
       priority: 0.8,
+      changeFrequency: "monthly" as const,
+    })),
+    ...FEATURE_PAGES.map((f) => ({
+      url: `${SITE_URL}/features/${f.slug}`,
+      lastModified: lastMod(f.updated, SITE_DATES.features),
+      priority: 0.8,
+      changeFrequency: "monthly" as const,
+    })),
+    ...USE_CASES.map((u) => ({
+      url: `${SITE_URL}/use-cases/${u.slug}`,
+      lastModified: lastMod(u.updated, SITE_DATES.useCases),
+      priority: 0.7,
       changeFrequency: "monthly" as const,
     })),
     ...RIVALS.map((r) => ({

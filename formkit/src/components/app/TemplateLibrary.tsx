@@ -18,7 +18,7 @@ import { PageSkeleton } from "./Skeleton";
 import { openUpgrade, upgradeOnPlanError, useGate } from "@/components/plan/usePlan";
 
 /**
- * The template library: the thirteen Formkit ships with, filed by topic, and
+ * The template library: the ones Formkit ships with, filed by topic, and
  * the person's own saved ones, which can be renamed, copied or deleted. Any
  * template can be previewed question by question before it is used.
  */

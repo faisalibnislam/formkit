@@ -9,7 +9,7 @@ import { Button, Field, Input, Modal, Select, Switch, Textarea } from "@/compone
 import { useToast } from "@/components/ui/Toast";
 
 /** The topics templates are filed under, here and in the library. */
-export const TEMPLATE_TOPICS = ["Business", "Agency", "Marketing", "HR", "Events", "Personal"];
+export const TEMPLATE_TOPICS = ["Business", "Agency", "Marketing", "HR", "Events", "Education", "Personal"];
 
 /**
  * Saving a form as a template, or editing one already saved. A new one always

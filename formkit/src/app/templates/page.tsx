@@ -5,12 +5,12 @@ import { NightSky } from "@/components/brand/NightSky";
 import { Glyph } from "@/components/brand/Glyph";
 import { PublicPage } from "@/components/site/PublicPage";
 import { JsonLd, breadcrumb } from "@/components/site/JsonLd";
-import { TEMPLATES } from "@/content/templates";
+import { TEMPLATES, TEMPLATE_CATEGORIES } from "@/content/templates";
 import { SITE_URL } from "@/lib/site";
 
 const TITLE = "Form templates";
 const DESCRIPTION =
-  "Six free form templates you can publish today: client onboarding, website questionnaire, customer feedback, lead qualification, event registration and product research. Every question written, every answer type set.";
+  `${TEMPLATES.length} free form templates you can publish today: client onboarding, job applications, quizzes, surveys, NPS, registrations, bookings, order forms and more. Every question written, every answer type set.`;
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -92,7 +92,7 @@ export default function TemplatesPage() {
                 color: "#ffffff",
               }}
             >
-              Six forms, already written.
+              {TEMPLATES.length} forms, already written.
             </h1>
             <p
               style={{
@@ -120,32 +120,45 @@ export default function TemplatesPage() {
           }}
         >
           <div className="fk-measure">
-            <div className="fk-tpl-grid">
-              {TEMPLATES.map((t) => (
-                <Link key={t.slug} href={`/templates/${t.slug}`} className="fk-tpl-card">
-                  <span className="fk-tpl-tile">
-                    <Glyph name={t.icon} size={20} />
-                  </span>
-                  <span className="fk-tpl-name">{t.name}</span>
-                  <span className="fk-tpl-blurb">{t.blurb}</span>
-                  <span className="fk-tpl-meta">
-                    <span>{t.questions.length} questions</span>
-                    <span>·</span>
-                    <span>{t.time}</span>
-                    {t.logic && (
-                      <>
-                        <span>·</span>
-                        <span>Logic included</span>
-                      </>
-                    )}
-                  </span>
-                  <span className="fk-tpl-more">
-                    See the questions
-                    <ArrowRight size={15} strokeWidth={1.8} aria-hidden />
-                  </span>
-                </Link>
+            <nav className="fk-tpl-cats" aria-label="Template categories">
+              {TEMPLATE_CATEGORIES.filter((c) => TEMPLATES.some((t) => t.category === c)).map((c) => (
+                <a key={c} href={`#${c.toLowerCase()}`}>
+                  {c}
+                  <span>{TEMPLATES.filter((t) => t.category === c).length}</span>
+                </a>
               ))}
-            </div>
+            </nav>
+            {TEMPLATE_CATEGORIES.filter((c) => TEMPLATES.some((t) => t.category === c)).map((c) => (
+              <section key={c} id={c.toLowerCase()} className="fk-tpl-group">
+                <h2 className="fk-tpl-group-head">{c}</h2>
+                <div className="fk-tpl-grid">
+                  {TEMPLATES.filter((t) => t.category === c).map((t) => (
+                    <Link key={t.slug} href={`/templates/${t.slug}`} className="fk-tpl-card">
+                      <span className="fk-tpl-tile">
+                        <Glyph name={t.icon} size={20} />
+                      </span>
+                      <span className="fk-tpl-name">{t.name}</span>
+                      <span className="fk-tpl-blurb">{t.blurb}</span>
+                      <span className="fk-tpl-meta">
+                        <span>{t.questions.length} questions</span>
+                        <span>·</span>
+                        <span>{t.time}</span>
+                        {t.logic && (
+                          <>
+                            <span>·</span>
+                            <span>Logic included</span>
+                          </>
+                        )}
+                      </span>
+                      <span className="fk-tpl-more">
+                        See the questions
+                        <ArrowRight size={15} strokeWidth={1.8} aria-hidden />
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            ))}
 
             <h2
               style={{

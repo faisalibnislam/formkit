@@ -10,7 +10,7 @@ import { SITE_URL } from "@/lib/site";
 
 const TITLE = "Compare form builders";
 const DESCRIPTION =
-  "An honest comparison of Formkit with Google Forms and Typeform, based on each product's published free tier.";
+  "An honest comparison of Formkit with Google Forms, Typeform, Jotform, Tally, Fillout, Microsoft Forms, SurveyMonkey and Paperform, based on each product's published pricing.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -79,9 +79,9 @@ export default function ComparePage() {
                 textWrap: "pretty",
               }}
             >
-              Google Forms, Typeform and Formkit all collect answers well. This is what
-              each one gives you for free, stated plainly, without attack language or
-              invented specifications.
+              Plenty of form builders collect answers well. This is what each one gives
+              you for free, stated plainly, without attack language or invented
+              specifications.
             </p>
           </div>
         </section>
@@ -102,7 +102,7 @@ export default function ComparePage() {
                 letterSpacing: "-.03em",
               }}
             >
-              What each free tier gives you
+              Google Forms, Typeform and Formkit
             </h2>
             <p
               style={{
@@ -119,12 +119,22 @@ export default function ComparePage() {
 
             <CompareTable />
 
+            <h2
+              style={{
+                margin: "clamp(36px,5vw,64px) 0 0",
+                fontSize: "clamp(22px,2.8vw,34px)",
+                fontWeight: 700,
+                letterSpacing: "-.03em",
+              }}
+            >
+              One comparison at a time
+            </h2>
             <div
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(auto-fit,minmax(min(300px,100%),1fr))",
                 gap: 18,
-                marginTop: "clamp(36px,5vw,64px)",
+                marginTop: 22,
               }}
             >
               {RIVALS.map((r) => (
