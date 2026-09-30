@@ -1,42 +1,50 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowRight, GripVertical } from "lucide-react";
+import { ArrowRight, GripVertical, History } from "lucide-react";
 import { Glyph } from "@/components/brand/Glyph";
 import { SceneCard } from "@/components/site/SceneCard";
 import { Reveal } from "@/components/site/Reveal";
 import { DragScene } from "./DragScene";
+import { VersionsScene } from "./VersionsScene";
 import { FEATURE_PAGES, USE_CASES } from "@/content/features";
 
 /**
  * Everything on /features, on the home page too: each feature as a card
- * with its scene playing, then the teams it is made for. The AI builder and
- * logic have sections of their own above, so this grid opens on the
- * drag-and-drop builder and branding, and logic is left to its section.
+ * with its scene playing, then the teams it is made for. The AI builder,
+ * logic and AI replies have sections of their own above, so this grid opens
+ * on the drag-and-drop builder and branding, keeps version history and
+ * exports in AI replies' place, and leaves the rest to their sections.
  */
 const pick = (slug: string) => FEATURE_PAGES.find((f) => f.slug === slug);
-const ORDER = [
-  pick("branding"),
-  pick("quizzes"),
-  pick("ai-replies"),
-  pick("insights"),
-  pick("payments"),
-  pick("integrations"),
-  pick("ai-form-builder"),
-].filter((f) => f !== undefined);
+const BEFORE = [pick("branding"), pick("quizzes")].filter((f) => f !== undefined);
+const AFTER = [pick("insights"), pick("payments"), pick("integrations"), pick("ai-form-builder")].filter(
+  (f) => f !== undefined,
+);
 
-/** The builder itself has no feature page; its card opens the help article instead. */
-function BuilderCard() {
+/** A card for something with no feature page of its own; it opens the help article instead. */
+function HelpCard({
+  href,
+  scene,
+  kicker,
+  title,
+  plan,
+}: {
+  href: string;
+  scene: ReactNode;
+  kicker: ReactNode;
+  title: string;
+  plan: string;
+}) {
   return (
-    <Link href="/help/add-reorder" className="fk-scard" data-wide>
+    <Link href={href} className="fk-scard" data-wide>
       <span className="fk-scard-scene" aria-hidden>
-        <DragScene compact />
+        {scene}
       </span>
       <span className="fk-scard-copy">
-        <span className="fk-scard-kicker">
-          <GripVertical size={14} strokeWidth={1.8} aria-hidden /> Drag-and-drop builder
-        </span>
-        <b>Drag a question in. Drop it where it goes.</b>
+        <span className="fk-scard-kicker">{kicker}</span>
+        <b>{title}</b>
         <span className="fk-scard-foot">
-          <span className="fk-scard-plan">Every plan</span>
+          <span className="fk-scard-plan">{plan}</span>
           <span className="fk-scard-go">
             Explore <ArrowRight size={14} strokeWidth={2} aria-hidden />
           </span>
@@ -63,9 +71,33 @@ export function LandingFeatures() {
 
         <div data-rise>
           <div className="fk-bento">
-            <BuilderCard />
-            {ORDER.map((s, i) => (
-              <SceneCard key={s.slug} story={s} base="features" wide={(i + 1) % 4 === 0 || (i + 1) % 4 === 3} />
+            <HelpCard
+              href="/help/add-reorder"
+              scene={<DragScene compact />}
+              kicker={
+                <>
+                  <GripVertical size={14} strokeWidth={1.8} aria-hidden /> Drag-and-drop builder
+                </>
+              }
+              title="Drag a question in. Drop it where it goes."
+              plan="Every plan"
+            />
+            {BEFORE.map((s) => (
+              <SceneCard key={s.slug} story={s} base="features" />
+            ))}
+            <HelpCard
+              href="/help/version-history"
+              scene={<VersionsScene compact />}
+              kicker={
+                <>
+                  <History size={14} strokeWidth={1.8} aria-hidden /> Version history and exports
+                </>
+              }
+              title="Go back to any version. Take your answers anywhere."
+              plan="Every plan · Excel on Pro"
+            />
+            {AFTER.map((s, i) => (
+              <SceneCard key={s.slug} story={s} base="features" wide={i === 0 || i === 3} />
             ))}
           </div>
         </div>
