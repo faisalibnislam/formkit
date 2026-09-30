@@ -6,8 +6,7 @@ import { ArrowRight, Check, Sparkles } from "lucide-react";
 import { AiBuildScene } from "@/components/site/scenes/AiBuildScene";
 import { LogicScene } from "@/components/site/scenes/LogicScene";
 import { StarField } from "./StarField";
-import { ReplyScene } from "@/components/site/scenes/ReplyScene";
-import { InsightsScene } from "@/components/site/scenes/InsightsScene";
+import { ActScene } from "./ActScene";
 
 /**
  * AI, the third thing on the page and the reason to pick Formkit: it builds
@@ -131,14 +130,7 @@ export function AiBand() {
           <div className="fk-aib-scene">
             {r.id === "ai-build" && <AiBuildScene />}
             {r.id === "ai-think" && <LogicScene start="ai" />}
-            {r.id === "ai-act" && (
-              <div className="fk-aib-stack">
-                <ReplyScene />
-                <div className="fk-aib-mini">
-                  <InsightsScene compact />
-                </div>
-              </div>
-            )}
+            {r.id === "ai-act" && <ActScene />}
           </div>
         </div>
       ))}
