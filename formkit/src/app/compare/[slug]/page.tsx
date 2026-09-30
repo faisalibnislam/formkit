@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, CalendarCheck, FileCheck, Plus } from "lucide-react";
 import { NightSky } from "@/components/brand/NightSky";
 import { PublicPage } from "@/components/site/PublicPage";
 import { CompareTable } from "@/components/site/CompareTable";
 import { JsonLd, breadcrumb, faqPage } from "@/components/site/JsonLd";
-import { COMPARE_ASOF, RIVALS, rivalBySlug } from "@/content/compare";
+import { COMPARE_ASOF, COMPARE_ROWS, RIVALS, rivalBySlug } from "@/content/compare";
+import { Reveal } from "@/components/site/Reveal";
+import { Beyond } from "@/components/compare/Beyond";
+import { RivalCard } from "@/components/compare/RivalCard";
+import { Logo } from "@/components/brand/Logo";
 import { SITE_URL } from "@/lib/site";
 
 export function generateStaticParams() {
@@ -40,7 +44,9 @@ export default async function CompareDetailPage(props: PageProps<"/compare/[slug
   const r = rivalBySlug(slug);
   if (!r) notFound();
 
-  const other = RIVALS[(RIVALS.indexOf(r) + 1) % RIVALS.length];
+  const i = RIVALS.indexOf(r);
+  const more = [1, 2, 3].map((k) => RIVALS[(i + k) % RIVALS.length]!);
+  const rowCount = r.rows?.length ?? COMPARE_ROWS.length;
 
   return (
     <>
@@ -75,32 +81,19 @@ export default async function CompareDetailPage(props: PageProps<"/compare/[slug
               <span>/</span>
               <span style={{ color: "#ffffff" }}>Formkit vs {r.name}</span>
             </nav>
-            <h1
-              style={{
-                margin: 0,
-                maxWidth: "18ch",
-                fontSize: "clamp(30px,4.6vw,56px)",
-                fontWeight: 700,
-                letterSpacing: "-.04em",
-                lineHeight: 1.02,
-                color: "#ffffff",
-              }}
-            >
-              Formkit vs {r.name}
-            </h1>
-            <p
-              style={{
-                margin: "16px 0 0",
-                maxWidth: "60ch",
-                fontSize: 17,
-                lineHeight: 1.6,
-                color: "#ffffff",
-                opacity: 0.88,
-                textWrap: "pretty",
-              }}
-            >
-              {r.meta}
-            </p>
+            <h1 className="fk-cmp-h1">Formkit vs {r.name}</h1>
+            <p className="fk-cmp-hero-p">{r.meta}</p>
+            <ul className="fk-cmp-facts">
+              <li>
+                <b>{rowCount}</b> things compared
+              </li>
+              <li>
+                <FileCheck size={15} strokeWidth={2} aria-hidden /> Free plans, unless a row says otherwise
+              </li>
+              <li>
+                <CalendarCheck size={15} strokeWidth={2} aria-hidden /> Checked {COMPARE_ASOF}
+              </li>
+            </ul>
           </div>
         </section>
 
@@ -111,169 +104,102 @@ export default async function CompareDetailPage(props: PageProps<"/compare/[slug
             padding: "clamp(34px,5vw,64px) clamp(20px,5vw,56px) clamp(44px,6vw,72px)",
           }}
         >
-          <div className="fk-measure">
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit,minmax(min(300px,100%),1fr))",
-                gap: 18,
-              }}
-            >
-              <div className="fk-pick">
-                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>
-                  Pick {r.name} when
-                </h2>
-                <p
-                  style={{
-                    margin: "8px 0 0",
-                    fontSize: 15,
-                    lineHeight: 1.6,
-                    color: "var(--color-text-secondary)",
-                    textWrap: "pretty",
-                  }}
-                >
-                  {r.when}
-                </p>
-                <p
-                  style={{
-                    margin: "12px 0 0",
-                    fontSize: 14.5,
-                    lineHeight: 1.6,
-                    color: "var(--color-text-tertiary)",
-                    textWrap: "pretty",
-                  }}
-                >
-                  {r.line}
-                </p>
+          <Reveal className="fk-measure">
+            <div className="fk-vs" data-rise>
+              <div className="fk-vs-side">
+                <span className="fk-vs-mono" aria-hidden>
+                  {r.name
+                    .split(" ")
+                    .map((w) => w[0])
+                    .join("")
+                    .slice(0, 2)}
+                </span>
+                <h2>Pick {r.name} when</h2>
+                <p>{r.when}</p>
+                <p className="fk-vs-line">{r.line}</p>
               </div>
-              <div className="fk-pick" data-ours="true">
-                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>
-                  Pick Formkit when
-                </h2>
-                <p
-                  style={{
-                    margin: "8px 0 0",
-                    fontSize: 15,
-                    lineHeight: 1.6,
-                    color: "var(--color-text-secondary)",
-                    textWrap: "pretty",
-                  }}
-                >
-                  {r.ourWhen}
-                </p>
-                <p
-                  style={{
-                    margin: "12px 0 0",
-                    fontSize: 14.5,
-                    lineHeight: 1.6,
-                    color: "var(--color-text-tertiary)",
-                    textWrap: "pretty",
-                  }}
-                >
+              <span className="fk-vs-badge" aria-hidden>
+                vs
+              </span>
+              <div className="fk-vs-side" data-ours>
+                <span className="fk-vs-mono" aria-hidden>
+                  <Logo size={18} wordmark={false} tone="inverse" />
+                </span>
+                <h2>Pick Formkit when</h2>
+                <p>{r.ourWhen}</p>
+                <p className="fk-vs-line">
                   A complete workspace for designing the form, shaping the journey, and
                   using what comes back. Free to start.
                 </p>
               </div>
             </div>
 
-            <h2
-              style={{
-                margin: "clamp(36px,5vw,64px) 0 0",
-                fontSize: "clamp(22px,2.8vw,34px)",
-                fontWeight: 700,
-                letterSpacing: "-.03em",
-              }}
-            >
-              Feature by feature
-            </h2>
-            <p
-              style={{
-                margin: "10px 0 22px",
-                maxWidth: "62ch",
-                fontSize: 14.5,
-                lineHeight: 1.6,
-                color: "var(--color-text-tertiary)",
-              }}
-            >
-              Based on each product&rsquo;s published pricing page, {COMPARE_ASOF}, and
-              the free plan unless a row says otherwise. A dash means the feature exists
-              but is narrower. Plans change, so check theirs before you decide.
-            </p>
+            <section className="fk-cmp-sec" data-rise aria-labelledby="cmp-rows">
+              <h2 id="cmp-rows" className="fk-cmp-h2">
+                Feature by feature
+              </h2>
+              <p className="fk-cmp-lede">
+                Based on each product&rsquo;s published pricing page, {COMPARE_ASOF}, and
+                the free plan unless a row says otherwise. A dash means the feature exists
+                but is narrower. Plans change, so check theirs before you decide.
+              </p>
+              <CompareTable rival={r} />
+            </section>
 
-            <CompareTable rival={r} />
+            <section className="fk-cmp-sec" data-rise aria-labelledby="cmp-beyond">
+              <span className="fk-more-kicker">Try it here</span>
+              <h2 id="cmp-beyond" className="fk-cmp-h2">
+                What a table can&rsquo;t show
+              </h2>
+              <p className="fk-cmp-lede">
+                A tick says a feature exists. These show how it works in Formkit.
+              </p>
+              <Beyond />
+            </section>
 
-            <h2
-              style={{
-                margin: "clamp(36px,5vw,64px) 0 0",
-                fontSize: "clamp(22px,2.8vw,34px)",
-                fontWeight: 700,
-                letterSpacing: "-.03em",
-              }}
-            >
-              Questions people ask
-            </h2>
-            <div style={{ maxWidth: "70ch", marginTop: 8 }}>
-              {r.faqs.map((f) => (
-                <div
-                  key={f.q}
-                  style={{
-                    padding: "18px 0",
-                    boxShadow: "inset 0 1px 0 var(--neutral-200)",
-                  }}
-                >
-                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 500 }}>{f.q}</h3>
-                  <p
-                    style={{
-                      margin: "8px 0 0",
-                      fontSize: 15,
-                      lineHeight: 1.6,
-                      color: "var(--color-text-secondary)",
-                      textWrap: "pretty",
-                    }}
-                  >
-                    {f.a}
-                  </p>
-                </div>
-              ))}
-            </div>
+            <section className="fk-cmp-sec" data-rise aria-labelledby="cmp-faq">
+              <h2 id="cmp-faq" className="fk-cmp-h2">
+                Questions people ask
+              </h2>
+              <div className="fk-cmp-faq">
+                {r.faqs.map((f, k) => (
+                  <details key={f.q} open={k === 0}>
+                    <summary>
+                      {f.q}
+                      <Plus size={18} strokeWidth={2} aria-hidden />
+                    </summary>
+                    <p>{f.a}</p>
+                  </details>
+                ))}
+              </div>
+            </section>
 
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 14,
-                flexWrap: "wrap",
-                marginTop: "clamp(36px,5vw,64px)",
-                padding: 26,
-                borderRadius: "var(--radius-card)",
-                background: "var(--blue-50)",
-              }}
-            >
-              <span
-                style={{
-                  flex: 1,
-                  minWidth: 220,
-                  maxWidth: "44ch",
-                  fontSize: 17,
-                  lineHeight: 1.5,
-                  fontWeight: 500,
-                }}
-              >
+            <div className="fk-cmp-close" data-rise>
+              <p>
                 Choose the tool that fits the job. Choose Formkit when the form is part of
                 how people see you.
-              </span>
+              </p>
               <Link href="/signup" className="fk-pill fk-pill-dark fk-pill-md">
-                Build a form
-                <ArrowRight size={16} strokeWidth={1.8} aria-hidden />
+                Build a form <ArrowRight size={16} strokeWidth={1.8} aria-hidden />
               </Link>
             </div>
 
-            <p style={{ marginTop: 26, fontSize: 14.5 }}>
-              <Link href={`/compare/${other.slug}`}>
-                Read Formkit vs {other.name} instead
-              </Link>
-            </p>
-          </div>
+            <section className="fk-cmp-sec" data-rise aria-labelledby="cmp-more">
+              <h2 id="cmp-more" className="fk-cmp-h2">
+                More comparisons
+              </h2>
+              <div className="fk-rc-grid">
+                {more.map((x) => (
+                  <RivalCard key={x.slug} r={x} />
+                ))}
+              </div>
+              <p className="fk-cmp-all">
+                <Link href="/compare">
+                  All comparisons <ArrowRight size={15} strokeWidth={2} aria-hidden />
+                </Link>
+              </p>
+            </section>
+          </Reveal>
         </main>
       </PublicPage>
     </>

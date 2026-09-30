@@ -357,3 +357,37 @@ export const RIVALS: Rival[] = [
 export function rivalBySlug(slug: string) {
   return RIVALS.find((r) => r.slug === slug) ?? null;
 }
+
+/**
+ * How many answers each free plan lets one form collect, for the slider on
+ * /compare. Only figures already stated in the rows above; where a product
+ * publishes no fixed number the limit is null and the note says why.
+ */
+export type FreeLimit = {
+  name: string;
+  slug?: string;
+  /** Answers allowed; Infinity for no cap, null when there is no fixed figure. */
+  limit: number | null;
+  note: string;
+};
+
+export const FREE_LIMITS: FreeLimit[] = [
+  { name: "Formkit", limit: Infinity, note: "No cap on forms or responses" },
+  { name: "Google Forms", slug: "google-forms", limit: Infinity, note: "No cap" },
+  { name: "Tally", slug: "tally", limit: Infinity, note: "No cap, within fair use" },
+  { name: "Fillout", slug: "fillout", limit: 1000, note: "1,000 a month" },
+  { name: "Microsoft Forms", slug: "microsoft-forms", limit: 200, note: "200 per form, personal accounts" },
+  { name: "Jotform", slug: "jotform", limit: 100, note: "100 a month, across 5 forms" },
+  { name: "Paperform", slug: "paperform", limit: 30, note: "30 a month" },
+  { name: "Typeform", slug: "typeform", limit: null, note: "Capped each month; the figure changes" },
+  { name: "SurveyMonkey", slug: "surveymonkey", limit: null, note: "Collects them all, shows a limited number" },
+];
+
+/** The row where a rival and Formkit differ first: the headline for its card. */
+export function keyDifference(r: Rival): { label: string; them: Cell; us: Cell } | null {
+  if (r.rows) return r.rows.find((x) => x.them.kind !== x.us.kind) ?? r.rows[0] ?? null;
+  if (r.column === undefined) return null;
+  const col = r.column;
+  const row = COMPARE_ROWS.find((x) => x.cells[col].kind !== x.cells[2].kind);
+  return row ? { label: row.label, them: row.cells[col], us: row.cells[2] } : null;
+}

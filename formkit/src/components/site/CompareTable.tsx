@@ -84,6 +84,7 @@ export function CompareTable({ columns, rival }: { columns?: (0 | 1 | 2)[]; riva
     <>
       <div className="fk-scroll-x fk-cmp-table">
       <table
+        className="fk-cmp-t"
         style={{
           width: "100%",
           minWidth: names.length > 2 ? 760 : 560,
@@ -123,6 +124,7 @@ export function CompareTable({ columns, rival }: { columns?: (0 | 1 | 2)[]; riva
                 }}
               >
                 <ProductLogo name={name} />
+                <Tally cells={rows.map((r) => r.cells[names.indexOf(name)]!)} />
               </th>
             ))}
           </tr>
@@ -163,6 +165,22 @@ export function CompareTable({ columns, rival }: { columns?: (0 | 1 | 2)[]; riva
       </div>
       <CompareList names={names} rows={rows} />
     </>
+  );
+}
+
+/** How a column adds up: a small stacked bar and the counts in words. */
+function Tally({ cells }: { cells: Cell[] }) {
+  const count = (k: Cell["kind"]) => cells.filter((c) => c.kind === k).length;
+  const parts = (["yes", "part", "no"] as const).map((k) => ({ k, n: count(k) })).filter((x) => x.n > 0);
+  return (
+    <span className="fk-cmp-tally">
+      <span className="fk-cmp-tally-bar" aria-hidden>
+        {parts.map((x) => (
+          <i key={x.k} data-kind={x.k} style={{ flexGrow: x.n }} />
+        ))}
+      </span>
+      <small>{parts.map((x) => `${x.n} ${TONES[x.k].label.toLowerCase()}`).join(" · ")}</small>
+    </span>
   );
 }
 
