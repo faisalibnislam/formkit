@@ -1,25 +1,24 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowRight, GripVertical, History } from "lucide-react";
+import { ArrowRight, Globe, GripVertical, History } from "lucide-react";
 import { Glyph } from "@/components/brand/Glyph";
 import { SceneCard } from "@/components/site/SceneCard";
 import { Reveal } from "@/components/site/Reveal";
 import { DragScene } from "./DragScene";
 import { VersionsScene } from "./VersionsScene";
+import { DomainScene } from "./DomainScene";
 import { FEATURE_PAGES, USE_CASES } from "@/content/features";
 
 /**
  * Everything on /features, on the home page too: each feature as a card
  * with its scene playing, then the teams it is made for. The AI builder,
  * logic and AI replies have sections of their own above, so this grid opens
- * on the drag-and-drop builder and branding, keeps version history and
- * exports in AI replies' place, and leaves the rest to their sections.
+ * on the drag-and-drop builder and branding, and gives their places to
+ * version history and exports, and custom domains.
  */
 const pick = (slug: string) => FEATURE_PAGES.find((f) => f.slug === slug);
 const BEFORE = [pick("branding"), pick("quizzes")].filter((f) => f !== undefined);
-const AFTER = [pick("insights"), pick("payments"), pick("integrations"), pick("ai-form-builder")].filter(
-  (f) => f !== undefined,
-);
+const AFTER = [pick("insights"), pick("payments"), pick("integrations")].filter((f) => f !== undefined);
 
 /** A card for something with no feature page of its own; it opens the help article instead. */
 function HelpCard({
@@ -97,8 +96,19 @@ export function LandingFeatures() {
               plan="Every plan · Excel on Pro"
             />
             {AFTER.map((s, i) => (
-              <SceneCard key={s.slug} story={s} base="features" wide={i === 0 || i === 3} />
+              <SceneCard key={s.slug} story={s} base="features" wide={i === 0} />
             ))}
+            <HelpCard
+              href="/help/custom-domain"
+              scene={<DomainScene compact />}
+              kicker={
+                <>
+                  <Globe size={14} strokeWidth={1.8} aria-hidden /> Custom domain
+                </>
+              }
+              title="Your forms on forms.yourcompany.com."
+              plan="Pro"
+            />
           </div>
         </div>
 

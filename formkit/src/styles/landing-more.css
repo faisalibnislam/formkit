@@ -1349,3 +1349,215 @@
     animation: none;
   }
 }
+
+/* Every feature: a custom domain connecting itself. */
+.fk-cd-pro {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--blue-50);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--blue-700);
+}
+.fk-cd-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 14px;
+  align-items: start;
+}
+.fk-cd-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.fk-cd-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 8px 0 11px;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px var(--neutral-200);
+  font-size: 13px;
+  font-weight: 500;
+  transition: box-shadow 0.25s ease;
+}
+.fk-cd-input[data-live] {
+  box-shadow: inset 0 0 0 1.5px var(--blue-400);
+}
+.fk-cd-input > svg {
+  flex: none;
+  color: var(--blue-600);
+}
+.fk-cd-input > span:first-of-type {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+}
+.fk-cd-status {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  animation: fk-vx-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.fk-cd-status[data-state="wait"] {
+  background: var(--yellow-100);
+  color: var(--yellow-600);
+}
+.fk-cd-status[data-state="check"] {
+  background: var(--blue-50);
+  color: var(--blue-700);
+}
+.fk-cd-status[data-state="check"] svg {
+  animation: fk-cd-spin 0.9s linear infinite;
+}
+.fk-cd-status[data-state="live"] {
+  background: var(--green-100);
+  color: var(--green-600);
+}
+@keyframes fk-cd-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+.fk-cd-record {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1px var(--neutral-150);
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.3s ease, transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.fk-cd-record[data-on] {
+  opacity: 1;
+  transform: none;
+}
+.fk-cd-rhead,
+.fk-cd-rrow {
+  display: grid;
+  grid-template-columns: 58px 54px minmax(0, 1fr);
+  gap: 8px;
+  padding: 6px 11px;
+  font-size: 11.5px;
+}
+.fk-cd-rhead {
+  background: var(--neutral-50);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--neutral-500);
+}
+.fk-cd-rrow {
+  background: #ffffff;
+}
+.fk-cd-rrow b {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.fk-cd-rrow span:last-child {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--neutral-600);
+}
+.fk-cd-browser {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px;
+  border-radius: 12px;
+  background: var(--neutral-50);
+  box-shadow: inset 0 0 0 1px var(--neutral-150);
+}
+.fk-cd-url {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px var(--neutral-150);
+  font-size: 11.5px;
+  color: var(--neutral-600);
+  transition: box-shadow 0.3s ease;
+}
+.fk-cd-url > span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  animation: fk-vx-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.fk-cd-browser[data-live] .fk-cd-url {
+  box-shadow: inset 0 0 0 1.5px var(--green-400);
+  color: var(--neutral-900);
+}
+.fk-cd-url svg {
+  flex: none;
+  color: var(--green-600);
+}
+.fk-cd-form {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px var(--neutral-150);
+}
+.fk-cd-logo {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: var(--neutral-900);
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffffff;
+}
+.fk-cd-form b {
+  font-size: 12.5px;
+  font-weight: 650;
+}
+.fk-cd-field {
+  height: 22px;
+  border-radius: 7px;
+  box-shadow: inset 0 0 0 1px var(--neutral-200);
+}
+.fk-cd-btn {
+  align-self: flex-start;
+  padding: 4px 11px;
+  border-radius: 999px;
+  background: var(--neutral-900);
+  font-size: 11px;
+  font-weight: 600;
+  color: #ffffff;
+}
+@media (max-width: 640px) {
+  .fk-cd-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fk-cd-browser {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fk-cd-status,
+  .fk-cd-status[data-state="check"] svg,
+  .fk-cd-url > span {
+    animation: none;
+  }
+}
