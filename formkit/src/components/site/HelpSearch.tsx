@@ -24,6 +24,20 @@ export function HelpSearch() {
   const [term, setTerm] = useState("");
   const query = term.trim().toLowerCase();
   const log = useMutation(api.helpSignals.log);
+  const box = useRef<HTMLInputElement | null>(null);
+
+  // "/" jumps to the search box from anywhere on the page, unless typing already.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      e.preventDefault();
+      box.current?.focus();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   const logged = useRef(new Set<string>());
 
   // /help?q=… (the search box search engines are told about) opens with it filled in.
@@ -61,12 +75,18 @@ export function HelpSearch() {
       <div className="fk-help-search">
         <Search size={18} strokeWidth={1.8} aria-hidden style={{ opacity: 0.7 }} />
         <input
+          ref={box}
           type="search"
           aria-label="Search the help center"
           placeholder="Search the help center"
           value={term}
           onChange={(e) => setTerm(e.target.value)}
         />
+        {!term && (
+          <kbd className="fk-help-kbd" aria-hidden>
+            /
+          </kbd>
+        )}
       </div>
 
       {query.length >= 2 && (

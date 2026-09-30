@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useMutation } from "convex/react";
+import { ThumbsDown, ThumbsUp } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 
 /**
@@ -17,45 +18,21 @@ export function HelpFeedback({ articleId }: { articleId: string }) {
   };
 
   return (
-    <div
-      style={{
-        marginTop: "clamp(30px,4vw,48px)",
-        paddingTop: 22,
-        boxShadow: "inset 0 1px 0 var(--neutral-200)",
-      }}
-    >
+    <div className="fk-help-fb" data-answered={answer ?? undefined}>
       {answer === null ? (
-        <div
-          style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}
-        >
-          <span style={{ fontSize: 15, fontWeight: 500 }}>Was this helpful?</span>
-          <button
-            type="button"
-            className="fk-chip"
-            onClick={() => choose("yes")}
-            data-article={articleId}
-          >
-            Yes
-          </button>
-          <button
-            type="button"
-            className="fk-chip"
-            onClick={() => choose("no")}
-            data-article={articleId}
-          >
-            No
-          </button>
-        </div>
+        <>
+          <span className="fk-help-fb-q">Was this helpful?</span>
+          <span className="fk-help-fb-btns">
+            <button type="button" onClick={() => choose("yes")} data-article={articleId}>
+              <ThumbsUp size={16} strokeWidth={2} aria-hidden /> Yes
+            </button>
+            <button type="button" onClick={() => choose("no")} data-article={articleId}>
+              <ThumbsDown size={16} strokeWidth={2} aria-hidden /> No
+            </button>
+          </span>
+        </>
       ) : (
-        <p
-          style={{
-            margin: 0,
-            fontSize: 15,
-            lineHeight: 1.6,
-            color: "var(--color-text-secondary)",
-            textWrap: "pretty",
-          }}
-        >
+        <p>
           {answer === "yes"
             ? "Good, thank you. That tells us to leave this one alone."
             : "Noted, thank you. Articles people mark unhelpful are the ones we rewrite first. If you tell support what you were trying to do, we will cover it."}

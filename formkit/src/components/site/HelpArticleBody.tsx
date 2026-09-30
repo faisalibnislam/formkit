@@ -36,6 +36,28 @@ function parse(body: string): Block[] {
   return blocks;
 }
 
+/** A heading's anchor: "Turning auto-renew off" → "turning-auto-renew-off". */
+export function slugify(text: string) {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+/** The article's ## headings, for "On this page". */
+export function headingsOf(body: string) {
+  return body
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.startsWith("## "))
+    .map((l) => ({ text: l.slice(3), id: slugify(l.slice(3)) }));
+}
+
+/** Minutes to read, at about 220 words a minute. */
+export function readingMinutes(body: string) {
+  return Math.max(1, Math.round(body.split(/\s+/).length / 220));
+}
+
 /** "See <article title>." becomes a link to that article. */
 const BY_TITLE = new Map(HELP_ARTICLES.map((a) => [a.title, a.id]));
 const SEE = /(See |see )([A-Z][^.]*?[.?])(?=\s|$)/g;
@@ -62,7 +84,14 @@ export function HelpArticleBody({ body }: { body: string }) {
     <div className="fk-article">
       {parse(body).map((block, i) => (
         <Fragment key={i}>
-          {block.kind === "heading" && <h2>{block.text}</h2>}
+          {block.kind === "heading" && (
+            <h2 id={slugify(block.text)}>
+              <a href={`#${slugify(block.text)}`} className="fk-article-anchor" aria-hidden tabIndex={-1}>
+                #
+              </a>
+              {block.text}
+            </h2>
+          )}
           {block.kind === "para" && <p>{inline(block.text)}</p>}
           {block.kind === "callout" && (
             <aside className="fk-callout">{inline(block.text)}</aside>

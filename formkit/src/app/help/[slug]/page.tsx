@@ -6,7 +6,8 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { NightSky } from "@/components/brand/NightSky";
 import { PublicPage } from "@/components/site/PublicPage";
-import { HelpArticleBody } from "@/components/site/HelpArticleBody";
+import { HelpArticleBody, headingsOf, readingMinutes } from "@/components/site/HelpArticleBody";
+import { HelpFigure } from "@/components/site/HelpFigure";
 import { HelpFeedback } from "@/components/site/HelpFeedback";
 import { JsonLd, article as articleData, breadcrumb } from "@/components/site/JsonLd";
 import { SITE_DATES } from "@/lib/dates";
@@ -49,6 +50,8 @@ export default async function HelpArticlePage(props: PageProps<"/help/[slug]">) 
   const next = index < HELP_ARTICLES.length - 1 ? HELP_ARTICLES[index + 1] : null;
   const cat = article.category;
   const updated = article.updated ?? SITE_DATES.help;
+  const toc = headingsOf(article.body);
+  const minutes = readingMinutes(article.body);
   // Chosen related articles, or the rest of the category after prev and next.
   const related = (
     article.related
@@ -179,8 +182,24 @@ export default async function HelpArticlePage(props: PageProps<"/help/[slug]">) 
 
             <div style={{ minWidth: 0 }}>
               <p className="fk-help-updated">
-                Last updated <time dateTime={updated}>{UPDATED.format(new Date(`${updated}T00:00:00Z`))}</time>
+                <span>{minutes} min read</span>
+                <span>
+                  Updated <time dateTime={updated}>{UPDATED.format(new Date(`${updated}T00:00:00Z`))}</time>
+                </span>
               </p>
+              {toc.length > 1 && (
+                <nav className="fk-help-toc" aria-label="On this page">
+                  <span>On this page</span>
+                  <ol>
+                    {toc.map((h) => (
+                      <li key={h.id}>
+                        <a href={`#${h.id}`}>{h.text}</a>
+                      </li>
+                    ))}
+                  </ol>
+                </nav>
+              )}
+              <HelpFigure id={article.id} />
               <HelpArticleBody body={article.body} />
 
               {related.length > 0 && (
