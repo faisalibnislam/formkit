@@ -9,7 +9,7 @@ import { CompareTable } from "@/components/site/CompareTable";
 import { COMPARE_ASOF } from "@/content/compare";
 import { HELP_ARTICLES } from "@/content/help";
 import { LANDING_FAQS } from "@/content/landing";
-import { HeroScene } from "./HeroScene";
+import { Hero } from "./Hero";
 import { FeaturesScene } from "./FeaturesScene";
 import { MobileLanding } from "./MobileLanding";
 import { MoreScenes } from "./MoreScenes";
@@ -18,10 +18,10 @@ import { AiBand } from "./AiBand";
 import { createEngine, UNPIN_AT, type Engine } from "./scrollEngine";
 
 /**
- * The marketing home: the hero builds a form as you scroll, one short section
- * says how the form works for the people filling it in, then AI takes the
- * stage (building, deciding, answering), then everything else, companies
- * and the plans.
+ * The marketing home: the headline over one still picture of Formkit, one
+ * short section on how the form works for the people filling it in, then AI
+ * takes the stage (building, deciding, answering), then everything else,
+ * companies and the plans. Only the features carousel is driven by scroll.
  *
  * The scroll choreography is an imperative effect writing to the DOM, not React
  * state. Driving 900vh of it through render would drop frames, and nothing must
@@ -41,17 +41,12 @@ export function LandingPage() {
 
     const reduced = window.matchMedia("(prefers-reduced-motion:reduce)").matches;
     if (reduced) {
-      // Every scene resolves to its end state; the hero keeps its natural type
-      // scale, since applyHero(1) would shrink the headline away.
-      e.resolveAll(true);
+      // Every scene resolves to its end state.
+      e.resolveAll();
       return;
     }
 
-    // The floaters run on their own clock, so they keep moving after the
-    // scroll loop has parked itself.
-    const stopFloaties = e.floaties();
-
-    const eased = { hero: 0, features: 0 };
+    let eased = 0;
     let raf: number | null = null;
     let mobileResolved = false;
 
@@ -63,27 +58,18 @@ export function LandingPage() {
       if (window.innerWidth <= UNPIN_AT) {
         if (!mobileResolved) {
           mobileResolved = true;
-          e.resolveAll(true);
+          e.resolveAll();
         }
         e.applyCounters();
         return;
       }
       mobileResolved = false;
 
-      const target = { hero: e.progress("hero"), features: e.progress("features") };
-      let moving = false;
-      for (const key of ["hero", "features"] as const) {
-        const delta = target[key] - eased[key];
-        if (Math.abs(delta) > 0.0004) {
-          eased[key] += delta * 0.16;
-          moving = true;
-        } else {
-          eased[key] = target[key];
-        }
-      }
-
-      e.applyHero(eased.hero);
-      e.applyFeatures(eased.features);
+      const target = e.progress("features");
+      const delta = target - eased;
+      const moving = Math.abs(delta) > 0.0004;
+      eased = moving ? eased + delta * 0.16 : target;
+      e.applyFeatures(eased);
       e.applyCounters();
 
       if (moving) raf = requestAnimationFrame(frame);
@@ -108,7 +94,6 @@ export function LandingPage() {
       window.removeEventListener("scroll", kick);
       window.removeEventListener("resize", onResize);
       window.clearTimeout(settle);
-      stopFloaties();
       if (raf !== null) cancelAnimationFrame(raf);
       engine.current = null;
     };
@@ -139,11 +124,7 @@ export function LandingPage() {
       <SiteNav />
       <span id="content" tabIndex={-1} />
 
-      {/* The hero has a desktop and a phone telling; CSS shows the one that fits. */}
-      <div className="fk-desk">
-        <HeroScene />
-      </div>
-      <MobileLanding part="top" />
+      <Hero />
 
       {/* The same on every screen: how it works, then AI, the reason to pick Formkit. */}
       <HowItWorks />
@@ -152,7 +133,7 @@ export function LandingPage() {
       <div className="fk-desk">
         <FeaturesScene onStep={stepFeatures} />
       </div>
-      <MobileLanding part="end" />
+      <MobileLanding />
 
       {/* Companies and the plans. */}
       <MoreScenes />

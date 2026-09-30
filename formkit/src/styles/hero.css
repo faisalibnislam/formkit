@@ -1,0 +1,629 @@
+/* The landing hero (components/landing/Hero.tsx): the headline, then one
+   still picture of Formkit in the sky. It no longer pins or scrolls; the
+   only movement is a single entrance and following a question. */
+
+.fk-top {
+  position: relative;
+  isolation: isolate;
+  padding: calc(96px + clamp(24px, 5vw, 72px)) clamp(16px, 4vw, 56px) clamp(36px, 5vw, 64px);
+  background: var(--gradient-hero);
+  color: #ffffff;
+  overflow: hidden;
+}
+.fk-top-copy {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+}
+.fk-top .fk-hero-head {
+  font-size: clamp(40px, 6vw, 96px);
+}
+.fk-top .fk-hero-sub {
+  opacity: 0.88;
+}
+
+.fk-shot {
+  position: relative;
+  z-index: 1;
+  max-width: 1320px;
+  margin: clamp(40px, 6vw, 80px) auto 0;
+}
+.fk-shot-hint {
+  margin: 0 0 18px;
+  text-align: center;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.82);
+}
+.fk-shot-hint span {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.fk-shot-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 0.62fr) minmax(0, 0.9fr);
+  align-items: start;
+}
+.fk-shot-app {
+  position: relative;
+  z-index: 1;
+}
+.fk-shot-phone-wrap {
+  position: relative;
+  z-index: 2;
+  margin: 70px 0 0 -26px;
+}
+.fk-shot-resp-wrap {
+  position: relative;
+  z-index: 3;
+  margin: 150px 0 0 -18px;
+}
+.fk-shot-stage > * {
+  animation: fk-shot-in 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.fk-shot-stage > :nth-child(2) {
+  animation-delay: 0.12s;
+}
+.fk-shot-stage > :nth-child(3) {
+  animation-delay: 0.24s;
+}
+@keyframes fk-shot-in {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+}
+
+/* Numbered captions under each part. */
+.fk-shot-cap {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 30, 60, 0.45);
+}
+.fk-shot-cap::before {
+  content: attr(data-n);
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: var(--neutral-900);
+  font-size: 12px;
+  font-weight: 700;
+}
+.fk-shot-phone-wrap .fk-shot-cap {
+  padding-left: 12px;
+}
+
+/* 1. Ask Formkit's prompt, docked on the builder. */
+.fk-shot-ask {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  width: fit-content;
+  max-width: 92%;
+  margin: 0 0 -18px 26px;
+  position: relative;
+  z-index: 2;
+  padding: 11px 14px;
+  border-radius: 18px 18px 18px 6px;
+  background: var(--neutral-900);
+  color: #ffffff;
+  font-size: 13.5px;
+  box-shadow: 0 18px 40px -16px rgba(0, 20, 50, 0.6);
+}
+.fk-shot-ask > svg {
+  color: var(--blue-300);
+}
+.fk-shot-ask em {
+  margin-right: 6px;
+  font-style: normal;
+  font-weight: 600;
+  color: var(--blue-300);
+}
+.fk-shot-ask b {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(126, 201, 115, 0.2);
+  color: var(--green-300);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.fk-shot-win {
+  border-radius: 22px;
+  background: #ffffff;
+  color: var(--neutral-900);
+  box-shadow:
+    0 40px 80px -30px rgba(0, 20, 50, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.4);
+  overflow: hidden;
+}
+.fk-shot-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 26px 16px 12px;
+  border-bottom: 1px solid var(--neutral-150);
+  font-size: 14px;
+}
+.fk-shot-dots {
+  display: inline-flex;
+  gap: 5px;
+}
+.fk-shot-dots i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--neutral-200);
+}
+.fk-shot-draft {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--green-100);
+  color: var(--green-600);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.fk-shot-saved {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--neutral-500);
+}
+.fk-shot-eye {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--neutral-100);
+  color: var(--neutral-700);
+}
+.fk-shot-publish {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--neutral-900);
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.fk-shot-body {
+  display: grid;
+  grid-template-columns: 184px minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px;
+  background: var(--neutral-50);
+}
+.fk-shot-pages {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px var(--neutral-150);
+  font-size: 12.5px;
+}
+.fk-shot-pages > span {
+  margin: 0 4px 4px;
+  font-weight: 600;
+}
+.fk-shot-pages > div {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 8px;
+  border-radius: 10px;
+}
+.fk-shot-pages > div[data-on] {
+  background: var(--blue-50);
+  font-weight: 600;
+}
+.fk-shot-pages em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--neutral-500);
+}
+.fk-shot-pages small {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--neutral-500);
+}
+.fk-shot-pages .fk-shot-rule {
+  margin-top: auto;
+  align-items: flex-start;
+  gap: 6px;
+  line-height: 1.35;
+  padding: 8px;
+  background: var(--neutral-900);
+  color: #ffffff;
+  font-size: 11.5px;
+}
+.fk-shot-rule svg {
+  color: var(--blue-300);
+}
+.fk-shot-qs {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.fk-shot-qs button {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 14px;
+  border: 0;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px var(--neutral-150);
+  color: var(--neutral-900);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+.fk-shot-qs button:hover {
+  background: var(--blue-50);
+}
+.fk-shot-qs button[aria-selected="true"] {
+  background: var(--blue-50);
+  box-shadow: inset 0 0 0 2px var(--blue-500);
+}
+.fk-shot-n {
+  flex: none;
+  padding-top: 15px;
+  font-size: 12px;
+  color: var(--neutral-500);
+}
+[aria-selected="true"] .fk-shot-n {
+  color: var(--blue-700);
+  font-weight: 700;
+}
+.fk-shot-q {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 14.5px;
+  font-weight: 600;
+}
+.fk-shot-q small {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--neutral-500);
+}
+.fk-shot-q em {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  margin-top: 3px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--neutral-900);
+  color: #ffffff;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* 2. The phone. */
+.fk-shot-phone {
+  position: relative;
+  width: min(100%, 270px);
+  margin: 0 auto;
+  padding: 10px;
+  border-radius: 40px;
+  background: #0d1720;
+  box-shadow:
+    0 40px 80px -24px rgba(0, 20, 50, 0.7),
+    inset 0 0 0 1.5px rgba(255, 255, 255, 0.14);
+}
+.fk-shot-notch {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  width: 70px;
+  height: 20px;
+  border-radius: 999px;
+  background: #0d1720;
+  transform: translateX(-50%);
+  z-index: 1;
+}
+.fk-shot-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 470px;
+  padding: 44px 16px 18px;
+  border-radius: 31px;
+  background: #d8e9f7;
+  color: var(--neutral-900);
+  overflow: hidden;
+}
+.fk-shot-url {
+  align-self: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 10.5px;
+  color: var(--neutral-600);
+}
+.fk-shot-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.fk-shot-brand i {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--neutral-900);
+  color: #ffffff;
+  font-style: normal;
+  font-size: 10px;
+}
+.fk-shot-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  overflow: hidden;
+}
+.fk-shot-progress i {
+  display: block;
+  height: 100%;
+  background: var(--blue-600);
+  transition: width 0.35s ease;
+}
+.fk-shot-ask-q {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 14px;
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px -14px rgba(0, 20, 50, 0.35);
+  animation: fk-shot-swap 0.25s ease both;
+}
+@keyframes fk-shot-swap {
+  from {
+    opacity: 0;
+  }
+}
+.fk-shot-ask-q small {
+  font-size: 11px;
+  color: var(--neutral-500);
+}
+.fk-shot-ask-q p {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.fk-shot-opts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fk-shot-opts span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: var(--neutral-50);
+  box-shadow: inset 0 0 0 1px var(--neutral-150);
+  font-size: 13px;
+}
+.fk-shot-opts span[data-on] {
+  background: var(--neutral-900);
+  box-shadow: none;
+  color: #ffffff;
+  font-weight: 600;
+}
+.fk-shot-input,
+.fk-shot-file {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 12px;
+  border-radius: 12px;
+  background: var(--neutral-50);
+  box-shadow: inset 0 0 0 1.5px var(--blue-500);
+  font-size: 13px;
+  word-break: break-word;
+}
+.fk-shot-next {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 38px;
+  border-radius: 999px;
+  background: var(--neutral-900);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* 3. The response. */
+.fk-shot-resp {
+  padding: 14px;
+  border-radius: 22px;
+  background: #ffffff;
+  color: var(--neutral-900);
+  box-shadow: 0 40px 80px -30px rgba(0, 20, 50, 0.6);
+}
+.fk-shot-resp-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--neutral-150);
+}
+.fk-shot-av {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--blue-100);
+  color: var(--blue-700);
+  font-size: 12px;
+  font-weight: 700;
+}
+.fk-shot-resp-head > span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+.fk-shot-resp-head b {
+  display: block;
+  font-size: 14px;
+}
+.fk-shot-resp-head em {
+  font-style: normal;
+  font-size: 12px;
+  color: var(--neutral-500);
+}
+.fk-shot-new {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--green-100);
+  color: var(--green-600);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.fk-shot-resp dl {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 8px 0 0;
+}
+.fk-shot-resp dl > div {
+  padding: 7px 9px;
+  border-radius: 10px;
+  transition: background 0.2s ease;
+}
+.fk-shot-resp dl > div[data-on] {
+  background: var(--blue-50);
+  box-shadow: inset 3px 0 0 var(--blue-500);
+}
+.fk-shot-resp dt {
+  font-size: 11.5px;
+  color: var(--neutral-500);
+}
+.fk-shot-resp dd {
+  margin: 1px 0 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fk-shot-ai {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--neutral-150);
+}
+.fk-shot-ai > svg {
+  color: var(--blue-600);
+}
+.fk-shot-ai span {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--neutral-100);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.fk-shot-ai [data-tone="green"] {
+  background: var(--green-100);
+  color: var(--green-600);
+}
+.fk-shot-ai [data-tone="blue"] {
+  background: var(--blue-100);
+  color: var(--blue-700);
+}
+
+@media (max-width: 1100px) {
+  .fk-shot-stage {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 24px 20px;
+  }
+  .fk-shot-app {
+    grid-column: 1 / -1;
+  }
+  .fk-shot-phone-wrap,
+  .fk-shot-resp-wrap {
+    margin: 0;
+  }
+}
+@media (max-width: 700px) {
+  .fk-shot-stage {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fk-shot-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fk-shot-pages,
+  .fk-shot-saved {
+    display: none;
+  }
+  .fk-shot-ask {
+    margin-left: 12px;
+  }
+  .fk-shot-bar .fk-shot-draft {
+    display: none;
+  }
+  .fk-shot-phone {
+    width: 240px;
+  }
+  .fk-shot-screen {
+    min-height: 0;
+  }
+  /* On a phone the response shows the chosen answer and its neighbours. */
+  .fk-shot-resp dl > div:nth-child(n + 4):not([data-on]) {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fk-shot-stage > *,
+  .fk-shot-ask-q {
+    animation: none;
+  }
+}
