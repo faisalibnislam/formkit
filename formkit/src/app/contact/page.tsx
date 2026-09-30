@@ -5,7 +5,7 @@ import { NightSky } from "@/components/brand/NightSky";
 import { PublicPage } from "@/components/site/PublicPage";
 import { JsonLd, breadcrumb, organization } from "@/components/site/JsonLd";
 import { SupportForm } from "@/components/support/ContactSupport";
-import { SHARE_IMAGE, SITE_URL } from "@/lib/site";
+import { SITE_URL } from "@/lib/site";
 
 const TITLE = "Contact";
 const DESCRIPTION =
@@ -16,7 +16,6 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   alternates: { canonical: `${SITE_URL}/contact` },
   openGraph: {
-    images: [SHARE_IMAGE],
     type: "website",
     siteName: "Formkit",
     url: `${SITE_URL}/contact`,

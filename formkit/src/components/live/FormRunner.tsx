@@ -569,7 +569,7 @@ export function FormRunner({
 
   const credit =
     data.brand.badge === false ? null : (
-      <a className="fk-live-credit" href="https://www.formkit.app" target="_blank" rel="noopener" aria-label="Made with Formkit">
+      <a className="fk-live-credit" href="https://formkit.app" target="_blank" rel="noopener" aria-label="Made with Formkit">
         <Logo size={20} tone="current" />
       </a>
     );

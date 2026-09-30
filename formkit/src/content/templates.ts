@@ -17,6 +17,8 @@ export type TemplateQuestion = {
 
 export type FormTemplate = {
   slug: string;
+  /** When this page last changed (YYYY-MM-DD), for the sitemap. */
+  updated?: string;
   name: string;
   icon: string;
   time: string;

@@ -42,8 +42,11 @@ export async function guardFormLink(slug: string, handle?: string) {
 /** The browser tab for a live form: its title and owner, and their square logo. */
 export async function formMetadata(slug: string, handle?: string): Promise<Metadata> {
   const state = await linkState(slug, handle);
-  if (!state?.live || !state.title) return {};
+  // Customers' forms are theirs, not Formkit's content: kept out of search results.
+  const robots = { index: false, follow: false };
+  if (!state?.live || !state.title) return { robots };
   return {
+    robots,
     // The owner's name, not Formkit's: the form is theirs.
     title: { absolute: state.name ? `${state.title} · ${state.name}` : state.title },
     ...(state.icon ? { icons: { icon: state.icon, apple: state.icon } } : {}),

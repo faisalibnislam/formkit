@@ -66,6 +66,8 @@ export const COMPARE_ROWS: CompareRow[] = [
 
 export type Rival = {
   slug: string;
+  /** When this page last changed (YYYY-MM-DD), for the sitemap. */
+  updated?: string;
   name: string;
   /** Which column of COMPARE_ROWS this product occupies. */
   column: 0 | 1;

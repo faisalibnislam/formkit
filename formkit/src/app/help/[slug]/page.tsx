@@ -8,9 +8,10 @@ import { NightSky } from "@/components/brand/NightSky";
 import { PublicPage } from "@/components/site/PublicPage";
 import { HelpArticleBody } from "@/components/site/HelpArticleBody";
 import { HelpFeedback } from "@/components/site/HelpFeedback";
-import { JsonLd, breadcrumb } from "@/components/site/JsonLd";
+import { JsonLd, article as articleData, breadcrumb } from "@/components/site/JsonLd";
+import { SITE_DATES } from "@/lib/dates";
 import { HELP_ARTICLES, HELP_CATEGORIES, helpArticle } from "@/content/help";
-import { SHARE_IMAGE, SITE_URL } from "@/lib/site";
+import { SITE_URL } from "@/lib/site";
 
 export function generateStaticParams() {
   return HELP_ARTICLES.map((a) => ({ slug: a.id }));
@@ -27,7 +28,6 @@ export async function generateMetadata(
     description: article.summary,
     alternates: { canonical: `${SITE_URL}/help/${article.id}` },
     openGraph: {
-      images: [SHARE_IMAGE],
       type: "article",
       siteName: "Formkit",
       url: `${SITE_URL}/help/${article.id}`,
@@ -53,6 +53,13 @@ export default async function HelpArticlePage(props: PageProps<"/help/[slug]">) 
         data={{
           "@context": "https://schema.org",
           "@graph": [
+            articleData({
+              headline: article.title,
+              description: article.summary,
+              url: `${SITE_URL}/help/${article.id}`,
+              updated: article.updated ?? SITE_DATES.help,
+              section: cat.name,
+            }),
             breadcrumb([
               { name: "Formkit", url: `${SITE_URL}/` },
               { name: "Help center", url: `${SITE_URL}/help` },

@@ -6,7 +6,7 @@ import { Glyph } from "@/components/brand/Glyph";
 import { PublicPage } from "@/components/site/PublicPage";
 import { JsonLd, breadcrumb } from "@/components/site/JsonLd";
 import { TEMPLATES } from "@/content/templates";
-import { SHARE_IMAGE, SITE_URL } from "@/lib/site";
+import { SITE_URL } from "@/lib/site";
 
 const TITLE = "Form templates";
 const DESCRIPTION =
@@ -17,7 +17,6 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   alternates: { canonical: `${SITE_URL}/templates` },
   openGraph: {
-    images: [SHARE_IMAGE],
     type: "website",
     siteName: "Formkit",
     url: `${SITE_URL}/templates`,
@@ -25,7 +24,7 @@ export const metadata: Metadata = {
     description:
       "Working forms, not starting points. Change every word, publish under your own link.",
   },
-  twitter: { card: "summary_large_image", images: [SHARE_IMAGE] },
+  twitter: { card: "summary_large_image" },
 };
 
 const HOW = [

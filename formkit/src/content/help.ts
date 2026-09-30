@@ -14,6 +14,8 @@ export type HelpArticle = {
   title: string;
   summary: string;
   body: string;
+  /** When this article last changed (YYYY-MM-DD), shown on the page and in the sitemap. */
+  updated?: string;
 };
 
 export type HelpCategory = {

@@ -7,7 +7,7 @@ import { Glyph } from "@/components/brand/Glyph";
 import { PublicPage } from "@/components/site/PublicPage";
 import { JsonLd, breadcrumb, faqPage } from "@/components/site/JsonLd";
 import { TEMPLATES, templateBySlug } from "@/content/templates";
-import { SHARE_IMAGE, SITE_URL } from "@/lib/site";
+import { SITE_URL } from "@/lib/site";
 
 export function generateStaticParams() {
   return TEMPLATES.map((t) => ({ slug: t.slug }));
@@ -25,14 +25,13 @@ export async function generateMetadata(
     description: t.meta,
     alternates: { canonical: `${SITE_URL}/templates/${t.slug}` },
     openGraph: {
-      images: [SHARE_IMAGE],
       type: "article",
       siteName: "Formkit",
       url: `${SITE_URL}/templates/${t.slug}`,
       title: `${title} | Formkit`,
       description: t.meta,
     },
-    twitter: { card: "summary_large_image", images: [SHARE_IMAGE], title, description: t.meta },
+    twitter: { card: "summary_large_image", title, description: t.meta },
   };
 }
 

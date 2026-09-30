@@ -27,8 +27,8 @@ import {
 import { NightSky } from "@/components/brand/NightSky";
 import { PublicPage } from "@/components/site/PublicPage";
 import { PricingPlans } from "@/components/site/PricingPlans";
-import { JsonLd, breadcrumb, faqPage } from "@/components/site/JsonLd";
-import { SHARE_IMAGE, SITE_URL } from "@/lib/site";
+import { JsonLd, breadcrumb, faqPage, softwareApp } from "@/components/site/JsonLd";
+import { SITE_URL } from "@/lib/site";
 import { PER_SEAT_NOTE } from "@/components/plan/PlanCards";
 import { CREDIT_COST, CREDIT_PACKS, FEATURES, PLANS, type Feature, type PlanId } from "../../../convex/model/plans";
 
@@ -41,14 +41,13 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   alternates: { canonical: `${SITE_URL}/pricing` },
   openGraph: {
-    images: [SHARE_IMAGE],
     type: "website",
     siteName: "Formkit",
     url: `${SITE_URL}/pricing`,
     title: TITLE,
     description: DESCRIPTION,
   },
-  twitter: { images: [SHARE_IMAGE], card: "summary_large_image", title: TITLE, description: DESCRIPTION },
+  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
 };
 
 /** What every plan has, Free included. */
@@ -196,20 +195,7 @@ export default function PricingPage() {
         data={{
           "@context": "https://schema.org",
           "@graph": [
-            {
-              "@type": "Product",
-              name: "Formkit",
-              description: "Online form builder with conditional logic, branding, a response inbox, analytics and exports.",
-              brand: { "@type": "Brand", name: "Formkit" },
-              offers: (["free", "pro", "business"] as const).map((p) => ({
-                "@type": "Offer",
-                name: PLANS[p].name,
-                price: String(PLANS[p].price.month),
-                priceCurrency: "USD",
-                availability: "https://schema.org/InStock",
-                url: `${SITE_URL}/pricing`,
-              })),
-            },
+            softwareApp(SITE_URL),
             breadcrumb([
               { name: "Formkit", url: `${SITE_URL}/` },
               { name: "Pricing", url: `${SITE_URL}/pricing` },
