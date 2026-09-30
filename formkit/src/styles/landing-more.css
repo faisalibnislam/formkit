@@ -787,3 +787,125 @@
     animation: none;
   }
 }
+
+/* The three AI features: pinned on a desktop and slid through one at a
+   time by scrolling; every scene the same size. Stacked on smaller screens. */
+.fk-landing > section.fk-aib {
+  overflow: clip;
+}
+.fk-aib-rail {
+  position: relative;
+}
+.fk-aib-track {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(72px, 10vw, 140px);
+}
+.fk-aib-slide {
+  min-width: 0;
+}
+.fk-aib-steps {
+  display: none;
+}
+@media (min-width: 961px) and (min-height: 640px) {
+  .fk-aib-rail {
+    height: 300vh;
+    margin-bottom: calc(-1 * clamp(24px, 3vw, 48px));
+  }
+  .fk-aib-pin {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+  }
+  .fk-aib-stage {
+    width: 100%;
+    padding-top: 72px;
+  }
+  .fk-aib-track {
+    flex-direction: row;
+    gap: 0;
+    transform: translate3d(calc(var(--slide, 0) * -100%), 0, 0);
+    transition: transform 0.9s cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  .fk-aib-slide {
+    flex: 0 0 100%;
+    padding: 0 2px;
+    transition: opacity 0.6s ease;
+  }
+  .fk-aib-slide[aria-hidden="true"] {
+    opacity: 0.25;
+  }
+  .fk-aib-row[data-flip] {
+    grid-template-columns: minmax(0, 1.18fr) minmax(0, 0.82fr);
+  }
+  .fk-aib-scene {
+    height: clamp(440px, calc(100vh - 260px), 530px);
+  }
+  .fk-aib-scene .fk-act {
+    flex: 1;
+    min-height: 0;
+  }
+  .fk-aib-scene > *,
+  .fk-aib-scene > * > .fk-sc {
+    height: 100%;
+  }
+  .fk-aib-scene .fk-sc-body {
+    flex: 1;
+    overflow: hidden;
+  }
+  .fk-aib-steps {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: clamp(24px, 3.5vh, 40px);
+  }
+  .fk-aib-steps button {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 38px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+    font: inherit;
+    font-size: 13.5px;
+    color: rgba(255, 255, 255, 0.65);
+    cursor: pointer;
+    overflow: hidden;
+    transition: color 0.3s ease, background 0.3s ease;
+  }
+  .fk-aib-steps button b {
+    color: var(--blue-300);
+  }
+  .fk-aib-steps button:hover {
+    color: #ffffff;
+  }
+  .fk-aib-steps button[aria-current] {
+    background: rgba(255, 255, 255, 0.14);
+    color: #ffffff;
+  }
+  .fk-aib-steps i {
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 2px;
+    background: var(--blue-300);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.6s ease;
+  }
+  .fk-aib-steps button[aria-current] i {
+    transform: scaleX(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fk-aib-track,
+  .fk-aib-slide {
+    transition: none;
+  }
+}

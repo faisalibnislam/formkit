@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Check, Sparkles } from "lucide-react";
 import { AiBuildScene } from "@/components/site/scenes/AiBuildScene";
 import { LogicScene } from "@/components/site/scenes/LogicScene";
@@ -59,8 +59,56 @@ const ROWS = [
   },
 ] as const;
 
+/** Wide enough, and tall enough, to pin the three and slide between them. */
+const PIN_QUERY = "(min-width: 961px) and (min-height: 640px)";
+
 export function AiBand() {
   const root = useRef<HTMLElement | null>(null);
+  const rail = useRef<HTMLDivElement | null>(null);
+  const [slide, setSlide] = useState(0);
+  const [pinned, setPinned] = useState(false);
+
+  // Which of the three is showing: the rail's scroll is cut into three equal
+  // stretches, and each holds its feature until the next begins.
+  useEffect(() => {
+    const el = rail.current;
+    if (!el) return;
+    const wide = window.matchMedia(PIN_QUERY);
+    let raf = 0;
+    const read = () => {
+      raf = 0;
+      const on = wide.matches;
+      setPinned(on);
+      if (!on) return;
+      const r = el.getBoundingClientRect();
+      const travel = Math.max(1, r.height - window.innerHeight);
+      const p = Math.min(0.9999, Math.max(0, -r.top / travel));
+      setSlide(Math.floor(p * ROWS.length));
+    };
+    const kick = () => {
+      if (!raf) raf = requestAnimationFrame(read);
+    };
+    kick();
+    window.addEventListener("scroll", kick, { passive: true });
+    window.addEventListener("resize", kick);
+    wide.addEventListener("change", kick);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", kick);
+      window.removeEventListener("resize", kick);
+      wide.removeEventListener("change", kick);
+    };
+  }, []);
+
+  /** Scroll the page to where feature `i` is showing. */
+  const go = (i: number) => {
+    const el = rail.current;
+    if (!el) return;
+    const top = el.getBoundingClientRect().top + window.scrollY;
+    const travel = Math.max(1, el.offsetHeight - window.innerHeight);
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: top + ((i + 0.2) / ROWS.length) * travel, behavior: reduced ? "auto" : "smooth" });
+  };
 
   useEffect(() => {
     const el = root.current;
@@ -102,38 +150,70 @@ export function AiBand() {
           first pass at all three, and you stay in charge of every word.
         </p>
         <nav className="fk-aib-jump" aria-label="AI features">
-          {ROWS.map((r) => (
-            <a key={r.id} href={`#${r.id}`}>
+          {ROWS.map((r, i) => (
+            <a
+              key={r.id}
+              href={`#${r.id}`}
+              onClick={(e) => {
+                if (!pinned) return;
+                e.preventDefault();
+                go(i);
+              }}
+            >
               <b>{r.n}</b> {r.kicker}
             </a>
           ))}
         </nav>
       </header>
 
-      {ROWS.map((r, i) => (
-        <div key={r.id} id={r.id} className="fk-aib-row" data-flip={i % 2 === 1 || undefined} data-rise>
-          <div className="fk-aib-copy">
-            <span className="fk-aib-kicker">{r.kicker}</span>
-            <h3>{r.title}</h3>
-            <p>{r.body}</p>
-            <ul>
-              {r.points.map((p) => (
-                <li key={p}>
-                  <Check size={16} strokeWidth={2.4} aria-hidden /> {p}
-                </li>
+      {/* On a desktop the three stay pinned and slide sideways, one per stretch of scroll. */}
+      <div ref={rail} className="fk-aib-rail">
+        <div className="fk-aib-pin">
+          <div className="fk-aib-stage" data-rise>
+            <div className="fk-aib-track" style={{ ["--slide" as string]: slide }}>
+              {ROWS.map((r, i) => (
+                <div key={r.id} className="fk-aib-slide" aria-hidden={pinned && i !== slide ? true : undefined}>
+                  <div id={r.id} className="fk-aib-row" data-flip={i % 2 === 1 || undefined}>
+                    <div className="fk-aib-copy">
+                      <span className="fk-aib-kicker">{r.kicker}</span>
+                      <h3>{r.title}</h3>
+                      <p>{r.body}</p>
+                      <ul>
+                        {r.points.map((p) => (
+                          <li key={p}>
+                            <Check size={16} strokeWidth={2.4} aria-hidden /> {p}
+                          </li>
+                        ))}
+                      </ul>
+                      <Link href={r.href} className="fk-aib-link" tabIndex={pinned && i !== slide ? -1 : undefined}>
+                        {r.link} <ArrowRight size={15} strokeWidth={2} aria-hidden />
+                      </Link>
+                    </div>
+                    <div className="fk-aib-scene">
+                      {r.id === "ai-build" && <AiBuildScene />}
+                      {r.id === "ai-think" && <LogicScene start="ai" />}
+                      {r.id === "ai-act" && <ActScene />}
+                    </div>
+                  </div>
+                </div>
               ))}
-            </ul>
-            <Link href={r.href} className="fk-aib-link">
-              {r.link} <ArrowRight size={15} strokeWidth={2} aria-hidden />
-            </Link>
-          </div>
-          <div className="fk-aib-scene">
-            {r.id === "ai-build" && <AiBuildScene />}
-            {r.id === "ai-think" && <LogicScene start="ai" />}
-            {r.id === "ai-act" && <ActScene />}
+            </div>
+            <div className="fk-aib-steps" aria-label="AI features">
+              {ROWS.map((r, i) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  aria-current={i === slide || undefined}
+                  onClick={() => go(i)}
+                >
+                  <i aria-hidden />
+                  <b>{r.n}</b> {r.kicker}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-      ))}
+      </div>
 
       <p className="fk-aib-foot" data-rise>
         AI runs on Google&rsquo;s Gemini models. Chatting with Ask Formkit about Formkit never counts against your
