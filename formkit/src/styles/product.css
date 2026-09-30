@@ -1,29 +1,11 @@
 /* The landing page's second section (components/landing/ProductShot.tsx):
-   one form as the builder, a phone and a response, on a light canvas. The
-   only movement is following a question. */
+   one question's journey from the builder to a phone to the inbox, with a
+   line drawn through all three. */
 
 .fk-prod {
   position: relative;
   padding: clamp(56px, 7vw, 104px) clamp(20px, 5vw, 72px) clamp(56px, 7vw, 96px);
-  background:
-    radial-gradient(50% 45% at 72% 62%, rgba(163, 200, 231, 0.55), transparent 70%),
-    radial-gradient(40% 40% at 18% 30%, rgba(220, 238, 230, 0.8), transparent 70%),
-    #f7fafd;
-  overflow: hidden;
-}
-/* A canvas of dots, like a design tool's. */
-.fk-prod::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(rgba(33, 40, 46, 0.12) 1px, transparent 1.2px);
-  background-size: 22px 22px;
-  -webkit-mask-image: radial-gradient(80% 70% at 50% 60%, #000 30%, transparent 85%);
-  mask-image: radial-gradient(80% 70% at 50% 60%, #000 30%, transparent 85%);
-  pointer-events: none;
-}
-.fk-prod > * {
-  position: relative;
+  background: var(--blue-50);
 }
 
 .fk-prod-head {
@@ -96,61 +78,112 @@
   color: var(--blue-300);
 }
 
-/* The stage: three pieces composed as one cluster. */
+/* The stage: three columns, with the lines drawn across the gaps. */
 .fk-prod-stage {
   position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) 272px minmax(0, 1fr);
+  column-gap: clamp(72px, 8vw, 128px);
+  align-items: start;
   max-width: 1240px;
-  height: 740px;
-  margin: clamp(32px, 4vw, 52px) auto 0;
+  margin: clamp(36px, 4.5vw, 60px) auto 0;
 }
-.fk-prod-builder {
-  position: absolute;
-  left: 0;
-  top: 96px;
-  width: 58%;
+.fk-prod-col {
+  position: relative;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
 }
-.fk-prod-resp {
-  position: absolute;
-  right: 0;
-  top: 0;
-  width: 30%;
-  z-index: 2;
+.fk-prod-col-phone .fk-prod-phone {
+  margin-top: 26px;
 }
-.fk-prod-phone-wrap {
-  position: absolute;
-  left: 49%;
-  top: 176px;
-  width: 262px;
-  z-index: 3;
-}
-
-.fk-prod-badge {
-  display: inline-flex;
+.fk-prod-step {
+  display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  padding: 5px 12px 5px 5px;
-  border-radius: 999px;
-  background: #ffffff;
-  box-shadow: 0 6px 16px -10px rgba(20, 40, 70, 0.4), inset 0 0 0 1px var(--neutral-150);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--neutral-800);
-  white-space: nowrap;
+  gap: 10px;
+  font-size: 13.5px;
+  color: var(--neutral-600);
 }
-.fk-prod-badge b {
+.fk-prod-step b {
   display: inline-grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
   background: var(--neutral-900);
   color: #ffffff;
-  font-size: 11.5px;
 }
-.fk-prod-phone-wrap .fk-prod-badge {
-  margin: 14px 0 0 18px;
+.fk-prod-step em {
+  display: block;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--blue-700);
+}
+
+/* The connecting lines and their labels. */
+.fk-prod-wires {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 2;
+}
+.fk-prod-wires path {
+  fill: none;
+  stroke: var(--blue-600);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: fk-prod-draw 0.7s cubic-bezier(0.3, 0.7, 0.2, 1) forwards;
+}
+.fk-prod-wires path + path {
+  animation-delay: 0.25s;
+}
+.fk-prod-wires circle {
+  fill: var(--blue-600);
+  stroke: var(--blue-50);
+  stroke-width: 3;
+}
+@keyframes fk-prod-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.fk-prod-tag {
+  position: absolute;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: var(--neutral-900);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+  animation: fk-prod-tag 0.4s ease 0.35s both;
+  pointer-events: none;
+}
+@keyframes fk-prod-tag {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -30%);
+  }
+}
+/* On narrow screens the pieces stack, with the step between them. */
+.fk-prod-flow {
+  display: none;
 }
 
 /* 1. The builder window. */
@@ -190,28 +223,6 @@
   font-size: 11.5px;
   font-weight: 600;
 }
-.fk-prod-eye {
-  display: inline-grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  margin-left: auto;
-  border-radius: 50%;
-  background: var(--neutral-100);
-  color: var(--neutral-700);
-}
-.fk-prod-publish {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 30px;
-  padding: 0 12px;
-  border-radius: 999px;
-  background: var(--neutral-900);
-  color: #ffffff;
-  font-size: 12.5px;
-  font-weight: 600;
-}
 .fk-prod-ai {
   display: flex;
   align-items: center;
@@ -237,63 +248,18 @@
   color: var(--neutral-900);
   font-weight: 500;
 }
-.fk-prod-body {
-  display: grid;
-  grid-template-columns: 172px minmax(0, 1fr);
-  gap: 14px;
-  padding: 14px;
-  background: var(--neutral-50);
-}
-.fk-prod-pages {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  font-size: 12.5px;
-}
-.fk-prod-pages > div {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  color: var(--neutral-700);
-}
-.fk-prod-pages > div[data-on] {
-  background: #ffffff;
-  box-shadow: inset 0 0 0 1px var(--neutral-150);
-  color: var(--neutral-900);
-  font-weight: 600;
-}
-.fk-prod-pages em {
-  font-style: normal;
-  font-size: 11px;
-  color: var(--neutral-500);
-}
-.fk-prod-pages small {
-  margin-left: auto;
-  font-size: 11px;
-  color: var(--neutral-500);
-}
-.fk-prod-pages .fk-prod-rule {
-  align-items: flex-start;
-  margin-top: 10px;
-  padding: 10px;
-  border-radius: 12px;
-  background: var(--neutral-900);
-  color: #ffffff;
-  font-size: 11.5px;
-  font-weight: 500;
-  line-height: 1.4;
-}
-.fk-prod-rule svg {
-  flex: none;
-  margin-top: 1px;
-  color: var(--blue-300);
-}
 .fk-prod-qs {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  padding: 14px;
+  background: var(--neutral-50);
+}
+.fk-prod-page {
+  margin: 0 2px 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--neutral-500);
 }
 .fk-prod-qs button {
   display: flex;
@@ -498,19 +464,6 @@
   font-size: 13px;
   word-break: break-word;
 }
-.fk-prod-logic {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  width: fit-content;
-  margin-top: auto;
-  padding: 4px 9px;
-  border-radius: 999px;
-  background: var(--blue-50);
-  color: var(--blue-700);
-  font-size: 11px;
-  font-weight: 600;
-}
 .fk-prod-next {
   display: inline-flex;
   align-items: center;
@@ -629,42 +582,34 @@
   color: var(--blue-700);
 }
 
-/* Narrower screens: the three pieces stack, in order. */
-@media (max-width: 1080px) {
+/* Narrower screens: the pieces stack, joined by the step between them. */
+@media (max-width: 1099px) {
   .fk-prod-stage {
-    height: auto;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 28px 20px;
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 12px;
+    max-width: 640px;
   }
-  .fk-prod-builder,
-  .fk-prod-resp,
-  .fk-prod-phone-wrap {
-    position: static;
-    width: auto;
+  .fk-prod-col-phone {
+    align-items: center;
   }
-  .fk-prod-builder {
-    grid-column: 1 / -1;
+  .fk-prod-col-phone .fk-prod-phone {
+    width: 272px;
+    margin-top: 0;
   }
-  .fk-prod-phone-wrap {
-    order: 2;
+  .fk-prod-flow {
+    display: inline-flex;
+    align-items: center;
     justify-self: center;
-    width: 262px;
-  }
-  .fk-prod-resp {
-    order: 3;
+    gap: 6px;
+    padding: 6px 13px;
+    border-radius: 999px;
+    background: var(--neutral-900);
+    color: #ffffff;
+    font-size: 12.5px;
+    font-weight: 600;
   }
 }
 @media (max-width: 700px) {
-  .fk-prod-stage {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .fk-prod-body {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .fk-prod-pages {
-    display: none;
-  }
   .fk-prod-picker > div {
     flex-wrap: nowrap;
     overflow-x: auto;
@@ -674,9 +619,6 @@
   .fk-prod-picker button {
     flex: none;
   }
-  .fk-prod-badge {
-    white-space: normal;
-  }
   .fk-prod-screen {
     height: 470px;
   }
@@ -685,7 +627,12 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .fk-prod-ask {
+  .fk-prod-ask,
+  .fk-prod-tag {
     animation: none;
+  }
+  .fk-prod-wires path {
+    animation: none;
+    stroke-dashoffset: 0;
   }
 }
