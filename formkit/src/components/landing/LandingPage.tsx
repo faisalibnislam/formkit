@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { ArrowRight, ArrowUpRight, Plus } from "lucide-react";
 import { SiteNav } from "@/components/site/SiteNav";
 import { SiteFooter } from "@/components/site/SiteFooter";
@@ -13,114 +13,26 @@ import { HeroScene } from "./HeroScene";
 import { LogicSection } from "./LogicSection";
 import { AnalyticsSection } from "./AnalyticsSection";
 import { LandingFeatures } from "./LandingFeatures";
-import { FeaturesScene } from "./FeaturesScene";
 import { MobileLanding } from "./MobileLanding";
 import { MoreScenes } from "./MoreScenes";
 import { AiBand } from "./AiBand";
-import { createEngine, UNPIN_AT, type Engine } from "./scrollEngine";
+import { floaties } from "./scrollEngine";
 
 /**
  * The marketing home: the headline in the night sky with form pieces that lean
  * with the pointer, then AI takes the stage
  * (building, deciding, answering), logic, every feature playing, analytics
- * and the plans. Only the features carousel is driven by scroll.
- *
- * The scroll choreography is an imperative effect writing to the DOM, not React
- * state. Driving 900vh of it through render would drop frames, and nothing must
- * re-render over the scroll-written inline styles.
+ * and the plans.
  */
 export function LandingPage() {
   const root = useRef<HTMLDivElement | null>(null);
-  const engine = useRef<Engine | null>(null);
 
+  // The floating pieces around the headline lean with the pointer, on their
+  // own clock. With reduced motion they simply stay where they are.
   useEffect(() => {
     const el = root.current;
-    if (!el) return;
-
-    const e = createEngine(el);
-    engine.current = e;
-    e.measure();
-
-    const reduced = window.matchMedia("(prefers-reduced-motion:reduce)").matches;
-    if (reduced) {
-      // Every scene resolves to its end state.
-      e.resolveAll();
-      return;
-    }
-
-    // The floating pieces around the headline run on their own clock and lean
-    // with the pointer, so they keep moving after the scroll loop has parked.
-    const stopFloaties = e.floaties();
-
-    let eased = 0;
-    let raf: number | null = null;
-    let mobileResolved = false;
-
-    const frame = () => {
-      raf = null;
-
-      // Below the unpin breakpoint the scenes are ordinary stacked sections;
-      // driving their transforms would move content that is no longer pinned.
-      if (window.innerWidth <= UNPIN_AT) {
-        if (!mobileResolved) {
-          mobileResolved = true;
-          e.resolveAll();
-        }
-        e.applyCounters();
-        return;
-      }
-      mobileResolved = false;
-
-      const target = e.progress("features");
-      const delta = target - eased;
-      const moving = Math.abs(delta) > 0.0004;
-      eased = moving ? eased + delta * 0.16 : target;
-      e.applyFeatures(eased);
-      e.applyCounters();
-
-      if (moving) raf = requestAnimationFrame(frame);
-    };
-
-    const kick = () => {
-      if (raf === null) raf = requestAnimationFrame(frame);
-    };
-    const onResize = () => {
-      e.measure();
-      kick();
-    };
-
-    window.addEventListener("scroll", kick, { passive: true });
-    window.addEventListener("resize", onResize);
-    frame();
-    kick();
-    // Fonts and images settle after first paint; re-measure once they have.
-    const settle = window.setTimeout(onResize, 700);
-
-    return () => {
-      window.removeEventListener("scroll", kick);
-      window.removeEventListener("resize", onResize);
-      window.clearTimeout(settle);
-      stopFloaties();
-      if (raf !== null) cancelAnimationFrame(raf);
-      engine.current = null;
-    };
-  }, []);
-
-  /** The features arrows scroll the page, so the pin stays in charge. */
-  const stepFeatures = useCallback((direction: -1 | 1) => {
-    const el = root.current?.querySelector('[data-scene="features"]');
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    const top = r.top + window.scrollY;
-    const travel = Math.max(1, r.height - window.innerHeight);
-    const current = Math.min(1, Math.max(0, (window.scrollY - top) / travel));
-    const next = Math.min(1, Math.max(0, current + direction * 0.2));
-    window.scrollTo({
-      top: top + travel * next,
-      behavior: window.matchMedia("(prefers-reduced-motion:reduce)").matches
-        ? "auto"
-        : "smooth",
-    });
+    if (!el || window.matchMedia("(prefers-reduced-motion:reduce)").matches) return;
+    return floaties(el);
   }, []);
 
   return (
@@ -135,7 +47,7 @@ export function LandingPage() {
       <div className="fk-desk">
         <HeroScene />
       </div>
-      <MobileLanding part="hero" />
+      <MobileLanding />
 
       {/* The same on every screen: AI first, the reason to pick Formkit. */}
       <AiBand />
@@ -143,10 +55,6 @@ export function LandingPage() {
       <LandingFeatures />
       <AnalyticsSection />
 
-      <div className="fk-desk">
-        <FeaturesScene onStep={stepFeatures} />
-      </div>
-      <MobileLanding part="features" />
 
       {/* The plans. */}
       <MoreScenes />

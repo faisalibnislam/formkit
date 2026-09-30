@@ -16,10 +16,6 @@
   background: var(--blue-50);
   padding-bottom: 28px;
 }
-.fk-m-dark {
-  background: var(--neutral-950);
-  color: var(--neutral-0);
-}
 
 .fk-m-pad {
   padding: 22px clamp(16px, 4.5vw, 36px) 24px;
@@ -72,16 +68,6 @@
   font-size: 15px;
   line-height: 1.55;
   color: var(--neutral-700);
-}
-.fk-m-heading-dark .fk-m-eyebrow {
-  color: var(--blue-300);
-}
-.fk-m-heading-dark h2 {
-  max-width: 18ch;
-  color: var(--neutral-0);
-}
-.fk-m-heading-dark p {
-  color: rgba(255, 255, 255, 0.7);
 }
 
 /* The dark caption that closes ASK, SHAPE and UNDERSTAND. */
@@ -1127,103 +1113,11 @@
 
 /* ---------- features ---------- */
 
-.fk-m-ftrack {
-  display: flex;
-  gap: 12px;
-  padding: 4px clamp(20px, 5vw, 40px) 4px;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scroll-snap-type: x mandatory;
-  scroll-padding: 0 clamp(20px, 5vw, 40px);
-  scrollbar-width: none;
-}
-.fk-m-ftrack::-webkit-scrollbar {
-  display: none;
-}
-.fk-m-ftrack:focus-visible {
-  outline: 2px solid var(--blue-300);
-  outline-offset: -2px;
-}
-.fk-m-fcard {
-  display: flex;
-  flex: 0 0 min(80%, 320px);
-  flex-direction: column;
-  padding: 22px 20px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.06);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
-  scroll-snap-align: start;
-}
-.fk-m-ficon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  color: var(--neutral-900);
-}
-.fk-m-fcard h3 {
-  margin: 18px 0 0;
-  font-size: 19px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  color: var(--neutral-0);
-}
-.fk-m-fcard p {
-  flex: 1;
-  margin: 10px 0 0;
-  font-size: 14px;
-  line-height: 1.55;
-  color: rgba(255, 255, 255, 0.72);
-}
-.fk-m-fchip {
-  align-self: flex-start;
-  margin-top: 18px;
-  padding: 5px 11px;
-  border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.1);
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.85);
-}
 
-.fk-m-fnav {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 20px clamp(20px, 5vw, 40px) 30px;
-}
-.fk-m-fcount {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.72);
-  font-variant-numeric: tabular-nums;
-}
-.fk-m-fbar {
-  flex: 1;
-  height: 2px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.16);
-  overflow: hidden;
-}
-.fk-m-fbar > span {
-  display: block;
-  height: 100%;
-  background: var(--blue-300);
-  transition: width 0.3s ease;
-}
-.fk-m-fnav .fk-round-btn {
-  width: 42px;
-  height: 42px;
-}
-.fk-m-fnav .fk-round-btn:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
 
 @media (prefers-reduced-motion: reduce) {
   .fk-m-sees-list li,
   .fk-m-live-progress > span,
-  .fk-m-fbar > span,
   .fk-m-drop {
     transition: none;
   }

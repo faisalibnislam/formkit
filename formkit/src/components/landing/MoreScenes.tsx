@@ -6,6 +6,7 @@ import { ArrowRight, Check } from "lucide-react";
 import { Glyph } from "@/components/brand/Glyph";
 import { TRUST_POINTS } from "@/content/landing";
 import { PLANS } from "../../../convex/model/plans";
+import { StarField } from "./StarField";
 
 /**
  * After the AI band, in ordinary sections that read the same on a phone and a
@@ -79,8 +80,11 @@ function Plans() {
   ];
   return (
     <section id="plans" className="fk-more fk-more-plans">
+      <StarField />
+      <div className="fk-aib-glow" aria-hidden />
+      <div className="fk-aib-glow fk-aib-glow-3" aria-hidden />
       <div className="fk-more-head" style={{ textAlign: "center", marginInline: "auto" }}>
-        <Kicker>Pricing</Kicker>
+        <Kicker tone="inverse">Pricing</Kicker>
         <h2 className="fk-lp-h2" style={{ marginInline: "auto" }}>
           Free to start. Simple when you grow.
         </h2>
@@ -106,7 +110,7 @@ function Plans() {
         ))}
       </div>
       <div className="fk-plan-teaser-cta">
-        <Link href="/pricing" className="fk-pill fk-pill-dark">
+        <Link href="/pricing" className="fk-pill fk-pill-light">
           See every plan <ArrowRight size={17} strokeWidth={1.8} aria-hidden />
         </Link>
       </div>

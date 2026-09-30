@@ -1067,3 +1067,48 @@
     animation: none;
   }
 }
+
+/* Pricing on the home page: the same night sky as the AI band. */
+.fk-more-plans {
+  background: var(--neutral-900);
+  color: #ffffff;
+  overflow: hidden;
+  isolation: isolate;
+}
+.fk-more-plans .fk-lp-h2 {
+  color: #ffffff;
+}
+.fk-more-plans .fk-lp-lede {
+  color: rgba(255, 255, 255, 0.7);
+}
+.fk-more-plans .fk-plan-teaser-card {
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(6px);
+  color: #ffffff;
+}
+.fk-more-plans .fk-plan-teaser-card li svg {
+  color: var(--green-400);
+}
+.fk-more-plans .fk-plan-teaser-card[data-plan="pro"] {
+  background: #ffffff;
+  box-shadow: 0 30px 60px -30px rgba(95, 155, 212, 0.55);
+  color: var(--neutral-900);
+}
+.fk-more-plans .fk-plan-teaser-card[data-plan="pro"] li svg {
+  color: var(--blue-600);
+}
+.fk-more-plans .fk-trust {
+  border-top-color: rgba(255, 255, 255, 0.12);
+}
+.fk-more-plans .fk-trust-item b {
+  color: #ffffff;
+}
+.fk-more-plans .fk-trust-item p {
+  color: rgba(255, 255, 255, 0.62);
+}
+.fk-more-plans .fk-trust-icon {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+  color: var(--blue-300);
+}
