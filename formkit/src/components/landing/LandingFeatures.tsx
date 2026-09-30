@@ -1,14 +1,51 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, GripVertical } from "lucide-react";
 import { Glyph } from "@/components/brand/Glyph";
 import { SceneCard } from "@/components/site/SceneCard";
 import { Reveal } from "@/components/site/Reveal";
+import { DragScene } from "./DragScene";
 import { FEATURE_PAGES, USE_CASES } from "@/content/features";
 
 /**
  * Everything on /features, on the home page too: each feature as a card
- * with its scene playing, then the teams it is made for.
+ * with its scene playing, then the teams it is made for. The AI builder and
+ * logic have sections of their own above, so this grid opens on the
+ * drag-and-drop builder and branding, and logic is left to its section.
  */
+const pick = (slug: string) => FEATURE_PAGES.find((f) => f.slug === slug);
+const ORDER = [
+  pick("branding"),
+  pick("quizzes"),
+  pick("ai-replies"),
+  pick("insights"),
+  pick("payments"),
+  pick("integrations"),
+  pick("ai-form-builder"),
+].filter((f) => f !== undefined);
+
+/** The builder itself has no feature page; its card opens the help article instead. */
+function BuilderCard() {
+  return (
+    <Link href="/help/add-reorder" className="fk-scard" data-wide>
+      <span className="fk-scard-scene" aria-hidden>
+        <DragScene compact />
+      </span>
+      <span className="fk-scard-copy">
+        <span className="fk-scard-kicker">
+          <GripVertical size={14} strokeWidth={1.8} aria-hidden /> Drag-and-drop builder
+        </span>
+        <b>Drag a question in. Drop it where it goes.</b>
+        <span className="fk-scard-foot">
+          <span className="fk-scard-plan">Every plan</span>
+          <span className="fk-scard-go">
+            Explore <ArrowRight size={14} strokeWidth={2} aria-hidden />
+          </span>
+        </span>
+      </span>
+    </Link>
+  );
+}
+
 export function LandingFeatures() {
   return (
     <section id="every-feature" className="fk-lf" aria-labelledby="lf-title">
@@ -26,8 +63,9 @@ export function LandingFeatures() {
 
         <div data-rise>
           <div className="fk-bento">
-            {FEATURE_PAGES.map((s, i) => (
-              <SceneCard key={s.slug} story={s} base="features" wide={i % 4 === 0 || i % 4 === 3} />
+            <BuilderCard />
+            {ORDER.map((s, i) => (
+              <SceneCard key={s.slug} story={s} base="features" wide={(i + 1) % 4 === 0 || (i + 1) % 4 === 3} />
             ))}
           </div>
         </div>
