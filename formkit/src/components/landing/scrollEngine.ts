@@ -44,7 +44,7 @@ export function createEngine(root: HTMLElement) {
   function measure() {
     const viewport = window.innerHeight;
     scenes = {};
-    for (const name of ["hero", "shape", "features"]) {
+    for (const name of ["hero", "features"]) {
       const el = one(`[data-scene="${name}"]`);
       if (!el) continue;
       const r = el.getBoundingClientRect();
@@ -133,56 +133,6 @@ export function createEngine(root: HTMLElement) {
       set(status, "background", draft ? "var(--green-100)" : "var(--neutral-100)");
       set(status, "color", draft ? "var(--green-600)" : "var(--neutral-600)");
     }
-  }
-
-  let shapeStep = -1;
-  function applyShape(p: number) {
-    const steps = 5;
-    const step = Math.min(steps - 1, Math.floor(p * steps));
-    if (shapeStep === step) return;
-    shapeStep = step;
-
-    const labels = [
-      "Add a condition",
-      "The path divides",
-      "A question drops out",
-      "Fewer questions to answer",
-      "The paths merge",
-    ];
-    const label = one("[data-shapelabel]");
-    if (label) label.textContent = labels[step]!;
-
-    q("[data-shapedot]").forEach((dot, i) => {
-      set(dot, "background", i <= step ? "var(--blue-500)" : "rgba(255,255,255,.25)");
-    });
-    q(".fk-logicline").forEach((line, i) => {
-      const on = i <= step + 1;
-      set(line, "opacity", on ? "1" : "0");
-      set(line, "transform", on ? "none" : "translateY(10px)");
-    });
-    q("[data-branchrow]").forEach((row, i) => {
-      set(row, "opacity", step >= i + 1 ? "1" : "0");
-    });
-
-    q(".fk-respq").forEach((el, i) => {
-      // The two questions an existing client never sees.
-      const dropped = step >= 2 && (i === 1 || i === 2);
-      set(el, "opacity", dropped ? (step >= 4 ? "0.35" : "0.25") : "1");
-      set(el, "transform", dropped ? "translateX(-10px)" : "none");
-      set(
-        el,
-        "box-shadow",
-        !dropped && step >= 3
-          ? "inset 0 0 0 1.5px var(--blue-500)"
-          : "inset 0 0 0 1px var(--neutral-200)",
-      );
-      const dot = one(`[data-respdot="${i}"]`);
-      set(dot, "background", dropped ? "var(--neutral-200)" : "var(--blue-500)");
-    });
-
-    const count = one("[data-shapecount]");
-    if (count) count.textContent = `${step >= 2 ? 8 : 11} questions`;
-    set(one("[data-shapeprogress]"), "width", `${[18, 34, 52, 72, 100][step]}%`);
   }
 
   function applyFeatures(p: number) {
@@ -288,9 +238,7 @@ export function createEngine(root: HTMLElement) {
   /** Reduced motion, or a viewport too short to pin: every scene resolved. */
   function resolveAll(keepHeroScale: boolean) {
     if (!keepHeroScale) applyHero(1);
-    applyShape(0.99);
     applyFeatures(1);
-    q("[data-branchrow]").forEach((el) => set(el, "opacity", "1"));
     q("[data-count]").forEach((el) => {
       const dec = el.getAttribute("data-dec") ? 1 : 0;
       const suffix = el.getAttribute("data-suffix") ?? "";
@@ -309,7 +257,6 @@ export function createEngine(root: HTMLElement) {
     measure,
     progress,
     applyHero,
-    applyShape,
     applyFeatures,
     applyCounters,
     floaties,

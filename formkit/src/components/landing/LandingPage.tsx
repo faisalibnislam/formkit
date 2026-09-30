@@ -10,19 +10,18 @@ import { COMPARE_ASOF } from "@/content/compare";
 import { HELP_ARTICLES } from "@/content/help";
 import { LANDING_FAQS } from "@/content/landing";
 import { HeroScene } from "./HeroScene";
-import { ShapeScene } from "./ShapeScene";
-import { AnswerScene } from "./AnswerScene";
-import { InboxScene } from "./InboxScene";
-import { AnalyticsScene } from "./AnalyticsScene";
 import { FeaturesScene } from "./FeaturesScene";
 import { MobileLanding } from "./MobileLanding";
 import { MoreScenes } from "./MoreScenes";
+import { HowItWorks } from "./HowItWorks";
+import { AiBand } from "./AiBand";
 import { createEngine, UNPIN_AT, type Engine } from "./scrollEngine";
 
 /**
- * The marketing home: one continuous scroll story around a single form -
- * ASK → SHAPE → ANSWER → UNDERSTAND → ACT - then ordinary sections on
- * building with AI, forms that think, AI replies, companies and the plans.
+ * The marketing home: the hero builds a form as you scroll, one short section
+ * says how the form works for the people filling it in, then AI takes the
+ * stage (building, deciding, answering), then everything else, companies
+ * and the plans.
  *
  * The scroll choreography is an imperative effect writing to the DOM, not React
  * state. Driving 900vh of it through render would drop frames, and nothing must
@@ -84,8 +83,6 @@ export function LandingPage() {
       }
 
       e.applyHero(eased.hero);
-      // Shape advances in five discrete steps, so it reads scroll directly.
-      e.applyShape(e.progress("shape"));
       e.applyFeatures(eased.features);
       e.applyCounters();
 
@@ -142,18 +139,22 @@ export function LandingPage() {
       <SiteNav />
       <span id="content" tabIndex={-1} />
 
-      {/* Two tellings of the same story; CSS shows the one that fits. */}
+      {/* The hero has a desktop and a phone telling; CSS shows the one that fits. */}
       <div className="fk-desk">
         <HeroScene />
-        <ShapeScene />
-        <AnswerScene />
-        <InboxScene />
-        <AnalyticsScene />
+      </div>
+      <MobileLanding part="top" />
+
+      {/* The same on every screen: how it works, then AI, the reason to pick Formkit. */}
+      <HowItWorks />
+      <AiBand />
+
+      <div className="fk-desk">
         <FeaturesScene onStep={stepFeatures} />
       </div>
-      <MobileLanding />
+      <MobileLanding part="end" />
 
-      {/* After the story, the same on every screen: AI, logic, replies, teams, plans. */}
+      {/* Companies and the plans. */}
       <MoreScenes />
 
       <section id="compare" className="fk-lp-compare">

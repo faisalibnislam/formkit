@@ -1,8 +1,11 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { ArrowRight, ArrowUpRight, Check } from "lucide-react";
 import { NightSky } from "@/components/brand/NightSky";
 import { Glyph } from "@/components/brand/Glyph";
 import { PublicPage } from "@/components/site/PublicPage";
+import { Reveal } from "@/components/site/Reveal";
+import { StoryScene } from "@/components/site/scenes";
 import { JsonLd, article, breadcrumb, faqPage } from "@/components/site/JsonLd";
 import { FEATURE_PAGES, type Story } from "@/content/features";
 import { templateBySlug } from "@/content/templates";
@@ -10,11 +13,11 @@ import { helpArticle } from "@/content/help";
 import { SITE_URL } from "@/lib/site";
 
 /**
- * One feature or use-case page: the hero, the sections, how to start, the
- * templates and help articles that go with it, related features, and the
- * questions people ask. The links between them are most of the point: they
- * are how visitors (and search engines) move from a feature to a template to
- * the help that explains it.
+ * One feature or use-case page: a hero with the feature playing beside it,
+ * what it does, how to start, the templates and help that go with it,
+ * related features (playing too), and the questions people ask. The links
+ * between them are most of the point: they are how visitors, and search
+ * engines, move from a feature to a template to the help that explains it.
  */
 export function StoryPage({ story, base, crumb }: { story: Story; base: "features" | "use-cases"; crumb: string }) {
   const url = `${SITE_URL}/${base}/${story.slug}`;
@@ -41,34 +44,43 @@ export function StoryPage({ story, base, crumb }: { story: Story; base: "feature
       <PublicPage current="features">
         <section className="fk-hero fk-story-hero">
           <NightSky />
-          <div className="fk-hero-inner fk-measure">
-            <nav aria-label="Breadcrumb" className="fk-crumbs">
-              <Link href="/">Formkit</Link>
-              <span>/</span>
-              <Link href={`/${base}`}>{crumb}</Link>
-              <span>/</span>
-              <span style={{ color: "#ffffff" }}>{story.name}</span>
-            </nav>
-            <span className="fk-story-kicker">
-              <Glyph name={story.icon} size={15} /> {story.kicker}
-            </span>
-            <h1 className="fk-story-title">{story.title}</h1>
-            <p className="fk-story-lead">{story.lead}</p>
-            <div className="fk-story-ctas">
-              <Link href="/signup" className="fk-pill fk-pill-light fk-pill-lg">
-                Start free <ArrowRight size={17} strokeWidth={1.8} aria-hidden />
-              </Link>
-              <span className="fk-story-plan">{story.plan}</span>
+          <div className="fk-hero-inner fk-story-hero-grid">
+            <div className="fk-story-hero-copy">
+              <nav aria-label="Breadcrumb" className="fk-crumbs">
+                <Link href="/">Formkit</Link>
+                <span>/</span>
+                <Link href={`/${base}`}>{crumb}</Link>
+                <span>/</span>
+                <span style={{ color: "#ffffff" }}>{story.name}</span>
+              </nav>
+              <span className="fk-story-kicker">
+                <Glyph name={story.icon} size={15} /> {story.kicker}
+              </span>
+              <h1 className="fk-story-title">{story.title}</h1>
+              <p className="fk-story-lead">{story.lead}</p>
+              <div className="fk-story-ctas">
+                <Link href="/signup" className="fk-pill fk-pill-light fk-pill-lg">
+                  Start free <ArrowRight size={17} strokeWidth={1.8} aria-hidden />
+                </Link>
+                <span className="fk-story-plan">{story.plan}</span>
+              </div>
+            </div>
+            <div className="fk-story-hero-scene">
+              <StoryScene slug={story.slug} hint />
             </div>
           </div>
         </section>
 
         <main id="fk-main" className="fk-main fk-story-main">
-          <div className="fk-measure">
-            <div className="fk-story-sections">
-              {story.sections.map((s) => (
-                <section key={s.title} className="fk-story-section">
-                  <h2>{s.title}</h2>
+          <Reveal className="fk-measure">
+            <h2 className="fk-story-h2" data-rise>
+              What it does
+            </h2>
+            <div className="fk-story-sections" data-count={story.sections.length}>
+              {story.sections.map((s, i) => (
+                <section key={s.title} className="fk-story-section" data-rise style={{ transitionDelay: `${i * 80}ms` }}>
+                  <span className="fk-story-num">{String(i + 1).padStart(2, "0")}</span>
+                  <h3>{s.title}</h3>
                   <p>{s.body}</p>
                   {s.points && (
                     <ul>
@@ -84,11 +96,11 @@ export function StoryPage({ story, base, crumb }: { story: Story; base: "feature
             </div>
 
             {story.steps && (
-              <section className="fk-story-block">
+              <section className="fk-story-block" data-rise>
                 <h2 className="fk-story-h2">How to start</h2>
                 <ol className="fk-story-steps">
                   {story.steps.map((s, i) => (
-                    <li key={s}>
+                    <li key={s} style={{ transitionDelay: `${i * 120}ms` }}>
                       <span>{i + 1}</span>
                       {s}
                     </li>
@@ -98,8 +110,13 @@ export function StoryPage({ story, base, crumb }: { story: Story; base: "feature
             )}
 
             {templates.length > 0 && (
-              <section className="fk-story-block">
-                <h2 className="fk-story-h2">Templates to start from</h2>
+              <section className="fk-story-block" data-rise>
+                <div className="fk-story-blockhead">
+                  <h2 className="fk-story-h2">Templates to start from</h2>
+                  <Link href="/templates" className="fk-story-more">
+                    Every template <ArrowRight size={15} strokeWidth={1.8} aria-hidden />
+                  </Link>
+                </div>
                 <div className="fk-tpl-grid">
                   {templates.map((t) => (
                     <Link key={t.slug} href={`/templates/${t.slug}`} className="fk-tpl-card">
@@ -117,40 +134,34 @@ export function StoryPage({ story, base, crumb }: { story: Story; base: "feature
               </section>
             )}
 
-            <div className="fk-story-two">
-              {help.length > 0 && (
-                <section>
-                  <h2 className="fk-story-h2">In the help centre</h2>
-                  <ul className="fk-story-links">
-                    {help.map((a) => (
-                      <li key={a.id}>
-                        <Link href={`/help/${a.id}`}>
-                          {a.title}
-                          <span>{a.summary}</span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              )}
-              {related.length > 0 && (
-                <section>
-                  <h2 className="fk-story-h2">Goes well with</h2>
-                  <ul className="fk-story-links">
-                    {related.map((f) => (
-                      <li key={f.slug}>
-                        <Link href={`/features/${f.slug}`}>
-                          {f.name}
-                          <span>{f.meta}</span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              )}
-            </div>
+            {related.length > 0 && (
+              <section className="fk-story-block" data-rise>
+                <h2 className="fk-story-h2">Goes well with</h2>
+                <div className="fk-story-related">
+                  {related.map((f) => (
+                    <SceneCard key={f.slug} story={f} base="features" />
+                  ))}
+                </div>
+              </section>
+            )}
 
-            <section className="fk-story-block">
+            {help.length > 0 && (
+              <section className="fk-story-block" data-rise>
+                <h2 className="fk-story-h2">In the help centre</h2>
+                <ul className="fk-story-links fk-story-links-grid">
+                  {help.map((a) => (
+                    <li key={a.id}>
+                      <Link href={`/help/${a.id}`}>
+                        {a.title}
+                        <span>{a.summary}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            <section className="fk-story-block" data-rise>
               <h2 className="fk-story-h2">Questions</h2>
               <div className="fk-story-faq">
                 {story.faqs.map((f) => (
@@ -162,32 +173,65 @@ export function StoryPage({ story, base, crumb }: { story: Story; base: "feature
               </div>
             </section>
 
-            <section className="fk-story-final">
-              <h2>Try it on your next form.</h2>
-              <p>Free to start, with unlimited forms, responses and members. See what each plan includes on the pricing page.</p>
-              <div className="fk-story-ctas">
-                <Link href="/signup" className="fk-pill fk-pill-dark fk-pill-lg">
-                  Start free <ArrowRight size={17} strokeWidth={1.8} aria-hidden />
-                </Link>
-                <Link href="/pricing" className="fk-pill fk-pill-light fk-pill-lg">
-                  See pricing <ArrowUpRight size={16} strokeWidth={1.8} aria-hidden />
-                </Link>
-              </div>
-            </section>
-          </div>
+            <FinalCta />
+          </Reveal>
         </main>
       </PublicPage>
     </>
   );
 }
 
-/** The index of feature or use-case pages: a card for each. */
+/** A feature as a card, its scene playing small above the words. */
+function SceneCard({ story, base, wide }: { story: Story; base: "features" | "use-cases"; wide?: boolean }) {
+  return (
+    <Link href={`/${base}/${story.slug}`} className="fk-scard" data-wide={wide || undefined}>
+      <span className="fk-scard-scene" aria-hidden>
+        <StoryScene slug={story.slug} compact />
+      </span>
+      <span className="fk-scard-copy">
+        <span className="fk-scard-kicker">
+          <Glyph name={story.icon} size={14} /> {story.name}
+        </span>
+        <b>{story.title}</b>
+        <span className="fk-scard-foot">
+          <span className="fk-scard-plan">{story.plan}</span>
+          <span className="fk-scard-go">
+            Explore <ArrowRight size={14} strokeWidth={2} aria-hidden />
+          </span>
+        </span>
+      </span>
+    </Link>
+  );
+}
+
+function FinalCta() {
+  return (
+    <section className="fk-story-final" data-rise>
+      <h2>Try it on your next form.</h2>
+      <p>Free to start, with unlimited forms, responses and members. See what each plan includes on the pricing page.</p>
+      <div className="fk-story-ctas">
+        <Link href="/signup" className="fk-pill fk-pill-dark fk-pill-lg">
+          Start free <ArrowRight size={17} strokeWidth={1.8} aria-hidden />
+        </Link>
+        <Link href="/pricing" className="fk-pill fk-pill-light fk-pill-lg">
+          See pricing <ArrowUpRight size={16} strokeWidth={1.8} aria-hidden />
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * The index of feature or use-case pages: an optional showcase first, then
+ * every page as a card with its scene playing.
+ */
 export function StoryIndex({
   stories,
   base,
   title,
   lead,
   crumb,
+  showcase,
   children,
 }: {
   stories: Story[];
@@ -195,11 +239,12 @@ export function StoryIndex({
   title: string;
   lead: string;
   crumb: string;
-  children?: React.ReactNode;
+  showcase?: ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <PublicPage current="features">
-      <section className="fk-hero fk-story-hero">
+      <section className="fk-hero fk-story-hero fk-story-hero-index">
         <NightSky />
         <div className="fk-hero-inner fk-measure">
           <nav aria-label="Breadcrumb" className="fk-crumbs">
@@ -212,21 +257,19 @@ export function StoryIndex({
         </div>
       </section>
       <main id="fk-main" className="fk-main fk-story-main">
-        <div className="fk-measure">
-          <div className="fk-story-cards">
-            {stories.map((s) => (
-              <Link key={s.slug} href={`/${base}/${s.slug}`} className="fk-story-card">
-                <span className="fk-tpl-tile">
-                  <Glyph name={s.icon} size={20} />
-                </span>
-                <b>{s.name}</b>
-                <span className="fk-story-card-lead">{s.lead}</span>
-                <span className="fk-story-card-plan">{s.plan}</span>
-              </Link>
-            ))}
-          </div>
+        <Reveal className="fk-measure">
+          {showcase && <div data-rise>{showcase}</div>}
+          <section className={showcase ? "fk-story-block" : undefined} data-rise>
+            {showcase && <h2 className="fk-story-h2">Every feature, playing</h2>}
+            <div className="fk-bento">
+              {stories.map((s, i) => (
+                <SceneCard key={s.slug} story={s} base={base} wide={i % 4 === 0 || i % 4 === 3} />
+              ))}
+            </div>
+          </section>
           {children}
-        </div>
+          <FinalCta />
+        </Reveal>
       </main>
     </PublicPage>
   );
