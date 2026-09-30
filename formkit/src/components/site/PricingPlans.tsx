@@ -76,7 +76,9 @@ export function PricingPlans() {
                 ) : (
                   <>
                     {interval === "year" && <s className="fk-price-was">{money(plan.price.month)}</s>}
-                    <span className="fk-price-big">{money(Math.round(perMonth * 100) / 100)}</span>
+                    <span className="fk-price-big" key={interval}>
+                      {money(Math.round(perMonth * 100) / 100)}
+                    </span>
                     <span className="fk-price-per">a seat a month</span>
                   </>
                 )}

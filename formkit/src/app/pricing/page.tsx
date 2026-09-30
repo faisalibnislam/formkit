@@ -10,12 +10,10 @@ import {
   FileDown,
   GitBranch,
   Globe,
-  Hash,
   Inbox,
   KeyRound,
   LayoutTemplate,
   Link2,
-  Lock,
   Minus,
   Palette,
   ScrollText,
@@ -27,10 +25,20 @@ import {
 import { NightSky } from "@/components/brand/NightSky";
 import { PublicPage } from "@/components/site/PublicPage";
 import { PricingPlans } from "@/components/site/PricingPlans";
+import { Reveal } from "@/components/site/Reveal";
+import { PriceCalculator } from "@/components/pricing/PriceCalculator";
+import { CreditPicker } from "@/components/pricing/CreditPicker";
+import { ApproveDemo } from "@/components/pricing/ApproveDemo";
+import { AiBuildScene } from "@/components/site/scenes/AiBuildScene";
+import { ReplyScene } from "@/components/site/scenes/ReplyScene";
+import { InsightsScene } from "@/components/site/scenes/InsightsScene";
+import { BrandScene } from "@/components/site/scenes/BrandScene";
+import { PaymentScene } from "@/components/site/scenes/PaymentScene";
+import { ConnectScene } from "@/components/site/scenes/ConnectScene";
 import { JsonLd, breadcrumb, faqPage, softwareApp } from "@/components/site/JsonLd";
 import { SITE_URL } from "@/lib/site";
 import { PER_SEAT_NOTE } from "@/components/plan/PlanCards";
-import { CREDIT_COST, CREDIT_PACKS, FEATURES, PLANS, type Feature, type PlanId } from "../../../convex/model/plans";
+import { CREDIT_COST, FEATURES, PLANS, type Feature, type PlanId } from "../../../convex/model/plans";
 
 const TITLE = "Pricing: Free, Pro and Business";
 const DESCRIPTION =
@@ -235,18 +243,30 @@ export default function PricingPage() {
         </section>
 
         <main id="fk-main" className="fk-main fk-price-main">
-          <div className="fk-measure">
+          <Reveal className="fk-measure">
+            {/* The bill, worked out */}
+            <section className="fk-price-section fk-price-calc" data-rise>
+              <div className="fk-price-section-head">
+                <span className="fk-price-kicker">Your bill</span>
+                <h2 className="fk-price-h2">What will you pay?</h2>
+                <p className="fk-price-lede">
+                  Move the slider to the size of your team. Each seat adds its own AI allowance to one pool the whole
+                  company shares.
+                </p>
+              </div>
+              <PriceCalculator />
+            </section>
 
             {/* Every plan */}
-            <section className="fk-price-section fk-price-everyone">
+            <section className="fk-price-section fk-price-everyone" data-rise>
               <div className="fk-price-section-head">
                 <span className="fk-price-kicker">On every plan</span>
                 <h2 className="fk-price-h2">The whole form builder, free.</h2>
                 <p className="fk-price-lede">Nothing below is a trial. It is what Free is.</p>
               </div>
               <div className="fk-price-tiles">
-                {EVERYONE.map((t) => (
-                  <div key={t.title} className="fk-price-tile">
+                {EVERYONE.map((t, i) => (
+                  <div key={t.title} className="fk-price-tile" style={{ transitionDelay: `${i * 50}ms` }}>
                     <span className="fk-price-tile-icon">
                       <t.icon size={18} strokeWidth={1.8} aria-hidden />
                     </span>
@@ -257,84 +277,108 @@ export default function PricingPage() {
               </div>
             </section>
 
-            {/* Spotlights */}
-            <section className="fk-price-section">
+            {/* AI */}
+            <section className="fk-price-section fk-price-ai" data-rise>
+              <div className="fk-price-ai-glow" aria-hidden />
+              <div className="fk-price-section-head">
+                <span className="fk-price-kicker" data-tone="inverse">
+                  <Sparkles size={13} strokeWidth={2} aria-hidden /> AI, included
+                </span>
+                <h2 className="fk-price-h2">Every plan builds with AI. Pro puts it to work on every answer.</h2>
+                <p className="fk-price-lede">
+                  No add-on to buy and nothing to set up. The allowance comes with the plan, grows with every seat,
+                  and credits cover the busy months.
+                </p>
+              </div>
+              <div className="fk-price-ai-cards">
+                <article className="fk-price-ai-card">
+                  <div className="fk-price-ai-scene" aria-hidden>
+                    <AiBuildScene compact />
+                  </div>
+                  <span className="fk-price-ai-plan">Every plan</span>
+                  <h3>Build and edit forms by asking</h3>
+                  <p>
+                    {PLANS.free.ai.builds} builds and {PLANS.free.ai.edits} edits a month on Free.{" "}
+                    {PLANS.pro.ai.builds} and {PLANS.pro.ai.edits} per Pro seat, {PLANS.business.ai.builds} and{" "}
+                    {PLANS.business.ai.edits} per Business seat.
+                  </p>
+                  <Link href="/features/ai-form-builder">
+                    How it works <ArrowRight size={14} strokeWidth={2} aria-hidden />
+                  </Link>
+                </article>
+                <article className="fk-price-ai-card">
+                  <div className="fk-price-ai-scene" aria-hidden>
+                    <ReplyScene compact />
+                  </div>
+                  <span className="fk-price-ai-plan" data-plan="pro">
+                    Pro and Business
+                  </span>
+                  <h3>A reply to every response, and AI logic</h3>
+                  <p>
+                    {PLANS.pro.ai.responses} responses AI works on per Pro seat, {PLANS.business.ai.responses} per
+                    Business seat, each month.
+                  </p>
+                  <Link href="/features/ai-replies">
+                    How it works <ArrowRight size={14} strokeWidth={2} aria-hidden />
+                  </Link>
+                </article>
+                <article className="fk-price-ai-card">
+                  <div className="fk-price-ai-scene" aria-hidden>
+                    <InsightsScene compact />
+                  </div>
+                  <span className="fk-price-ai-plan" data-plan="pro">
+                    Pro and Business
+                  </span>
+                  <h3>Insights across your responses</h3>
+                  <p>
+                    {PLANS.pro.ai.reports} reports per Pro seat, {PLANS.business.ai.reports} per Business seat, each
+                    month.
+                  </p>
+                  <Link href="/features/insights">
+                    How it works <ArrowRight size={14} strokeWidth={2} aria-hidden />
+                  </Link>
+                </article>
+              </div>
+            </section>
+
+            {/* Pro */}
+            <section className="fk-price-section" data-rise>
               <div className="fk-price-section-head">
                 <span className="fk-price-kicker">Pro</span>
                 <h2 className="fk-price-h2">Look like you, and plug into everything.</h2>
               </div>
               <div className="fk-price-spots">
-                <div className="fk-price-spot">
-                  <div className="fk-spot-art fk-spot-domain">
-                    <div className="fk-spot-browser">
-                      <span className="fk-spot-dots">
-                        <i />
-                        <i />
-                        <i />
-                      </span>
-                      <span className="fk-spot-url">
-                        <Lock size={11} strokeWidth={2} aria-hidden /> forms.studionine.co/intake
-                      </span>
-                    </div>
-                    <div className="fk-spot-page">
-                      <b>Tell us about your project</b>
-                      <i />
-                      <i style={{ width: "62%" }} />
-                    </div>
+                <Link href="/features/branding" className="fk-price-spot">
+                  <div className="fk-spot-live" aria-hidden>
+                    <BrandScene compact />
                   </div>
                   <h3>
                     <Globe size={16} strokeWidth={1.8} aria-hidden /> Your domain, your emails
                   </h3>
                   <p>Forms at forms.yourcompany.com, confirmations from your own address, no Formkit badge.</p>
-                </div>
-
-                <div className="fk-price-spot">
-                  <div className="fk-spot-art fk-spot-pay">
-                    <div className="fk-spot-checkout">
-                      <span className="fk-spot-label">Workshop seat</span>
-                      <b>$25.00</b>
-                      <span className="fk-spot-card">
-                        <CreditCard size={13} strokeWidth={1.8} aria-hidden /> •••• 4242
-                      </span>
-                      <span className="fk-spot-paybtn">Pay</span>
-                    </div>
-                    <span className="fk-spot-paid">
-                      <BadgeCheck size={13} strokeWidth={2} aria-hidden /> Paid
-                    </span>
+                </Link>
+                <Link href="/features/payments" className="fk-price-spot">
+                  <div className="fk-spot-live" aria-hidden>
+                    <PaymentScene compact />
                   </div>
                   <h3>
                     <CreditCard size={16} strokeWidth={1.8} aria-hidden /> Take payments
                   </h3>
                   <p>People pay after they send the form, through your own Stripe. Formkit takes nothing.</p>
-                </div>
-
-                <div className="fk-price-spot">
-                  <div className="fk-spot-art fk-spot-connect">
-                    <div className="fk-spot-msg">
-                      <span className="fk-spot-avatar">
-                        <Hash size={13} strokeWidth={2} aria-hidden />
-                      </span>
-                      <span>
-                        <b>New response to Client intake</b>
-                        <em>Budget: $5,000 · Timeline: 6 weeks</em>
-                      </span>
-                    </div>
-                    <div className="fk-spot-chips">
-                      <span>Webhooks</span>
-                      <span>Zapier</span>
-                      <span>Make</span>
-                      <span>Sheets</span>
-                    </div>
+                </Link>
+                <Link href="/features/integrations" className="fk-price-spot">
+                  <div className="fk-spot-live" aria-hidden>
+                    <ConnectScene compact />
                   </div>
                   <h3>
                     <Webhook size={16} strokeWidth={1.8} aria-hidden /> Send answers anywhere
                   </h3>
                   <p>Slack, Google Sheets, Zapier, Make or your own webhook, the moment a response lands.</p>
-                </div>
+                </Link>
               </div>
             </section>
 
-            <section className="fk-price-section fk-price-biz">
+            <section className="fk-price-section fk-price-biz" data-rise>
               <div className="fk-price-biz-copy">
                 <span className="fk-price-kicker" data-tone="inverse">
                   Business
@@ -364,39 +408,11 @@ export default function PricingPage() {
                   Get Business <ArrowRight size={16} strokeWidth={1.8} aria-hidden />
                 </Link>
               </div>
-              <div className="fk-price-biz-art" aria-hidden>
-                <div className="fk-biz-card">
-                  <div className="fk-biz-head">
-                    <b>Team</b>
-                    <span>4 seats</span>
-                  </div>
-                  {[
-                    ["MO", "Maya Ortiz", "Admin", "#2e78bb"],
-                    ["RM", "Ravi Menon", "Editor", "#4b9d6e"],
-                    ["PS", "Priya Shah", "Editor", "#c98a1e"],
-                    ["LK", "Leo Kim", "Viewer", "#7a5480"],
-                  ].map(([i, n, r, c]) => (
-                    <div key={n} className="fk-biz-row">
-                      <span className="fk-biz-face" style={{ background: c }}>
-                        {i}
-                      </span>
-                      <span className="fk-biz-name">{n}</span>
-                      <span className="fk-biz-role">{r}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="fk-biz-approve">
-                  <BadgeCheck size={16} strokeWidth={2} aria-hidden />
-                  <span>
-                    <b>Priya asked to publish Event RSVP</b>
-                    <em>Approve and publish · Send back</em>
-                  </span>
-                </div>
-              </div>
+              <ApproveDemo />
             </section>
 
             {/* Allowances */}
-            <section className="fk-price-section">
+            <section className="fk-price-section" data-rise>
               <div className="fk-price-section-head">
                 <span className="fk-price-kicker">Allowances</span>
                 <h2 className="fk-price-h2">How far each plan goes.</h2>
@@ -439,19 +455,12 @@ export default function PricingPage() {
                     and an insights report {CREDIT_COST.reports}. Free companies can use them for builds and edits.
                   </p>
                 </div>
-                <ul className="fk-price-packs">
-                  {CREDIT_PACKS.map((k) => (
-                    <li key={k.key}>
-                      <b>${k.price}</b>
-                      <span>{k.credits.toLocaleString("en-US")} credits</span>
-                    </li>
-                  ))}
-                </ul>
+                <CreditPicker />
               </div>
             </section>
 
             {/* Full comparison */}
-            <section className="fk-price-section">
+            <section className="fk-price-section" data-rise>
               <div className="fk-price-section-head">
                 <span className="fk-price-kicker">Compare</span>
                 <h2 className="fk-price-h2">Every feature, plan by plan.</h2>
@@ -502,7 +511,7 @@ export default function PricingPage() {
             </section>
 
             {/* FAQ */}
-            <section className="fk-price-section">
+            <section className="fk-price-section" data-rise>
               <div className="fk-price-section-head">
                 <span className="fk-price-kicker">Questions</span>
                 <h2 className="fk-price-h2">About pricing.</h2>
@@ -516,7 +525,7 @@ export default function PricingPage() {
                 ))}
               </div>
             </section>
-          </div>
+          </Reveal>
 
           <section className="fk-price-final">
             <NightSky />
