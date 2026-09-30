@@ -1,5 +1,12 @@
 import {
   ArrowRight,
+  Brain,
+  Calculator,
+  ChartLine,
+  Download,
+  GraduationCap,
+  Mail,
+  Webhook,
   AtSign,
   BadgeCheck,
   Bell,
@@ -59,6 +66,13 @@ import {
  */
 const GLYPHS: Record<string, LucideIcon> = {
   "arrow-right": ArrowRight,
+  brain: Brain,
+  calculator: Calculator,
+  "chart-line": ChartLine,
+  download: Download,
+  "graduation-cap": GraduationCap,
+  mail: Mail,
+  webhook: Webhook,
   "at-sign": AtSign,
   "badge-check": BadgeCheck,
   bell: Bell,

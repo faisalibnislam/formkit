@@ -105,7 +105,7 @@ function MobileHero() {
       <div className="fk-m-hero-body">
         <p className="fk-m-hero-eyebrow">
           <span>Form builder</span>
-          Build forms, add logic, read the responses. Free.
+          Build with AI, add logic, act on every answer. Free to start.
         </p>
         <h1 className="fk-m-hero-head">
           What will your next{" "}
@@ -118,7 +118,7 @@ function MobileHero() {
           do?
         </h1>
         <p className="fk-m-hero-sub">
-          Design the questions. Branch the journey. Read what comes back.
+          Describe it and Formkit builds it. Branch the journey. Answer every response.
         </p>
         <div className="fk-m-hero-cta">
           <Link href="/signup" className="fk-pill fk-pill-light">
@@ -648,7 +648,7 @@ function MobileFeatures() {
       <div className="fk-m-heading fk-m-heading-dark">
         <span className="fk-m-eyebrow">EVERYTHING IN FORMKIT</span>
         <h2>Everything from the first question to the spreadsheet.</h2>
-        <p>Twelve things Formkit does. Every one starts on the free plan; Pro and Business take them further.</p>
+        <p>{FEATURES.length} things Formkit does, and which plan has each. Free is the whole form builder; Pro adds AI on your responses and your own brand.</p>
       </div>
 
       <div

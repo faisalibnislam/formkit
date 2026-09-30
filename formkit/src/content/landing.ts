@@ -257,116 +257,187 @@ export const FUNNEL = [
   },
 ];
 
+/**
+ * The feature cards, desktop track and mobile grid alike. Each chip says
+ * which plan has it, in the same words as the pricing page.
+ */
 export const FEATURES = [
+  {
+    icon: "sparkles",
+    bg: "var(--blue-200)",
+    title: "Build with AI",
+    body: "Describe the form, or paste a brief or a document, and Ask Formkit drafts it: questions, pages and logic. Then change it by asking.",
+    chip: "3 a month free · 50 a seat on Pro",
+  },
   {
     icon: "layout-template",
     bg: "var(--blue-300)",
     title: "Drag-and-drop builder",
     body: "Sixteen question types. Drag a card to move it, copy it or split the form into pages. Everything saves as you type.",
-    chip: "16 field types",
+    chip: "Every plan",
   },
   {
     icon: "git-branch",
     bg: "var(--mint-200)",
-    title: "Conditional logic",
-    body: "Rules in plain words: skip a page, ask a follow-up, or hide what does not apply to this person.",
-    chip: "Skip · show · hide",
+    title: "Logic in plain words",
+    body: "Skip a page, ask a follow-up, or hide what does not apply. Pro adds several endings, hidden options and limited places.",
+    chip: "Every plan",
+  },
+  {
+    icon: "brain",
+    bg: "var(--yellow-200)",
+    title: "AI logic",
+    body: "Let the AI read an answer and decide where someone goes next, or pull facts out of it, like a budget or a company size.",
+    chip: "Pro",
+  },
+  {
+    icon: "calculator",
+    bg: "var(--blue-200)",
+    title: "Calculations and quizzes",
+    body: "Add answers up into a price or a score. Quizzes add right answers, a timer, marking by hand and results released when you choose.",
+    chip: "Pro",
+  },
+  {
+    icon: "mail",
+    bg: "var(--mint-200)",
+    title: "AI replies",
+    body: "A personal reply to every response, written from your instructions and your own facts, on the thank-you screen or by email.",
+    chip: "Pro",
+  },
+  {
+    icon: "scan-search",
+    bg: "var(--neutral-150)",
+    title: "AI insights",
+    body: "How people feel, what they want and how promising each lead is, plus a written report of what stands out across responses.",
+    chip: "Pro",
+  },
+  {
+    icon: "credit-card",
+    bg: "var(--yellow-200)",
+    title: "Payments",
+    body: "Charge a fixed amount or a calculated total through your own Stripe account. The money goes straight to you; Formkit takes nothing.",
+    chip: "Pro",
+  },
+  {
+    icon: "webhook",
+    bg: "var(--blue-300)",
+    title: "Connections",
+    body: "Slack, Google Sheets, Zapier, Make and signed webhooks, the moment a response lands.",
+    chip: "Pro",
   },
   {
     icon: "palette",
-    bg: "var(--yellow-200)",
-    title: "Themes and branding",
-    body: "Ten ready-made looks, then your own colours, type and logo. You can show two logos side by side for client work.",
-    chip: "10 presets",
-  },
-  {
-    icon: "link",
-    bg: "var(--blue-200)",
-    title: "Your own link",
-    body: "Take formkit.app/your-name, or a name for each company. On Pro, use your own domain like forms.acme.com.",
-    chip: "Handles · custom domains",
+    bg: "var(--red-200)",
+    title: "Your brand, your domain",
+    body: "Ten ready-made looks, then your colours, type and logo, at formkit.app/you. Pro puts it on forms.yourcompany.com with no Formkit badge.",
+    chip: "Domain on Pro",
   },
   {
     icon: "inbox",
     bg: "var(--neutral-150)",
     title: "Response inbox",
-    body: "Read, filter and act on answers in bulk. On Pro, half-finished ones are kept too, and can be picked up again by link.",
-    chip: "Bulk actions",
+    body: "Read, tag and act on answers in bulk. Half-finished responses are kept, with a link the person can use to carry on.",
+    chip: "Every plan",
   },
   {
     icon: "chart-line",
     bg: "var(--green-200)",
     title: "Analytics",
-    body: "Views, starts, finishes and average time over 7, 30 or 90 days. On Pro, also where people came from and the question they stop on.",
-    chip: "7 · 30 · 90 days",
+    body: "Views, starts, finishes, time taken and the question people stop on. Pro adds where they came from and their devices.",
+    chip: "Every plan",
+  },
+  {
+    icon: "building-2",
+    bg: "var(--blue-200)",
+    title: "Companies and members",
+    body: "A workspace for each business or client, with its own forms, members and plan. Members are free and unlimited on Free.",
+    chip: "Every plan",
   },
   {
     icon: "bell",
-    bg: "var(--red-200)",
+    bg: "var(--mint-200)",
     title: "Notifications and routing",
-    body: "Get an email for each answer, send it to the right person based on what they picked, and reply with a receipt.",
-    chip: "First matching rule wins",
-  },
-  {
-    icon: "users",
-    bg: "var(--blue-300)",
-    title: "Collaborators",
-    body: "Invite three guests to any form as Editor, Commenter or Viewer, or as many as you like on Pro. Everyone in your company works on every form, on any plan. Comments stay on the question they are about.",
-    chip: "Three roles",
+    body: "An email for each answer, sent to the right person by what they picked, and a receipt for the person who answered.",
+    chip: "Every plan",
   },
   {
     icon: "history",
-    bg: "var(--mint-200)",
-    title: "Version history",
-    body: "Every time you publish, the form is saved. Go back 30 days on Free, a year on Pro, or all the way on Business.",
-    chip: "Restore a version",
-  },
-  {
-    icon: "download",
     bg: "var(--yellow-200)",
-    title: "Exports",
-    body: "CSV matching whatever you have filtered, or just the rows you ticked. Excel, webhooks and Google Sheets on Pro.",
-    chip: "CSV · Excel on Pro",
-  },
-  {
-    icon: "shield",
-    bg: "var(--neutral-150)",
-    title: "Spam protection",
-    body: "A check people never see, plus limits on how fast answers can arrive. Uploads go up to 20 MB, 150 MB on Pro and 250 MB on Business.",
-    chip: "Invisible check",
-  },
-  {
-    icon: "sparkles",
-    bg: "var(--blue-200)",
-    title: "Ask Formkit",
-    body: "Turn a sentence into a draft form, reword questions, write rules or sum up answers. Five new forms a month free, 50 on Pro.",
-    chip: "5 · 50 · 200 a month",
+    title: "Version history and exports",
+    body: "Every publish is saved and can be restored. Export to CSV any time; Excel and a copy of every response by email on Pro.",
+    chip: "CSV on every plan",
   },
 ];
 
 export const LANDING_FAQS = [
   {
     q: "Is Formkit free?",
-    a: "Yes. Unlimited forms and unlimited responses, free for as long as you like. Pro, at $6 a seat a month, adds your own domain, integrations and AI on your responses; Business, at $19 a seat a month, adds the controls a team needs.",
+    a: "Yes. Unlimited forms, responses and members, free for as long as you like, with AI for 3 new forms and 10 edits a month. Pro is $6 a seat a month and Business $19, paid for each company on its own.",
   },
   {
-    q: "Can I use my own branding?",
-    a: "Set the colours, type and logo, then send it out from your own link: formkit.app/your-name, or a name for each company you add.",
+    q: "What can the AI do?",
+    a: "Build a form from a sentence, a brief or a document; edit questions, logic and themes when you ask; decide where someone goes next from what they wrote; write a personal reply to every response; and report on what your responses say.",
+  },
+  {
+    q: "What happens when the AI allowance runs out?",
+    a: "Each seat adds to one monthly pool the company shares. Past it, AI credits keep things going, from $5 for 100, and they last a year. Nothing stops working without you knowing.",
   },
   {
     q: "Does it do conditional logic?",
-    a: "Rules read like sentences: when someone answers this way, skip ahead, or show or hide another question. The first rule that matches wins.",
+    a: "Rules read like sentences: when someone answers this way, skip ahead, or show or hide a question. Pro adds calculations, several endings and AI logic that reads what people wrote.",
   },
   {
-    q: "Can I export the responses?",
-    a: "CSV or Excel, matching whatever you have filtered, or just the rows you ticked.",
+    q: "Can I take payments?",
+    a: "On Pro, through your own Stripe account: a fixed amount or the total your form works out. The money goes straight to you and Formkit takes no cut.",
+  },
+  {
+    q: "Can my team work on forms together?",
+    a: "Each company has members who work on every form, as Admin, Editor or Viewer. Members are free on Free; on paid plans each is a seat. Guests invited to one form are always free.",
   },
   {
     q: "What about people who do not finish?",
-    a: "Half-finished answers are kept and marked, left out of your finish rate, and each one has a link you can send back so they can carry on.",
+    a: "Half-finished answers are kept and marked, left out of your finish rate, and each one has a link you can send back so they can carry on. That is on every plan.",
   },
   {
-    q: "How big can uploads be?",
-    a: "Each file can be up to 20 MB (150 MB on Pro, 250 MB on Business), and a question can say which file types it takes.",
+    q: "How do I cancel?",
+    a: "Turn off auto-renew in Settings → Plan. One click, no survey, no call. The plan runs to the end of the period you paid for, and nothing is deleted.",
   },
+];
+
+/** Build with AI: the brief, and the form it turns into. */
+export const AI_BRIEF =
+  "An intake form for a branding studio. Ask about the business, the budget and the deadline, and only ask about print if they need it.";
+
+export const AI_BUILT = [
+  { q: "What is your business called?", type: "Short text" },
+  { q: "What does it do, in a sentence?", type: "Long text" },
+  { q: "What is your budget?", type: "Choice" },
+  { q: "When do you need it by?", type: "Date" },
+  { q: "Do you need printed pieces?", type: "Yes / No" },
+  { q: "Which printed pieces?", type: "Checkboxes", logic: "Only if they need print" },
+];
+
+/** A response, and the reply the AI wrote for it. */
+export const REPLY_DEMO = {
+  from: "Priya Shah",
+  answers: [
+    ["Budget", "$8,000 to $12,000"],
+    ["Deadline", "Before the March launch"],
+    ["What do you need?", "A new logo and packaging for three products"],
+  ],
+  reply:
+    "Hi Priya, thanks for the details. A logo and packaging for three products before March fits well within your budget. I have held two slots in January for a kickoff call; pick one here and we will send a short questionnaire first.",
+  insights: [
+    ["Sentiment", "Positive"],
+    ["Lead score", "86"],
+    ["Urgency", "High"],
+  ],
+};
+
+/** Things people want to know before they trust a form builder with their answers. */
+export const TRUST_POINTS = [
+  { icon: "receipt", title: "Billing by Polar", body: "Polar is the merchant of record: they take the card, add the tax and send the receipt." },
+  { icon: "credit-card", title: "Your money, your Stripe", body: "Payments go straight to your own Stripe account. Formkit never holds them and takes no cut." },
+  { icon: "check", title: "Cancel in one click", body: "Turn off auto-renew and the plan runs to the end of what you paid for. No survey, no call." },
+  { icon: "shield", title: "Spam kept out", body: "An invisible check and limits on floods, on every form, on every plan." },
 ];

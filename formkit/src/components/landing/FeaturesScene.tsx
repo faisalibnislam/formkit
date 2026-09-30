@@ -5,7 +5,7 @@ import { Glyph } from "@/components/brand/Glyph";
 import { FEATURES } from "@/content/landing";
 
 /**
- * A pinned horizontal scene: twelve cards ride a track driven by vertical
+ * A pinned horizontal scene: the feature cards ride a track driven by vertical
  * scroll, with a counter, arrows and a progress bar. Below 820px the track
  * wraps into an ordinary grid and the controls are hidden.
  */
@@ -59,8 +59,8 @@ export function FeaturesScene({ onStep }: { onStep: (direction: -1 | 1) => void 
                 color: "rgba(255,255,255,.7)",
               }}
             >
-              Twelve things Formkit does. Every one starts on the free plan;
-              Pro and Business take them further.
+              {FEATURES.length} things Formkit does, and which plan has each. Free
+              is the whole form builder; Pro adds AI on your responses and your own brand.
             </p>
           </div>
 

@@ -31,7 +31,7 @@ export function HeroScene() {
           <p className="fk-hero-eyebrow">
             <span>Form builder</span>
             <span style={{ opacity: 0.82 }}>
-              Build forms, add logic, read the responses. Free.
+              Build with AI, add logic, act on every answer. Free to start.
             </span>
           </p>
 
@@ -47,7 +47,7 @@ export function HeroScene() {
           </h1>
 
           <p className="fk-hero-sub">
-            Design the questions. Branch the journey. Read what comes back.
+            Describe it and Formkit builds it. Branch the journey. Answer every response.
           </p>
 
           <div className="fk-hero-cta">

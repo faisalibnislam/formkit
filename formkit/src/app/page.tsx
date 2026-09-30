@@ -4,9 +4,9 @@ import { JsonLd, faqPage, organization, softwareApp } from "@/components/site/Js
 import { LANDING_FAQS } from "@/content/landing";
 import { SITE_URL } from "@/lib/site";
 
-const TITLE = "Formkit: the free form builder for client-facing work";
+const TITLE = "Formkit: free AI form builder with logic and payments";
 const DESCRIPTION =
-  "Formkit is a free online form builder: drag-and-drop questions, conditional logic, your own branding and link, a response inbox with partials, analytics and CSV or Excel export.";
+  "Build forms with AI, add logic that reads answers, take payments and reply to every response automatically. Unlimited forms, responses and members free.";
 
 export const metadata: Metadata = {
   title: { absolute: TITLE },
@@ -18,12 +18,12 @@ export const metadata: Metadata = {
     url: `${SITE_URL}/`,
     title: TITLE,
     description:
-      "Design every question, branch the journey with conditional logic, and read what comes back in one inbox with analytics attached. Free, under your own name.",
+      "Describe a form and Formkit builds it. Branch the journey with logic that reads answers, take payments, and reply to every response with AI. Free to start.",
   },
   twitter: {
     card: "summary_large_image",
     title: TITLE,
-    description: "Build forms, add logic, read the responses. Free, under your own link.",
+    description: "Build forms with AI, add logic, take payments and reply to every response. Free to start.",
   },
 };
 

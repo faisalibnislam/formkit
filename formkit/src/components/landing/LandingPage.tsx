@@ -16,11 +16,13 @@ import { InboxScene } from "./InboxScene";
 import { AnalyticsScene } from "./AnalyticsScene";
 import { FeaturesScene } from "./FeaturesScene";
 import { MobileLanding } from "./MobileLanding";
+import { MoreScenes } from "./MoreScenes";
 import { createEngine, UNPIN_AT, type Engine } from "./scrollEngine";
 
 /**
  * The marketing home: one continuous scroll story around a single form -
- * ASK → SHAPE → ANSWER → UNDERSTAND → ACT.
+ * ASK → SHAPE → ANSWER → UNDERSTAND → ACT - then ordinary sections on
+ * building with AI, forms that think, AI replies, companies and the plans.
  *
  * The scroll choreography is an imperative effect writing to the DOM, not React
  * state. Driving 900vh of it through render would drop frames, and nothing must
@@ -151,6 +153,9 @@ export function LandingPage() {
       </div>
       <MobileLanding />
 
+      {/* After the story, the same on every screen: AI, logic, replies, teams, plans. */}
+      <MoreScenes />
+
       <section id="compare" className="fk-lp-compare">
         <h2 className="fk-lp-h2">Three ways to ask a question.</h2>
         <p className="fk-lp-lede">
@@ -171,8 +176,8 @@ export function LandingPage() {
           <div className="fk-lp-faq-intro">
             <h2 className="fk-lp-h2">Questions people ask</h2>
             <p className="fk-lp-lede">
-              The rest is in the help center: {HELP_ARTICLES.length} articles on building forms,
-              sharing them and reading the answers.
+              The rest is in the help center: {HELP_ARTICLES.length} articles on building forms, AI,
+              logic, responses, companies and billing.
             </p>
             <div className="fk-lp-faq-links">
               <Link href="/help" className="fk-pill fk-pill-light">
