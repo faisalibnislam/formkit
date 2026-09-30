@@ -89,18 +89,6 @@
 .fk-rs-out {
   min-height: 150px;
 }
-.fk-rs-writing {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 16px;
-  border-radius: 16px;
-  background: linear-gradient(90deg, var(--blue-50), #ffffff, var(--blue-50));
-  background-size: 200% 100%;
-  font-size: 14px;
-  color: var(--blue-700);
-  animation: fk-rs-shimmer 1.2s linear infinite;
-}
 @keyframes fk-rs-shimmer {
   to {
     background-position: -200% 0;
@@ -140,6 +128,14 @@
   padding: 3px 8px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.08);
+  animation: fk-rs-pop 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(var(--i, 0) * 70ms + 120ms);
+}
+@keyframes fk-rs-pop {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.92);
+  }
 }
 .fk-rs-rule span[data-k="q"] {
   background: rgba(163, 200, 231, 0.2);
@@ -187,6 +183,174 @@
   background: var(--green-400);
   cursor: default;
 }
+.fk-rs-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+.fk-rs-acts .fk-rs-add {
+  margin-top: 0;
+}
+.fk-rs-try {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.fk-rs-try:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* While the rule is written: each phrase and what it became. */
+.fk-rs-match {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1.5px var(--blue-200), 0 12px 30px -18px rgba(40, 90, 150, 0.45);
+  animation: fk-rs-rise 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.fk-rs-match-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 2px;
+  font-size: 12.5px;
+  font-weight: 600;
+  background: linear-gradient(90deg, var(--blue-700), var(--blue-400), var(--blue-700));
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: fk-rs-shimmer 1.4s linear infinite;
+}
+.fk-rs-match-head svg {
+  color: var(--blue-600);
+}
+.fk-rs-match-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  animation: fk-rs-slide 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(var(--i) * 380ms + 150ms);
+}
+@keyframes fk-rs-slide {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+}
+.fk-rs-match-row q {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--yellow-100);
+  color: var(--neutral-800);
+  quotes: "“" "”";
+}
+.fk-rs-match-row svg {
+  color: var(--blue-500);
+}
+.fk-rs-match-row b {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--blue-50);
+  box-shadow: inset 0 0 0 1px var(--blue-200);
+  font-weight: 600;
+  color: var(--blue-800, var(--blue-700));
+}
+
+/* The steps above the demo. */
+.fk-rs-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  max-width: 1120px;
+  margin: 0 auto 18px;
+  padding: 0;
+  list-style: none;
+}
+.fk-rs-steps li {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow: inset 0 0 0 1px var(--blue-100);
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+.fk-rs-steps li::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 0;
+  background: var(--blue-500);
+}
+.fk-rs-steps li[data-on] {
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1.5px var(--blue-300), 0 12px 28px -18px rgba(40, 90, 150, 0.5);
+}
+.fk-rs-steps li[data-on]::after {
+  animation: fk-rs-fill 1.6s ease-out forwards;
+}
+@keyframes fk-rs-fill {
+  to {
+    width: 100%;
+  }
+}
+.fk-rs-steps em {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--blue-100);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+  color: var(--blue-700);
+  transition: background 0.3s ease, color 0.3s ease;
+}
+.fk-rs-steps li[data-on] em {
+  background: var(--blue-600);
+  color: #ffffff;
+}
+.fk-rs-steps li[data-done] em {
+  background: var(--green-100);
+  color: var(--green-600);
+}
+.fk-rs-steps b {
+  display: block;
+  font-size: 14px;
+  font-weight: 650;
+}
+.fk-rs-steps small {
+  display: block;
+  margin-top: 2px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+}
 
 .fk-rs-map {
   display: flex;
@@ -211,7 +375,54 @@
   fill: #ffffff;
   stroke: var(--neutral-200);
   stroke-width: 1;
-  transition: opacity 0.3s ease;
+  transition: fill 0.3s ease, stroke 0.3s ease, opacity 0.3s ease;
+}
+.fk-rs-node text {
+  transition: fill 0.3s ease;
+}
+.fk-rs-node[data-hot] rect {
+  fill: var(--yellow-100);
+  stroke: var(--yellow-400);
+  stroke-width: 1.5;
+}
+.fk-rs-map[data-hot] .fk-rs-node[data-hot] rect {
+  animation: fk-rs-glow 1s ease-in-out infinite alternate;
+}
+@keyframes fk-rs-glow {
+  to {
+    stroke-width: 3;
+  }
+}
+.fk-rs-node[data-walked] rect {
+  fill: var(--blue-50);
+  stroke: var(--blue-400);
+}
+.fk-rs-node[data-here] rect {
+  fill: var(--blue-600);
+  stroke: var(--blue-600);
+}
+.fk-rs-node[data-here] text {
+  fill: #ffffff;
+}
+.fk-rs-node.fk-rs-end[data-reached] rect {
+  fill: var(--green-400);
+  stroke: var(--green-500);
+  stroke-dasharray: none;
+  animation: fk-rs-land 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.fk-rs-node.fk-rs-end[data-reached] text {
+  fill: var(--neutral-900);
+  font-weight: 700;
+}
+@keyframes fk-rs-land {
+  from {
+    transform: scale(0.85);
+  }
+  60% {
+    transform: scale(1.08);
+  }
 }
 .fk-rs-node text {
   font-family: var(--font-sans);
@@ -266,12 +477,24 @@
   align-items: center;
   gap: 6px;
   align-self: center;
+  max-width: 100%;
   padding: 6px 12px;
   border-radius: 999px;
   background: #ffffff;
   box-shadow: inset 0 0 0 1px var(--neutral-200);
   font-size: 12.5px;
   color: var(--neutral-700);
+  transition: background 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
+}
+.fk-rs-test[data-on] {
+  box-shadow: inset 0 0 0 1.5px var(--blue-400);
+  color: var(--blue-700);
+}
+.fk-rs-test[data-done] {
+  background: var(--green-100);
+  box-shadow: inset 0 0 0 1.5px var(--green-400);
+  color: var(--green-600);
+  font-weight: 600;
 }
 
 .fk-rs-can {
@@ -353,6 +576,18 @@
   .fk-rs-can {
     grid-template-columns: minmax(0, 1fr);
   }
+  .fk-rs-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 560px) {
+  .fk-rs-steps small {
+    display: none;
+  }
+  .fk-rs-steps li {
+    align-items: center;
+    padding: 10px 12px;
+  }
 }
 @media (min-width: 901px) and (max-width: 1100px) {
   .fk-rs-can {
@@ -361,7 +596,13 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .fk-rs-rule,
-  .fk-rs-writing,
+  .fk-rs-rule span,
+  .fk-rs-match,
+  .fk-rs-match-head,
+  .fk-rs-match-row,
+  .fk-rs-steps li[data-on]::after,
+  .fk-rs-map[data-hot] .fk-rs-node[data-hot] rect,
+  .fk-rs-end[data-reached] rect,
   .fk-rs-edge[data-on] path {
     animation: none;
   }
