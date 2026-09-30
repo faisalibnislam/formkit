@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Check, Plus } from "lucide-react";
 import { NightSky } from "@/components/brand/NightSky";
 import { Glyph } from "@/components/brand/Glyph";
 import { PublicPage } from "@/components/site/PublicPage";
@@ -9,7 +9,12 @@ import { JsonLd, breadcrumb, faqPage } from "@/components/site/JsonLd";
 import { TEMPLATES, templateBySlug, templateTitle } from "@/content/templates";
 import { featureBySlug } from "@/content/features";
 import { templatePreview } from "@/content/templatePreview";
-import { QuestionJump, TemplatePreviewProvider, TemplatePreviewer } from "@/components/templates/TemplatePreviewer";
+import { TemplatePreviewProvider, TemplatePreviewer } from "@/components/templates/TemplatePreviewer";
+import { TemplateFlow, TemplateResponse, TemplateSteps } from "@/components/templates/TemplateParts";
+import { TemplateCard } from "@/components/templates/TemplateBrowser";
+import { templateCard } from "@/content/templateCards";
+import { SceneCard } from "@/components/site/SceneCard";
+import { Reveal } from "@/components/site/Reveal";
 import { SITE_URL } from "@/lib/site";
 
 export function generateStaticParams() {
@@ -181,244 +186,135 @@ export default async function TemplateDetailPage(props: PageProps<"/templates/[s
           </div>
         </section>
 
-        <main
-          id="fk-main"
-          className="fk-main"
-          style={{
-            padding: "clamp(34px,5vw,64px) clamp(20px,5vw,56px) clamp(44px,6vw,72px)",
-          }}
-        >
-          <div className="fk-measure fk-tpl-detail">
-            <div style={{ minWidth: 0 }}>
-              <p
-                style={{
-                  margin: 0,
-                  maxWidth: "64ch",
-                  fontSize: 17,
-                  lineHeight: 1.65,
-                  color: "var(--color-text-secondary)",
-                  textWrap: "pretty",
-                }}
-              >
-                {t.lead}
-              </p>
-
-              <h2
-                style={{
-                  margin: "clamp(30px,4vw,48px) 0 0",
-                  fontSize: "clamp(20px,2.2vw,28px)",
-                  fontWeight: 600,
-                  letterSpacing: "-.02em",
-                }}
-              >
-                Every question in this template
-              </h2>
-              {preview && <p className="fk-tpl-qhint">Pick a question to see it in the live preview above.</p>}
-              <div style={{ marginTop: 10 }}>
-                {t.questions.map((question, i) => (
-                  <QuestionJump key={question.title} index={i}>
-                    <span className="fk-tpl-qindex">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                    <span className="fk-tpl-qglyph">
-                      <Glyph name={question.icon} size={15} />
-                    </span>
-                    <span style={{ flex: 1, minWidth: 0 }}>
-                      <span
-                        style={{
-                          display: "block",
-                          fontSize: 15.5,
-                          fontWeight: 500,
-                          color: "var(--neutral-900)",
-                        }}
-                      >
-                        {question.title}
-                      </span>
-                      <span
-                        style={{
-                          display: "block",
-                          marginTop: 2,
-                          fontSize: 13,
-                          color: "var(--color-text-tertiary)",
-                        }}
-                      >
-                        {question.type}
-                      </span>
-                    </span>
-                  </QuestionJump>
-                ))}
+        <main id="fk-main" className="fk-main fk-tpd">
+          <Reveal className="fk-measure">
+            <div className="fk-tpd-intro" data-rise>
+              <div>
+                <p className="fk-tpd-lead">{t.lead}</p>
+                <div className="fk-tpd-who">
+                  <span className="fk-more-kicker">Who it&rsquo;s for</span>
+                  {t.who.map((para) => (
+                    <p key={para.slice(0, 40)}>{para}</p>
+                  ))}
+                </div>
               </div>
-
-              <h2
-                style={{
-                  margin: "clamp(30px,4vw,48px) 0 0",
-                  fontSize: "clamp(20px,2.2vw,28px)",
-                  fontWeight: 600,
-                  letterSpacing: "-.02em",
-                }}
-              >
-                Who this template is for
-              </h2>
-              {t.who.map((para) => (
-                <p
-                  key={para.slice(0, 40)}
-                  style={{
-                    margin: "12px 0 0",
-                    maxWidth: "66ch",
-                    fontSize: 15.5,
-                    lineHeight: 1.65,
-                    color: "var(--color-text-secondary)",
-                    textWrap: "pretty",
-                  }}
+              <aside className="fk-tpd-glance" aria-label="At a glance">
+                <span className="fk-tpd-glance-icon" style={{ ["--accent" as string]: preview?.accent ?? "var(--blue-200)" }}>
+                  <Glyph name={t.icon} size={22} />
+                </span>
+                <dl>
+                  <Fact label="Questions" value={String(t.questions.length)} />
+                  <Fact label="Pages" value={t.pages} />
+                  <Fact label="Time to finish" value={t.time} />
+                  <Fact label="Conditional logic" value={t.logic ? "Included" : "Not needed"} />
+                  <Fact label="Price" value="Free" />
+                </dl>
+                <Link
+                  href={`/signup?template=${t.slug}`}
+                  className="fk-pill fk-pill-dark fk-pill-md"
+                  style={{ width: "100%", justifyContent: "center" }}
                 >
-                  {para}
-                </p>
-              ))}
-
-              <h2
-                style={{
-                  margin: "clamp(30px,4vw,48px) 0 0",
-                  fontSize: "clamp(20px,2.2vw,28px)",
-                  fontWeight: 600,
-                  letterSpacing: "-.02em",
-                }}
-              >
-                How Formkit templates work
-              </h2>
-              <ol className="fk-tpl-how">
-                <li>
-                  <strong>Use this template</strong> makes a copy in your account. It is yours to change, and nothing you
-                  do touches the original.
-                </li>
-                <li>
-                  <strong>Change anything.</strong> Reword the questions, add or remove them, change the logic and the
-                  theme. It is an ordinary form from here on.
-                </li>
-                <li>
-                  <strong>Publish when it reads right.</strong> It goes out under your own link, and the answers land
-                  in your inbox.
-                </li>
-              </ol>
-
-              <h2
-                style={{
-                  margin: "clamp(30px,4vw,48px) 0 0",
-                  fontSize: "clamp(20px,2.2vw,28px)",
-                  fontWeight: 600,
-                  letterSpacing: "-.02em",
-                }}
-              >
-                Questions about this template
-              </h2>
-              <div style={{ maxWidth: "70ch", marginTop: 8 }}>
-                {t.faqs.map((f) => (
-                  <div
-                    key={f.q}
-                    style={{
-                      padding: "18px 0",
-                      boxShadow: "inset 0 1px 0 var(--neutral-200)",
-                    }}
-                  >
-                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 500 }}>{f.q}</h3>
-                    <p
-                      style={{
-                        margin: "8px 0 0",
-                        fontSize: 15,
-                        lineHeight: 1.6,
-                        color: "var(--color-text-secondary)",
-                        textWrap: "pretty",
-                      }}
-                    >
-                      {f.a}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              {features.length > 0 && (
-                <>
-                  <h2
-                    style={{
-                      margin: "clamp(30px,4vw,48px) 0 0",
-                      fontSize: "clamp(20px,2.2vw,28px)",
-                      fontWeight: 600,
-                      letterSpacing: "-.02em",
-                    }}
-                  >
-                    Make more of it
-                  </h2>
-                  <ul className="fk-story-links" style={{ marginTop: 14 }}>
-                    {features.map((f) => (
-                      <li key={f.slug}>
-                        <Link href={`/features/${f.slug}`}>
-                          {f.name}
-                          <span>{f.meta}</span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
-
-              <h2
-                style={{
-                  margin: "clamp(30px,4vw,48px) 0 0",
-                  fontSize: "clamp(20px,2.2vw,28px)",
-                  fontWeight: 600,
-                  letterSpacing: "-.02em",
-                }}
-              >
-                {t.category ? `More ${t.category.toLowerCase()} templates` : "Other templates"}
-              </h2>
-              <div
-                style={{
-                  display: "flex",
-                  gap: 9,
-                  flexWrap: "wrap",
-                  marginTop: 14,
-                }}
-              >
-                {others.map((o) => (
-                  <Link key={o.slug} href={`/templates/${o.slug}`} className="fk-chip">
-                    <Glyph name={o.icon} size={15} />
-                    {o.name}
-                  </Link>
-                ))}
-                <Link href="/templates" className="fk-chip">
-                  All {TEMPLATES.length} templates
+                  Use this template <ArrowRight size={16} strokeWidth={1.8} aria-hidden />
                 </Link>
-              </div>
+              </aside>
             </div>
 
-            <aside className="fk-tpl-aside" aria-label="At a glance">
-              <span
-                style={{
-                  fontSize: 11.5,
-                  letterSpacing: ".14em",
-                  color: "var(--color-text-tertiary)",
-                }}
-              >
-                AT A GLANCE
-              </span>
-              <dl style={{ margin: "14px 0 0", display: "grid", gap: 12 }}>
-                <Fact label="Questions" value={String(t.questions.length)} />
-                <Fact label="Pages" value={t.pages} />
-                <Fact label="Time to finish" value={t.time} />
-                <Fact
-                  label="Conditional logic"
-                  value={t.logic ? "Included" : "Not needed"}
-                />
-                <Fact label="Price" value="Free" />
-              </dl>
-              <Link
-                href={`/signup?template=${t.slug}`}
-                className="fk-pill fk-pill-dark fk-pill-md"
-                style={{ width: "100%", justifyContent: "center", marginTop: 18 }}
-              >
-                Use this template
-              </Link>
-            </aside>
-          </div>
+            {preview && (
+              <section className="fk-tpd-sec" data-rise aria-labelledby="tpd-flow">
+                <span className="fk-more-kicker">Page by page</span>
+                <h2 id="tpd-flow" className="fk-tpd-h2">
+                  Every question in this template
+                </h2>
+                <p className="fk-tpd-lede">
+                  The pages as a respondent meets them. Pick any question to open it in the live
+                  preview above.
+                </p>
+                <TemplateFlow t={t} preview={preview} />
+              </section>
+            )}
+
+            {preview && (
+              <section className="fk-tpd-sec fk-tpd-back" data-rise aria-labelledby="tpd-back">
+                <div className="fk-tpd-back-copy">
+                  <span className="fk-more-kicker">What comes back</span>
+                  <h2 id="tpd-back" className="fk-tpd-h2">
+                    Every answer, in one place
+                  </h2>
+                  <p className="fk-tpd-lede">
+                    Each response lands in your inbox as a card like this one, with an email to you
+                    if you want it. People who stop part-way are kept too, with the answers they gave.
+                  </p>
+                  <ul className="fk-tpd-checks">
+                    <li>
+                      <Check size={15} strokeWidth={2.4} aria-hidden /> Partial answers and drop-off by question, on every plan
+                    </li>
+                    <li>
+                      <Check size={15} strokeWidth={2.4} aria-hidden /> Export to CSV on every plan, Excel on Pro
+                    </li>
+                    <li>
+                      <Check size={15} strokeWidth={2.4} aria-hidden /> Sheets, Slack, Zapier, Make and webhooks on Pro
+                    </li>
+                  </ul>
+                </div>
+                <TemplateResponse t={t} preview={preview} />
+              </section>
+            )}
+
+            <section className="fk-tpd-sec" data-rise aria-labelledby="tpd-steps">
+              <span className="fk-more-kicker">From template to live form</span>
+              <h2 id="tpd-steps" className="fk-tpd-h2">
+                Three steps, a couple of minutes
+              </h2>
+              <TemplateSteps slug={t.slug} />
+            </section>
+
+            {features.length > 0 && (
+              <section className="fk-tpd-sec" data-rise aria-labelledby="tpd-more">
+                <span className="fk-more-kicker">Make more of it</span>
+                <h2 id="tpd-more" className="fk-tpd-h2">
+                  What this form can also do
+                </h2>
+                <div className="fk-tpd-feats">
+                  {features.slice(0, 3).map((f) => (
+                    <SceneCard key={f.slug} story={f} base="features" />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            <section className="fk-tpd-sec" data-rise aria-labelledby="tpd-faq">
+              <h2 id="tpd-faq" className="fk-tpd-h2">
+                Questions about this template
+              </h2>
+              <div className="fk-cmp-faq">
+                {t.faqs.map((f, k) => (
+                  <details key={f.q} open={k === 0}>
+                    <summary>
+                      {f.q}
+                      <Plus size={18} strokeWidth={2} aria-hidden />
+                    </summary>
+                    <p>{f.a}</p>
+                  </details>
+                ))}
+              </div>
+            </section>
+
+            <section className="fk-tpd-sec" data-rise aria-labelledby="tpd-others">
+              <div className="fk-tpd-others-head">
+                <h2 id="tpd-others" className="fk-tpd-h2">
+                  {t.category ? `More ${t.category.toLowerCase()} templates` : "Other templates"}
+                </h2>
+                <Link href="/templates" className="fk-tpd-all">
+                  All {TEMPLATES.length} templates <ArrowRight size={15} strokeWidth={2} aria-hidden />
+                </Link>
+              </div>
+              <div className="fk-tb-grid">
+                {others.slice(0, 4).map((o) => (
+                  <TemplateCard key={o.slug} t={templateCard(o)} />
+                ))}
+              </div>
+            </section>
+          </Reveal>
         </main>
       </PublicPage>
       </TemplatePreviewProvider>
@@ -428,16 +324,9 @@ export default async function TemplateDetailPage(props: PageProps<"/templates/[s
 
 function Fact({ label, value }: { label: string; value: string }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "baseline",
-        justifyContent: "space-between",
-        gap: 12,
-      }}
-    >
-      <dt style={{ fontSize: 14, color: "var(--color-text-secondary)" }}>{label}</dt>
-      <dd style={{ margin: 0, fontSize: 15, fontWeight: 500 }}>{value}</dd>
+    <div>
+      <dt>{label}</dt>
+      <dd>{value}</dd>
     </div>
   );
 }

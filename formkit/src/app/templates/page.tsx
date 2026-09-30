@@ -4,7 +4,7 @@ import { NightSky } from "@/components/brand/NightSky";
 import { PublicPage } from "@/components/site/PublicPage";
 import { JsonLd, breadcrumb } from "@/components/site/JsonLd";
 import { TEMPLATES, TEMPLATE_CATEGORIES } from "@/content/templates";
-import { templatePreview } from "@/content/templatePreview";
+import { templateCard } from "@/content/templateCards";
 import { TemplateBrowser, type BrowserTemplate } from "@/components/templates/TemplateBrowser";
 import { SITE_URL } from "@/lib/site";
 
@@ -44,24 +44,7 @@ const HOW = [
 
 const CATEGORIES = TEMPLATE_CATEGORIES.filter((c) => TEMPLATES.some((t) => t.category === c));
 
-/** What each card needs, including a miniature of the form's first questions. */
-const BROWSER: BrowserTemplate[] = TEMPLATES.map((t) => {
-  const p = templatePreview(t.slug);
-  return {
-    slug: t.slug,
-    name: t.name,
-    blurb: t.blurb,
-    category: t.category ?? "Business",
-    icon: t.icon,
-    count: t.questions.length,
-    time: t.time,
-    logic: t.logic,
-    accent: p?.accent ?? "var(--blue-200)",
-    welcome: p?.welcome.title ?? t.name,
-    first: (p?.questions ?? []).slice(0, 3).map((q) => ({ title: q.title, type: q.type, options: q.options })),
-    words: t.questions.map((q) => q.title).join(" "),
-  };
-});
+const BROWSER: BrowserTemplate[] = TEMPLATES.map(templateCard);
 
 export default function TemplatesPage() {
   return (

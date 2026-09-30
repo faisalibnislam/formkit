@@ -94,7 +94,7 @@ export function TemplateBrowser({ templates, categories }: { templates: BrowserT
                 <div className="fk-tb-grid">
                   {i === 0 && <AiCard />}
                   {list.map((t) => (
-                    <Card key={t.slug} t={t} />
+                    <TemplateCard key={t.slug} t={t} />
                   ))}
                 </div>
               </section>
@@ -108,7 +108,7 @@ export function TemplateBrowser({ templates, categories }: { templates: BrowserT
           </p>
           <div className="fk-tb-grid">
             {shown.map((t) => (
-              <Card key={t.slug} t={t} />
+              <TemplateCard key={t.slug} t={t} />
             ))}
           </div>
         </>
@@ -135,7 +135,7 @@ function AiCard({ query }: { query?: string }) {
   );
 }
 
-function Card({ t }: { t: BrowserTemplate }) {
+export function TemplateCard({ t }: { t: BrowserTemplate }) {
   return (
     <Link href={`/templates/${t.slug}`} className="fk-tb-card">
       <span className="fk-tb-mini" style={{ ["--accent" as string]: t.accent }} aria-hidden>
