@@ -51,7 +51,7 @@ function MobileHero() {
             Build a form
             <ArrowRight size={18} strokeWidth={1.8} aria-hidden />
           </Link>
-          <a href="#product" className="fk-ghost-pill">
+          <a href="#ai" className="fk-ghost-pill">
             Explore Formkit
           </a>
         </div>

@@ -1,7 +1,7 @@
 /* The landing page's logic section: a rule from a sentence, and the map. */
 .fk-rs {
   padding: clamp(64px, 8vw, 120px) clamp(20px, 6vw, 96px);
-  background: #ffffff;
+  background: var(--blue-50);
 }
 .fk-rs-head {
   max-width: 760px;
@@ -288,7 +288,7 @@
   gap: 12px;
   padding: 18px;
   border-radius: 20px;
-  background: var(--neutral-50);
+  background: #ffffff;
 }
 .fk-rs-ic {
   display: inline-grid;
@@ -368,4 +368,23 @@
 }
 .fk-rs-head .fk-lp-h2 {
   max-width: none;
+}
+.fk-rs-caret {
+  display: inline-block;
+  width: 1.5px;
+  height: 14px;
+  margin-left: 1px;
+  vertical-align: -2px;
+  background: var(--blue-600);
+  animation: fk-rs-blink 1s steps(2) infinite;
+}
+@keyframes fk-rs-blink {
+  50% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fk-rs-caret {
+    animation: none;
+  }
 }

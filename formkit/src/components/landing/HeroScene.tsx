@@ -48,7 +48,7 @@ export function HeroScene() {
               Build a form
               <ArrowRight size={18} strokeWidth={1.8} aria-hidden />
             </Link>
-            <a href="#product" className="fk-ghost-pill" style={{ height: 54, padding: "0 24px" }}>
+            <a href="#ai" className="fk-ghost-pill" style={{ height: 54, padding: "0 24px" }}>
               Explore Formkit
             </a>
           </div>

@@ -159,7 +159,7 @@ export function LogicSection() {
               </span>
               <div className="fk-rs-input" data-live={phase === "typing" || undefined}>
                 {phase === "idle" ? <span className="fk-rs-ph">Say what should happen…</span> : shown}
-                {phase === "typing" && <i className="fk-fs-caret" />}
+                {phase === "typing" && <i className="fk-rs-caret" />}
               </div>
               <div className="fk-rs-prompts" role="group" aria-label="Try a prompt">
                 {RULES.map((r, i) => (

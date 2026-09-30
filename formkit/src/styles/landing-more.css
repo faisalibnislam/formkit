@@ -335,10 +335,7 @@
   font-weight: 700;
   letter-spacing: -0.05em;
   line-height: 0.9;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.02));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: rgba(255, 255, 255, 0.3);
 }
 .fk-aib-kicker {
   display: block;

@@ -1,14 +1,13 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Glyph } from "@/components/brand/Glyph";
-import { FeatureShowcase } from "@/components/site/FeatureShowcase";
 import { SceneCard } from "@/components/site/SceneCard";
 import { Reveal } from "@/components/site/Reveal";
 import { FEATURE_PAGES, USE_CASES } from "@/content/features";
 
 /**
- * Everything on /features, on the home page too: every feature playing in
- * turn, then each as a card with its scene, then the teams it is made for.
+ * Everything on /features, on the home page too: each feature as a card
+ * with its scene playing, then the teams it is made for.
  */
 export function LandingFeatures() {
   return (
@@ -26,21 +25,12 @@ export function LandingFeatures() {
         </div>
 
         <div data-rise>
-          <FeatureShowcase
-            items={FEATURE_PAGES.map(({ slug, name, icon, title, lead, plan }) => ({ slug, name, icon, title, lead, plan }))}
-          />
-        </div>
-
-        <section className="fk-story-block" data-rise aria-labelledby="lf-playing">
-          <h2 id="lf-playing" className="fk-story-h2">
-            Every feature, playing
-          </h2>
           <div className="fk-bento">
             {FEATURE_PAGES.map((s, i) => (
               <SceneCard key={s.slug} story={s} base="features" wide={i % 4 === 0 || i % 4 === 3} />
             ))}
           </div>
-        </section>
+        </div>
 
         <section className="fk-story-block" data-rise aria-labelledby="lf-teams">
           <h2 id="lf-teams" className="fk-story-h2">

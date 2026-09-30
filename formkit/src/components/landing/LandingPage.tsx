@@ -10,7 +10,6 @@ import { COMPARE_ASOF } from "@/content/compare";
 import { HELP_ARTICLES } from "@/content/help";
 import { LANDING_FAQS } from "@/content/landing";
 import { HeroScene } from "./HeroScene";
-import { FormStage } from "./FormStage";
 import { LogicSection } from "./LogicSection";
 import { AnalyticsSection } from "./AnalyticsSection";
 import { LandingFeatures } from "./LandingFeatures";
@@ -22,8 +21,8 @@ import { createEngine, UNPIN_AT, type Engine } from "./scrollEngine";
 
 /**
  * The marketing home: the headline in the night sky with form pieces that lean
- * with the pointer, a form being made in layers, then AI takes the stage
- * (building, deciding, answering), logic, analytics, every feature playing,
+ * with the pointer, then AI takes the stage
+ * (building, deciding, answering), logic, every feature playing, analytics
  * and the plans. Only the features carousel is driven by scroll.
  *
  * The scroll choreography is an imperative effect writing to the DOM, not React
@@ -138,12 +137,11 @@ export function LandingPage() {
       </div>
       <MobileLanding part="hero" />
 
-      {/* The same on every screen: a form being made, then AI, the reason to pick Formkit. */}
-      <FormStage />
+      {/* The same on every screen: AI first, the reason to pick Formkit. */}
       <AiBand />
       <LogicSection />
-      <AnalyticsSection />
       <LandingFeatures />
+      <AnalyticsSection />
 
       <div className="fk-desk">
         <FeaturesScene onStep={stepFeatures} />
