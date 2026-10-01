@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowRight,
   Calculator,
@@ -14,7 +14,8 @@ import {
   Split,
   Waypoints,
 } from "lucide-react";
-import { SceneFrame, useInView, useReducedMotion, useStep } from "@/components/site/scenes/shared";
+import { SceneFrame, useReducedMotion, useStep } from "@/components/site/scenes/shared";
+import { NearView } from "@/components/site/NearView";
 
 /**
  * Logic, on its own stage: say what should happen in plain words, watch the
@@ -153,8 +154,15 @@ type Phase = "idle" | "typing" | "writing" | "ready" | "testing" | "tested";
 const WALK_MS = 420;
 
 export function LogicSection() {
-  const frame = useRef<HTMLDivElement | null>(null);
-  const seen = useInView(frame, 0.35);
+  // The demo mounts late (NearView), so it is watched once it exists.
+  const [frame, setFrame] = useState<HTMLDivElement | null>(null);
+  const [seen, setSeen] = useState(false);
+  useEffect(() => {
+    if (!frame) return;
+    const io = new IntersectionObserver(([e]) => setSeen(!!e?.isIntersecting), { threshold: 0.35 });
+    io.observe(frame);
+    return () => io.disconnect();
+  }, [frame]);
   const still = useReducedMotion();
   const [pick, setPick] = useState(0);
   const [phase, setPhase] = useState<Phase>("idle");
@@ -220,187 +228,192 @@ export function LogicSection() {
         </p>
       </div>
 
-      <ol className="fk-rs-steps" aria-label="How a rule gets made">
-        {STEPS.map((st, i) => (
-          <li key={st.title} data-on={(phase !== "idle" && i === step) || undefined} data-done={(phase !== "idle" && i < step) || undefined}>
-            <em>{i < step && phase !== "idle" ? <Check size={13} strokeWidth={2.6} aria-hidden /> : i + 1}</em>
-            <span>
-              <b>{st.title}</b>
-              <small>{st.body}</small>
-            </span>
-          </li>
-        ))}
-      </ol>
-
-      <div ref={frame} className="fk-rs-demo">
-        <SceneFrame title="Client intake · Logic" label="Writing a logic rule from a sentence, and the logic map" right={<span className="fk-rs-count">{added.length + 2} rules</span>}>
-          <div className="fk-rs-body">
-            <div className="fk-rs-left">
-              <span className="fk-rs-label">
-                <Sparkles size={13} strokeWidth={2} aria-hidden /> Describe a rule
+      {/* The steps and the demo mount as the section comes near: they are
+          the heaviest part of the page to hydrate, and the words around them
+          carry what it says. */}
+      <NearView>
+        <ol className="fk-rs-steps" aria-label="How a rule gets made">
+          {STEPS.map((st, i) => (
+            <li key={st.title} data-on={(phase !== "idle" && i === step) || undefined} data-done={(phase !== "idle" && i < step) || undefined}>
+              <em>{i < step && phase !== "idle" ? <Check size={13} strokeWidth={2.6} aria-hidden /> : i + 1}</em>
+              <span>
+                <b>{st.title}</b>
+                <small>{st.body}</small>
               </span>
-              <div className="fk-rs-input" data-live={phase === "typing" || undefined}>
-                {phase === "idle" ? <span className="fk-rs-ph">Say what should happen…</span> : shown}
-                {phase === "typing" && <i className="fk-rs-caret" />}
-              </div>
-              <div className="fk-rs-prompts" role="group" aria-label="Try a prompt">
-                {RULES.map((r, i) => (
-                  <button
-                    key={r.id}
-                    type="button"
-                    aria-pressed={i === pick && phase !== "idle"}
-                    onClick={() => {
-                      setHeld(true);
-                      start(i);
-                    }}
-                  >
-                    {r.prompt}
-                  </button>
-                ))}
-              </div>
+            </li>
+          ))}
+        </ol>
 
-              <div className="fk-rs-out" aria-live="polite">
-                {phase === "writing" && (
-                  <div className="fk-rs-match" key={`m-${rule.id}`}>
-                    <span className="fk-rs-match-head">
-                      <Sparkles size={13} strokeWidth={2} aria-hidden /> Matching your words to the form
-                    </span>
-                    {rule.match.map(([words, to], i) => (
-                      <span key={words} className="fk-rs-match-row" style={{ ["--i" as string]: i }}>
-                        <q>{words}</q>
-                        <ArrowRight size={13} strokeWidth={2} aria-hidden />
-                        <b>{to}</b>
-                      </span>
-                    ))}
-                  </div>
-                )}
-                {(phase === "ready" || walking) && (
-                  <div className="fk-rs-rule" key={rule.id}>
-                    <p>
-                      <em className="fk-rs-if">If</em>
-                      {rule.when.map((tk, i) => (
-                        <span key={i} data-k={tk.k} style={{ ["--i" as string]: i }}>
-                          {tk.t}
-                        </span>
-                      ))}
-                    </p>
-                    <p>
-                      <em className="fk-rs-if">Then</em>
-                      {rule.then.map((tk, i) => (
-                        <span key={i} data-k={tk.k} style={{ ["--i" as string]: rule.when.length + i }}>
-                          {tk.t}
-                        </span>
-                      ))}
-                      {rule.pro && <b className="fk-rs-pro">Pro</b>}
-                    </p>
-                    <div className="fk-rs-acts">
-                      <button
-                        type="button"
-                        className="fk-rs-add"
-                        data-done={isAdded || undefined}
-                        onClick={() => {
-                          setHeld(true);
-                          add();
-                        }}
-                      >
-                        {isAdded ? (
-                          <>
-                            <Check size={14} strokeWidth={2.4} aria-hidden /> Added to the form
-                          </>
-                        ) : (
-                          <>
-                            <Plus size={14} strokeWidth={2.4} aria-hidden /> Add this rule
-                          </>
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        className="fk-rs-try"
-                        onClick={() => {
-                          setHeld(true);
-                          test();
-                        }}
-                      >
-                        <FlaskConical size={14} strokeWidth={2.2} aria-hidden /> Test it
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="fk-rs-map" data-hot={hot.length > 0 || undefined}>
-              <span className="fk-rs-label">
-                <Waypoints size={13} strokeWidth={2} aria-hidden /> Logic map
-              </span>
-              <svg viewBox="0 0 320 370" role="img" aria-label={`Logic map with ${added.length} new rules`}>
-                {NODES.slice(0, -1).map((n, i) => (
-                  <line key={n.label} x1="160" y1={n.y + 30} x2="160" y2={NODES[i + 1]!.y} className="fk-rs-base" />
-                ))}
-                <path d="M 160 282 L 160 330" className="fk-rs-base" />
-                {RULES.map((r) =>
-                  added.includes(r.id) ? (
-                    <g key={r.id} className="fk-rs-edge" data-on={r.id === rule.id || undefined}>
-                      <path d={r.edge} />
-                      {!still && r.id === rule.id && (
-                        <circle r="4">
-                          <animateMotion dur="1.8s" repeatCount="indefinite" path={r.edge} />
-                        </circle>
-                      )}
-                    </g>
-                  ) : null,
-                )}
-                {NODES.map((n, i) => {
-                  const hidden = i === 2 && added.includes("print");
-                  return (
-                    <g
-                      key={n.label}
-                      className="fk-rs-node"
-                      data-dim={(hidden && !walked(i)) || undefined}
-                      data-hot={hot.includes(i) || undefined}
-                      data-walked={walked(i) || undefined}
-                      data-here={here === i || undefined}
+        <div ref={setFrame} className="fk-rs-demo">
+          <SceneFrame title="Client intake · Logic" label="Writing a logic rule from a sentence, and the logic map" right={<span className="fk-rs-count">{added.length + 2} rules</span>}>
+            <div className="fk-rs-body">
+              <div className="fk-rs-left">
+                <span className="fk-rs-label">
+                  <Sparkles size={13} strokeWidth={2} aria-hidden /> Describe a rule
+                </span>
+                <div className="fk-rs-input" data-live={phase === "typing" || undefined}>
+                  {phase === "idle" ? <span className="fk-rs-ph">Say what should happen…</span> : shown}
+                  {phase === "typing" && <i className="fk-rs-caret" />}
+                </div>
+                <div className="fk-rs-prompts" role="group" aria-label="Try a prompt">
+                  {RULES.map((r, i) => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      aria-pressed={i === pick && phase !== "idle"}
+                      onClick={() => {
+                        setHeld(true);
+                        start(i);
+                      }}
                     >
-                      <rect x="60" y={n.y} width="200" height="30" rx="10" />
-                      <text x="160" y={n.y + 19.5}>
-                        {n.label}
+                      {r.prompt}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="fk-rs-out" aria-live="polite">
+                  {phase === "writing" && (
+                    <div className="fk-rs-match" key={`m-${rule.id}`}>
+                      <span className="fk-rs-match-head">
+                        <Sparkles size={13} strokeWidth={2} aria-hidden /> Matching your words to the form
+                      </span>
+                      {rule.match.map(([words, to], i) => (
+                        <span key={words} className="fk-rs-match-row" style={{ ["--i" as string]: i }}>
+                          <q>{words}</q>
+                          <ArrowRight size={13} strokeWidth={2} aria-hidden />
+                          <b>{to}</b>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {(phase === "ready" || walking) && (
+                    <div className="fk-rs-rule" key={rule.id}>
+                      <p>
+                        <em className="fk-rs-if">If</em>
+                        {rule.when.map((tk, i) => (
+                          <span key={i} data-k={tk.k} style={{ ["--i" as string]: i }}>
+                            {tk.t}
+                          </span>
+                        ))}
+                      </p>
+                      <p>
+                        <em className="fk-rs-if">Then</em>
+                        {rule.then.map((tk, i) => (
+                          <span key={i} data-k={tk.k} style={{ ["--i" as string]: rule.when.length + i }}>
+                            {tk.t}
+                          </span>
+                        ))}
+                        {rule.pro && <b className="fk-rs-pro">Pro</b>}
+                      </p>
+                      <div className="fk-rs-acts">
+                        <button
+                          type="button"
+                          className="fk-rs-add"
+                          data-done={isAdded || undefined}
+                          onClick={() => {
+                            setHeld(true);
+                            add();
+                          }}
+                        >
+                          {isAdded ? (
+                            <>
+                              <Check size={14} strokeWidth={2.4} aria-hidden /> Added to the form
+                            </>
+                          ) : (
+                            <>
+                              <Plus size={14} strokeWidth={2.4} aria-hidden /> Add this rule
+                            </>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          className="fk-rs-try"
+                          onClick={() => {
+                            setHeld(true);
+                            test();
+                          }}
+                        >
+                          <FlaskConical size={14} strokeWidth={2.2} aria-hidden /> Test it
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="fk-rs-map" data-hot={hot.length > 0 || undefined}>
+                <span className="fk-rs-label">
+                  <Waypoints size={13} strokeWidth={2} aria-hidden /> Logic map
+                </span>
+                <svg viewBox="0 0 320 370" role="img" aria-label={`Logic map with ${added.length} new rules`}>
+                  {NODES.slice(0, -1).map((n, i) => (
+                    <line key={n.label} x1="160" y1={n.y + 30} x2="160" y2={NODES[i + 1]!.y} className="fk-rs-base" />
+                  ))}
+                  <path d="M 160 282 L 160 330" className="fk-rs-base" />
+                  {RULES.map((r) =>
+                    added.includes(r.id) ? (
+                      <g key={r.id} className="fk-rs-edge" data-on={r.id === rule.id || undefined}>
+                        <path d={r.edge} />
+                        {!still && r.id === rule.id && (
+                          <circle r="4">
+                            <animateMotion dur="1.8s" repeatCount="indefinite" path={r.edge} />
+                          </circle>
+                        )}
+                      </g>
+                    ) : null,
+                  )}
+                  {NODES.map((n, i) => {
+                    const hidden = i === 2 && added.includes("print");
+                    return (
+                      <g
+                        key={n.label}
+                        className="fk-rs-node"
+                        data-dim={(hidden && !walked(i)) || undefined}
+                        data-hot={hot.includes(i) || undefined}
+                        data-walked={walked(i) || undefined}
+                        data-here={here === i || undefined}
+                      >
+                        <rect x="60" y={n.y} width="200" height="30" rx="10" />
+                        <text x="160" y={n.y + 19.5}>
+                          {n.label}
+                        </text>
+                      </g>
+                    );
+                  })}
+                  {ENDS.map((e) => (
+                    <g
+                      key={e.id}
+                      className="fk-rs-node fk-rs-end"
+                      data-on={(e.id === "thanks" || added.includes(e.id)) || undefined}
+                      data-reached={(reached && e.id === rule.end) || undefined}
+                    >
+                      <rect x={e.x} y="330" width="92" height="30" rx="15" />
+                      <text x={e.x + 46} y="349.5">
+                        {e.label}
                       </text>
                     </g>
-                  );
-                })}
-                {ENDS.map((e) => (
-                  <g
-                    key={e.id}
-                    className="fk-rs-node fk-rs-end"
-                    data-on={(e.id === "thanks" || added.includes(e.id)) || undefined}
-                    data-reached={(reached && e.id === rule.end) || undefined}
-                  >
-                    <rect x={e.x} y="330" width="92" height="30" rx="15" />
-                    <text x={e.x + 46} y="349.5">
-                      {e.label}
-                    </text>
-                  </g>
-                ))}
-              </svg>
-              <span className="fk-rs-test" data-on={walking || undefined} data-done={reached || undefined}>
-                {reached ? (
-                  <>
-                    <Check size={13} strokeWidth={2.6} aria-hidden /> Reached {endName}
-                  </>
-                ) : walking ? (
-                  <>
-                    <FlaskConical size={13} strokeWidth={2} aria-hidden /> Testing: {rule.who}
-                  </>
-                ) : (
-                  <>
-                    <FlaskConical size={13} strokeWidth={2} aria-hidden /> Test a path before you publish
-                  </>
-                )}
-              </span>
+                  ))}
+                </svg>
+                <span className="fk-rs-test" data-on={walking || undefined} data-done={reached || undefined}>
+                  {reached ? (
+                    <>
+                      <Check size={13} strokeWidth={2.6} aria-hidden /> Reached {endName}
+                    </>
+                  ) : walking ? (
+                    <>
+                      <FlaskConical size={13} strokeWidth={2} aria-hidden /> Testing: {rule.who}
+                    </>
+                  ) : (
+                    <>
+                      <FlaskConical size={13} strokeWidth={2} aria-hidden /> Test a path before you publish
+                    </>
+                  )}
+                </span>
+              </div>
             </div>
-          </div>
-        </SceneFrame>
-      </div>
+          </SceneFrame>
+        </div>
+      </NearView>
 
       <ul className="fk-rs-can">
         {CAN.map((c) => (

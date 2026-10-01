@@ -264,3 +264,10 @@
     transform: rotate(360deg);
   }
 }
+
+/* Off screen, the sky holds still: nothing animates where nobody can see it.
+   The landing page sets this as the hero scrolls away and back. */
+.fk-sky[data-still],
+.fk-sky[data-still] * {
+  animation-play-state: paused !important;
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { Suspense, useEffect, useRef } from "react";
 import { ArrowRight, ArrowUpRight, Plus } from "lucide-react";
 import { SiteNav } from "@/components/site/SiteNav";
 import { SiteFooter } from "@/components/site/SiteFooter";
@@ -35,6 +35,17 @@ export function LandingPage() {
     return floaties(el);
   }, []);
 
+  // The hero skies twinkle in CSS; pause them once they are off screen.
+  useEffect(() => {
+    const skies = root.current?.querySelectorAll<HTMLElement>(".fk-sky");
+    if (!skies?.length) return;
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) e.target.toggleAttribute("data-still", !e.isIntersecting);
+    });
+    skies.forEach((s) => io.observe(s));
+    return () => io.disconnect();
+  }, []);
+
   return (
     <div ref={root} className="fk-landing">
       <a className="fk-skip" href="#content">
@@ -49,15 +60,27 @@ export function LandingPage() {
       </div>
       <MobileLanding />
 
-      {/* The same on every screen: AI first, the reason to pick Formkit. */}
-      <AiBand />
-      <LogicSection />
-      <LandingFeatures />
-      <AnalyticsSection />
-
+      {/* The same on every screen: AI first, the reason to pick Formkit.
+          Each section below the hero is its own Suspense boundary, so React
+          hydrates them one at a time in short tasks rather than the whole
+          page in one long one; the HTML is all there from the server. */}
+      <Suspense fallback={null}>
+        <AiBand />
+      </Suspense>
+      <Suspense fallback={null}>
+        <LogicSection />
+      </Suspense>
+      <Suspense fallback={null}>
+        <LandingFeatures />
+      </Suspense>
+      <Suspense fallback={null}>
+        <AnalyticsSection />
+      </Suspense>
 
       {/* The plans. */}
-      <MoreScenes />
+      <Suspense fallback={null}>
+        <MoreScenes />
+      </Suspense>
 
       <section id="compare" className="fk-lp-compare">
         <h2 className="fk-lp-h2">Three ways to ask a question.</h2>

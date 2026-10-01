@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Glyph } from "@/components/brand/Glyph";
 import { StoryScene } from "@/components/site/scenes";
+import { NearView } from "@/components/site/NearView";
 import type { Story } from "@/content/features";
 
 /** A feature as a card, its scene playing small above the words. */
@@ -20,7 +21,9 @@ export function SceneCard({
   return (
     <Link href={`/${base}/${story.slug}`} className="fk-scard" data-wide={wide || full || undefined} data-full={full || undefined}>
       <span className="fk-scard-scene" aria-hidden>
-        <StoryScene slug={story.slug} compact />
+        <NearView>
+          <StoryScene slug={story.slug} compact />
+        </NearView>
       </span>
       <span className="fk-scard-copy">
         <span className="fk-scard-kicker">

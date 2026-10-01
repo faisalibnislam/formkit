@@ -225,7 +225,9 @@
 }
 .fk-aib-glow {
   position: absolute;
-  inset: -20% -10% auto;
+  /* Anchored in pixels, not percentages of the section: the section grows
+     as its demos mount, and a percentage would move the glow with it. */
+  inset: -240px -10% auto;
   height: 900px;
   background:
     radial-gradient(40% 40% at 20% 20%, rgba(95, 155, 212, 0.35), transparent 70%),
@@ -441,7 +443,7 @@
   pointer-events: none;
 }
 .fk-aib-glow-2 {
-  inset: 38% -20% auto auto;
+  inset: 760px -20% auto auto;
   width: 70%;
   height: 700px;
   background:
@@ -2027,5 +2029,25 @@
   }
   .fk-tk-answer p {
     font-size: 14px;
+  }
+}
+
+/* Space held for demos that mount as they come near (NearView), sized to
+   what mounts there so nothing moves when it does. */
+.fk-aib-scene > .fk-near {
+  min-height: 540px;
+}
+.fk-rs > .fk-near {
+  min-height: 1110px;
+}
+@media (min-width: 901px) {
+  .fk-rs > .fk-near {
+    min-height: 700px;
+  }
+}
+@media (min-width: 961px) and (min-height: 640px) {
+  .fk-aib-scene > .fk-near {
+    min-height: 0;
+    height: 100%;
   }
 }

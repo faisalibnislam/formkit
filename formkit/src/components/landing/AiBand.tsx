@@ -6,6 +6,7 @@ import { ArrowRight, Check, Sparkles } from "lucide-react";
 import { AiBuildScene } from "@/components/site/scenes/AiBuildScene";
 import { ThinkScene } from "./ThinkScene";
 import { StarField } from "./StarField";
+import { NearView } from "@/components/site/NearView";
 import { ActScene } from "./ActScene";
 
 /**
@@ -190,9 +191,11 @@ export function AiBand() {
                       </Link>
                     </div>
                     <div className="fk-aib-scene">
-                      {r.id === "ai-build" && <AiBuildScene />}
-                      {r.id === "ai-think" && <ThinkScene />}
-                      {r.id === "ai-act" && <ActScene />}
+                      <NearView>
+                        {r.id === "ai-build" && <AiBuildScene />}
+                        {r.id === "ai-think" && <ThinkScene />}
+                        {r.id === "ai-act" && <ActScene />}
+                      </NearView>
                     </div>
                   </div>
                 </div>
