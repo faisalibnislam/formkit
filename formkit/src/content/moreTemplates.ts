@@ -85,12 +85,13 @@ export const MORE_TEMPLATES: FormTemplate[] = [
   fromApp("job-application", {
     category: "HR",
     logic: false,
-    meta: "A free job application form template: eligibility, role, experience, portfolio and resume upload, across three short pages.",
-    lead: "Three pages, about seven minutes, and no cover letter. Resumes upload straight into each response.",
+    meta: "A free job application form template: eligibility, role, experience, portfolio, resume upload and a one-minute voice intro, across three pages.",
+    lead: "Three pages, about seven minutes, and no cover letter. Resumes upload straight into each response, and applicants can record a one-minute intro you play back in the inbox.",
     who: ["Small teams hiring without an applicant tracking system. Share one link per role, or one form with a role dropdown."],
     faqs: [
       { q: "Can I score applicants?", a: "On Pro, calculations can score answers, and AI insights can rate how well each fits what you are looking for." },
       { q: "Can colleagues review applications?", a: "Yes. Invite them to your company as members, or as guests to just this form." },
+      { q: "How does the voice intro work?", a: "Applicants press record and talk for up to a minute, then listen back before they send. It is optional, and you can change the limit to anything from 15 seconds to 5 minutes, or remove it. Recordings play in each response." },
     ],
     features: ["ai-replies", "insights"],
   }),

@@ -345,7 +345,7 @@ export const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
     topic: "HR",
     icon: "user-round",
     accent: "var(--neutral-150)",
-    blurb: "Eligibility, role, availability, portfolio and resume upload.",
+    blurb: "Eligibility, role, availability, portfolio, resume upload and a short voice intro.",
     audience: "Anyone hiring",
     welcome: {
       title: "Apply to join us",
@@ -385,6 +385,10 @@ export const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
       f("url", "Portfolio or website", { required: true }),
       f("url", "LinkedIn profile"),
       f("file", "Resume", { help: "PDF, up to 10 MB", required: true, accept: [".pdf", ".doc", ".docx"] }),
+      f("voice", "Introduce yourself in a minute", {
+        help: "Optional. Press record and tell us who you are, in your own words.",
+        maxSeconds: 60,
+      }),
       f("long-text", "Why this role, and why us?", {
         help: "A short paragraph beats a cover letter",
         required: true,
