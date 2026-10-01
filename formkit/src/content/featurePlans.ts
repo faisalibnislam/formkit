@@ -55,6 +55,21 @@ const LADDERS: Record<string, { free: string[]; pro: (FeatureKey | string)[]; bu
     pro: ["connect.webhooks", "connect.slack", "connect.sheets", "exports.xlsx", "exports.copy"],
     business: ["api"],
   },
+  builder: {
+    free: ["Every question type", "Pages and page breaks", "Drag, duplicate and undo", `${free.uploadMb} MB uploads`, `${free.collaborators} guests on each form`],
+    pro: [`${pro.uploadMb} MB uploads`, "collaborators"],
+    business: [`${business.uploadMb} MB uploads`, "templates.shared", "approvals"],
+  },
+  versions: {
+    free: [`${free.historyDays} days of version history`, "Restore any version", "CSV export"],
+    pro: ["A year of version history", "exports.xlsx", "exports.copy"],
+    business: ["All of your version history", "api"],
+  },
+  "custom-domains": {
+    free: [],
+    pro: ["domains", "email.domain", "brand.badge"],
+    business: [],
+  },
   branding: {
     free: ["Ten ready-made themes", "Your colours and logo", "formkit.app/your-name, or a link per company", "Embed on any site"],
     pro: ["domains", "brand.badge", "design.fonts", "design.css", "email.domain"],

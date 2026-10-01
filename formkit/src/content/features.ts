@@ -65,6 +65,41 @@ export const FEATURE_PAGES: Story[] = [
     updated: "2026-09-30",
   },
   {
+    slug: "builder",
+    name: "Drag-and-drop builder",
+    title: "Drag a question in. Drop it where it goes.",
+    meta: "Formkit's form builder: drag fields onto the canvas, reorder questions by their grip, split long forms into pages, and undo anything. Free on every plan.",
+    kicker: "Form builder",
+    lead: "Every question type in a library on the left, your form on the canvas in the middle. Drag a field in and a blue line shows where it lands. Drag a card by its grip to move it. That is most of it.",
+    icon: "layout-template",
+    plan: "Every plan",
+    sections: [
+      {
+        title: "Fields for everything a form asks",
+        body: "Contact fields that check the format as people type, short and long text, choices, ratings and scales, numbers, dates, addresses and file uploads.",
+        points: ["Name, email, phone, company, website", "Dropdown, single and multiple choice, yes/no", "Rating and numbered scale", "Date, time, address and file upload"],
+      },
+      {
+        title: "Move things by hand",
+        body: "Drop a field between two cards, or hover the gap and use the insert point. Drag any card up or down, or use Move up and Move down from its menu. Duplicate copies the question and its options; delete comes with an undo.",
+      },
+      {
+        title: "Pages, not a wall of questions",
+        body: "Add a page break and everything below it becomes the next page, with a progress bar for the people filling it in. Drag pages around whole from the page list.",
+      },
+    ],
+    steps: ["Create a form, or start from a template", "Drag fields from the library onto the canvas", "Reorder by the grip and add page breaks", "Pick a theme, then publish"],
+    templates: ["contact-form", "client-onboarding", "event-registration"],
+    help: ["add-reorder", "field-types", "pages", "form-anatomy"],
+    related: ["ai-form-builder", "logic"],
+    faqs: [
+      { q: "Is the builder free?", a: "Yes. Every question type, pages, logic, themes and your own link are on the free plan, with no limit on forms or responses." },
+      { q: "Can I undo a delete?", a: "Yes. Deleting a question shows an undo straight away. Deleting a question that a logic rule points at also removes that rule." },
+      { q: "Can people work on a form together?", a: "Yes. Members of your company can edit it, and you can invite guests to one form: three on Free, as many as you like on Pro." },
+    ],
+    updated: "2026-10-01",
+  },
+  {
     slug: "logic",
     name: "Conditional and AI logic",
     title: "Logic that reads like a sentence, and AI that reads the answer.",
@@ -260,6 +295,41 @@ export const FEATURE_PAGES: Story[] = [
     updated: "2026-09-30",
   },
   {
+    slug: "custom-domains",
+    name: "Custom domains",
+    title: "Your forms, at your own address.",
+    meta: "Put Formkit forms on your own subdomain with one DNS record. Formkit checks it for you, your formkit.app links keep working, and nothing breaks if you downgrade.",
+    kicker: "Custom domains",
+    lead: "Type a subdomain you own, add the one record Formkit shows you, and your forms move to your own address. Formkit checks the record for you and tells you when it is live.",
+    icon: "globe",
+    plan: "Pro",
+    sections: [
+      {
+        title: "One record, then it is live",
+        body: "Settings → Company → Custom domains. Enter something like forms.acme.com and Formkit shows the CNAME record to add where your DNS is managed. It checks every ten minutes, or straight away when you select Check now.",
+        points: ["Step-by-step help for your DNS provider", "Shows what public DNS sees right now", "Usually live within minutes"],
+      },
+      {
+        title: "What changes",
+        body: "Share links for that company use your domain, like forms.acme.com/intake, and the domain's home page lists the company's open forms. Your formkit.app links keep working, so nothing you have already sent breaks.",
+      },
+      {
+        title: "A domain for each brand",
+        body: "Each company in Formkit has its own domain, logos and theme, so an agency can run a client's forms on the client's own address.",
+      },
+    ],
+    steps: ["Open Settings, then Company, then Custom domains", "Enter a subdomain you own", "Add the CNAME record Formkit shows", "Wait for Live, then share the new link"],
+    templates: ["contact-form", "quote-request", "newsletter-signup"],
+    help: ["custom-domain", "domain-not-working", "email-domain", "add-company"],
+    related: ["branding", "integrations"],
+    faqs: [
+      { q: "Can I use my main domain, like acme.com?", a: "Use a subdomain such as forms.acme.com. That way your website stays where it is and only the forms move." },
+      { q: "What if I stop paying for Pro?", a: "Nothing breaks. Visits to your domain are sent on to the matching formkit.app link." },
+      { q: "My domain is stuck on Waiting for DNS.", a: "Usually the whole domain was typed into the Host field, or Cloudflare's proxy is on. The help article walks through each fix." },
+    ],
+    updated: "2026-10-01",
+  },
+  {
     slug: "branding",
     name: "Branding and custom domains",
     title: "Forms that look like you, on your own domain.",
@@ -285,12 +355,48 @@ export const FEATURE_PAGES: Story[] = [
     ],
     templates: ["contact-form", "branding-questionnaire", "newsletter-signup"],
     help: ["custom-domain", "email-domain", "pick-theme", "logos", "claim-handle"],
-    related: ["integrations", "ai-form-builder"],
+    related: ["custom-domains", "builder"],
     faqs: [
       { q: "What happens to my domain if I downgrade?", a: "Nothing breaks: visits are sent on to the matching formkit.app link." },
       { q: "Can I embed forms on my site?", a: "Yes, on every plan: inline, as a popup, or with a link or QR code." },
     ],
     updated: "2026-09-30",
+  },
+  {
+    slug: "versions",
+    name: "Version history and exports",
+    title: "Go back to any version. Take your answers anywhere.",
+    meta: "Every publish in Formkit is a version you can restore, and responses export to CSV on every plan or Excel on Pro, with your filters carried over.",
+    kicker: "Versions and exports",
+    lead: "Each time you publish, Formkit keeps a copy of the questions as they were. Restore an older one in a click. And when the answers need to go somewhere else, export them to CSV or Excel.",
+    icon: "history",
+    plan: "Every plan · Excel on Pro",
+    sections: [
+      {
+        title: "Every publish is kept",
+        body: "Open Version history from the form's menu to see each published version, newest first, with the date and who published it. Restoring puts those questions back on the canvas.",
+        points: ["Your current questions are saved first, so a restore can be undone", "Restoring does not publish until you do", "The builder counts changes since the live version"],
+      },
+      {
+        title: "How far back",
+        body: "Free keeps the last 30 days of versions, Pro a year, and Business all of them. Older versions are never deleted, so upgrading brings them back into the list.",
+      },
+      {
+        title: "Exports that match what you are looking at",
+        body: "Export from above the responses table. You get one row per response and one column per question, in the order of the form. Filter first and the file only has those rows; select rows and you can export just those.",
+        points: ["CSV on every plan", "Excel on Pro", "A copy of every response by email on Pro", "Calculation and payment columns included"],
+      },
+    ],
+    steps: ["Publish your form", "Open Version history from the form's menu", "Restore any version, then publish it", "Export responses to CSV or Excel"],
+    templates: ["customer-feedback", "job-application", "lead-qualification"],
+    help: ["version-history", "export-responses", "bulk-actions", "publish-share"],
+    related: ["insights", "integrations"],
+    faqs: [
+      { q: "Does restoring a version lose my latest changes?", a: "No. Your current questions are saved as a version first, so you can go back to them." },
+      { q: "Do I lose responses when I restore?", a: "No. Versions are about the questions. Every response you have collected stays where it is." },
+      { q: "What is in an export?", a: "One row per response, one column per question, plus when it was sent and whether it was finished. Uploaded files appear as links." },
+    ],
+    updated: "2026-10-01",
   },
 ];
 

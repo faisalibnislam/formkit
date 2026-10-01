@@ -279,7 +279,7 @@ export function StoryIndex({
             {showcase && <h2 className="fk-story-h2">{gridTitle}</h2>}
             <div className="fk-bento">
               {stories.map((s, i) => (
-                <SceneCard key={s.slug} story={s} base={base} wide={i % 4 === 0 || i % 4 === 3} />
+                <SceneCard key={s.slug} story={s} base={base} wide={i % 4 === 0 || i % 4 === 3} full={i === stories.length - 1 && i % 4 === 2} />
               ))}
             </div>
           </section>

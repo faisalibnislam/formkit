@@ -11,10 +11,14 @@ import { InsightsScene } from "./InsightsScene";
 import { PaymentScene } from "./PaymentScene";
 import { ConnectScene } from "./ConnectScene";
 import { BrandScene } from "./BrandScene";
+import { DragScene } from "@/components/landing/DragScene";
+import { VersionsScene } from "@/components/landing/VersionsScene";
+import { DomainScene } from "@/components/landing/DomainScene";
 
 /** Each feature page's scene, and what to try in it. */
 export const SCENES: Record<string, { Scene: ComponentType<SceneProps>; hint: string }> = {
   "ai-form-builder": { Scene: AiBuildScene, hint: "Pick a prompt and watch it build" },
+  builder: { Scene: DragScene, hint: "Watch a field dropped in and a question moved" },
   logic: { Scene: LogicScene, hint: "Choose an answer, or let the AI decide" },
   quizzes: { Scene: QuizScene, hint: "Answer before the clock runs out" },
   "ai-replies": { Scene: ReplyScene, hint: "Change the instructions, and the reply changes" },
@@ -22,6 +26,8 @@ export const SCENES: Record<string, { Scene: ComponentType<SceneProps>; hint: st
   payments: { Scene: PaymentScene, hint: "Change the booking, then pay" },
   integrations: { Scene: ConnectScene, hint: "Switch tools on and off, then send a test" },
   branding: { Scene: BrandScene, hint: "Try a theme, a font and your own domain" },
+  "custom-domains": { Scene: DomainScene, hint: "Watch a domain go from typed in to live" },
+  versions: { Scene: VersionsScene, hint: "Watch a version restored and the answers exported" },
 };
 
 /** The use-case pages borrow the scene closest to their work. */

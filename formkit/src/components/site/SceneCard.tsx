@@ -5,9 +5,20 @@ import { StoryScene } from "@/components/site/scenes";
 import type { Story } from "@/content/features";
 
 /** A feature as a card, its scene playing small above the words. */
-export function SceneCard({ story, base, wide }: { story: Story; base: "features" | "use-cases"; wide?: boolean }) {
+export function SceneCard({
+  story,
+  base,
+  wide,
+  full,
+}: {
+  story: Story;
+  base: "features" | "use-cases";
+  wide?: boolean;
+  /** Spans the whole row, for a card that would otherwise sit alone at the end. */
+  full?: boolean;
+}) {
   return (
-    <Link href={`/${base}/${story.slug}`} className="fk-scard" data-wide={wide || undefined}>
+    <Link href={`/${base}/${story.slug}`} className="fk-scard" data-wide={wide || full || undefined} data-full={full || undefined}>
       <span className="fk-scard-scene" aria-hidden>
         <StoryScene slug={story.slug} compact />
       </span>

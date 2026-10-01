@@ -1,57 +1,30 @@
-import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowRight, Globe, GripVertical, History } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Glyph } from "@/components/brand/Glyph";
 import { SceneCard } from "@/components/site/SceneCard";
 import { Reveal } from "@/components/site/Reveal";
-import { DragScene } from "./DragScene";
-import { VersionsScene } from "./VersionsScene";
-import { DomainScene } from "./DomainScene";
 import { FEATURE_PAGES, USE_CASES } from "@/content/features";
 
 /**
  * Everything on /features, on the home page too: each feature as a card
  * with its scene playing, then the teams it is made for. The AI builder,
- * logic and AI replies have sections of their own above, so this grid opens
- * on the drag-and-drop builder and branding, and gives their places to
- * version history and exports, and custom domains.
+ * logic and AI replies have sections of their own above, so they are left
+ * out here.
  */
 const pick = (slug: string) => FEATURE_PAGES.find((f) => f.slug === slug);
-const BEFORE = [pick("branding"), pick("quizzes")].filter((f) => f !== undefined);
-const AFTER = [pick("insights"), pick("payments"), pick("integrations")].filter((f) => f !== undefined);
+const ORDER = [
+  pick("builder"),
+  pick("branding"),
+  pick("quizzes"),
+  pick("versions"),
+  pick("insights"),
+  pick("payments"),
+  pick("integrations"),
+  pick("custom-domains"),
+].filter((f) => f !== undefined);
 
-/** A card for something with no feature page of its own; it opens the help article instead. */
-function HelpCard({
-  href,
-  scene,
-  kicker,
-  title,
-  plan,
-}: {
-  href: string;
-  scene: ReactNode;
-  kicker: ReactNode;
-  title: string;
-  plan: string;
-}) {
-  return (
-    <Link href={href} className="fk-scard" data-wide>
-      <span className="fk-scard-scene" aria-hidden>
-        {scene}
-      </span>
-      <span className="fk-scard-copy">
-        <span className="fk-scard-kicker">{kicker}</span>
-        <b>{title}</b>
-        <span className="fk-scard-foot">
-          <span className="fk-scard-plan">{plan}</span>
-          <span className="fk-scard-go">
-            Explore <ArrowRight size={14} strokeWidth={2} aria-hidden />
-          </span>
-        </span>
-      </span>
-    </Link>
-  );
-}
+/** Which cards span two columns: two wide, two narrow, in a zigzag. */
+const WIDE = new Set([0, 3, 4, 7]);
 
 export function LandingFeatures() {
   return (
@@ -70,45 +43,9 @@ export function LandingFeatures() {
 
         <div data-rise>
           <div className="fk-bento">
-            <HelpCard
-              href="/help/add-reorder"
-              scene={<DragScene compact />}
-              kicker={
-                <>
-                  <GripVertical size={14} strokeWidth={1.8} aria-hidden /> Drag-and-drop builder
-                </>
-              }
-              title="Drag a question in. Drop it where it goes."
-              plan="Every plan"
-            />
-            {BEFORE.map((s) => (
-              <SceneCard key={s.slug} story={s} base="features" />
+            {ORDER.map((s, i) => (
+              <SceneCard key={s.slug} story={s} base="features" wide={WIDE.has(i)} />
             ))}
-            <HelpCard
-              href="/help/version-history"
-              scene={<VersionsScene compact />}
-              kicker={
-                <>
-                  <History size={14} strokeWidth={1.8} aria-hidden /> Version history and exports
-                </>
-              }
-              title="Go back to any version. Take your answers anywhere."
-              plan="Every plan · Excel on Pro"
-            />
-            {AFTER.map((s, i) => (
-              <SceneCard key={s.slug} story={s} base="features" wide={i === 0} />
-            ))}
-            <HelpCard
-              href="/help/custom-domain"
-              scene={<DomainScene compact />}
-              kicker={
-                <>
-                  <Globe size={14} strokeWidth={1.8} aria-hidden /> Custom domain
-                </>
-              }
-              title="Your forms on forms.yourcompany.com."
-              plan="Pro"
-            />
           </div>
         </div>
 
