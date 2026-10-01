@@ -1561,3 +1561,471 @@
     animation: none;
   }
 }
+
+/* AI band, slide 2: an answer read, decided on and routed. */
+.fk-tk {
+  display: flex;
+  flex-direction: column;
+}
+.fk-tk-people {
+  display: inline-flex;
+  gap: 4px;
+}
+.fk-tk-people button {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--neutral-100);
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--neutral-600);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+.fk-tk-people button[aria-pressed="true"] {
+  background: var(--blue-600);
+  color: #ffffff;
+  box-shadow: 0 0 0 3px var(--blue-100);
+}
+.fk-tk-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+}
+.fk-tk-answer {
+  position: relative;
+  flex: none;
+  padding: 14px 16px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--neutral-25);
+  box-shadow: inset 0 0 0 1px var(--neutral-150);
+  animation: fk-rs-rise 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: box-shadow 0.3s ease;
+}
+.fk-tk-answer[data-reading] {
+  box-shadow: inset 0 0 0 1.5px var(--blue-300);
+}
+.fk-tk-who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fk-tk-av {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--blue-100);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--blue-700);
+}
+.fk-tk-who b {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.fk-tk-who small {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--neutral-500);
+}
+.fk-tk-answer p {
+  min-height: 3em;
+  margin: 10px 0 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--neutral-900);
+}
+.fk-tk-answer mark {
+  padding: 1px 0;
+  border-radius: 5px;
+  background: linear-gradient(transparent 55%, transparent 55%);
+  color: inherit;
+  transition: background 0.35s ease, box-shadow 0.35s ease;
+}
+.fk-tk-answer mark[data-on] {
+  background: var(--yellow-200);
+  box-shadow: 0 0 0 3px var(--yellow-200);
+}
+.fk-tk-scan {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -30%;
+  width: 30%;
+  background: linear-gradient(90deg, transparent, rgba(95, 155, 212, 0.18), transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+[data-reading] > .fk-tk-scan {
+  opacity: 1;
+  animation: fk-tk-scan 1.1s ease-in-out infinite;
+}
+@keyframes fk-tk-scan {
+  to {
+    left: 100%;
+  }
+}
+.fk-tk-flow {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+}
+.fk-tk-flow svg {
+  width: 100%;
+  max-height: 100%;
+  overflow: visible;
+}
+.fk-tk-in,
+.fk-tk-branch {
+  fill: none;
+  stroke: var(--neutral-200);
+  stroke-width: 2;
+  stroke-dasharray: 5 5;
+  transition: stroke 0.3s ease, opacity 0.3s ease;
+}
+.fk-tk-in[data-on] {
+  stroke: var(--blue-400);
+  animation: fk-tk-flow 0.6s linear infinite;
+}
+@keyframes fk-tk-flow {
+  to {
+    stroke-dashoffset: -10;
+  }
+}
+.fk-tk-branch[data-on] {
+  stroke: var(--blue-600);
+  stroke-width: 3;
+  stroke-dasharray: none;
+}
+.fk-tk-branch[data-dim] {
+  opacity: 0.45;
+}
+.fk-tk-orb {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.fk-tk-ring {
+  fill: rgba(95, 155, 212, 0.14);
+  stroke: rgba(95, 155, 212, 0.35);
+  stroke-width: 1;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.fk-tk-orb[data-state="read"] .fk-tk-ring,
+.fk-tk-orb[data-state="think"] .fk-tk-ring {
+  animation: fk-tk-pulse 0.9s ease-out infinite;
+}
+.fk-tk-orb[data-state="think"] {
+  animation: fk-tk-bob 0.5s ease-in-out infinite alternate;
+}
+@keyframes fk-tk-pulse {
+  from {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+@keyframes fk-tk-bob {
+  to {
+    transform: scale(1.06);
+  }
+}
+.fk-tk-ask {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  fill: var(--blue-700);
+}
+.fk-tk-q {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  fill: var(--neutral-900);
+}
+.fk-tk-verdict {
+  animation: fk-tk-pop 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform-box: fill-box;
+  transform-origin: left center;
+}
+.fk-tk-verdict rect {
+  fill: var(--green-100);
+}
+.fk-tk-verdict text {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  fill: var(--green-600);
+}
+.fk-tk-verdict[data-end="1"] rect {
+  fill: var(--yellow-100);
+}
+.fk-tk-verdict[data-end="1"] text {
+  fill: var(--yellow-600);
+}
+.fk-tk-verdict[data-end="2"] rect {
+  fill: var(--neutral-100);
+}
+.fk-tk-verdict[data-end="2"] text {
+  fill: var(--neutral-600);
+}
+@keyframes fk-tk-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+}
+.fk-tk-walker circle {
+  fill: var(--blue-600);
+  stroke: #ffffff;
+  stroke-width: 2.5;
+}
+.fk-tk-walker text {
+  font-family: var(--font-sans);
+  font-size: 8.5px;
+  font-weight: 700;
+  text-anchor: middle;
+  fill: #ffffff;
+}
+.fk-tk-end rect {
+  fill: #ffffff;
+  stroke: var(--neutral-200);
+  stroke-width: 1;
+  transition: fill 0.3s ease, stroke 0.3s ease;
+}
+.fk-tk-end[data-on] rect {
+  fill: var(--blue-50);
+  stroke: var(--blue-500);
+  stroke-width: 2;
+}
+.fk-tk-end[data-on] {
+  animation: fk-tk-land 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes fk-tk-land {
+  40% {
+    transform: scale(1.06);
+  }
+}
+.fk-tk-end text {
+  font-family: var(--font-sans);
+  text-anchor: middle;
+}
+.fk-tk-end-name {
+  font-size: 13px;
+  font-weight: 600;
+  fill: var(--neutral-900);
+}
+.fk-tk-end-n {
+  font-size: 11px;
+  fill: var(--neutral-500);
+}
+.fk-tk-end[data-on] .fk-tk-end-n {
+  fill: var(--blue-700);
+  font-weight: 700;
+}
+.fk-tk-facts {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding-top: 10px;
+  border-top: 1px solid var(--neutral-150);
+}
+.fk-tk-facts-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--blue-700);
+}
+.fk-tk-fact {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--neutral-50);
+  box-shadow: inset 0 0 0 1px var(--neutral-150);
+  font-size: 12px;
+  color: var(--neutral-600);
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.3s ease, transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition-delay: calc(var(--i) * 120ms);
+}
+.fk-tk-fact b {
+  font-weight: 600;
+  color: var(--neutral-900);
+}
+.fk-tk-facts[data-on] .fk-tk-fact {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fk-tk-answer,
+  .fk-tk-in[data-on],
+  .fk-tk-orb,
+  .fk-tk-ring,
+  .fk-tk-verdict,
+  .fk-tk-end[data-on],
+  [data-reading] > .fk-tk-scan {
+    animation: none;
+  }
+}
+
+/* AI band, slide 3: the AI marks the message, then the reply goes out. */
+.fk-act-said q mark {
+  padding: 1px 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  transition: background 0.35s ease, box-shadow 0.35s ease;
+}
+.fk-act-said q mark[data-on] {
+  background: var(--yellow-200);
+  box-shadow: 0 0 0 2px var(--yellow-200);
+}
+.fk-act-said q {
+  position: relative;
+}
+.fk-act-read .fk-act-chip,
+.fk-act-read .fk-act-meter {
+  opacity: 0;
+  transform: translateY(6px) scale(0.9);
+}
+.fk-act-read[data-on] .fk-act-chip,
+.fk-act-read[data-on] .fk-act-meter {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.fk-act-read[data-on] > :nth-child(3) {
+  transition-delay: 90ms;
+}
+.fk-act-read[data-on] > :nth-child(4) {
+  transition-delay: 180ms;
+}
+.fk-act-read[data-on] > :nth-child(5) {
+  transition-delay: 270ms;
+}
+.fk-act-read:not([data-on]) .fk-act-meter i::after {
+  animation: none;
+  width: 0;
+}
+.fk-act-read-label svg {
+  transition: transform 0.4s ease;
+}
+.fk-act-read:not([data-on]) .fk-act-read-label svg {
+  animation: fk-act-spark 0.8s ease-in-out infinite alternate;
+}
+@keyframes fk-act-spark {
+  to {
+    transform: scale(1.35) rotate(20deg);
+  }
+}
+.fk-act-wait {
+  background: linear-gradient(90deg, var(--blue-400), var(--blue-700), var(--blue-400));
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: fk-rs-shimmer 1.3s linear infinite;
+}
+.fk-act-out {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.fk-act-out > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px var(--blue-200);
+  font-size: 11.5px;
+  color: var(--neutral-700);
+  opacity: 0;
+  transform: translateX(-8px);
+}
+.fk-act-out > span > svg:first-child {
+  color: var(--blue-600);
+}
+.fk-act-tick {
+  color: var(--green-600);
+}
+.fk-act-out[data-on] > span {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition-delay: calc(var(--i) * 260ms + 150ms);
+}
+.fk-act-list button[aria-selected="true"] .fk-act-av {
+  animation: fk-act-ping 0.9s ease-out;
+}
+@keyframes fk-act-ping {
+  from {
+    box-shadow: 0 0 0 0 rgba(95, 155, 212, 0.6);
+  }
+  to {
+    box-shadow: 0 0 0 10px rgba(95, 155, 212, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fk-act-read:not([data-on]) .fk-act-read-label svg,
+  .fk-act-wait,
+  .fk-act-list button[aria-selected="true"] .fk-act-av {
+    animation: none;
+  }
+}
+.fk-aib-scene .fk-act-topics {
+  flex-wrap: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent);
+  mask-image: linear-gradient(90deg, #000 85%, transparent);
+}
+.fk-aib-scene .fk-act-week {
+  grid-template-columns: auto minmax(70px, 0.5fr) minmax(0, 1fr);
+}
+.fk-aib-scene .fk-act-topics span {
+  flex: none;
+  white-space: nowrap;
+}
+@media (max-width: 640px) {
+  .fk-tk-end-name {
+    font-size: 19px;
+  }
+  .fk-tk-end-n {
+    font-size: 16px;
+  }
+  .fk-tk-ask {
+    font-size: 14px;
+  }
+  .fk-tk-q {
+    font-size: 19px;
+  }
+  .fk-tk-verdict text {
+    font-size: 16px;
+  }
+  .fk-tk-answer p {
+    font-size: 14px;
+  }
+}

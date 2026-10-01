@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Check, Sparkles } from "lucide-react";
 import { AiBuildScene } from "@/components/site/scenes/AiBuildScene";
-import { LogicScene } from "@/components/site/scenes/LogicScene";
+import { ThinkScene } from "./ThinkScene";
 import { StarField } from "./StarField";
 import { ActScene } from "./ActScene";
 
@@ -20,7 +20,7 @@ const ROWS = [
     n: "01",
     kicker: "Build with AI",
     title: "Describe it. Formkit builds it.",
-    body: "Write what you need in a sentence and Ask Formkit drafts the questions, the pages and the logic, in your wording. Then change anything by asking: “make the budget a range”, “add a thank-you page”.",
+    body: "Say what you need in a sentence. Ask Formkit drafts the questions, pages and logic, then changes anything you ask.",
     points: [
       "3 AI-built forms a month on Free, 50 a seat on Pro",
       "On Pro, build from a brief, a document or an old form",
@@ -34,7 +34,7 @@ const ROWS = [
     n: "02",
     kicker: "Forms that think",
     title: "Every person gets the form that fits them.",
-    body: "Rules read like sentences and the logic map shows every path. On Pro, the AI reads what someone wrote, decides where they go next, and pulls out facts like a budget for later questions and totals.",
+    body: "On Pro, the AI reads each answer, picks where the person goes next, and keeps facts like a budget for later.",
     points: [
       "Skip, show and hide on every plan",
       "AI decides: “is this a good fit?” picks the path",
@@ -48,7 +48,7 @@ const ROWS = [
     n: "03",
     kicker: "Act on every answer",
     title: "Every response, answered. Every answer, understood.",
-    body: "The AI writes each person a reply from your instructions and your own facts, on the thank-you screen or by email. It reads every response for how people feel, what they want and how promising they are, and writes you a report.",
+    body: "Each person gets a reply written from your own facts. You get how they feel, what they want and a lead score.",
     points: [
       "A personal reply to every response, on Pro",
       "Sentiment, intent, topics and a lead score on each one",
@@ -191,7 +191,7 @@ export function AiBand() {
                     </div>
                     <div className="fk-aib-scene">
                       {r.id === "ai-build" && <AiBuildScene />}
-                      {r.id === "ai-think" && <LogicScene start="ai" />}
+                      {r.id === "ai-think" && <ThinkScene />}
                       {r.id === "ai-act" && <ActScene />}
                     </div>
                   </div>
