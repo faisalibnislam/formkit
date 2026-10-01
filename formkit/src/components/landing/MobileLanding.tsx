@@ -35,7 +35,8 @@ function MobileHero() {
           <span>Form builder</span>
           Build with AI, add logic, act on every answer. Free to start.
         </p>
-        <h1 className="fk-m-hero-head">
+        {/* The desktop hero carries the page's one <h1>; only one of the two shows. */}
+        <p className="fk-m-hero-head" role="heading" aria-level={1}>
           What will your next{" "}
           <span className="fk-m-hero-pill">
             <span>
@@ -44,7 +45,7 @@ function MobileHero() {
             form
           </span>{" "}
           do?
-        </h1>
+        </p>
         <p className="fk-m-hero-sub">
           Describe it and Formkit builds it. Branch the journey. Answer every response.
         </p>

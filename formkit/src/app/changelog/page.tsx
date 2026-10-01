@@ -11,10 +11,10 @@ const description =
   "What is new in Formkit: quizzes, AI replies and insights, logic, companies and per-seat plans, custom domains and more, newest first.";
 
 export const metadata: Metadata = {
-  title: "Changelog",
+  title: "Changelog: what's new",
   description,
   alternates: { canonical: `${SITE_URL}/changelog` },
-  openGraph: { type: "website", siteName: "Formkit", url: `${SITE_URL}/changelog`, title: "Changelog | Formkit", description },
+  openGraph: { type: "website", siteName: "Formkit", url: `${SITE_URL}/changelog`, title: "Changelog: what's new in Formkit", description },
   twitter: { card: "summary_large_image", title: "Formkit changelog", description },
 };
 

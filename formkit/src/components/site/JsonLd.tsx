@@ -76,6 +76,8 @@ export function softwareApp(siteUrl: string) {
     ],
     featureList: [
       "AI form builder",
+      "Drag-and-drop form builder",
+      "Voice recording questions",
       "Conditional logic and AI logic",
       "Calculations, scoring and quizzes",
       "Payments with Stripe",
@@ -85,6 +87,7 @@ export function softwareApp(siteUrl: string) {
       "Slack, Google Sheets, Zapier, Make and webhooks",
       "Companies with members and roles",
       "Response inbox, analytics and exports",
+      "Version history",
     ],
   };
 }

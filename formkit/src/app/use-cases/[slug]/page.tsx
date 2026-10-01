@@ -14,11 +14,11 @@ export async function generateMetadata(props: PageProps<"/use-cases/[slug]">): P
   if (!u) return {};
   const url = `${SITE_URL}/use-cases/${u.slug}`;
   return {
-    title: u.title,
+    title: u.seo,
     description: u.meta,
     alternates: { canonical: url },
-    openGraph: { type: "article", siteName: "Formkit", url, title: `${u.title} | Formkit`, description: u.meta },
-    twitter: { card: "summary_large_image", title: u.title, description: u.meta },
+    openGraph: { type: "article", siteName: "Formkit", url, title: `${u.seo} | Formkit`, description: u.meta },
+    twitter: { card: "summary_large_image", title: `${u.seo} | Formkit`, description: u.meta },
   };
 }
 

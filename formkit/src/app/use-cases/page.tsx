@@ -11,10 +11,10 @@ const description =
   "How agencies, schools, sales teams, event organisers and HR teams use Formkit: the templates, logic and plans that fit each one.";
 
 export const metadata: Metadata = {
-  title: "Use cases",
+  title: "Form builder use cases by team",
   description,
   alternates: { canonical: `${SITE_URL}/use-cases` },
-  openGraph: { type: "website", siteName: "Formkit", url: `${SITE_URL}/use-cases`, title: "Use cases | Formkit", description },
+  openGraph: { type: "website", siteName: "Formkit", url: `${SITE_URL}/use-cases`, title: "Form builder use cases by team | Formkit", description },
   twitter: { card: "summary_large_image", title: "Formkit use cases", description },
 };
 

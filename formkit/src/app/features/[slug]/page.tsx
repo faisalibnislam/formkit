@@ -14,11 +14,11 @@ export async function generateMetadata(props: PageProps<"/features/[slug]">): Pr
   if (!f) return {};
   const url = `${SITE_URL}/features/${f.slug}`;
   return {
-    title: f.title,
+    title: f.seo,
     description: f.meta,
     alternates: { canonical: url },
-    openGraph: { type: "article", siteName: "Formkit", url, title: `${f.title} | Formkit`, description: f.meta },
-    twitter: { card: "summary_large_image", title: f.title, description: f.meta },
+    openGraph: { type: "article", siteName: "Formkit", url, title: `${f.seo} | Formkit`, description: f.meta },
+    twitter: { card: "summary_large_image", title: `${f.seo} | Formkit`, description: f.meta },
   };
 }
 

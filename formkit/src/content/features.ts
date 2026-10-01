@@ -11,6 +11,12 @@ export type Story = {
   name: string;
   /** The page's own headline. */
   title: string;
+  /**
+   * The search-result and browser-tab title: the words people search for,
+   * where the headline is written for people already on the page. Keep it
+   * under 50 characters; " | Formkit" is added after it.
+   */
+  seo: string;
   /** Meta description, about 150 characters. */
   meta: string;
   kicker: string;
@@ -33,6 +39,7 @@ export const FEATURE_PAGES: Story[] = [
     slug: "ai-form-builder",
     name: "AI form builder",
     title: "Describe a form. Formkit builds it.",
+    seo: "AI form builder: build a form from a sentence",
     meta: "Formkit's AI form builder turns a sentence into a working form with questions, pages and logic. Free for 3 forms a month; Pro builds from briefs and documents.",
     kicker: "AI form builder",
     lead: "Write what you need in plain words, or on Pro paste a brief, a document or an old form. Ask Formkit drafts the questions, splits them into pages and writes the logic, in your wording. Then keep changing it by asking.",
@@ -68,6 +75,7 @@ export const FEATURE_PAGES: Story[] = [
     slug: "builder",
     name: "Drag-and-drop builder",
     title: "Drag a question in. Drop it where it goes.",
+    seo: "Drag-and-drop form builder with voice answers",
     meta: "Formkit's form builder: drag fields onto the canvas, reorder them by their grip, split long forms into pages, and take voice answers. Free on every plan.",
     kicker: "Form builder",
     lead: "Every question type in a library on the left, your form on the canvas in the middle. Drag a field in and a blue line shows where it lands. Drag a card by its grip to move it. That is most of it.",
@@ -109,6 +117,7 @@ export const FEATURE_PAGES: Story[] = [
     slug: "logic",
     name: "Conditional and AI logic",
     title: "Logic that reads like a sentence, and AI that reads the answer.",
+    seo: "Conditional logic and AI logic for forms",
     meta: "Conditional logic in plain words: skip, show and hide questions on every plan. On Pro, calculations, several endings and AI logic that reads what people wrote.",
     kicker: "Logic",
     lead: "Every person should only see what applies to them. Formkit's rules read like sentences, a map shows every path, and on Pro the AI can read a written answer and decide where someone goes next.",
@@ -146,6 +155,7 @@ export const FEATURE_PAGES: Story[] = [
     slug: "quizzes",
     name: "Quizzes and exams",
     title: "Quizzes with right answers, a timer and results.",
+    seo: "Online quiz maker with marking and a timer",
     meta: "Make a quiz or exam in Formkit: right answers, marks, a timer, shuffling, a pass mark, marking by hand and results released when you are ready. On Pro.",
     kicker: "Quizzes and exams",
     lead: "Turn any form into a quiz. Mark the right answers, set what each question is worth, add a timer and a pass mark, and decide whether people see their results straight away or when you release them.",
@@ -179,6 +189,7 @@ export const FEATURE_PAGES: Story[] = [
     slug: "ai-replies",
     name: "AI replies",
     title: "A personal reply to every response.",
+    seo: "AI replies to every form response",
     meta: "Formkit's AI writes each person a reply from your instructions and your own facts, on the thank-you screen or by email. Included with Pro.",
     kicker: "AI replies",
     lead: "Brief the AI like a colleague: who the reply is from, what to look at, what to offer. It writes each person who answers a reply of their own, on the thank-you screen, by email or both.",
@@ -212,6 +223,7 @@ export const FEATURE_PAGES: Story[] = [
     slug: "insights",
     name: "AI insights",
     title: "Know what your responses are telling you.",
+    seo: "AI insights and analytics for form responses",
     meta: "AI insights read every response for sentiment, intent, topics, a lead score and urgency, and write a report of what stands out. Included with Pro.",
     kicker: "AI insights",
     lead: "Stop reading every answer to find the three that matter. The AI reads each response for how the person feels, what they want and how promising they are, then writes a report across all of them.",
@@ -245,6 +257,7 @@ export const FEATURE_PAGES: Story[] = [
     slug: "payments",
     name: "Payments",
     title: "Take payment when the form is sent.",
+    seo: "Forms that take payment with Stripe",
     meta: "Take payments with Formkit forms through your own Stripe account: a fixed amount or a calculated total. The money goes straight to you. On Pro.",
     kicker: "Payments",
     lead: "Connect your own Stripe account and charge when someone sends the form: a fixed price, or the total your form worked out. The money goes straight to you, and Formkit takes nothing.",
@@ -277,6 +290,7 @@ export const FEATURE_PAGES: Story[] = [
     slug: "integrations",
     name: "Connections",
     title: "Send every response where it needs to go.",
+    seo: "Form integrations: Slack, Sheets, Zapier, webhooks",
     meta: "Connect Formkit to Slack, Google Sheets, Zapier, Make and signed webhooks, so every response lands in your tools the moment it arrives. On Pro.",
     kicker: "Connections",
     lead: "Post new responses to Slack, keep a Google Sheet up to date, or send them anywhere through Zapier, Make or your own webhook, the moment they arrive.",
@@ -304,7 +318,8 @@ export const FEATURE_PAGES: Story[] = [
     slug: "custom-domains",
     name: "Custom domains",
     title: "Your forms, at your own address.",
-    meta: "Put Formkit forms on your own subdomain with one DNS record. Formkit checks it for you, your formkit.app links keep working, and nothing breaks if you downgrade.",
+    seo: "Forms on your own custom domain",
+    meta: "Put Formkit forms on your own subdomain with one DNS record. Formkit checks it for you, and your formkit.app links keep working.",
     kicker: "Custom domains",
     lead: "Type a subdomain you own, add the one record Formkit shows you, and your forms move to your own address. Formkit checks the record for you and tells you when it is live.",
     icon: "globe",
@@ -339,6 +354,7 @@ export const FEATURE_PAGES: Story[] = [
     slug: "branding",
     name: "Branding and custom domains",
     title: "Forms that look like you, on your own domain.",
+    seo: "Branded forms with your colours, logo and fonts",
     meta: "Brand your Formkit forms with your colours, fonts, logo and CSS, publish at formkit.app/you, and on Pro at forms.yourcompany.com without the Formkit badge.",
     kicker: "Branding",
     lead: "Ten ready-made looks, then your own colours, type and logo, at your own formkit.app link. On Pro, put forms on your own domain, send emails from your address and remove the Formkit badge.",
@@ -372,6 +388,7 @@ export const FEATURE_PAGES: Story[] = [
     slug: "versions",
     name: "Version history and exports",
     title: "Go back to any version. Take your answers anywhere.",
+    seo: "Form version history, and CSV or Excel export",
     meta: "Every publish in Formkit is a version you can restore, and responses export to CSV on every plan or Excel on Pro, with your filters carried over.",
     kicker: "Versions and exports",
     lead: "Each time you publish, Formkit keeps a copy of the questions as they were. Restore an older one in a click. And when the answers need to go somewhere else, export them to CSV or Excel.",
@@ -411,6 +428,7 @@ export const USE_CASES: Story[] = [
     slug: "agencies",
     name: "Agencies and freelancers",
     title: "Forms for client work, under each client's name.",
+    seo: "Forms for agencies and freelancers",
     meta: "Formkit for agencies and freelancers: onboarding, briefs and quote requests, a company per client, your own domain, AI replies and payments.",
     kicker: "For agencies and freelancers",
     lead: "Onboard clients, take briefs and quote jobs with forms that look like you, or like them. Keep each client in its own company, and let the AI send the first reply.",
@@ -434,6 +452,7 @@ export const USE_CASES: Story[] = [
     slug: "education",
     name: "Teachers and trainers",
     title: "Quizzes, registrations and feedback, marked and sorted.",
+    seo: "Forms for teachers: quizzes and registrations",
     meta: "Formkit for teachers and trainers: quizzes with a timer and marking, course registration, applications and course evaluations.",
     kicker: "For teachers and trainers",
     lead: "Run knowledge checks with a timer and a pass mark, take registrations and applications, and ask students what worked, all in one place.",
@@ -457,6 +476,7 @@ export const USE_CASES: Story[] = [
     slug: "sales",
     name: "Sales and lead generation",
     title: "Qualify every lead, and answer it in seconds.",
+    seo: "Lead capture forms that qualify and reply",
     meta: "Formkit for sales: lead qualification forms with AI logic, a personal AI reply to every lead, lead scores, and routing to your CRM.",
     kicker: "For sales teams",
     lead: "Ask the questions that matter, let the AI decide which leads fit, reply to every one in your voice, and send the good ones to your CRM straight away.",
@@ -480,6 +500,7 @@ export const USE_CASES: Story[] = [
     slug: "events",
     name: "Events",
     title: "Registrations, RSVPs, payments and feedback.",
+    seo: "Event registration forms, RSVPs and payments",
     meta: "Formkit for events: registrations with payments and limited places, RSVPs, volunteer sign-ups and event feedback, with QR codes.",
     kicker: "For event organisers",
     lead: "Take registrations and payments, cap places, collect RSVPs and dietary needs, sign up volunteers and ask for feedback the morning after.",
@@ -503,6 +524,7 @@ export const USE_CASES: Story[] = [
     slug: "hr",
     name: "HR and hiring",
     title: "Hiring, onboarding and feedback, without the spreadsheets.",
+    seo: "HR forms for hiring, onboarding and feedback",
     meta: "Formkit for HR: job applications with uploads, new hire onboarding, time off requests, employee feedback and exit interviews.",
     kicker: "For HR teams",
     lead: "Take job applications with resumes, get new starters ready for day one, handle time off requests and hear honestly from the team.",

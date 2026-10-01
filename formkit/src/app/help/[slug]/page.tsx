@@ -20,22 +20,50 @@ export function generateStaticParams() {
   return HELP_ARTICLES.map((a) => ({ slug: a.id }));
 }
 
+/**
+ * The search description: the article's one-line summary, then as much of its
+ * opening as fits in about 155 characters, cut at a sentence or a word.
+ */
+function describe(summary: string, body: string) {
+  const MAX = 155;
+  const text = body
+    .split("\n")
+    .filter((l) => !l.startsWith("#") && !l.startsWith(">"))
+    .map((l) => l.replace(/^- /, "").trim())
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s+/g, " ");
+  let out = summary.trim();
+  for (const sentence of text.match(/.+?[.!?](?=\s|$)/g) ?? []) {
+    const next = `${out} ${sentence.trim()}`;
+    if (next.length > MAX) break;
+    out = next;
+  }
+  if (out.length < 90 && text) {
+    const room = MAX - out.length - 2;
+    const cut = text.slice(0, room).replace(/\s+\S*$/, "");
+    if (cut.length > 30) out = `${out} ${cut}…`;
+  }
+  return out;
+}
+
 export async function generateMetadata(
   props: PageProps<"/help/[slug]">,
 ): Promise<Metadata> {
   const { slug } = await props.params;
   const article = helpArticle(slug);
   if (!article) return {};
+  const description = describe(article.summary, article.body);
   return {
     title: article.title,
-    description: article.summary,
+    description,
     alternates: { canonical: `${SITE_URL}/help/${article.id}` },
     openGraph: {
       type: "article",
       siteName: "Formkit",
       url: `${SITE_URL}/help/${article.id}`,
       title: `${article.title} | Formkit help`,
-      description: article.summary,
+      description,
     },
   };
 }

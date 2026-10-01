@@ -12,10 +12,10 @@ const description =
   "What Formkit does: drag-and-drop and AI form building, voice answers, logic, quizzes, AI replies, payments, custom domains, version history and connections.";
 
 export const metadata: Metadata = {
-  title: "Features",
+  title: "Form builder features",
   description,
   alternates: { canonical: `${SITE_URL}/features` },
-  openGraph: { type: "website", siteName: "Formkit", url: `${SITE_URL}/features`, title: "Features | Formkit", description },
+  openGraph: { type: "website", siteName: "Formkit", url: `${SITE_URL}/features`, title: "Form builder features | Formkit", description },
   twitter: { card: "summary_large_image", title: "Formkit features", description },
 };
 

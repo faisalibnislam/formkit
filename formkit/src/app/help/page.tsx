@@ -11,7 +11,7 @@ import { HELP_ARTICLES, HELP_CATEGORIES } from "@/content/help";
 import { ArrowRight, Check, GitBranch, Link2, Plus, QrCode, Sparkles } from "lucide-react";
 import { SITE_URL } from "@/lib/site";
 
-const TITLE = "Help center";
+const TITLE = "Help center: guides for building forms";
 const DESCRIPTION = `Guides for building forms, sharing them and reading what comes back. ${HELP_ARTICLES.length} articles across ${HELP_CATEGORIES.length} categories.`;
 
 export const metadata: Metadata = {

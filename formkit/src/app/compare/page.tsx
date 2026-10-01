@@ -14,7 +14,7 @@ import { SITE_URL } from "@/lib/site";
 
 const TITLE = "Compare form builders";
 const DESCRIPTION =
-  "An honest comparison of Formkit with Google Forms, Typeform, Jotform, Tally, Fillout, Microsoft Forms, SurveyMonkey and Paperform, based on each product's published pricing.";
+  "Formkit compared honestly with Google Forms, Typeform, Jotform, Tally, Fillout, Microsoft Forms, SurveyMonkey and Paperform, on published pricing.";
 
 export const metadata: Metadata = {
   title: TITLE,

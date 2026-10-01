@@ -58,7 +58,7 @@ export const TEMPLATES: FormTemplate[] = [
     logic: true,
     blurb:
       "Everything you need from a new client before the work starts, in one form they can finish over a coffee.",
-    meta: "A free client onboarding form template: contact, project scope, brand assets, budget and sign-off, with logic that skips returning clients past what you already know.",
+    meta: "A free client onboarding form template: contact, scope, brand assets, budget and sign-off, with logic that skips returning clients past what you know.",
     lead: "Eleven questions, split across four pages so nobody faces a wall of inputs. A conditional rule sends returning clients straight to scope, which drops their form to eight questions.",
     questions: [
       q("Who is the main contact for this project?", "Name", "user"),
@@ -191,7 +191,7 @@ export const TEMPLATES: FormTemplate[] = [
     logic: true,
     blurb:
       "Enough to know whether an enquiry is worth a call, without making a good lead fill in a form they resent.",
-    meta: "A free lead qualification form template: the problem, the timeline, the budget range, who else is involved and how they found you, with routing to the right person.",
+    meta: "A free lead qualification form template: the problem, timeline, budget, who else decides and how they found you, routed to the right person.",
     lead: "Eight questions across two pages. Routing rules send each enquiry to the right inbox based on what they picked, so nothing sits unclaimed.",
     questions: [
       q("What is your name?", "Name", "user"),

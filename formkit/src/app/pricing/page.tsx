@@ -42,7 +42,7 @@ import { CREDIT_COST, FEATURES, PLANS, type Feature, type PlanId } from "../../.
 
 const TITLE = "Pricing: Free, Pro and Business";
 const DESCRIPTION =
-  "Formkit is free to start, with unlimited forms, responses and members. Pro ($6 a seat a month) adds your own domain, integrations and AI on responses; Business ($19 a seat a month) adds team controls.";
+  "Free for unlimited forms, responses and members. Pro is $6 a seat a month for your own domain and AI on responses; Business is $19 with team controls.";
 
 export const metadata: Metadata = {
   title: TITLE,

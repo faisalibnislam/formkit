@@ -8,9 +8,9 @@ import { templateCard } from "@/content/templateCards";
 import { TemplateBrowser, type BrowserTemplate } from "@/components/templates/TemplateBrowser";
 import { SITE_URL } from "@/lib/site";
 
-const TITLE = "Form templates";
+const TITLE = "Free form templates";
 const DESCRIPTION =
-  `${TEMPLATES.length} free form templates you can publish today: client onboarding, job applications, quizzes, surveys, NPS, registrations, bookings, order forms and more. Every question written, every answer type set.`;
+  `${TEMPLATES.length} free form templates: client onboarding, job applications, quizzes, surveys, registrations, order forms and more, every question written for you.`;
 
 export const metadata: Metadata = {
   title: TITLE,
