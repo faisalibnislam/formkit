@@ -9,6 +9,7 @@ import { Suspense } from "react";
 import { NavProgress } from "@/components/site/NavProgress";
 import { SeedProvider } from "@/lib/seed";
 import { seedViewer } from "@/lib/seedServer";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 /**
  * Outfit is the single typeface: UI, display and the large-light numerals.
@@ -54,6 +55,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               <ToastProvider>{children}</ToastProvider>
             </SeedProvider>
           </ConvexClientProvider>
+          <SpeedInsights />
         </body>
       </html>
     </ConvexAuthNextjsServerProvider>
