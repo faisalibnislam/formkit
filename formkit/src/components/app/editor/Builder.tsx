@@ -679,6 +679,7 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
                       options={b.options}
                       scaleMin={b.scaleMin}
                       scaleMax={b.scaleMax}
+                      maxSeconds={b.maxSeconds}
                     />
                   </div>
                 </div>

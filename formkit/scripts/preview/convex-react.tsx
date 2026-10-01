@@ -47,7 +47,7 @@ export function useMutation(reference: unknown) {
     // eslint-disable-next-line no-console
     console.info("[preview] mutation", name, args);
     // The upload flow posts to whatever this returns, so it has to be a URL.
-    if (name === "users:generateUploadUrl") return "/__preview_upload";
+    if (name === "users:generateUploadUrl" || name === "publicForm:uploadUrl") return "/__preview_upload";
     const canned = fixtureFor(`mutation:${name}`);
     if (typeof canned === "function") return (canned as () => unknown)();
     return canned;

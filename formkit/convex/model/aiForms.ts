@@ -29,12 +29,13 @@ export const QUESTION_TYPES = [
   "scale",
   "file",
   "signature",
+  "voice",
 ] as const;
 export type QuestionType = (typeof QUESTION_TYPES)[number];
 
 export const CHOICE_TYPES = new Set(["single-choice", "multi-choice", "dropdown"]);
 /** Answers that identify a person. They stay out of anything sent to the model. */
-export const PERSONAL_TYPES = new Set(["name", "email", "phone", "address", "file", "signature", "company", "url"]);
+export const PERSONAL_TYPES = new Set(["name", "email", "phone", "address", "file", "signature", "voice", "company", "url"]);
 export const RULE_ACTIONS = ["show", "hide", "require"] as const;
 const ALL_OPERATORS = [...new Set(Object.values(OPERATORS).flatMap((g) => g.map((o) => o.value)))];
 const VALUELESS = new Set(["is-empty", "is-not-empty"]);

@@ -364,6 +364,18 @@ function flag(name: string) {
   return new URLSearchParams(window.location.search).get(name);
 }
 
+/** A flag that survives the page tidying its own URL (?open=preview is removed once handled). */
+function sticky(name: string) {
+  if (typeof window === "undefined") return null;
+  const v = flag(name);
+  try {
+    if (v) window.sessionStorage.setItem(name, v);
+    return v ?? window.sessionStorage.getItem(name);
+  } catch {
+    return v;
+  }
+}
+
 export const VIEWER = {
   _id: "u1",
   name: "Maya Ortiz",
@@ -631,7 +643,16 @@ export const QUERIES: Record<string, unknown> = {
   },
   get "forms:get"() {
     const p = VIEWER.plan;
-    return { ...FORM_DETAIL, ownerPlan: { id: p.id, name: p.name, features: p.features, limits: p.limits } };
+    const detail = sticky("fk_voice")
+      ? {
+          ...FORM_DETAIL,
+          blocks: [
+            { _id: "bv", kind: "field", type: "voice", order: -1, title: "Tell us about the project in your own words", help: "", required: true, options: [], maxSeconds: 120 },
+            ...FORM_DETAIL.blocks,
+          ],
+        }
+      : FORM_DETAIL;
+    return { ...detail, ownerPlan: { id: p.id, name: p.name, features: p.features, limits: p.limits } };
   },
   "aiUsage:summary": {
     span: 30,
@@ -665,10 +686,24 @@ export const QUERIES: Record<string, unknown> = {
     ],
     unattributed: 0,
   },
-  "responses:list": {
-    stats: { total: 1117, today: 2, todayChange: 1, week: 8, weekChange: 14, unread: 3, partial: 2, completed: 1115, previews: 1 },
-    forms: Object.entries(FORM_TITLES).map(([_id, title]) => ({ _id, title, owner: ownerOf(_id) })),
-    responses: RESPONSES,
+  get "responses:list"() {
+    // ?fk_voice=1: the first response answered a voice question.
+    const voiced = sticky("fk_voice")
+      ? RESPONSES.map((r, i) =>
+          i === 0
+            ? {
+                ...r,
+                answers: [{ blockId: "bv", question: "Tell us about the project in your own words", value: null, fileName: "voice-recording-0m48s.webm" }, ...(r.answers as unknown[])],
+                files: [{ blockId: "bv", name: "voice-recording-0m48s.webm", url: "/__preview_audio.wav", audio: true }],
+              }
+            : r,
+        )
+      : RESPONSES;
+    return {
+      stats: { total: 1117, today: 2, todayChange: 1, week: 8, weekChange: 14, unread: 3, partial: 2, completed: 1115, previews: 1 },
+      forms: Object.entries(FORM_TITLES).map(([_id, title]) => ({ _id, title, owner: ownerOf(_id) })),
+      responses: voiced,
+    };
   },
   "responses:get": RESPONSES[0],
   "responses:contacts": CONTACTS,
@@ -817,7 +852,9 @@ export const QUERIES: Record<string, unknown> = {
     { _id: "a2", who: "You", image: null, color: "#2e78bb", what: "published version 3", icon: "rocket", at: now - 5 * 60 * 60 * 1000 },
     { _id: "a3", who: "You", image: null, color: "#2e78bb", what: "invited freelance@grainhouse.com as Viewer", icon: "user-plus", at: now - 2 * DAY },
   ],
-  "publicForm:preview": RUNNER,
+  get "publicForm:preview"() {
+    return sticky("fk_voice") ? QUERIES["publicForm:bySlug"] : RUNNER;
+  },
   /** ?fk_css=1 shows the published form with sample custom CSS; ?fk_smart=1 turns on keys and piping. */
   get "publicForm:bySlug"() {
     if (flag("fk_smart")) {
@@ -830,6 +867,17 @@ export const QUERIES: Record<string, unknown> = {
           { ...RUNNER.blocks[0]!, _id: "b1h", type: "hidden", title: "Where they came from", key: "utm_source", defaultValue: "direct", required: false },
           { ...RUNNER.blocks[1]!, _id: "b2p", title: "Thanks {{name}} - where should the proposal for you go?", key: null },
           ...RUNNER.blocks.slice(2),
+        ],
+      };
+    }
+    if (sticky("fk_voice")) {
+      // A voice recording question first, limited to 15 seconds.
+      return {
+        ...RUNNER,
+        welcome: null,
+        blocks: [
+          { ...RUNNER.blocks[0]!, _id: "bv", type: "voice", title: "Tell us about the project in your own words", help: null, required: true, maxSeconds: 15 },
+          ...RUNNER.blocks.slice(0, 2),
         ],
       };
     }

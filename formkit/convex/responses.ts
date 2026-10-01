@@ -1,4 +1,5 @@
 import { moneyText } from "./model/money";
+import { isAudio } from "./model/voice";
 import { v } from "convex/values";
 import { internalMutation, mutation, query, type QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
@@ -63,10 +64,16 @@ async function shape(ctx: QueryCtx, r: Doc<"responses">, formTitle: string) {
   const files = await Promise.all(
     r.answers
       .filter((a) => a.fileId)
-      .map(async (a) => ({
-        name: a.fileName ?? "attachment",
-        url: await ctx.storage.getUrl(a.fileId!),
-      })),
+      .map(async (a) => {
+        const meta = await ctx.db.system.get(a.fileId!);
+        return {
+          blockId: a.blockId,
+          name: a.fileName ?? "attachment",
+          url: await ctx.storage.getUrl(a.fileId!),
+          /** A voice recording, played in place rather than only downloaded. */
+          audio: isAudio(meta?.contentType),
+        };
+      }),
   );
   return {
     _id: r._id,
@@ -490,6 +497,15 @@ export const forExport = query({
       ...(quizzed ? ["Score", "Out of", "Percent", "Result", "To mark"] : []),
       ...(replied ? ["Sentiment", "Lead score", "Urgency", "AI summary", "AI reply"] : []),
     ];
+    // Uploaded files and voice recordings go out as links to the file.
+    const links = new Map<string, string>();
+    for (const r of picked)
+      for (const a of r.answers)
+        if (a.fileId && !links.has(a.fileId)) {
+          const url = await ctx.storage.getUrl(a.fileId);
+          if (url) links.set(a.fileId, url);
+        }
+
     const slug = formId ? (forms[0]?.slug ?? "form") : "all-forms";
     return {
       filename: `${slug}-responses`,
@@ -514,6 +530,7 @@ export const forExport = query({
             const a = byQuestion.get(q.toLowerCase());
             if (!a) return "";
             if (a.values) return a.values.join("; ");
+            if (a.fileId) return links.get(a.fileId) ?? a.fileName ?? "";
             return a.fileName ?? a.value ?? "";
           }),
           ...calcNames.map((n) => (r.calc && n in r.calc ? String(r.calc[n]) : "")),

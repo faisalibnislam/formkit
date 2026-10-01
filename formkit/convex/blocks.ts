@@ -5,6 +5,7 @@ import { questionType } from "./schema";
 import { formFor, recount } from "./model/forms";
 import { requireFeature } from "./model/plans";
 import { validKey } from "./model/calc";
+import { voiceLength } from "./model/voice";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 
@@ -24,6 +25,7 @@ const blockFields = {
   accept: v.optional(v.array(v.string())),
   scaleMin: v.optional(v.number()),
   scaleMax: v.optional(v.number()),
+  maxSeconds: v.optional(v.number()),
   pageName: v.optional(v.string()),
   key: v.optional(v.string()),
   scores: v.optional(v.array(v.number())),
@@ -99,6 +101,7 @@ export const add = mutation({
             accept: fields.accept,
             scaleMin: fields.scaleMin,
             scaleMax: fields.scaleMax,
+            ...(fields.type === "voice" ? { maxSeconds: voiceLength(fields.maxSeconds) } : {}),
             ...(fields.type === "hidden"
               ? { key: await freeKey(ctx, formId, fields.key ?? "source"), defaultValue: fields.defaultValue }
               : {}),
@@ -130,6 +133,7 @@ export const update = mutation({
         ...(patch.marks !== undefined ? { marks: Math.max(0, Math.min(1000, Math.round(patch.marks * 10) / 10)) } : {}),
       };
     }
+    if (patch.maxSeconds !== undefined) patch = { ...patch, maxSeconds: voiceLength(patch.maxSeconds) };
     if (patch.extract) {
       await requireFeature(ctx, form, "logic.ai");
       if ((patch.type ?? block.type) !== "hidden") throw new ConvexError("Only a hidden field can be filled in by AI.");

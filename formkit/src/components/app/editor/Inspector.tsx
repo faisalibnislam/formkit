@@ -1,6 +1,7 @@
 "use client";
 
 import { conditionsOf } from "../../../../convex/model/logicEval";
+import { VOICE_LENGTHS, voiceLabel, voiceLength } from "../../../../convex/model/voice";
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
@@ -371,6 +372,23 @@ export function FieldSettings({
         </>
       )}
 
+      {block.type === "voice" && (
+        <>
+          <PropertyRow label="Longest recording" hint="Recording stops by itself at this length">
+            <Select
+              size="sm"
+              ariaLabel="Longest recording"
+              value={String(voiceLength(block.maxSeconds))}
+              options={VOICE_LENGTHS.map((n) => ({ value: String(n), label: voiceLabel(n) }))}
+              onChange={(v) => patch({ maxSeconds: Number(v) })}
+            />
+          </PropertyRow>
+          <PropertyRow label="Maximum size" hint="Set by your plan. A five-minute recording is around 3 MB">
+            <span className="fk-static-pill">{plan?.limits.uploadMb ?? 10} MB</span>
+          </PropertyRow>
+        </>
+      )}
+
       {hasScale(block.type) && (
         <div style={{ display: "flex", gap: 10, padding: "12px 0" }}>
           {block.type === "scale" && (
@@ -642,7 +660,7 @@ function FillWithAi({ block, fields }: { block: Block; fields: Block[] }) {
   const gate = useGate("logic.ai");
   const [on, setOn] = useState(!!block.extract);
   const sources = fields.filter(
-    (f) => f._id !== block._id && f.type && !["hidden", "file", "signature"].includes(f.type) && f.order < block.order,
+    (f) => f._id !== block._id && f.type && !["hidden", "file", "signature", "voice"].includes(f.type) && f.order < block.order,
   );
   const save = async (extract: { from: Id<"blocks">; what: string } | null) => {
     try {

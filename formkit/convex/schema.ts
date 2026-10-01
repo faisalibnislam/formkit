@@ -32,6 +32,8 @@ export const questionType = v.union(
   v.literal("scale"),
   v.literal("file"),
   v.literal("signature"),
+  /** Recorded in the browser, up to the block's `maxSeconds`; stored as an upload. */
+  v.literal("voice"),
   /** Pro: never shown; filled from the link, or its default. */
   v.literal("hidden"),
 );
@@ -426,6 +428,8 @@ export default defineSchema({
     accept: v.optional(v.array(v.string())),
     scaleMin: v.optional(v.number()),
     scaleMax: v.optional(v.number()),
+    /** Voice recording: the longest recording allowed, in seconds (15 to 300). */
+    maxSeconds: v.optional(v.number()),
     pageName: v.optional(v.string()),
     /** Pro: how links pre-fill it, later text quotes it, and formulas read it. */
     key: v.optional(v.string()),

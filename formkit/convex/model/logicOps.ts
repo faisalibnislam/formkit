@@ -86,7 +86,7 @@ export function valueControl(q: Q): ValueControl {
   if (type === "number") return { kind: "text", placeholder: "e.g. 18", numeric: true };
   if (type === "email") return { kind: "text", placeholder: "An email address" };
   if (type === "phone") return { kind: "text", placeholder: "A phone number" };
-  if (type === "file" || type === "signature") return { kind: "none", note: "any upload" };
+  if (type === "file" || type === "signature" || type === "voice") return { kind: "none", note: "any upload" };
   // A short-text question that is really asking for a number: age, headcount, year.
   if (/\bage\b|how old|how many|number of|headcount|year\b|budget|salary|price/i.test(q?.title ?? "")) {
     return { kind: "text", placeholder: "e.g. 18", numeric: true, note: "read as a number" };

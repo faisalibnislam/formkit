@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useRef, useState, type ReactNode } from "react";
-import { ArrowLeft, ArrowRight, Check, Eye, RotateCcw, Star, Upload } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Eye, Mic, RotateCcw, Star, Upload } from "lucide-react";
 import { THEME_PRESETS } from "../../../convex/model/themePresets";
 import type { PreviewQuestion, TemplatePreview } from "@/content/templatePreview";
 
@@ -275,6 +275,14 @@ function Field({
             </button>
           ))}
         </div>
+      );
+    case "voice":
+      return (
+        <span className="fk-tp-file">
+          <Mic size={18} strokeWidth={2} aria-hidden />
+          <b>Press to record your answer</b>
+          <small>Recording works on the published form</small>
+        </span>
       );
     case "file":
       return (

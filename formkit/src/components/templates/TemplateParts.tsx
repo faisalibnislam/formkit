@@ -1,4 +1,4 @@
-import { GitBranch, Link2, Palette, Paperclip, Plus, QrCode, Star } from "lucide-react";
+import { GitBranch, Link2, Mic, Palette, Paperclip, Plus, QrCode, Star } from "lucide-react";
 import { Glyph } from "@/components/brand/Glyph";
 import { QuestionJump } from "@/components/templates/TemplatePreviewer";
 import type { TemplatePreview, PreviewQuestion } from "@/content/templatePreview";
@@ -101,6 +101,12 @@ function Answer({ q, label }: { q: PreviewQuestion; label?: string }) {
       </span>
     );
   if (q.type === "scale") return <span className="fk-tr-pill">{Math.max(q.min ?? 1, (q.max ?? 5) - 1)}</span>;
+  if (q.type === "voice")
+    return (
+      <span className="fk-tr-file">
+        <Mic size={12} strokeWidth={2} aria-hidden /> Voice recording, 0:48
+      </span>
+    );
   if (q.type === "file")
     return (
       <span className="fk-tr-file">

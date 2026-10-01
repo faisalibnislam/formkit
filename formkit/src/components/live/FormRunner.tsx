@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { VoiceRecorder } from "./VoiceRecorder";
+import { voiceLength } from "../../../convex/model/voice";
 import { ArrowLeft, Check, Clock3, CornerDownLeft, CreditCard, Lock, Paperclip } from "lucide-react";
 import type { Id } from "../../../convex/_generated/dataModel";
 import {
@@ -46,6 +48,8 @@ export type Block = {
   accept: string[] | null;
   scaleMin: number | null;
   scaleMax: number | null;
+  /** Voice recording: the longest recording allowed, in seconds. */
+  maxSeconds?: number | null;
   pageName: string | null;
   /** Pro: pre-fill, piping and formulas read a question by its key. */
   key?: string | null;
@@ -779,6 +783,7 @@ export function FormRunner({
           }}
           onFile={(file) => attach(b, file)}
           capMb={data.uploadCapMb}
+          fileFailed={!!fileProblem[b._id]}
           hiddenOptions={hiddenOptions.get(b._id)}
           shuffle={quiz?.shuffleOptions ? seed : undefined}
         />
@@ -992,6 +997,7 @@ function Control({
   onChange,
   onFile,
   capMb = 10,
+  fileFailed,
   hiddenOptions,
   shuffle,
 }: {
@@ -1001,6 +1007,8 @@ function Control({
   onChange: (a: Answer) => void;
   onFile: (file: File) => void;
   capMb?: number;
+  /** The last upload for this question was refused or did not finish. */
+  fileFailed?: boolean;
   /** Options a logic rule hides right now. */
   hiddenOptions?: Set<string>;
   /** Quiz: a seed that puts the options in this person's own order. */
@@ -1195,6 +1203,20 @@ function Control({
         </label>
       );
 
+    case "voice":
+      return (
+        <VoiceRecorder
+          maxSeconds={voiceLength(block.maxSeconds)}
+          accent={theme.primary}
+          radius={radius}
+          saved={!!value?.fileId}
+          failed={fileFailed}
+          label={block.title ?? "this question"}
+          onFile={onFile}
+          onClear={() => onChange({})}
+        />
+      );
+
     case "signature":
       return (
         <input
@@ -1281,7 +1303,7 @@ function prefilled(blocks: Block[], allowed: boolean): Record<string, Answer> {
     } else if (["single-choice", "dropdown", "yes-no"].includes(b.type ?? "")) {
       const v = match(raw);
       if (v) out[b._id] = { value: v };
-    } else if (b.type !== "file" && b.type !== "signature") {
+    } else if (b.type !== "file" && b.type !== "signature" && b.type !== "voice") {
       out[b._id] = { value: raw.slice(0, 2000) };
     }
   }

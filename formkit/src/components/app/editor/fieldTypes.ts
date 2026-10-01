@@ -22,6 +22,7 @@ export type FieldType = {
     | "rating"
     | "file"
     | "signature"
+    | "voice"
     | "date"
     | "hidden";
   defaultOptions?: string[];
@@ -70,6 +71,7 @@ export const FIELD_TYPES: FieldType[] = [
   { type: "scale", label: "Opinion scale", group: "Rating", icon: "sliders-horizontal", preview: "scale" },
   { type: "file", label: "File upload", group: "Upload", icon: "paperclip", preview: "file" },
   { type: "signature", label: "Signature", group: "Upload", icon: "pen-line", preview: "signature" },
+  { type: "voice", label: "Voice recording", group: "Upload", icon: "mic", preview: "voice" },
   { type: "hidden", label: "Hidden field", group: "Smart", icon: "eye-off", preview: "hidden" },
 ];
 

@@ -662,7 +662,9 @@ function ResponseDrawer({
     const byBlock = new Map(response.answers.map((a) => [a.blockId as string, a]));
     const answerOf = (a: Row["answers"][number] | undefined) =>
       a ? (a.fileName ?? (a.value || "-")) : "-";
-    const out: { title: string; rows: { q: string; a: string; empty: boolean; file: boolean }[] }[] = [];
+    // Voice recordings play in place, under their question.
+    const sound = new Map(response.files.filter((f) => f.audio && f.url).map((f) => [f.blockId as string, f.url!]));
+    const out: { title: string; rows: { q: string; a: string; empty: boolean; file: boolean; audio?: string }[] }[] = [];
     let g: (typeof out)[number] = { title: "Answers", rows: [] };
     const used = new Set<string>();
     for (const b of form?.blocks ?? []) {
@@ -678,6 +680,7 @@ function ResponseDrawer({
         a: answerOf(a),
         empty: !a || (!a.value && !a.fileName),
         file: !!a?.fileName,
+        audio: sound.get(b._id),
       });
     }
     if (g.rows.length) out.push(g);
@@ -875,6 +878,8 @@ function ResponseDrawer({
                 <div className="fk-answer-a">
                   {r.empty ? (
                     <span style={{ color: "var(--color-text-tertiary)" }}>Not answered</span>
+                  ) : r.audio ? (
+                    <audio controls preload="none" src={r.audio} style={{ width: "100%", maxWidth: 360, height: 36 }} aria-label={`Recording for ${r.q}`} />
                   ) : r.file ? (
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
                       <Paperclip size={15} strokeWidth={1.8} aria-hidden />
@@ -897,7 +902,7 @@ function ResponseDrawer({
               f.url && (
                 <a key={i} href={f.url} download={f.name} className="fk-chip" style={{ width: "fit-content" }}>
                   <FileDown size={14} strokeWidth={1.8} aria-hidden />
-                  Download {f.name}
+                  {f.audio ? "Download the recording" : `Download ${f.name}`}
                 </a>
               ),
           )}

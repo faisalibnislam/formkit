@@ -213,7 +213,8 @@ type Payload = {
     id: string;
     submittedAt: string;
     respondent: { name: string | null; email: string | null };
-    answers: { key: string | null; question: string; type: string | null; value: string }[];
+    /** A file upload or voice recording also carries a link to the file. */
+    answers: { key: string | null; question: string; type: string | null; value: string; fileUrl?: string | null }[];
     calculations: Record<string, number>;
     payment: { status: string; amount: number; currency: string } | null;
   };
@@ -232,6 +233,18 @@ async function blocksOf(ctx: QueryCtx, formId: Id<"forms">) {
 
 function answerText(a: { value?: string; values?: string[]; fileName?: string }) {
   return a.values?.length ? a.values.join(", ") : (a.fileName ?? a.value ?? "");
+}
+
+/** Where to download each uploaded file and voice recording on these responses. */
+async function fileLinks(ctx: QueryCtx, rows: Doc<"responses">[]) {
+  const links = new Map<string, string>();
+  for (const r of rows)
+    for (const a of r.answers)
+      if (a.fileId && !links.has(a.fileId)) {
+        const url = await ctx.storage.getUrl(a.fileId);
+        if (url) links.set(a.fileId, url);
+      }
+  return links;
 }
 
 const EVENT = v.optional(v.union(v.literal("response.created"), v.literal("response.paid")));
@@ -253,6 +266,7 @@ export const payloadFor = internalQuery({
     ).filter((c) => c.enabled && c.kind !== "sheets");
     const allowed = [];
     for (const c of connections) if (await hasFeature(ctx, form, FEATURE[c.kind])) allowed.push(c._id);
+    const links = await fileLinks(ctx, [r]);
     const payload: Payload = {
       event: event ?? "response.created",
       form: { id: form._id, title: form.title },
@@ -265,6 +279,7 @@ export const payloadFor = internalQuery({
           question: a.question,
           type: byId.get(a.blockId)?.type ?? null,
           value: answerText(a),
+          ...(a.fileId ? { fileUrl: links.get(a.fileId) ?? null } : {}),
         })),
         calculations: r.calc ?? {},
         payment: r.payment ? { status: r.payment.status, amount: r.payment.amount, currency: r.payment.currency } : null,
@@ -355,7 +370,8 @@ function slackText(p: Payload) {
   const lines = p.response.answers
     .filter((a) => a.value)
     .slice(0, 8)
-    .map((a) => `*${a.question}*\n${a.value.slice(0, 300)}`);
+    // A file or voice recording links to itself, so it opens straight from Slack.
+    .map((a) => `*${a.question}*\n${a.fileUrl ? `<${a.fileUrl}|${a.type === "voice" ? "Play the recording" : a.value}>` : a.value.slice(0, 300)}`);
   if (p.event === "response.paid" && p.response.payment) {
     const pay = p.response.payment;
     const who = p.response.respondent.name ?? p.response.respondent.email ?? "Someone";
@@ -463,6 +479,7 @@ export const sheetRows = internalQuery({
       .sort((a, b) => a.submittedAt - b.submittedAt)
       .slice(-10_000);
     const calcNames = (form.calc ?? []).map((x) => x.name);
+    const links = await fileLinks(ctx, responses);
     const columns = ["Submitted", "Name", "Email", ...blocks.map((b) => b.title ?? "Question"), ...calcNames, "Payment"];
     const rows = responses.map((r) => {
       const byBlock = new Map(r.answers.map((a) => [a.blockId as string, a]));
@@ -472,6 +489,7 @@ export const sheetRows = internalQuery({
         r.respondentEmail ?? "",
         ...blocks.map((b) => {
           const a = byBlock.get(b._id);
+          if (a?.fileId) return links.get(a.fileId) ?? answerText(a);
           return a ? answerText(a) : "";
         }),
         ...calcNames.map((n) => (r.calc && n in r.calc ? String(r.calc[n]) : "")),

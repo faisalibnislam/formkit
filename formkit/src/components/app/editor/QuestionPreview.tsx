@@ -1,7 +1,8 @@
 "use client";
 
-import { ChevronDown, Paperclip, PenLine, Star } from "lucide-react";
+import { ChevronDown, Mic, Paperclip, PenLine, Star } from "lucide-react";
 import { fieldType } from "./fieldTypes";
+import { voiceLabel, voiceLength } from "../../../../convex/model/voice";
 
 /**
  * What a question looks like, drawn in the builder canvas.
@@ -14,11 +15,13 @@ export function QuestionPreview({
   options,
   scaleMin,
   scaleMax,
+  maxSeconds,
 }: {
   type: string | null;
   options?: string[] | null;
   scaleMin?: number | null;
   scaleMax?: number | null;
+  maxSeconds?: number | null;
 }) {
   const shape = fieldType(type).preview;
   const choices = (options ?? []).slice(0, 4);
@@ -93,6 +96,15 @@ export function QuestionPreview({
       <div className="fk-ghost" style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 18px", fontSize: 14, color: "var(--color-text-tertiary)" }}>
         <Paperclip size={16} strokeWidth={1.8} aria-hidden />
         A file upload
+      </div>
+    );
+  }
+
+  if (shape === "voice") {
+    return (
+      <div className="fk-ghost" style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 18px", fontSize: 14, color: "var(--color-text-tertiary)" }}>
+        <Mic size={16} strokeWidth={1.8} aria-hidden />
+        Record a voice answer, up to {voiceLabel(voiceLength(maxSeconds))}
       </div>
     );
   }

@@ -78,7 +78,19 @@ function formRow(f: Doc<"forms">, url: string | null) {
   };
 }
 
-function responseRow(r: Doc<"responses">, byId: Map<string, Doc<"blocks">>) {
+/** Links to every uploaded file and voice recording on these responses. */
+async function fileLinks(ctx: QueryCtx, rows: Doc<"responses">[]) {
+  const links = new Map<string, string>();
+  for (const r of rows)
+    for (const a of r.answers)
+      if (a.fileId && !links.has(a.fileId)) {
+        const url = await ctx.storage.getUrl(a.fileId);
+        if (url) links.set(a.fileId, url);
+      }
+  return links;
+}
+
+function responseRow(r: Doc<"responses">, byId: Map<string, Doc<"blocks">>, links: Map<string, string>) {
   return {
     id: r._id,
     formId: r.formId,
@@ -96,6 +108,7 @@ function responseRow(r: Doc<"responses">, byId: Map<string, Doc<"blocks">>) {
       key: byId.get(a.blockId)?.key ?? null,
       question: a.question,
       value: a.values?.length ? a.values : (a.fileName ?? a.value ?? null),
+      ...(a.fileId ? { fileUrl: links.get(a.fileId) ?? null } : {}),
     })),
     calculations: r.calc ?? {},
     payment: r.payment ? { status: r.payment.status, amount: r.payment.amount, currency: r.payment.currency } : null,
@@ -160,10 +173,11 @@ export const read = internalQuery({
         .slice(0, n + 1);
       const byId = new Map(fields.map((b) => [b._id as string, b]));
       const page = rows.slice(0, n);
+      const links = await fileLinks(ctx, page);
       return {
         status: 200,
         body: {
-          data: page.map((r) => responseRow(r, byId)),
+          data: page.map((r) => responseRow(r, byId, links)),
           hasMore: rows.length > n,
           next: rows.length > n ? page[page.length - 1]!.submittedAt : null,
         },
@@ -173,7 +187,7 @@ export const read = internalQuery({
     const r = responseId ? await ctx.db.get(responseId) : null;
     if (!r || r.ownerId !== ownerId || r.preview) return notFound;
     const fields = await fieldsOf(ctx, r.formId);
-    return { status: 200, body: responseRow(r, new Map(fields.map((b) => [b._id as string, b]))) };
+    return { status: 200, body: responseRow(r, new Map(fields.map((b) => [b._id as string, b])), await fileLinks(ctx, [r])) };
   },
 });
 

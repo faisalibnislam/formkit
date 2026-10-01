@@ -25,6 +25,7 @@ type Field = {
   scaleMin?: number;
   scaleMax?: number;
   accept?: string[];
+  maxSeconds?: number;
 };
 type PageBreak = { kind: "pagebreak"; pageName: string };
 export type TemplateBlock = Field | PageBreak;

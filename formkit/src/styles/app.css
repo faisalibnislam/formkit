@@ -6937,3 +6937,197 @@ html.fk-own-bar::-webkit-scrollbar {
   opacity: 0.6;
   pointer-events: none;
 }
+
+/* A voice recording question on the live form. Neutral tones come from the
+   form's own text colour, so it reads on light and dark themes alike. */
+.fk-voice {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 14px;
+  padding: 14px 16px;
+  background: color-mix(in srgb, currentColor 5%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 10%, transparent);
+  transition: box-shadow 0.2s ease;
+}
+.fk-voice[data-state="recording"] {
+  box-shadow: inset 0 0 0 1.5px var(--fk-voice);
+}
+.fk-voice-btn {
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--fk-voice);
+  color: var(--fk-voice-ink);
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.fk-voice-btn:hover {
+  transform: scale(1.05);
+}
+.fk-voice-btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.fk-voice-btn[data-stop]::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid var(--fk-voice);
+  animation: fk-voice-ring 1.4s ease-out infinite;
+}
+@keyframes fk-voice-ring {
+  from {
+    opacity: 0.8;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+.fk-voice-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 180px;
+  gap: 2px;
+}
+.fk-voice-copy b {
+  font-weight: 600;
+}
+.fk-voice-copy small,
+.fk-voice-note {
+  font-size: 0.86em;
+  opacity: 0.66;
+}
+.fk-voice-wave {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 3px;
+  min-width: 120px;
+  height: 40px;
+}
+.fk-voice-wave i {
+  flex: 1;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--fk-voice);
+  transform-origin: center;
+  transition: transform 0.1s linear;
+}
+.fk-voice-time {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 0.9em;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+.fk-voice-time b {
+  font-size: 1.15em;
+  font-weight: 600;
+  opacity: 1;
+}
+.fk-voice-time small {
+  font-size: 0.82em;
+  color: var(--red-600);
+}
+.fk-voice-bar {
+  flex-basis: 100%;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+.fk-voice-bar i {
+  display: block;
+  height: 100%;
+  background: var(--fk-voice);
+  transition: width 0.1s linear;
+}
+.fk-voice-play {
+  flex: 1;
+  min-width: 200px;
+  height: 40px;
+}
+.fk-voice-status {
+  font-size: 0.86em;
+  font-weight: 600;
+  color: var(--green-600);
+}
+.fk-voice[data-state="saving"] .fk-voice-status {
+  color: inherit;
+  opacity: 0.6;
+}
+.fk-voice-status[data-failed] {
+  color: var(--red-600);
+  opacity: 1;
+}
+.fk-voice-again {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  color: inherit;
+  font: inherit;
+  font-size: 0.88em;
+  cursor: pointer;
+}
+.fk-voice-again:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.fk-voice-problem {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88em;
+  color: var(--red-600);
+}
+.fk-voice-problem button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fk-voice-btn[data-stop]::after {
+    animation: none;
+  }
+  .fk-voice-wave i,
+  .fk-voice-bar i {
+    transition: none;
+  }
+}
+.fk-voice-status {
+  display: inline-flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+.fk-voice-status small {
+  font-weight: 400;
+  color: initial;
+  color: inherit;
+  opacity: 0.6;
+  font-variant-numeric: tabular-nums;
+}

@@ -1,4 +1,5 @@
 import { hasLimits, placesLeft, placesTaken } from "./model/places";
+import { isAudio, voiceLength } from "./model/voice";
 import { owed, takesPayment } from "./payments";
 import { ConvexError, v } from "convex/values";
 import { mutation, query, type MutationCtx } from "./_generated/server";
@@ -68,7 +69,7 @@ async function partialsOn(ctx: QueryCtx, ownerId: Id<"users">) {
 async function checkUploads(
   ctx: MutationCtx,
   form: Doc<"forms">,
-  answers: { fileId?: Id<"_storage"> }[],
+  answers: { blockId: Id<"blocks">; fileId?: Id<"_storage"> }[],
 ) {
   const capMb = PLANS[await planOfId(ctx, form)].uploadMb;
   for (const a of answers) {
@@ -77,6 +78,12 @@ async function checkUploads(
     if (meta && meta.size > capMb * 1024 * 1024) {
       await ctx.storage.delete(a.fileId);
       throw new ConvexError(`That file is over ${capMb} MB. Try a smaller one.`);
+    }
+    // A voice question only ever takes a recording.
+    const block = await ctx.db.get(a.blockId);
+    if (block?.type === "voice" && meta && !isAudio(meta.contentType)) {
+      await ctx.storage.delete(a.fileId);
+      throw new ConvexError("That recording could not be read. Try recording it again.");
     }
   }
 }
@@ -197,6 +204,7 @@ async function payload(ctx: QueryCtx, form: Doc<"forms">) {
       accept: b.accept ?? null,
       scaleMin: b.scaleMin ?? null,
       scaleMax: b.scaleMax ?? null,
+      maxSeconds: b.type === "voice" ? voiceLength(b.maxSeconds) : null,
       pageName: b.pageName ?? null,
       key: b.key ?? null,
       scores: smart.calc ? (b.scores ?? null) : null,
