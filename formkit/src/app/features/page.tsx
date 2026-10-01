@@ -9,7 +9,7 @@ import { FEATURE_PAGES, USE_CASES } from "@/content/features";
 import { SITE_URL } from "@/lib/site";
 
 const description =
-  "What Formkit does: build forms with AI, branch them with logic, grade quizzes, reply to answers with AI, take payments and connect your tools.";
+  "What Formkit does: drag-and-drop and AI form building, voice answers, logic, quizzes, AI replies, payments, custom domains, version history and connections.";
 
 export const metadata: Metadata = {
   title: "Features",

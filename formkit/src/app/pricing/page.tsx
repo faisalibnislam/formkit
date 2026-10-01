@@ -61,7 +61,7 @@ export const metadata: Metadata = {
 /** What every plan has, Free included. */
 const EVERYONE: { icon: typeof Check; title: string; line: string }[] = [
   { icon: Inbox, title: "Unlimited forms and responses", line: "No caps, no counting, no surprise upgrade." },
-  { icon: GitBranch, title: "Pages and conditional logic", line: "Sixteen question types, skips, shows and hides." },
+  { icon: GitBranch, title: "Pages and conditional logic", line: "Twenty question types, voice included, plus skips, shows and hides." },
   { icon: Palette, title: "Themes and your logo", line: "Colours, type and layout that look like you." },
   { icon: Link2, title: "Your own link", line: "formkit.app/you, embeds and QR codes." },
   { icon: Bell, title: "Notifications and routing", line: "The right answers to the right inbox." },

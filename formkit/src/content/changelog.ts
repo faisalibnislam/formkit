@@ -15,6 +15,22 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: "2026-10-01",
+    title: "Voice recordings",
+    tag: "New",
+    body: "A new Voice recording question lets people answer out loud. They press a button and talk, then listen back and record again if they want to before sending.",
+    points: [
+      "Choose the longest recording: 15 or 30 seconds, or 1, 2, 3 or 5 minutes.",
+      "A timer counts down, and the recording stops by itself at the limit.",
+      "If a browser cannot record, people can upload an audio file instead.",
+      "Recordings play right in the response. Exports, webhooks, Google Sheets and the API link to each one.",
+    ],
+    links: [
+      { label: "How voice recordings work", href: "/help/voice-recording" },
+      { label: "The form builder", href: "/features/builder" },
+    ],
+  },
+  {
     date: "2026-09-30",
     title: "37 templates, feature pages and more comparisons",
     tag: "New",

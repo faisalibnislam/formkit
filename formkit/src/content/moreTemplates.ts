@@ -22,6 +22,7 @@ const TYPES: Record<string, [string, string]> = {
   "multi-choice": ["Checkboxes", "list-checks"],
   "yes-no": ["Yes / no", "circle-dot"],
   file: ["File upload", "paperclip"],
+  voice: ["Voice recording", "mic"],
   scale: ["Scale", "sliders-horizontal"],
   rating: ["Rating", "star"],
   company: ["Company", "building-2"],

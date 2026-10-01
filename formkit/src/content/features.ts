@@ -68,7 +68,7 @@ export const FEATURE_PAGES: Story[] = [
     slug: "builder",
     name: "Drag-and-drop builder",
     title: "Drag a question in. Drop it where it goes.",
-    meta: "Formkit's form builder: drag fields onto the canvas, reorder questions by their grip, split long forms into pages, and undo anything. Free on every plan.",
+    meta: "Formkit's form builder: drag fields onto the canvas, reorder them by their grip, split long forms into pages, and take voice answers. Free on every plan.",
     kicker: "Form builder",
     lead: "Every question type in a library on the left, your form on the canvas in the middle. Drag a field in and a blue line shows where it lands. Drag a card by its grip to move it. That is most of it.",
     icon: "layout-template",
@@ -76,8 +76,13 @@ export const FEATURE_PAGES: Story[] = [
     sections: [
       {
         title: "Fields for everything a form asks",
-        body: "Contact fields that check the format as people type, short and long text, choices, ratings and scales, numbers, dates, addresses and file uploads.",
-        points: ["Name, email, phone, company, website", "Dropdown, single and multiple choice, yes/no", "Rating and numbered scale", "Date, time, address and file upload"],
+        body: "Contact fields that check the format as people type, short and long text, choices, ratings and scales, numbers, dates, addresses, file uploads and voice recordings.",
+        points: ["Name, email, phone, company, website", "Dropdown, single and multiple choice, yes/no", "Rating and numbered scale", "Date, time, address and file upload", "Voice recording, from 15 seconds to 5 minutes"],
+      },
+      {
+        title: "Answers people can say out loud",
+        body: "Add a Voice recording question and the people answering press a button and talk. They see a timer, can listen back, and can record again before they send it. You choose the longest recording, anywhere from 15 seconds to 5 minutes, and it plays right in the response.",
+        points: ["You pick the limit: 15 or 30 seconds, or 1, 2, 3 or 5 minutes", "Stops by itself at the limit", "Listen back and record again before sending", "Plays in the inbox; a link in exports"],
       },
       {
         title: "Move things by hand",
@@ -90,10 +95,11 @@ export const FEATURE_PAGES: Story[] = [
     ],
     steps: ["Create a form, or start from a template", "Drag fields from the library onto the canvas", "Reorder by the grip and add page breaks", "Pick a theme, then publish"],
     templates: ["contact-form", "client-onboarding", "event-registration"],
-    help: ["add-reorder", "field-types", "pages", "form-anatomy"],
+    help: ["add-reorder", "field-types", "voice-recording", "pages"],
     related: ["ai-form-builder", "logic"],
     faqs: [
       { q: "Is the builder free?", a: "Yes. Every question type, pages, logic, themes and your own link are on the free plan, with no limit on forms or responses." },
+      { q: "Can people answer by voice?", a: "Yes, on every plan. Add a Voice recording question and choose how long a recording can be, from 15 seconds to 5 minutes. People record in the browser and can listen back before they send it." },
       { q: "Can I undo a delete?", a: "Yes. Deleting a question shows an undo straight away. Deleting a question that a logic rule points at also removes that rule." },
       { q: "Can people work on a form together?", a: "Yes. Members of your company can edit it, and you can invite guests to one form: three on Free, as many as you like on Pro." },
     ],

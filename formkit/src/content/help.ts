@@ -85,8 +85,8 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "id": "field-types",
         "title": "Field types",
         "summary": "What each field collects and when to reach for it.",
-        "body": "The library groups fields by what they collect.\n- Contact: name, email, phone, company, website. These validate their format, so a mistyped address is caught before submission.\n- Text: short text for a line, long text for a paragraph.\n- Choice: dropdown, single choice, multiple choice, yes/no.\n- Scale: rating out of five, or a numbered scale.\n- Other: number, date, time, address, file upload.\n## Options\nChoice fields hold a list of options you edit in place. Press Enter to add the next one. A dropdown with more than about eight options is easier to fill in than a long list of radio buttons.\n## Help text\nEvery field takes optional help text below the question. Use it for the thing people always ask about, such as the format of a reference number, or what you mean by \"budget\".",
-        "updated": "2026-09-28"
+        "body": "The library groups fields by what they collect.\n- Contact: name, email, phone, company, website, address. These validate their format, so a mistyped address is caught before submission.\n- Text: short text for a line, long text for a paragraph, and number.\n- Time: date and time.\n- Choice: dropdown, single choice, multiple choice, yes/no.\n- Rating: stars out of five, or an opinion scale.\n- Upload: a file, a signature (they type their full name), or a voice recording they make in the browser.\n- Smart: a hidden field, filled from the link (Pro).\n## Options\nChoice fields hold a list of options you edit in place. Press Enter to add the next one. A dropdown with more than about eight options is easier to fill in than a long list of radio buttons.\n## Help text\nEvery field takes optional help text below the question. Use it for the thing people always ask about, such as the format of a reference number, or what you mean by \"budget\".",
+        "updated": "2026-10-01"
       },
       {
         "id": "required-fields",
@@ -106,8 +106,15 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "id": "file-uploads",
         "title": "File uploads",
         "summary": "Collecting documents, and the limits that apply.",
-        "body": "Add a File upload field and respondents get a drop zone they can drag onto or select to browse.\n## Size\nEach file can be up to 20 MB on Free, 150 MB on Pro and 250 MB on Business. The plan of the form's company decides. The limit is shown to the respondent under the drop zone, so nobody wastes time on a file that will be refused.\n## Accepted types\nLeave the accepted list blank to take anything. Otherwise, list extensions such as .pdf .png .docx and the picker filters to those.\n## Where files go\nUploaded files are attached to the response. Open the response in the inbox to preview or download them, and CSV exports include a link column rather than the file itself.",
-        "updated": "2026-09-29"
+        "body": "Add a File upload field and respondents get a drop zone they can drag onto or select to browse.\n## Size\nEach file can be up to 20 MB on Free, 150 MB on Pro and 250 MB on Business. The plan of the form's company decides. The limit is shown to the respondent under the drop zone, so nobody wastes time on a file that will be refused.\n## Accepted types\nLeave the accepted list blank to take anything. Otherwise, list extensions such as .pdf .png .docx and the picker filters to those.\n## Where files go\nUploaded files are attached to the response. Open the response in the inbox to download them. In a CSV or Excel export, each file is a link in its question's column rather than the file itself.\n> To collect a spoken answer instead of a file, use a Voice recording field.",
+        "updated": "2026-10-01"
+      },
+      {
+        "id": "voice-recording",
+        "title": "Voice recordings",
+        "summary": "Let people answer out loud, for up to five minutes.",
+        "body": "Add a Voice recording field from the Upload group in the library. The people answering press the button, speak, and stop. They can listen back and record again before they send the form.\n## How long\nSelect the question and choose Longest recording: 15 seconds, 30 seconds, 1 minute, 2 minutes, 3 minutes or 5 minutes. A timer shows how long is left, and the recording stops by itself when it reaches the limit.\n## The microphone\nThe browser asks for permission to use the microphone the first time. If it is blocked, or there is no microphone, the question offers to upload an audio file instead, so it can always be answered.\n## Size\nRecordings count as uploads, so the plan's upload size applies: 20 MB on Free, 150 MB on Pro and 250 MB on Business. A five-minute recording is around 3 MB, well inside every plan.\n## Listening to answers\nOpen the response in the inbox and the recording plays right under its question. Download it from the same place. In a CSV or Excel export, each recording is a link.\n## Required and logic\nMark it required and the form will not go on until there is a recording. In logic, a voice question can be checked for whether it was answered.\n> Voice recording is on every plan.",
+        "updated": "2026-10-01"
       }
     ],
     "group": "Build your form"
@@ -636,8 +643,8 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "id": "webhooks",
         "title": "Webhooks, Zapier and Make",
         "summary": "Every new response, as JSON, to an address of yours. Each one is signed so you know it came from Formkit.",
-        "body": "Open a form's Settings → Connections and choose Webhook. Paste the address that should receive each response. Zapier's “Catch Hook” trigger and Make's “Custom webhook” module both give you one.\n## What arrives\nA POST with the form, the respondent, every answer with its question and key, the calculations and any payment. The Formkit-Event header says response.created, response.paid or response.test.\n## Checking the signature\nWhen you add a webhook you are shown its secret once. Each delivery carries Formkit-Signature: t=…,v1=…, an HMAC-SHA256 of the timestamp and the body. The API page has code for checking it.\n## When a delivery fails\nFormkit tries again after a minute, then after ten. Recent deliveries, and what the other end answered, are listed under the connection. Send a test to set things up before real answers arrive.\n> Connections are part of Pro.",
-        "updated": "2026-09-28"
+        "body": "Open a form's Settings → Connections and choose Webhook. Paste the address that should receive each response. Zapier's “Catch Hook” trigger and Make's “Custom webhook” module both give you one.\n## What arrives\nA POST with the form, the respondent, every answer with its question and key, the calculations and any payment. A file upload or voice recording also carries a fileUrl to download it from. The Formkit-Event header says response.created, response.paid or response.test.\n## Checking the signature\nWhen you add a webhook you are shown its secret once. Each delivery carries Formkit-Signature: t=…,v1=…, an HMAC-SHA256 of the timestamp and the body. The API page has code for checking it.\n## When a delivery fails\nFormkit tries again after a minute, then after ten. Recent deliveries, and what the other end answered, are listed under the connection. Send a test to set things up before real answers arrive.\n> Connections are part of Pro.",
+        "updated": "2026-10-01"
       },
       {
         "id": "slack",
@@ -650,8 +657,8 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "id": "google-sheets",
         "title": "Keep a Google Sheet up to date",
         "summary": "A private link your sheet pulls from. Nothing to authorise.",
-        "body": "In a form's Settings → Connections, choose Google Sheets. Formkit makes a private link to the form's responses.\n## The quick way\nIn any cell of a sheet, type the =IMPORTDATA(\"…\") formula shown. Google refreshes it about once an hour.\n## Every few minutes\nUse the Apps Script instead: Extensions → Apps Script, paste the script Formkit gives you, then add a time-driven trigger.\n## Keep it private\nAnyone with the link can read the responses. If it gets out, make a new link and the old one stops working at once.\n> Google Sheets is part of Pro.",
-        "updated": "2026-09-28"
+        "body": "In a form's Settings → Connections, choose Google Sheets. Formkit makes a private link to the form's responses.\n## The quick way\nIn any cell of a sheet, type the =IMPORTDATA(\"…\") formula shown. Google refreshes it about once an hour. Uploaded files and voice recordings arrive as links.\n## Every few minutes\nUse the Apps Script instead: Extensions → Apps Script, paste the script Formkit gives you, then add a time-driven trigger.\n## Keep it private\nAnyone with the link can read the responses. If it gets out, make a new link and the old one stops working at once.\n> Google Sheets is part of Pro.",
+        "updated": "2026-10-01"
       },
       {
         "id": "payments",

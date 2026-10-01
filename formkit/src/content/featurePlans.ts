@@ -56,7 +56,7 @@ const LADDERS: Record<string, { free: string[]; pro: (FeatureKey | string)[]; bu
     business: ["api"],
   },
   builder: {
-    free: ["Every question type", "Pages and page breaks", "Drag, duplicate and undo", `${free.uploadMb} MB uploads`, `${free.collaborators} guests on each form`],
+    free: ["Every question type, voice recording included", "Pages and page breaks", "Drag, duplicate and undo", `${free.uploadMb} MB uploads`, `${free.collaborators} guests on each form`],
     pro: [`${pro.uploadMb} MB uploads`, "collaborators"],
     business: [`${business.uploadMb} MB uploads`, "templates.shared", "approvals"],
   },

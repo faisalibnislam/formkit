@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AtSign, Calendar, CircleDot, FileUp, GripVertical, Star, TextCursorInput } from "lucide-react";
+import { AtSign, CircleDot, FileUp, GripVertical, Mic, Star, TextCursorInput } from "lucide-react";
 import { SceneFrame, useInView, useReducedMotion, useStep, type SceneProps } from "@/components/site/scenes/shared";
 
 /**
@@ -16,7 +16,7 @@ const TILES = [
   { t: "File upload", icon: FileUp },
   { t: "Choice", icon: CircleDot },
   { t: "Rating", icon: Star },
-  { t: "Date", icon: Calendar },
+  { t: "Voice", icon: Mic },
 ];
 const DRAGGED = 2;
 

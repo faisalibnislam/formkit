@@ -48,6 +48,7 @@ export const API_DOCS: LegalSection[] = [
     title: "List responses",
     paras: [
       "GET /api/v1/forms/{id}/responses returns responses, oldest first. Add ?limit= (1–100, default 50) and page with ?after= set to the next value from the previous page. To poll for new ones, keep the last submittedAtMs you saw and pass it as after.",
+      "A file upload or voice recording answer has the file's name as its value and a fileUrl to download it from.",
     ],
     code: [
       `curl "https://formkit.app/api/v1/forms/k17a…/responses?limit=2" \\
@@ -64,7 +65,8 @@ export const API_DOCS: LegalSection[] = [
       "respondent": { "name": "Sam Taylor", "email": "sam@example.com", "phone": null, "company": null },
       "answers": [
         { "questionId": "m9x…", "key": "budget", "question": "What is your budget?", "value": "5000" },
-        { "questionId": "m9y…", "key": "services", "question": "What do you need?", "value": ["Brand", "Web"] }
+        { "questionId": "m9y…", "key": "services", "question": "What do you need?", "value": ["Brand", "Web"] },
+        { "questionId": "m9z…", "key": null, "question": "Tell us about the project", "value": "voice-recording-0m48s.webm", "fileUrl": "https://…" }
       ],
       "calculations": { "total": 42 },
       "payment": { "status": "paid", "amount": 2500, "currency": "usd" },
