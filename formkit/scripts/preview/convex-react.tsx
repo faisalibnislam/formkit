@@ -107,6 +107,10 @@ export function ConvexProvider({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+export function ConvexProviderWithAuth({ children }: { children: ReactNode; client?: unknown; useAuth?: unknown }) {
+  return <>{children}</>;
+}
+
 export function Authenticated({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }

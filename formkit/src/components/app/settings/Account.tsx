@@ -31,6 +31,7 @@ import { relativeTime } from "../bits";
 import { localZone, zoneOptions } from "../time";
 import { Panel, Row, SCORE_LABEL, errorText, passwordScore } from "./bits";
 import { PageSkeleton } from "../Skeleton";
+import { clearViewerHint } from "@/lib/viewerHint";
 
 type Viewer = NonNullable<ReturnType<typeof useViewer>>;
 function useViewer() {
@@ -698,6 +699,7 @@ function DeleteAccount({ onClose }: { onClose: () => void }) {
               setBusy(true);
               try {
                 await remove({ confirm: text });
+                clearViewerHint();
                 await signOut().catch(() => undefined);
                 router.push("/signin");
               } catch (e) {

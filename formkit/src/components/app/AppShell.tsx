@@ -48,6 +48,7 @@ import { EditorHeader } from "./EditorHeader";
 import { AvatarPill, ClientTab, TabSummary } from "./ds";
 import { SessionGate } from "./AccountGates";
 import { SETTINGS_TABS, settingsHref, settingsTabOf } from "./Settings";
+import { clearViewerHint } from "@/lib/viewerHint";
 
 /**
  * The signed-in shell.
@@ -683,6 +684,7 @@ function AppFrame({ children }: { children: ReactNode }) {
                       data-tone="danger"
                       onClick={() => {
                         setAccountOpen(false);
+                        clearViewerHint();
                         void signOut().then(() => router.push("/"));
                       }}
                     >

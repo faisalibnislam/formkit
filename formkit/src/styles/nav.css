@@ -303,3 +303,42 @@
   object-fit: cover;
   background: var(--neutral-100);
 }
+
+/* ---------- before the page knows who you are (src/lib/viewerHint.ts) ---------- */
+.fk-nav-out {
+  display: contents;
+}
+.fk-nav-hint {
+  display: none;
+}
+html[data-fk-viewer] .fk-nav-out {
+  display: none;
+}
+html[data-fk-viewer] .fk-nav-hint {
+  display: inline-flex;
+}
+.fk-nav-hint-face::before {
+  content: var(--fk-hint-initials, "");
+}
+html[data-fk-viewer="photo"] .fk-nav-hint-face {
+  background: var(--neutral-100) var(--fk-hint-img) center / cover no-repeat;
+}
+html[data-fk-viewer="photo"] .fk-nav-hint-face::before {
+  content: none;
+}
+.fk-nav-hint-name::before {
+  content: var(--fk-hint-name, "");
+}
+.fk-nav-hint .fk-plancoin {
+  display: none;
+}
+html[data-fk-plan="pro"] .fk-nav-hint .fk-plancoin[data-plan="pro"],
+html[data-fk-plan="business"] .fk-nav-hint .fk-plancoin[data-plan="business"] {
+  display: inline-grid;
+}
+html[data-fk-plan="pro"] .fk-nav-hint-face {
+  box-shadow: 0 0 0 2px var(--neutral-0), 0 0 0 3.5px #5aa9e6;
+}
+html[data-fk-plan="business"] .fk-nav-hint-face {
+  box-shadow: 0 0 0 2px var(--neutral-0), 0 0 0 3.5px #d9a13b;
+}

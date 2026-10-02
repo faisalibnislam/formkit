@@ -1,14 +1,11 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
-import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
-import { ConvexClientProvider } from "./ConvexClientProvider";
 import { ToastProvider } from "@/components/ui/Toast";
 import { SHARE_IMAGE, SITE_URL } from "@/lib/site";
 import "./globals.css";
 import { Suspense } from "react";
 import { NavProgress } from "@/components/site/NavProgress";
-import { SeedProvider } from "@/lib/seed";
-import { seedViewer } from "@/lib/seedServer";
+import { HINT_SCRIPT } from "@/lib/viewerHintScript";
 
 /**
  * Outfit is the single typeface: UI, display and the large-light numerals.
@@ -37,25 +34,27 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image", images: [SHARE_IMAGE] },
 };
 
-export default async function RootLayout({ children }: LayoutProps<"/">) {
-  // Who is signed in, fetched here so the first paint already shows them.
-  const first = await seedViewer();
+/**
+ * The shell every page shares. It reads nothing about the visitor, so the
+ * marketing pages under it can be built once and served from the CDN. Who is
+ * signed in is decided further down: the app's layout ((app)/layout.tsx) asks
+ * the server, the marketing layout ((site)/layout.tsx) asks from the browser,
+ * and the script below draws the remembered avatar before the first paint.
+ */
+export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <ConvexAuthNextjsServerProvider>
-      {/* English (US) only, deliberately - the language picker was removed
-          rather than left in place offering translations that do not exist. */}
-      <html lang="en-US" className={outfit.variable} suppressHydrationWarning>
-        <body>
-          <Suspense fallback={null}>
-            <NavProgress />
-          </Suspense>
-          <ConvexClientProvider>
-            <SeedProvider seeds={first.seeds} clock={first.clock}>
-              <ToastProvider>{children}</ToastProvider>
-            </SeedProvider>
-          </ConvexClientProvider>
-        </body>
-      </html>
-    </ConvexAuthNextjsServerProvider>
+    // English (US) only, deliberately - the language picker was removed
+    // rather than left in place offering translations that do not exist.
+    <html lang="en-US" className={outfit.variable} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: HINT_SCRIPT }} />
+      </head>
+      <body>
+        <Suspense fallback={null}>
+          <NavProgress />
+        </Suspense>
+        <ToastProvider>{children}</ToastProvider>
+      </body>
+    </html>
   );
 }

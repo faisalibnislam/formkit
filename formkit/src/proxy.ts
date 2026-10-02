@@ -97,14 +97,19 @@ export const proxy = convexAuthNextjsMiddleware(async (request, { convexAuth }) 
     return nextjsMiddlewareRedirect(request, VIEWS[view]);
   }
 
+  // Asking Convex costs a round trip, so only where the answer matters. The
+  // marketing pages are static and find out in the browser (SiteSession).
+  const gated = isSignedInOnly(request);
+  const authPage = isAuthPage(request);
+  if (!gated && !authPage) return;
   const authed = await convexAuth.isAuthenticated();
 
-  if (isSignedInOnly(request) && !authed) {
+  if (gated && !authed) {
     const next = encodeURIComponent(request.nextUrl.pathname + request.nextUrl.search);
     return nextjsMiddlewareRedirect(request, `/signin?next=${next}`);
   }
 
-  if (isAuthPage(request) && authed) {
+  if (authPage && authed) {
     return nextjsMiddlewareRedirect(request, "/app");
   }
 });

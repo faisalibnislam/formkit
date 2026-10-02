@@ -5,8 +5,8 @@ import { SeedProvider } from "@/lib/seed";
 import { seedQueries, seedViewer } from "@/lib/seedServer";
 import { headers } from "next/headers";
 import type { FunctionReference } from "convex/server";
-import type { Id } from "../../../convex/_generated/dataModel";
-import { api } from "../../../convex/_generated/api";
+import type { Id } from "@convex/_generated/dataModel";
+import { api } from "@convex/_generated/api";
 
 export const metadata: Metadata = {
   title: { default: "Formkit", template: "%s | Formkit" },

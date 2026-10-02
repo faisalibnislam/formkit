@@ -10,6 +10,7 @@ import { api } from "../../../convex/_generated/api";
 import { NightSky } from "@/components/brand/NightSky";
 import { Logo } from "@/components/brand/Logo";
 import { Button, Field, Input } from "@/components/ui";
+import { clearViewerHint } from "@/lib/viewerHint";
 
 /**
  * The two screens that stand between a signed-in session and the app: the
@@ -184,6 +185,7 @@ export function SessionGate({ children }: { children: ReactNode }) {
   const { signOut } = useAuthActions();
   const router = useRouter();
   const leave = () => {
+    clearViewerHint();
     void signOut().then(() => router.push("/signin"));
   };
   if (viewer?.suspended) return <SuspendedGate onSignOut={leave} />;

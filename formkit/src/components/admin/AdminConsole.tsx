@@ -41,6 +41,7 @@ import { AdminRevenue } from "./sections/AdminRevenue";
 import { AdminAiCost } from "./sections/AdminAiCost";
 import { AdminBilling } from "./sections/AdminBilling";
 import { AdminAudit } from "./sections/AdminAudit";
+import { clearViewerHint } from "@/lib/viewerHint";
 
 /**
  * formkit.app/admin.
@@ -316,6 +317,7 @@ export function AdminConsole() {
               } catch {
                 /* nothing to clear */
               }
+              clearViewerHint();
               await signOut();
               router.push("/");
             }}

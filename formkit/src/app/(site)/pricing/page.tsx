@@ -38,7 +38,7 @@ import { ConnectScene } from "@/components/site/scenes/ConnectScene";
 import { JsonLd, breadcrumb, faqPage, softwareApp } from "@/components/site/JsonLd";
 import { SITE_URL } from "@/lib/site";
 import { PER_SEAT_NOTE } from "@/components/plan/PlanCards";
-import { CREDIT_COST, FEATURES, PLANS, type Feature, type PlanId } from "../../../convex/model/plans";
+import { CREDIT_COST, FEATURES, PLANS, type Feature, type PlanId } from "@convex/model/plans";
 
 const TITLE = "Pricing: Free, Pro and Business";
 const DESCRIPTION =

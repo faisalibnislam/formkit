@@ -1,6 +1,6 @@
 "use client";
 
-import { useViewer } from "@/lib/seed";
+import { useNavAccount } from "@/components/site/navAccount";
 import { ContactSupport } from "@/components/support/ContactSupport";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
@@ -11,8 +11,8 @@ import { ArrowRight } from "lucide-react";
  * somebody who already has one to sign up.
  */
 export function HelpCta() {
-  const viewer = useViewer();
-  const signedIn = Boolean(viewer);
+  const account = useNavAccount();
+  const signedIn = Boolean(account) && account !== "unknown";
   return (
     <div className="fk-help-cta">
       <div>

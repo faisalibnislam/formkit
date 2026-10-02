@@ -1,12 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { PlanAvatar, PlanChip } from "@/components/plan/PlanBadge";
-import { useRouter } from "next/navigation";
+import { PlanAvatar, PlanBadge, PlanChip } from "@/components/plan/PlanBadge";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronDown, LayoutGrid, LifeBuoy, LogOut, Mail, Menu, X } from "lucide-react";
-import { useAuthActions } from "@convex-dev/auth/react";
-import { useViewer } from "@/lib/seed";
+import { useNavAccount, signOutEverywhere } from "@/components/site/navAccount";
 import { Logo } from "@/components/brand/Logo";
 import { NAV_LINKS, type NavKey } from "@/lib/site";
 
@@ -32,9 +30,7 @@ export function SiteNav({ current }: { current?: NavKey }) {
   // The section links, on a screen too narrow to show them in the bar.
   const [sectionsOpen, setSectionsOpen] = useState(false);
 
-  const viewer = useViewer();
-  const { signOut } = useAuthActions();
-  const router = useRouter();
+  const account = useNavAccount();
 
   useEffect(() => {
     const measure = () => {
@@ -100,18 +96,11 @@ export function SiteNav({ current }: { current?: NavKey }) {
 
   const onSignOut = useCallback(async () => {
     setMenuOpen(false);
-    await signOut();
-    router.push("/");
-  }, [signOut, router]);
+    await signOutEverywhere();
+  }, []);
 
+  const viewer = account === "unknown" ? null : account;
   const signedIn = !!viewer;
-  const initials =
-    (viewer?.name ?? "")
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((w) => w[0]!.toUpperCase())
-      .join("") || "FK";
 
   return (
     <header
@@ -185,12 +174,12 @@ export function SiteNav({ current }: { current?: NavKey }) {
             aria-expanded={menuOpen}
             aria-label="Account menu"
           >
-            <PlanAvatar plan={viewer.plan?.id}>
+            <PlanAvatar plan={viewer.plan}>
               {viewer.image ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img className="fk-nav-initials fk-nav-avatar" src={viewer.image} alt="" />
               ) : (
-                <span className="fk-nav-initials">{initials}</span>
+                <span className="fk-nav-initials">{viewer.initials}</span>
               )}
             </PlanAvatar>
             <span className="fk-nav-name">{viewer.name}</span>
@@ -225,7 +214,7 @@ export function SiteNav({ current }: { current?: NavKey }) {
                 >
                   {viewer.email}
                 </span>
-                <PlanChip plan={viewer.plan?.id} />
+                <PlanChip plan={viewer.plan} />
               </span>
               <span className="fk-nav-menu-rule" />
               <Link href="/app" role="menuitem" className="fk-nav-menu-item">
@@ -253,16 +242,45 @@ export function SiteNav({ current }: { current?: NavKey }) {
             </span>
           )}
         </span>
-      ) : (
+      ) : account === "unknown" ? (
+        // Not known yet (the page is static). Both are drawn and CSS picks
+        // one from the note the <head> script read: the avatar for someone
+        // remembered as signed in, "Sign in" for everyone else. No flash
+        // either way. See src/lib/viewerHint.ts.
         <>
-          <Link href="/signin" className="fk-nav-signin">
-            Sign in
-          </Link>
-          <Link href="/signup" className="fk-nav-signup">
-            Sign up
-          </Link>
+          <span className="fk-nav-out">
+            <SignedOutLinks />
+          </span>
+          <span className="fk-nav-account fk-nav-hint">
+            <Link href="/app" className="fk-nav-capsule" aria-label="Your dashboard">
+              <span className="fk-planavatar">
+                <span className="fk-nav-initials fk-nav-hint-face" />
+                <PlanBadge plan="pro" />
+                <PlanBadge plan="business" />
+              </span>
+              <span className="fk-nav-name fk-nav-hint-name" />
+              <span className="fk-nav-caret">
+                <ChevronDown size={15} strokeWidth={1.8} aria-hidden />
+              </span>
+            </Link>
+          </span>
         </>
+      ) : (
+        <SignedOutLinks />
       )}
     </header>
+  );
+}
+
+function SignedOutLinks() {
+  return (
+    <>
+      <Link href="/signin" className="fk-nav-signin">
+        Sign in
+      </Link>
+      <Link href="/signup" className="fk-nav-signup">
+        Sign up
+      </Link>
+    </>
   );
 }
