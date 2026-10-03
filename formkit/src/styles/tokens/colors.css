@@ -8,8 +8,8 @@
 --neutral-200:#e0e2e4;  /* hairline, inactive chart ticks */
 --neutral-300:#c9ced2;
 --neutral-400:#a9b0b6;  /* placeholder */
---neutral-500:#8d949b;  /* muted label grey */
---neutral-600:#6d747a;
+--neutral-500:#6a7177;  /* muted label grey: 4.5:1 on white, paper and chip grey */
+--neutral-600:#5f666c;  /* secondary text: 4.5:1 on every light surface */
 --neutral-700:#4d5358;
 --neutral-800:#3a3f44;
 --neutral-900:#21282E;  /* primary ink + dark pill - Formkit’s one dark */

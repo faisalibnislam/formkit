@@ -201,7 +201,7 @@
 .fk-price-was {
   font-size: 20px;
   font-weight: 300;
-  color: var(--neutral-400);
+  color: var(--neutral-500);
 }
 .fk-price-card[data-plan="pro"] .fk-price-was {
   color: rgba(255, 255, 255, 0.45);

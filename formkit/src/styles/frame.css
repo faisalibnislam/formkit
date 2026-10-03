@@ -2,16 +2,6 @@
    the paper background, each ringed in 25% sky blue.
    Handoff README → "Page frame". */
 
-/* Body greys on the public pages, a shade firmer than the design tokens: the
-   pale blue and grey grounds here put the token greys just under the 4.5:1
-   that small text needs (WCAG AA). The difference is not visible. */
-.fk-page,
-.fk-landing {
-  --neutral-600: #696f75;
-  --neutral-700: #4c5257;
-  --color-text-secondary: #696f75;
-}
-
 :root {
   --fk-gutter: clamp(10px, 1.5vw, 20px);
   --fk-gap: clamp(10px, 1.5vw, 20px);

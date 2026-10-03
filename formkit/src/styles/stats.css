@@ -102,6 +102,11 @@
 [data-tone="dark"] .fk-an-stat-row small {
   color: rgba(255, 255, 255, 0.62);
 }
+/* On the sky card the body grey falls under 4.5:1; one step darker clears it. */
+[data-tone="blue"] .fk-an-stat-label,
+[data-tone="blue"] .fk-an-stat-row small {
+  color: var(--neutral-800);
+}
 .fk-an-stat-row {
   display: flex;
   align-items: center;

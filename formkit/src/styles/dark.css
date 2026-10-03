@@ -24,7 +24,7 @@ html[data-app-theme="dark"] {
   --neutral-200: #35414a;
   --neutral-300: #46525c;
   --neutral-400: #66717b;
-  --neutral-500: #87919a;
+  --neutral-500: #8d979f;
   --neutral-600: #a4adb4;
   --neutral-700: #c0c7cc;
   --neutral-800: #d7dce0;
@@ -76,8 +76,8 @@ html[data-app-theme="dark"] .fk-live {
   --neutral-200: #e0e2e4;
   --neutral-300: #c9ced2;
   --neutral-400: #a9b0b6;
-  --neutral-500: #8d949b;
-  --neutral-600: #6d747a;
+  --neutral-500: #6a7177;
+  --neutral-600: #5f666c;
   --neutral-700: #4d5358;
   --neutral-800: #3a3f44;
   --neutral-900: #21282e;

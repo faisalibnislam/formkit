@@ -578,7 +578,7 @@
 .fk-drop-q em {
   margin-right: 4px;
   font-style: normal;
-  color: var(--neutral-400);
+  color: var(--neutral-500);
 }
 .fk-drop-bar {
   grid-column: 1;
