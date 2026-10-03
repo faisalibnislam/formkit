@@ -8,6 +8,7 @@ import { FLAGS, isFlagKey } from "./model/flags";
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { lastDays } from "./adminTally";
+import { scanPage } from "./model/scan";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
   PERMS,
@@ -153,7 +154,7 @@ const OPEN_CAP = 500;
 /** Refresh waits this long after the last count before counting again. */
 const REFRESH_EVERY_MS = 60_000;
 
-/** Count the overview's numbers again now, rather than at the next hourly run. */
+/** Count the overview's numbers and the reports again now, rather than at the next hourly run. */
 export const refreshOverview = mutation({
   args: {},
   returns: v.null(),
@@ -167,6 +168,7 @@ export const refreshOverview = mutation({
     if (job) await ctx.db.patch(job._id, { at: Date.now() });
     else await ctx.db.insert("jobs", { key: "adminTally", cursor: null, done: false, at: Date.now() });
     await ctx.scheduler.runAfter(0, internal.adminTally.run, {});
+    await ctx.scheduler.runAfter(0, internal.adminReports.run, {});
     return null;
   },
 });
@@ -193,11 +195,14 @@ function localAiLimit(
 /* Users                                                               */
 /* ------------------------------------------------------------------ */
 
+/** Forms counted per person, at most; past it the count says "+". */
+const FORMS_COUNTED = 2000;
+
 async function describeUser(ctx: Parameters<typeof aiStatus>[0], u: Doc<"users">) {
   const forms = await ctx.db
     .query("forms")
     .withIndex("by_owner", (q) => q.eq("ownerId", u._id))
-    .collect();
+    .take(FORMS_COUNTED);
   return {
     _id: u._id,
     name: u.name ?? "",
@@ -208,6 +213,8 @@ async function describeUser(ctx: Parameters<typeof aiStatus>[0], u: Doc<"users">
     deactivatedAt: u.deactivatedAt ?? null,
     forms: forms.filter((f) => !f.deletedAt).length,
     responses: forms.reduce((n, f) => n + f.responsesCount, 0),
+    /** More forms than were counted. */
+    formsMore: forms.length === FORMS_COUNTED,
     ai: {
       allowed: await aiAllowed(ctx, u._id),
       ...(await (async () => {
@@ -226,29 +233,20 @@ async function describeUser(ctx: Parameters<typeof aiStatus>[0], u: Doc<"users">
   };
 }
 
-export const users = query({
-  args: { search: v.optional(v.string()), only: v.optional(v.string()) },
-  handler: async (ctx, { search, only }) => {
-    await requireStaff(ctx, "users.view");
-    const term = search?.trim().toLowerCase();
-    const rows = (await ctx.db.query("users").collect())
-      .filter((u) =>
-        term
-          ? `${u.name ?? ""} ${u.email ?? ""} ${u.handle ?? ""}`.toLowerCase().includes(term)
-          : true,
-      )
-      .sort((a, b) => b._creationTime - a._creationTime);
-
-    const described = await Promise.all(rows.map((u) => describeUser(ctx, u)));
-    if (only === "ai") return described.filter((u) => u.ai.allowed);
-    if (only === "suspended") return described.filter((u) => u.deactivatedAt);
-    return described;
-  },
-});
+/** People on one page of Admin → Users. */
+const USERS_PAGE = 20;
+/** Accounts read for one page at most; past it the pager carries on from there. */
+const USERS_SCAN = 2000;
+/** A short list (suspended, staff, AI turned off, a search) is read whole up to this. */
+const USERS_SET = 2000;
+/** Matches a search gathers from each place it looks. */
+const SEARCH_EACH = 100;
 
 /**
- * One page of people, filtered. The sort is newest first, and the total is of
- * everybody who matches, so the pager can say "21–40 of 10,020".
+ * One page of people, filtered, newest first. Everyone is read a stretch at a
+ * time through the sign-up order; the short lists (suspended, staff, AI
+ * turned off, a search) through their own index. The total is known for
+ * everybody (from the hourly count) and for the short lists.
  */
 export const usersPage = query({
   args: {
@@ -258,43 +256,116 @@ export const usersPage = query({
     plan: v.optional(
       v.union(v.literal("all"), v.literal("free"), v.literal("pro"), v.literal("business"), v.literal("paying"), v.literal("comped")),
     ),
-    page: v.optional(v.number()),
+    cursor: v.optional(v.union(v.string(), v.null())),
   },
-  handler: async (ctx, { search, status = "all", ai = "all", plan = "all", page = 0 }) => {
+  handler: async (ctx, { search, status = "all", ai = "all", plan = "all", cursor = null }) => {
     await requireStaff(ctx, "users.view");
-    const PAGE = 20;
     const term = search?.trim().toLowerCase();
-    const allowed = new Set(
-      (await ctx.db.query("aiAccess").collect()).filter((a) => a.enabled).map((a) => a.userId as string),
-    );
-    const rows = (await ctx.db.query("users").collect())
-      .filter((u) => (term ? `${u.name ?? ""} ${u.email ?? ""} ${u.handle ?? ""}`.toLowerCase().includes(term) : true))
-      .filter((u) =>
-        status === "active"
-          ? !u.deactivatedAt && !u.staffRole
-          : status === "suspended"
-            ? Boolean(u.deactivatedAt)
-            : status === "staff"
-              ? Boolean(u.staffRole)
-              : true,
-      )
-      .filter((u) => (ai === "on" ? allowed.has(u._id) : ai === "off" ? !allowed.has(u._id) : true))
-      .filter((u) =>
-        plan === "all"
-          ? true
-          : plan === "comped"
-            ? !!compOf(u)
-            : plan === "paying"
-              ? planOf(u) !== "free" && !compOf(u)
-              : planOf(u) === plan,
-      )
-      .sort((a, b) => b._creationTime - a._creationTime);
-    const at = Math.max(0, Math.min(page, Math.max(0, Math.ceil(rows.length / PAGE) - 1)));
+    // Ask Formkit is on unless staff turned it off for someone.
+    const aiOff = async (u: Doc<"users">) =>
+      (
+        await ctx.db
+          .query("aiAccess")
+          .withIndex("by_user", (q) => q.eq("userId", u._id))
+          .unique()
+      )?.enabled === false;
+    const keep = async (u: Doc<"users">) => {
+      if (status === "active" && (u.deactivatedAt || u.staffRole)) return null;
+      if (status === "suspended" && !u.deactivatedAt) return null;
+      if (status === "staff" && !u.staffRole) return null;
+      if (plan === "comped" && !compOf(u)) return null;
+      if (plan === "paying" && (planOf(u) === "free" || compOf(u))) return null;
+      if ((plan === "free" || plan === "pro" || plan === "business") && planOf(u) !== plan) return null;
+      if (ai !== "all" && (await aiOff(u)) !== (ai === "off")) return null;
+      return u;
+    };
+
+    // The short lists, read whole and paged here.
+    let set: Doc<"users">[] | null = null;
+    let capped = false;
+    if (term) {
+      const raw = search!.trim();
+      const upTo = `${term}\uffff`;
+      const found = new Map<string, Doc<"users">>();
+      const lists = [
+        await ctx.db
+          .query("users")
+          .withSearchIndex("search_name", (q) => q.search("name", raw))
+          .take(SEARCH_EACH),
+        await ctx.db
+          .query("users")
+          .withIndex("email", (q) => q.gte("email", term).lt("email", upTo))
+          .take(SEARCH_EACH),
+        await ctx.db
+          .query("users")
+          .withIndex("by_handle", (q) => q.gte("handle", term).lt("handle", upTo))
+          .take(SEARCH_EACH),
+      ];
+      capped = lists.some((l) => l.length === SEARCH_EACH);
+      for (const u of lists.flat()) found.set(u._id, u);
+      set = [...found.values()];
+      const id = ctx.db.normalizeId("users", raw);
+      const exact = id ? await ctx.db.get(id) : null;
+      if (exact && !found.has(exact._id)) set.push(exact);
+    } else if (status === "suspended") {
+      set = await ctx.db
+        .query("users")
+        .withIndex("by_deactivated", (q) => q.gt("deactivatedAt", 0))
+        .take(USERS_SET);
+      capped = set.length === USERS_SET;
+    } else if (status === "staff") {
+      set = (
+        await ctx.db
+          .query("users")
+          .withIndex("by_staff", (q) => q.gt("staffRole", undefined))
+          .take(USERS_SET)
+      ).filter((u) => u.staffRole);
+      capped = set.length === USERS_SET;
+    } else if (ai === "off") {
+      const rows = await ctx.db.query("aiAccess").take(USERS_SET);
+      capped = rows.length === USERS_SET;
+      const off = rows.filter((a) => a.enabled === false);
+      set = (await Promise.all(off.map((a) => ctx.db.get(a.userId)))).filter((u): u is Doc<"users"> => !!u);
+    }
+
+    let rows: Doc<"users">[];
+    let next: string | null;
+    let total: number | null = null;
+    if (set) {
+      const matched: Doc<"users">[] = [];
+      for (const u of set) if (await keep(u)) matched.push(u);
+      matched.sort((a, b) => b._creationTime - a._creationTime);
+      const at = cursor ? Number(cursor) : 0;
+      rows = matched.slice(at, at + USERS_PAGE);
+      next = at + USERS_PAGE < matched.length ? String(at + USERS_PAGE) : null;
+      total = capped ? null : matched.length;
+    } else {
+      const before = cursor ? Number(cursor) : null;
+      const page = await scanPage(
+        ctx.db
+          .query("users")
+          .withIndex("by_creation_time", (q) => (before === null ? q : q.lt("_creationTime", before)))
+          .order("desc"),
+        keep,
+        (u) => String(u._creationTime),
+        USERS_PAGE,
+        USERS_SCAN,
+      );
+      rows = page.rows;
+      next = page.next;
+      if (status === "all" && ai === "all" && plan === "all") {
+        const snap = await ctx.db
+          .query("adminSnapshot")
+          .withIndex("by_key", (q) => q.eq("key", "overview"))
+          .unique();
+        total = snap?.users ?? null;
+      }
+    }
     return {
-      total: rows.length,
-      page: at,
-      pageSize: PAGE,
-      rows: await Promise.all(rows.slice(at * PAGE, at * PAGE + PAGE).map((u) => describeUser(ctx, u))),
+      total,
+      next,
+      pageSize: USERS_PAGE,
+      rows: await Promise.all(rows.map((u) => describeUser(ctx, u))),
     };
   },
 });

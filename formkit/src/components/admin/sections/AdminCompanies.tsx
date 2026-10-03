@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAction, useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { ChevronLeft, ChevronRight, Gift, Search, Sparkles, UserRound, X } from "lucide-react";
+import { Gift, Search, Sparkles, UserRound, X } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import { PLANS, type PlanId } from "../../../../convex/model/plans";
@@ -14,6 +14,8 @@ import { StatCard } from "@/components/app/ds";
 import { OwnerMark } from "@/components/app/owners";
 import { fullTime, relativeTime } from "@/components/app/bits";
 import { errorText } from "@/components/app/settings/bits";
+import { Counted } from "./Counted";
+import { CursorPager, useCursorPages } from "./CursorPager";
 
 /**
  * Companies. Every company on Formkit, personal ones included: who owns it,
@@ -39,7 +41,6 @@ export function AdminCompanies({ permissions }: { permissions: string[] }) {
   const router = useRouter();
   const params = useSearchParams();
   const [term, setTerm] = useState("");
-  const [page, setPage] = useState(0);
 
   const kind = (params.get("kind") as Kind | null) ?? "all";
   const plan = (params.get("plan") as PlanFilter | null) ?? "all";
@@ -56,10 +57,8 @@ export function AdminCompanies({ permissions }: { permissions: string[] }) {
     }
     router.replace(`/admin?${q}`, { scroll: false });
   };
-  const filter = (next: Record<string, string | null>) => {
-    setPage(0);
-    setParam(next);
-  };
+  const filter = (next: Record<string, string | null>) => setParam(next);
+  const pages = useCursorPages(JSON.stringify([term, kind, plan, sort, owner]));
 
   const data = useQuery(api.adminCompanies.list, {
     search: term || undefined,
@@ -67,7 +66,7 @@ export function AdminCompanies({ permissions }: { permissions: string[] }) {
     plan,
     sort,
     owner: owner ?? undefined,
-    page,
+    cursor: pages.cursor,
   });
   const filtered = Boolean(term) || kind !== "all" || plan !== "all" || Boolean(owner);
   const s = data?.summary;
@@ -75,6 +74,7 @@ export function AdminCompanies({ permissions }: { permissions: string[] }) {
 
   return (
     <>
+      <Counted asOf={data?.asOf} />
       <div className="fk-grid" data-cols="stats-sm">
         <StatCard
           label="Companies"
@@ -150,10 +150,7 @@ export function AdminCompanies({ permissions }: { permissions: string[] }) {
           <span className="fk-toolbar-spacer" />
           <Input
             value={term}
-            onChange={(e) => {
-              setTerm(e.target.value);
-              setPage(0);
-            }}
+            onChange={(e) => setTerm(e.target.value)}
             placeholder="Search companies, links or owners"
             icon={<Search size={17} strokeWidth={1.8} aria-hidden />}
             style={{ width: 280 }}
@@ -176,7 +173,7 @@ export function AdminCompanies({ permissions }: { permissions: string[] }) {
 
       <div className="fk-resp-layout">
         <section className="fk-panel" data-pad="none">
-          {data && data.total === 0 ? (
+          {data && data.rows.length === 0 && !data.next && !pages.canBack ? (
             <div style={{ padding: 24 }}>
               <EmptyState
                 title="No companies match"
@@ -230,6 +227,7 @@ export function AdminCompanies({ permissions }: { permissions: string[] }) {
                       </td>
                       <td>
                         {c.forms.toLocaleString()}
+                        {c.formsMore ? "+" : ""}
                         <span className="fk-admin-sub">{c.responses.toLocaleString()} responses</span>
                       </td>
                     </tr>
@@ -258,32 +256,7 @@ export function AdminCompanies({ permissions }: { permissions: string[] }) {
                 ))}
               </div>
 
-              {data && (
-                <div className="fk-admin-pager">
-                  <span style={{ flex: 1 }}>
-                    {(data.page * data.pageSize + 1).toLocaleString()}–
-                    {Math.min(data.total, (data.page + 1) * data.pageSize).toLocaleString()} of {data.total.toLocaleString()}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={data.page === 0}
-                    iconLeft={<ChevronLeft size={15} strokeWidth={1.8} aria-hidden />}
-                    onClick={() => setPage(data.page - 1)}
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={(data.page + 1) * data.pageSize >= data.total}
-                    iconRight={<ChevronRight size={15} strokeWidth={1.8} aria-hidden />}
-                    onClick={() => setPage(data.page + 1)}
-                  >
-                    Next
-                  </Button>
-                </div>
-              )}
+              {data && <CursorPager pages={pages} shown={data.rows.length} next={data.next} total={data.total} />}
             </>
           )}
         </section>

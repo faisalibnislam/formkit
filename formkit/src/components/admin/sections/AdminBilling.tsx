@@ -5,6 +5,7 @@ import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Badge, Button, Field, Input } from "@/components/ui";
 import { StatCard } from "@/components/app/ds";
+import { relativeTime } from "@/components/app/bits";
 import { useToast } from "@/components/ui/Toast";
 import { errorText } from "@/components/app/settings/bits";
 
@@ -48,10 +49,10 @@ export function AdminBilling() {
   return (
     <>
       <div className="fk-grid" data-cols="stats-sm">
-        <StatCard label="Paying accounts" value={status ? status.counts.paying.toLocaleString() : "-"} />
-        <StatCard label="Monthly revenue" value={status ? `$${status.mrr.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "-"} caption="Yearly plans counted by the month" />
-        <StatCard label="On Pro" value={status ? status.counts.pro.toLocaleString() : "-"} />
-        <StatCard label="On Business" value={status ? status.counts.business.toLocaleString() : "-"} caption={status?.counts.comped ? `${status.counts.comped} given free` : undefined} />
+        <StatCard label="Paying accounts" value={status?.counts ? status.counts.paying.toLocaleString() : "-"} />
+        <StatCard label="Monthly revenue" value={status?.mrr != null ? `$${status.mrr.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "-"} caption={status?.asOf ? `Yearly plans counted by the month · counted ${relativeTime(status.asOf)}` : "Yearly plans counted by the month"} />
+        <StatCard label="On Pro" value={status?.counts ? status.counts.pro.toLocaleString() : "-"} />
+        <StatCard label="On Business" value={status?.counts ? status.counts.business.toLocaleString() : "-"} caption={status?.counts?.comped ? `${status.counts.comped} given free` : undefined} />
       </div>
 
       <section className="fk-panel">

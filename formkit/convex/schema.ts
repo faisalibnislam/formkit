@@ -204,7 +204,12 @@ export default defineSchema({
     .index("by_self_deleted", ["selfDeletedAt"])
     .index("by_polar_customer", ["polarCustomerId"])
     .index("by_retention", ["retentionDays"])
-    .index("by_sso_domain", ["sso.domain"]),
+    .index("by_sso_domain", ["sso.domain"])
+    // Admin → Users and Companies: by name, suspended, staff, and a name search.
+    .index("by_name", ["name"])
+    .index("by_deactivated", ["deactivatedAt"])
+    .index("by_staff", ["staffRole"])
+    .searchIndex("search_name", { searchField: "name" }),
 
   companies: defineTable({
     ownerId: v.id("users"),
@@ -248,7 +253,10 @@ export default defineSchema({
   })
     .index("by_owner", ["ownerId"])
     .index("by_handle", ["handle"])
-    .index("by_subscription", ["polarSubscriptionId"]),
+    .index("by_subscription", ["polarSubscriptionId"])
+    // Admin → Companies: by name, and a name search.
+    .index("by_name", ["name"])
+    .searchIndex("search_name", { searchField: "name" }),
 
   /**
    * One claim path for every identity's public link, so the same name cannot be
@@ -1195,6 +1203,17 @@ export default defineSchema({
    * Responses and AI-built forms per UTC day, for the admin overview. A day
    * is counted again until two days after it ends, then kept as it is.
    */
+  /**
+   * Admin figures that need every account (adminReports.ts): Plans and
+   * revenue, Billing's plan counts, the Companies cards, accounts per plan.
+   * Counted hourly and on Refresh; each row is one report.
+   */
+  adminReports: defineTable({
+    key: v.string(),
+    at: v.number(),
+    data: v.any(),
+  }).index("by_key", ["key"]),
+
   adminDays: defineTable({
     day: v.string(),
     responses: v.number(),

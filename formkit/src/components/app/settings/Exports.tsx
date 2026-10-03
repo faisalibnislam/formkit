@@ -96,7 +96,7 @@ function ExportPanel() {
         {excel && (
           <Button
             iconLeft={<FileSpreadsheet size={16} strokeWidth={1.8} aria-hidden />}
-            disabled={!ready}
+            disabled={!ready?.n}
             onClick={excelGate.guard(() => void exportRows({ what: "responses", format: "xlsx", formId, from, includePartial: partials }))}
           >
             Download Excel
@@ -106,13 +106,17 @@ function ExportPanel() {
         <Button
           variant="secondary"
           iconLeft={<FileText size={16} strokeWidth={1.8} aria-hidden />}
-          disabled={!ready}
+          disabled={!ready?.n}
           onClick={() => void exportRows({ what: "responses", format: "csv", formId, from, includePartial: partials })}
         >
           Download CSV
         </Button>
         <span className="fk-range-note">
-          {ready === undefined ? "Counting…" : ready === 1 ? "1 response ready" : `${ready.toLocaleString("en-US")} responses ready`}
+          {ready === undefined
+            ? "Counting…"
+            : ready.n === 1 && !ready.more
+              ? "1 response ready"
+              : `${ready.n.toLocaleString("en-US")}${ready.more ? "+" : ""} responses ready`}
         </span>
       </div>
       <div className="fk-emailexport">
@@ -126,7 +130,7 @@ function ExportPanel() {
         />
         <Button
           variant="secondary"
-          disabled={!ready}
+          disabled={!ready?.n}
           iconLeft={<Send size={16} strokeWidth={1.8} aria-hidden />}
           onClick={async () => {
             try {

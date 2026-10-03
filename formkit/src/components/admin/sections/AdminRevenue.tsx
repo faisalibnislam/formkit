@@ -6,6 +6,7 @@ import { AlertTriangle, ArrowDownRight, ArrowUpRight, CalendarClock, Sparkles, T
 import { api } from "../../../../convex/_generated/api";
 import { StatCard } from "@/components/app/ds";
 import { relativeTime } from "@/components/app/bits";
+import { Counted } from "./Counted";
 
 /**
  * Admin → Plans and revenue. Who is on which plan, what it is worth each
@@ -111,6 +112,7 @@ export function AdminRevenue() {
   const router = useRouter();
   const data = useQuery(api.revenue.overview, {});
   if (!data) return null;
+  if (!("totals" in data)) return <Counted asOf={data.asOf} />;
   const t = data.totals;
   const open = (id: string) => router.push(`/admin?section=users&open=${id}`, { scroll: false });
   const thisMonth = data.moves[data.moves.length - 1]!;
@@ -119,6 +121,7 @@ export function AdminRevenue() {
 
   return (
     <>
+      <Counted asOf={data.asOf} />
       <div className="fk-grid" data-cols="stats-sm">
         <StatCard
           label="Monthly recurring revenue"

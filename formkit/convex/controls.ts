@@ -1,11 +1,11 @@
 import { ConvexError, v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
-import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { requireUser } from "./model/identity";
 import { hasFeature, requireFeature } from "./model/plans";
 import { audit, managesAccount } from "./model/team";
 import { sha256Hex } from "./model/apiKeys";
+import { countChange } from "./model/responseCounts";
 
 /**
  * Business controls: the account's audit log, how long responses are kept,
@@ -114,16 +114,15 @@ export const applyRetention = internalMutation({
         .withIndex("by_owner_submitted", (q) => q.eq("ownerId", owner._id).lt("submittedAt", cutoff))
         .take(budget);
       if (!old.length) continue;
-      const touched = new Set<Id<"forms">>();
       for (const r of old) {
         for (const a of r.answers) {
           if (a.fileId) await ctx.storage.delete(a.fileId).catch(() => {});
         }
         await ctx.db.delete(r._id);
-        touched.add(r.formId);
+        // The form's totals drop by this one response; no recount of the rest.
+        await countChange(ctx, r.formId, r, null);
       }
       budget -= old.length;
-      for (const formId of touched) await ctx.runMutation(internal.responses.recount, { formId });
       await audit(ctx, owner._id, null, `Erased ${old.length} response${old.length === 1 ? "" : "s"} past the retention period`);
     }
     return null;

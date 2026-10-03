@@ -10,6 +10,7 @@ import { currentSpace, spaceForms } from "./model/spaces";
 import { searchTextOf } from "./model/responseSearch";
 import { countChange } from "./model/responseCounts";
 import { contactKeyOf, contactOf, notePerson, type Contact } from "./model/contacts";
+import type { ExportContact, ExportPage, ExportRecord } from "./model/exportSheet";
 
 /**
  * The response inbox.
@@ -25,29 +26,6 @@ import { contactKeyOf, contactOf, notePerson, type Contact } from "./model/conta
 
 const DAY = 24 * 60 * 60 * 1000;
 const MAX_TAGS = 12;
-
-/** Every response in scope - one form, or every form in the company being worked in. */
-async function scope(ctx: QueryCtx, formId: Id<"forms"> | undefined) {
-  const user = await requireUser(ctx);
-  const space = await currentSpace(ctx, user);
-  if (formId) {
-    const form = await formFor(ctx, formId, "read");
-    const rows = await ctx.db
-      .query("responses")
-      .withIndex("by_form", (q) => q.eq("formId", formId))
-      .collect();
-    return { forms: [form], rows };
-  }
-  const forms = (await spaceForms(ctx, space)).filter((f) => !f.deletedAt);
-  const live = new Set(forms.map((f) => f._id as string));
-  const rows = (
-    await ctx.db
-      .query("responses")
-      .withIndex("by_owner", (q) => q.eq("ownerId", space.ownerId))
-      .collect()
-  ).filter((r) => live.has(r.formId));
-  return { forms, rows };
-}
 
 function answerText(a: Doc<"responses">["answers"][number]) {
   return a.value ?? (a.values ? a.values.join(", ") : null);
@@ -557,161 +535,135 @@ export const remove = mutation({
   },
 });
 
-/** Preview answers are the owner testing; they never count. */
-export const recount = internalMutation({
-  args: { formId: v.id("forms") },
-  returns: v.null(),
-  handler: async (ctx, { formId }) => {
-    const rows = (
-      await ctx.db
-        .query("responses")
-        .withIndex("by_form", (q) => q.eq("formId", formId))
-        .collect()
-    ).filter((r) => !r.preview);
-    await ctx.db.patch(formId, {
-      responsesCount: rows.length,
-      completedCount: rows.filter((r) => !r.partial).length,
-    });
-    return null;
-  },
-});
-
-function fmtDate(at: number) {
-  return new Date(at).toISOString().replace("T", " ").slice(0, 16);
-}
+/** Responses in one export page. Each can carry long answers, so not many. */
+const EXPORT_PAGE = 250;
+/** People in one contacts export page; each one reads their own responses. */
+const CONTACTS_PAGE = 25;
+/** Responses read for one contacts export page of a single form. */
+const FORM_CONTACTS_PAGE = 200;
 
 /**
- * The rows behind every export: one form or every form, the ticked rows or a
- * date range. Across several forms the question columns are the union of their
- * questions, matched by wording, in the order they first appear.
+ * One page of an export: one form or every form, the ticked rows or a date
+ * range, oldest first. The caller asks again with `cursor` until `done`, and
+ * model/exportSheet.ts turns the pages into the sheet, so no single read
+ * holds every response.
  */
-export const forExport = query({
+export const exportPage = query({
   args: {
     formId: v.optional(v.id("forms")),
     ids: v.optional(v.array(v.id("responses"))),
     from: v.optional(v.number()),
     to: v.optional(v.number()),
     includePartial: v.optional(v.boolean()),
-    includePreview: v.optional(v.boolean()),
+    cursor: v.union(v.string(), v.null()),
   },
-  handler: async (ctx, { formId, ids, from, to, includePartial = true, includePreview = false }) => {
-    const { forms, rows } = await scope(ctx, formId);
-    const titles = new Map(forms.map((f) => [f._id as string, f.title]));
-    const wanted = ids ? new Set(ids as string[]) : null;
-    const picked = rows
-      .filter((r) => (wanted ? wanted.has(r._id) : true))
-      .filter((r) => (includePartial ? true : !r.partial))
-      .filter((r) => (includePreview || wanted ? true : !r.preview))
-      .filter((r) => (from === undefined ? true : r.submittedAt >= from))
-      .filter((r) => (to === undefined ? true : r.submittedAt < to))
-      .sort((a, b) => a.submittedAt - b.submittedAt);
-
-    // Question order follows the form, so read the blocks of every form used.
-    const questions: string[] = [];
-    const seen = new Set<string>();
-    const formIds = [...new Set(picked.map((r) => r.formId as string))];
-    if (formId && !formIds.includes(formId)) formIds.push(formId);
-    for (const id of formIds) {
-      const blocks = (
-        await ctx.db
-          .query("blocks")
-          .withIndex("by_form_order", (q) => q.eq("formId", id as Id<"forms">))
-          .collect()
-      )
-        .filter((b) => b.kind === "field")
-        .sort((a, b) => a.order - b.order);
-      for (const b of blocks) {
-        const title = (b.title ?? "Question").trim();
-        if (!seen.has(title.toLowerCase())) {
-          seen.add(title.toLowerCase());
-          questions.push(title);
-        }
-      }
+  handler: async (ctx, { formId, ids, from, to, includePartial = true, cursor }): Promise<ExportPage> => {
+    let forms: Doc<"forms">[];
+    let ownerId: Id<"users">;
+    if (formId) {
+      const form = await formFor(ctx, formId, "read");
+      forms = [form];
+      ownerId = form.ownerId;
+    } else {
+      const user = await requireUser(ctx);
+      const space = await currentSpace(ctx, user);
+      forms = (await spaceForms(ctx, space)).filter((f) => !f.deletedAt);
+      ownerId = space.ownerId;
     }
-    // Answers to questions since removed from the form still export.
-    for (const r of picked)
-      for (const a of r.answers)
-        if (!seen.has(a.question.trim().toLowerCase())) {
-          seen.add(a.question.trim().toLowerCase());
-          questions.push(a.question.trim());
-        }
+    const titles = new Map(forms.map((f) => [f._id as string, f.title]));
+    const inRange = (r: Doc<"responses">) =>
+      (from === undefined || r.submittedAt >= from) && (to === undefined || r.submittedAt < to);
 
-    // Calculation results get a column each, after the questions.
-    const calcNames = [...new Set(picked.flatMap((r) => Object.keys(r.calc ?? {})))];
-    const paid = picked.some((r) => r.payment);
-    const quizzed = picked.some((r) => r.quiz);
-    const replied = picked.some((r) => r.aiReply?.text || r.insight);
+    let picked: Doc<"responses">[];
+    let next: string;
+    let done: boolean;
+    if (ids) {
+      // The ticked rows, previews too: someone ticked them.
+      const at = cursor ? Number(cursor) : 0;
+      const slice = ids.slice(at, at + EXPORT_PAGE);
+      picked = (await Promise.all(slice.map((id) => ctx.db.get(id)))).filter(
+        (r): r is Doc<"responses"> =>
+          !!r && r.ownerId === ownerId && titles.has(r.formId) && (includePartial || !r.partial) && inRange(r),
+      );
+      next = String(at + slice.length);
+      done = at + slice.length >= ids.length;
+    } else {
+      const source = formId
+        ? ctx.db.query("responses").withIndex("by_form_preview_submitted", (q) => {
+            const real = q.eq("formId", formId).eq("preview", undefined);
+            if (from !== undefined && to !== undefined) return real.gte("submittedAt", from).lt("submittedAt", to);
+            if (from !== undefined) return real.gte("submittedAt", from);
+            if (to !== undefined) return real.lt("submittedAt", to);
+            return real;
+          })
+        : ctx.db.query("responses").withIndex("by_owner_preview_submitted", (q) => {
+            const real = q.eq("ownerId", ownerId).eq("preview", undefined);
+            if (from !== undefined && to !== undefined) return real.gte("submittedAt", from).lt("submittedAt", to);
+            if (from !== undefined) return real.gte("submittedAt", from);
+            if (to !== undefined) return real.lt("submittedAt", to);
+            return real;
+          });
+      const page = await source.order("asc").paginate({ numItems: EXPORT_PAGE, cursor });
+      picked = page.page.filter((r) => titles.has(r.formId) && (includePartial || !r.partial));
+      next = page.continueCursor;
+      done = page.isDone;
+    }
 
-    const many = !formId;
-    const columns = [
-      ...(many ? ["Form"] : []),
-      "Submitted",
-      "Status",
-      "Complete",
-      "Name",
-      "Email",
-      "Phone",
-      "Company",
-      "Source",
-      "Device",
-      "Tags",
-      "Note",
-      ...questions,
-      ...calcNames,
-      ...(paid ? ["Payment"] : []),
-      ...(quizzed ? ["Score", "Out of", "Percent", "Result", "To mark"] : []),
-      ...(replied ? ["Sentiment", "Lead score", "Urgency", "AI summary", "AI reply"] : []),
-    ];
-    // Uploaded files and voice recordings go out as links to the file.
-    const links = new Map<string, string>();
-    for (const r of picked)
-      for (const a of r.answers)
-        if (a.fileId && !links.has(a.fileId)) {
-          const url = await ctx.storage.getUrl(a.fileId);
-          if (url) links.set(a.fileId, url);
-        }
+    // Each form's questions in form order, for the forms on this page.
+    const questions: Record<string, string[]> = {};
+    const formIds = new Set(picked.map((r) => r.formId as string));
+    if (formId) formIds.add(formId);
+    for (const id of formIds) {
+      const blocks = await ctx.db
+        .query("blocks")
+        .withIndex("by_form_order", (q) => q.eq("formId", id as Id<"forms">))
+        .collect();
+      questions[id] = blocks
+        .filter((b) => b.kind === "field")
+        .sort((a, b) => a.order - b.order)
+        .map((b) => (b.title ?? "Question").trim());
+    }
 
-    const slug = formId ? (forms[0]?.slug ?? "form") : "all-forms";
-    return {
-      filename: `${slug}-responses`,
-      title: formId ? (forms[0]?.title ?? "Responses") : "All forms",
-      columns,
-      rows: picked.map((r) => {
-        const byQuestion = new Map(r.answers.map((a) => [a.question.trim().toLowerCase(), a]));
-        return [
-          ...(many ? [titles.get(r.formId) ?? ""] : []),
-          fmtDate(r.submittedAt),
-          r.preview ? "preview" : r.status,
-          r.partial ? "Partial" : "Complete",
-          r.respondentName ?? "",
-          r.respondentEmail ?? "",
-          r.respondentPhone ?? "",
-          r.respondentCompany ?? "",
-          r.source ?? "",
-          r.device ?? "",
-          (r.tags ?? []).join(", "),
-          r.note ?? "",
-          ...questions.map((q) => {
-            const a = byQuestion.get(q.toLowerCase());
-            if (!a) return "";
-            if (a.values) return a.values.join("; ");
-            if (a.fileId) return links.get(a.fileId) ?? a.fileName ?? "";
-            return a.fileName ?? a.value ?? "";
-          }),
-          ...calcNames.map((n) => (r.calc && n in r.calc ? String(r.calc[n]) : "")),
-          ...(paid ? [r.payment ? `${r.payment.status} · ${moneyText(r.payment.amount, r.payment.currency)}` : ""] : []),
-          ...(quizzed
-            ? r.quiz
-              ? [
-                  String(r.quiz.score),
-                  String(r.quiz.max),
-                  `${r.quiz.percent}%`,
-                  r.quiz.passed === undefined ? "" : r.quiz.passed ? "Pass" : "Fail",
-                  r.quiz.pending ? String(r.quiz.pending) : "",
-                ]
-              : ["", "", "", "", ""]
-            : []),
-          ...(replied
+    const records: ExportRecord[] = [];
+    for (const r of picked) {
+      const answers = [];
+      for (const a of r.answers) {
+        // Uploaded files and voice recordings go out as links to the file.
+        const text = a.values
+          ? a.values.join("; ")
+          : a.fileId
+            ? ((await ctx.storage.getUrl(a.fileId)) ?? a.fileName ?? "")
+            : (a.fileName ?? a.value ?? "");
+        answers.push({ q: a.question, text });
+      }
+      records.push({
+        formId: r.formId,
+        form: titles.get(r.formId) ?? "",
+        submittedAt: r.submittedAt,
+        status: r.preview ? "preview" : r.status,
+        partial: r.partial,
+        name: r.respondentName ?? "",
+        email: r.respondentEmail ?? "",
+        phone: r.respondentPhone ?? "",
+        company: r.respondentCompany ?? "",
+        source: r.source ?? "",
+        device: r.device ?? "",
+        tags: (r.tags ?? []).join(", "),
+        note: r.note ?? "",
+        answers,
+        calc: r.calc ? Object.fromEntries(Object.entries(r.calc).map(([k, val]) => [k, String(val)])) : null,
+        payment: r.payment ? `${r.payment.status} · ${moneyText(r.payment.amount, r.payment.currency)}` : null,
+        quiz: r.quiz
+          ? [
+              String(r.quiz.score),
+              String(r.quiz.max),
+              `${r.quiz.percent}%`,
+              r.quiz.passed === undefined ? "" : r.quiz.passed ? "Pass" : "Fail",
+              r.quiz.pending ? String(r.quiz.pending) : "",
+            ]
+          : null,
+        insight:
+          r.aiReply?.text || r.insight
             ? [
                 r.insight?.sentiment ?? "",
                 r.insight?.score === undefined ? "" : String(r.insight.score),
@@ -719,36 +671,95 @@ export const forExport = query({
                 r.insight?.summary ?? "",
                 r.aiReply?.text ?? "",
               ]
-            : []),
-        ];
-      }),
-    };
-  },
-});
+            : null,
+      });
+    }
 
-/** The contacts list as a sheet, in the same shape the Contacts tab shows. */
-export const contactsForExport = query({
-  args: { formId: v.optional(v.id("forms")) },
-  handler: async (ctx, { formId }) => {
-    const { people } = await listContacts(ctx, { formId, limit: MAX_CONTACTS });
     return {
-      filename: "contacts",
-      columns: ["Name", "Email", "Phone", "Company", "Tags", "Source", "Created", "Responses"],
-      rows: people.map((c) => [
-        c.name ?? "",
-        c.email ?? "",
-        c.phone ?? "",
-        c.company ?? "",
-        c.tags.join(", "),
-        c.source,
-        fmtDate(c.created),
-        String(c.responses),
-      ]),
+      filename: `${formId ? (forms[0]?.slug ?? "form") : "all-forms"}-responses`,
+      title: formId ? (forms[0]?.title ?? "Responses") : "All forms",
+      many: !formId,
+      formId: formId ?? null,
+      records,
+      questions,
+      cursor: next,
+      done,
     };
   },
 });
 
-/** How many responses an export would hold - Settings → Exports says so. */
+/**
+ * One page of the contacts export, in the order the Contacts tab shows them.
+ * A person can turn up on two pages of one form; the sheet keeps them once.
+ */
+export const contactsExportPage = query({
+  args: { formId: v.optional(v.id("forms")), cursor: v.union(v.string(), v.null()) },
+  handler: async (ctx, { formId, cursor }): Promise<{ people: ExportContact[]; cursor: string; done: boolean }> => {
+    let ownerId: Id<"users">;
+    let forms: Doc<"forms">[];
+    if (formId) {
+      const form = await formFor(ctx, formId, "read");
+      ownerId = form.ownerId;
+      forms = [form];
+    } else {
+      const user = await requireUser(ctx);
+      const space = await currentSpace(ctx, user);
+      ownerId = space.ownerId;
+      forms = (await spaceForms(ctx, space)).filter((f) => !f.deletedAt);
+    }
+    const titles = new Map(forms.map((f) => [f._id as string, f.title]));
+
+    let keys: string[];
+    let next: string;
+    let done: boolean;
+    if (formId) {
+      const page = await ctx.db
+        .query("responses")
+        .withIndex("by_form_submitted", (q) => q.eq("formId", formId))
+        .order("desc")
+        .paginate({ numItems: FORM_CONTACTS_PAGE, cursor });
+      keys = [...new Set(page.page.filter((r) => r.contactKey && !r.preview).map((r) => r.contactKey!))];
+      next = page.continueCursor;
+      done = page.isDone;
+    } else {
+      const page = await ctx.db
+        .query("people")
+        .withIndex("by_owner_last", (q) => q.eq("ownerId", ownerId))
+        .order("desc")
+        .paginate({ numItems: CONTACTS_PAGE, cursor });
+      keys = page.page.map((p) => p.key);
+      next = page.continueCursor;
+      done = page.isDone;
+    }
+
+    const people: ExportContact[] = [];
+    for (const key of keys) {
+      const c = await contactOf(ctx, ownerId, key, titles);
+      if (c)
+        people.push({
+          key: c.key,
+          name: c.name,
+          email: c.email,
+          phone: c.phone,
+          company: c.company,
+          tags: c.tags,
+          source: c.source,
+          created: c.created,
+          responses: c.responses,
+        });
+    }
+    return { people, cursor: next, done };
+  },
+});
+
+/** Counted one by one at most, past which Settings → Exports says "N+". */
+const READY_CAP = 2000;
+
+/**
+ * How many responses an export would hold - Settings → Exports says so.
+ * With no date range it is the forms' own counters; inside one, the rows
+ * are counted up to READY_CAP.
+ */
 export const count = query({
   args: {
     formId: v.optional(v.id("forms")),
@@ -756,10 +767,36 @@ export const count = query({
     includePartial: v.optional(v.boolean()),
   },
   handler: async (ctx, { formId, from, includePartial = true }) => {
-    const { rows } = await scope(ctx, formId);
-    return rows.filter(
-      (r) => !r.preview && (includePartial || !r.partial) && (from === undefined || r.submittedAt >= from),
-    ).length;
+    let forms: Doc<"forms">[];
+    let ownerId: Id<"users">;
+    if (formId) {
+      const form = await formFor(ctx, formId, "read");
+      forms = [form];
+      ownerId = form.ownerId;
+    } else {
+      const user = await requireUser(ctx);
+      const space = await currentSpace(ctx, user);
+      forms = (await spaceForms(ctx, space)).filter((f) => !f.deletedAt);
+      ownerId = space.ownerId;
+    }
+    if (from === undefined) {
+      const n = forms.reduce((sum, f) => sum + (includePartial ? f.responsesCount : f.completedCount), 0);
+      return { n, more: false };
+    }
+    const live = new Set(forms.map((f) => f._id as string));
+    const source = formId
+      ? ctx.db
+          .query("responses")
+          .withIndex("by_form_preview_submitted", (q) =>
+            q.eq("formId", formId).eq("preview", undefined).gte("submittedAt", from),
+          )
+      : ctx.db
+          .query("responses")
+          .withIndex("by_owner_preview_submitted", (q) =>
+            q.eq("ownerId", ownerId).eq("preview", undefined).gte("submittedAt", from),
+          );
+    const { n, more } = await countUpTo(source, (r) => live.has(r.formId) && (includePartial || !r.partial), READY_CAP);
+    return { n, more };
   },
 });
 

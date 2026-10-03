@@ -3,6 +3,7 @@ import { internalMutation, query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { requireStaff } from "./model/identity";
 import { PLANS, planOf, type PlanId } from "./model/plans";
+import { readReport, type AccountsReport } from "./adminReports";
 
 /**
  * What the AI costs Formkit. Every Gemini call is added into a daily row per
@@ -86,11 +87,16 @@ export const summary = query({
     }
 
     // Each account's plan, and how many accounts each plan has in all, so a
-    // plan's AI cost can be set against what its accounts pay.
-    const users = await ctx.db.query("users").collect();
-    const planOfUser = new Map(users.map((u) => [u._id as string, planOf(u)]));
-    const accounts: Record<PlanId, number> = { free: 0, pro: 0, business: 0 };
-    for (const u of users) if (!u.staffRole) accounts[planOf(u)] += 1;
+    // plan's AI cost can be set against what its accounts pay. Only accounts
+    // that used AI are read; the totals per plan come from the hourly count.
+    const planOfUser = new Map<string, PlanId>();
+    for (const who of byWho.keys()) {
+      const id = ctx.db.normalizeId("users", who);
+      const u = id ? await ctx.db.get(id) : null;
+      if (u) planOfUser.set(who, planOf(u));
+    }
+    const report = await readReport<AccountsReport>(ctx, "accounts");
+    const accounts: Record<PlanId, number> = report?.data ?? { free: 0, pro: 0, business: 0 };
     const plans = (["free", "pro", "business"] as const).map((plan) => {
       const s = zero();
       let using = 0;

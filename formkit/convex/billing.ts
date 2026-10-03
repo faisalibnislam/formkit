@@ -6,6 +6,7 @@ import { platformValue, requireStaff, requireUser, setPlatformValue, writeAudit 
 import { giveComp, endComp } from "./model/grants";
 import { CREDIT_PACKS, PLANS, compOf, planOf, type CreditPackKey, type Interval, type PlanId } from "./model/plans";
 import { addCredits } from "./model/aiMeter";
+import { readReport, type BillingReport } from "./adminReports";
 import { canManage, currentSpace, personalSpace, resolveSpace, roleIn, seatsOf, spaceKey, spacePlanId } from "./model/spaces";
 
 /**
@@ -969,15 +970,8 @@ export const adminStatus = query({
   args: {},
   handler: async (ctx) => {
     await requireStaff(ctx, "billing");
-    const users = await ctx.db.query("users").collect();
-    const companies = (await ctx.db.query("companies").collect()).filter((c) => c.plan || compOf(c));
-    // Every paid plan: personal ones on accounts, and companies' own.
-    const holders: (Doc<"users"> | Doc<"companies">)[] = [...users, ...companies];
-    const paying = holders.filter((u) => !compOf(u) && planOf(u) !== "free");
-    const monthly = (u: Doc<"users"> | Doc<"companies">) => {
-      const p = PLANS[planOf(u)];
-      return (u.planInterval === "year" ? p.price.year / 12 : p.price.month) * Math.max(1, u.planSeats ?? 1);
-    };
+    // Plan counts need every account: they come from the hourly count (adminReports.ts).
+    const report = await readReport<BillingReport>(ctx, "billing");
     return {
       token: !!process.env.POLAR_ACCESS_TOKEN,
       secret: !!process.env.POLAR_WEBHOOK_SECRET,
@@ -985,13 +979,11 @@ export const adminStatus = query({
       webhookUrl: `${process.env.CONVEX_SITE_URL ?? ""}/polar/webhook`,
       products: (await platformValue<Products>(ctx, "polarProducts")) ?? {},
       lastEvent: await platformValue<{ type: string; at: number; matched: boolean }>(ctx, "polarLastEvent"),
-      counts: {
-        pro: holders.filter((u) => planOf(u) === "pro").length,
-        business: holders.filter((u) => planOf(u) === "business").length,
-        comped: holders.filter((u) => compOf(u)).length,
-        paying: paying.length,
-      },
-      mrr: Math.round(paying.reduce((n, u) => n + monthly(u), 0) * 100) / 100,
+      counts: report
+        ? { pro: report.data.pro, business: report.data.business, comped: report.data.comped, paying: report.data.paying }
+        : null,
+      mrr: report?.data.mrr ?? null,
+      asOf: report?.at ?? null,
     };
   },
 });

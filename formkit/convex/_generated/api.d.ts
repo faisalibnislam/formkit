@@ -10,6 +10,7 @@
 import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
 import type * as admin from "../admin.js";
 import type * as adminCompanies from "../adminCompanies.js";
+import type * as adminReports from "../adminReports.js";
 import type * as adminTally from "../adminTally.js";
 import type * as ai from "../ai.js";
 import type * as aiLogic from "../aiLogic.js";
@@ -53,6 +54,7 @@ import type * as model_apiKeys from "../model/apiKeys.js";
 import type * as model_builtinTemplates from "../model/builtinTemplates.js";
 import type * as model_calc from "../model/calc.js";
 import type * as model_contacts from "../model/contacts.js";
+import type * as model_exportSheet from "../model/exportSheet.js";
 import type * as model_flags from "../model/flags.js";
 import type * as model_forms from "../model/forms.js";
 import type * as model_gemini from "../model/gemini.js";
@@ -70,9 +72,11 @@ import type * as model_plans from "../model/plans.js";
 import type * as model_quiz from "../model/quiz.js";
 import type * as model_responseCounts from "../model/responseCounts.js";
 import type * as model_responseSearch from "../model/responseSearch.js";
+import type * as model_scan from "../model/scan.js";
 import type * as model_security from "../model/security.js";
 import type * as model_sheet from "../model/sheet.js";
 import type * as model_spaces from "../model/spaces.js";
+import type * as model_standing from "../model/standing.js";
 import type * as model_team from "../model/team.js";
 import type * as model_themePresets from "../model/themePresets.js";
 import type * as model_totp from "../model/totp.js";
@@ -104,6 +108,7 @@ import type * as users from "../users.js";
 declare const fullApi: ApiFromModules<{
   "admin": typeof admin,
   "adminCompanies": typeof adminCompanies,
+  "adminReports": typeof adminReports,
   "adminTally": typeof adminTally,
   "ai": typeof ai,
   "aiLogic": typeof aiLogic,
@@ -147,6 +152,7 @@ declare const fullApi: ApiFromModules<{
   "model/builtinTemplates": typeof model_builtinTemplates,
   "model/calc": typeof model_calc,
   "model/contacts": typeof model_contacts,
+  "model/exportSheet": typeof model_exportSheet,
   "model/flags": typeof model_flags,
   "model/forms": typeof model_forms,
   "model/gemini": typeof model_gemini,
@@ -164,9 +170,11 @@ declare const fullApi: ApiFromModules<{
   "model/quiz": typeof model_quiz,
   "model/responseCounts": typeof model_responseCounts,
   "model/responseSearch": typeof model_responseSearch,
+  "model/scan": typeof model_scan,
   "model/security": typeof model_security,
   "model/sheet": typeof model_sheet,
   "model/spaces": typeof model_spaces,
+  "model/standing": typeof model_standing,
   "model/team": typeof model_team,
   "model/themePresets": typeof model_themePresets,
   "model/totp": typeof model_totp,

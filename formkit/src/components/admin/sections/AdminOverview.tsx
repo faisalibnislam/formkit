@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { ArrowRight } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
-import { Button, ProgressBar, Segmented, Switch } from "@/components/ui";
-import { relativeTime } from "@/components/app/bits";
+import { ProgressBar, Segmented, Switch } from "@/components/ui";
 import { StatCard } from "@/components/app/ds";
+import { Counted } from "./Counted";
 import { useToast } from "@/components/ui/Toast";
 
 /**
@@ -22,17 +22,6 @@ export function AdminOverview() {
   const [range, setRange] = useState<30 | 90>(30);
   const stats = useQuery(api.admin.overview, { range });
   const setAiPlatform = useMutation(api.admin.setAiPlatform);
-  const refresh = useMutation(api.admin.refreshOverview);
-  const [counting, setCounting] = useState(false);
-
-  // Nothing counted yet (a fresh deployment): count now rather than wait an hour.
-  const asked = useRef(false);
-  useEffect(() => {
-    if (stats?.asOf !== null || asked.current) return;
-    asked.current = true;
-    void refresh({}).catch(() => {});
-  }, [stats?.asOf, refresh]);
-
   if (!stats) return null;
 
   const peak = Math.max(1, ...stats.signups);
@@ -48,7 +37,7 @@ export function AdminOverview() {
 
   return (
     <>
-      <div className="fk-admin-bar">
+      <Counted asOf={stats.asOf}>
         <Segmented
           ariaLabel="Range"
           value={String(range) as "30" | "90"}
@@ -59,27 +48,7 @@ export function AdminOverview() {
           ]}
         />
         <span className="fk-admin-quiet">Everything below counts the last {range} days unless it says otherwise.</span>
-        <span className="fk-section-spacer" />
-        <span className="fk-admin-quiet">
-          {stats.asOf ? `Counted ${relativeTime(stats.asOf)}` : "Counting for the first time…"}
-        </span>
-        <Button
-          variant="secondary"
-          size="sm"
-          disabled={counting || !stats.asOf}
-          onClick={async () => {
-            setCounting(true);
-            try {
-              await refresh({});
-              toast("Counting again", { detail: "The numbers update in a minute or so." });
-            } finally {
-              setCounting(false);
-            }
-          }}
-        >
-          Refresh
-        </Button>
-      </div>
+      </Counted>
 
       <div className="fk-grid" data-cols="stats-sm">
         <StatCard label="New users" value={stats.newInRange.toLocaleString()} caption={`${stats.users.toLocaleString()} accounts in all`} />

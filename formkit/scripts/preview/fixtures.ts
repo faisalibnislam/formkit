@@ -720,9 +720,18 @@ export const QUERIES: Record<string, unknown> = {
   "responses:get": RESPONSES[0],
   "responses:contacts": { people: CONTACTS, more: false },
   "responses:tagsInUse": ["Hot lead", "Follow up", "Retainer", "Not a fit"],
-  "responses:forExport": { filename: "client-onboarding-responses", title: "Client Onboarding", rows: [["a"]], columns: ["A"] },
-  "responses:contactsForExport": { filename: "contacts", rows: [["a"]], columns: ["A"] },
-  "responses:count": 248,
+  "responses:exportPage": {
+    filename: "client-onboarding-responses",
+    title: "Client Onboarding",
+    many: false,
+    formId: null,
+    records: [],
+    questions: {},
+    cursor: "",
+    done: true,
+  },
+  "responses:contactsExportPage": { people: [], cursor: "", done: true },
+  "responses:count": { n: 248, more: false },
   "responses:unreadCount": 3,
   "comments:mentionable": [
     { _id: "u2", name: "Ravi Menon", email: "ravi@studionine.co", color: "#4b9d6e" },
@@ -1177,13 +1186,13 @@ export const QUERIES: Record<string, unknown> = {
     standing: { active: 9920, suspended: 37, deleting: 57 },
     signups: [14, 18, 22, 19, 25, 31, 12, 9, 17, 21, 26, 28, 24, 30, 11, 8, 19, 23, 27, 22, 29, 33, 15, 10, 21, 24, 26, 31, 28, 35],
   },
-  "admin:users": STAFF_USERS,
-  "admin:usersPage": { total: 10020, page: 0, pageSize: 20, rows: STAFF_USERS },
+  "admin:usersPage": { total: 10020, next: "1", pageSize: 20, rows: STAFF_USERS },
   "admin:user": STAFF_USERS[0],
   "adminCompanies:list": {
     total: 5,
-    page: 0,
+    next: null,
     pageSize: 25,
+    asOf: now - 20 * 60 * 1000,
     rows: ADMIN_COMPANIES,
     summary: {
       companies: 1284,
@@ -1372,7 +1381,7 @@ export const QUERIES: Record<string, unknown> = {
     });
     const mrr = [0, 0, 0, 0, 0, 12, 29, 41, 58, 77, 101, 121.5];
     return {
-      generatedAt: now,
+      asOf: now - 20 * 60 * 1000,
       totals: { users: 1284, paying: 31, comped: 2, conversion: 2.41, mrr: 121.5, arr: 1458, arpu: 3.92, monthlyPayers: 19, yearlyPayers: 12, cancelling: 2, cancellingMrr: 6, pastDue: 1, pastDueMrr: 10, collectedAll: 689, collected30: 187 },
       byPlan: [
         { plan: "free", total: 1251, monthly: 0, yearly: 0, comped: 0, mrr: 0 },
@@ -1419,6 +1428,7 @@ export const QUERIES: Record<string, unknown> = {
     lastEvent: null,
     counts: { pro: 38, business: 6, comped: 2, paying: 42 },
     mrr: 163.5,
+    asOf: now - 20 * 60 * 1000,
   },
   "admin:aiStats": {
     rows: [

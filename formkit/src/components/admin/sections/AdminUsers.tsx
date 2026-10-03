@@ -4,12 +4,13 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { PLANS, type PlanId } from "../../../../convex/model/plans";
-import { ChevronLeft, ChevronRight, Eye, Search, X } from "lucide-react";
+import { Eye, Search, X } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import { Badge, Button, EmptyState, Field, Input, PillTabs, Segmented, Select, Switch, Textarea } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 import { fullTime, relativeTime } from "@/components/app/bits";
+import { CursorPager, useCursorPages } from "./CursorPager";
 
 /**
  * Users. A filtered, paged list - a table on a wide screen, cards on a narrow
@@ -29,7 +30,6 @@ export function AdminUsers({ permissions }: { permissions: string[] }) {
   const router = useRouter();
   const params = useSearchParams();
   const [term, setTerm] = useState("");
-  const [page, setPage] = useState(0);
 
   const status = (params.get("status") as Status | null) ?? "all";
   const ai = (params.get("ai") as Ai | null) ?? "all";
@@ -46,7 +46,8 @@ export function AdminUsers({ permissions }: { permissions: string[] }) {
     router.replace(`/admin?${q}`, { scroll: false });
   };
 
-  const data = useQuery(api.admin.usersPage, { search: term || undefined, status, ai, plan, page });
+  const pages = useCursorPages(JSON.stringify([term, status, ai, plan]));
+  const data = useQuery(api.admin.usersPage, { search: term || undefined, status, ai, plan, cursor: pages.cursor });
   const filtered = Boolean(term) || status !== "all" || ai !== "all" || plan !== "all";
 
   return (
@@ -57,7 +58,6 @@ export function AdminUsers({ permissions }: { permissions: string[] }) {
             ariaLabel="Standing"
             value={status}
             onChange={(v) => {
-              setPage(0);
               setParam({ status: v });
             }}
             tabs={[
@@ -72,7 +72,6 @@ export function AdminUsers({ permissions }: { permissions: string[] }) {
             ariaLabel="Ask Formkit"
             value={ai}
             onChange={(v) => {
-              setPage(0);
               setParam({ ai: v });
             }}
             options={[
@@ -86,7 +85,6 @@ export function AdminUsers({ permissions }: { permissions: string[] }) {
             ariaLabel="Plan"
             value={plan}
             onChange={(v) => {
-              setPage(0);
               setParam({ plan: v });
             }}
             options={[
@@ -103,7 +101,6 @@ export function AdminUsers({ permissions }: { permissions: string[] }) {
             value={term}
             onChange={(e) => {
               setTerm(e.target.value);
-              setPage(0);
             }}
             placeholder="Search by name, email or link"
             icon={<Search size={17} strokeWidth={1.8} aria-hidden />}
@@ -116,8 +113,7 @@ export function AdminUsers({ permissions }: { permissions: string[] }) {
               iconLeft={<X size={15} strokeWidth={1.8} aria-hidden />}
               onClick={() => {
                 setTerm("");
-                setPage(0);
-                setParam({ status: null, ai: null, plan: null });
+                  setParam({ status: null, ai: null, plan: null });
               }}
             >
               Clear filters
@@ -128,7 +124,7 @@ export function AdminUsers({ permissions }: { permissions: string[] }) {
 
       <div className="fk-resp-layout">
         <section className="fk-panel" data-pad="none">
-          {data && data.total === 0 ? (
+          {data && data.rows.length === 0 && !data.next && !pages.canBack ? (
             <div style={{ padding: 24 }}>
               <EmptyState title="Nobody matches" description={filtered ? "Clear the filters, or try a shorter search." : "No accounts yet."} />
             </div>
@@ -164,7 +160,7 @@ export function AdminUsers({ permissions }: { permissions: string[] }) {
                       <td>
                         <PlanBadge plan={u.plan} />
                       </td>
-                      <td>{u.forms.toLocaleString()}</td>
+                      <td>{u.forms.toLocaleString()}{u.formsMore ? "+" : ""}</td>
                       <td>{u.responses.toLocaleString()}</td>
                       <td>
                         <Standing u={u} />
@@ -188,7 +184,7 @@ export function AdminUsers({ permissions }: { permissions: string[] }) {
                     <span className="fk-row-main">
                       <span className="fk-row-title">{u.name || u.email}</span>
                       <span className="fk-row-meta">
-                        {u.forms} forms · {u.responses} responses · {u.ai.allowed ? `AI ${u.ai.used}/${u.ai.limit}` : "AI off"}
+                        {u.forms}{u.formsMore ? "+" : ""} forms · {u.responses} responses · {u.ai.allowed ? `AI ${u.ai.used}/${u.ai.limit}` : "AI off"}
                       </span>
                     </span>
                     <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
@@ -200,30 +196,7 @@ export function AdminUsers({ permissions }: { permissions: string[] }) {
               </div>
 
               {data && (
-                <div className="fk-admin-pager">
-                  <span style={{ flex: 1 }}>
-                    {(data.page * data.pageSize + 1).toLocaleString()}–
-                    {Math.min(data.total, (data.page + 1) * data.pageSize).toLocaleString()} of {data.total.toLocaleString()}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={data.page === 0}
-                    iconLeft={<ChevronLeft size={15} strokeWidth={1.8} aria-hidden />}
-                    onClick={() => setPage(data.page - 1)}
-                  >
-                    Newer
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={(data.page + 1) * data.pageSize >= data.total}
-                    iconRight={<ChevronRight size={15} strokeWidth={1.8} aria-hidden />}
-                    onClick={() => setPage(data.page + 1)}
-                  >
-                    Older
-                  </Button>
-                </div>
+                <CursorPager pages={pages} shown={data.rows.length} next={data.next} total={data.total} labels={["Newer", "Older"]} />
               )}
             </>
           )}
@@ -288,7 +261,7 @@ function UserPanel({
 
       <div className="fk-admin-stats">
         <div>
-          <strong>{current.forms.toLocaleString()}</strong>
+          <strong>{current.forms.toLocaleString()}{current.formsMore ? "+" : ""}</strong>
           <span>Forms</span>
         </div>
         <div>
@@ -522,7 +495,7 @@ function UserPanel({
         {can("users.delete") && !current.staffRole && (
           <div className="fk-note" data-tone="danger" style={{ display: "block" }}>
             <p style={{ margin: "0 0 10px" }}>
-              Deleting destroys {current.forms} forms and {current.responses} responses. There is no bin and no undo.
+              Deleting destroys {current.forms}{current.formsMore ? "+" : ""} forms and {current.responses} responses. There is no bin and no undo.
               Type <strong>{current.email}</strong> to confirm.
             </p>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

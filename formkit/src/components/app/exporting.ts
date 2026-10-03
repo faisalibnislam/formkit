@@ -5,6 +5,7 @@ import { useConvex, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import type { Sheet } from "../../../convex/model/sheet";
+import { contactsSheet, readPages, responsesSheet } from "../../../convex/model/exportSheet";
 import { useToast } from "@/components/ui/Toast";
 
 /**
@@ -60,19 +61,24 @@ export function useExporter() {
   return useCallback(
     async (req: ExportRequest) => {
       try {
-        const sheet: { filename: string; title: string; columns: string[]; rows: string[][] } =
+        // Read a page at a time, so an export is never one huge read.
+        const sheet =
           req.what === "contacts"
-            ? {
-                title: "Contacts",
-                ...(await convex.query(api.responses.contactsForExport, { formId: req.formId })),
-              }
-            : await convex.query(api.responses.forExport, {
-                formId: req.formId,
-                ids: req.ids,
-                from: req.from,
-                to: req.to,
-                includePartial: req.includePartial,
-              });
+            ? contactsSheet(
+                await readPages((cursor) => convex.query(api.responses.contactsExportPage, { formId: req.formId, cursor })),
+              )
+            : responsesSheet(
+                await readPages((cursor) =>
+                  convex.query(api.responses.exportPage, {
+                    formId: req.formId,
+                    ids: req.ids,
+                    from: req.from,
+                    to: req.to,
+                    includePartial: req.includePartial,
+                    cursor,
+                  }),
+                ),
+              );
         const title = sheet.title;
         const filename = await downloadSheets(
           [{ name: title, columns: sheet.columns, rows: sheet.rows }],

@@ -30,6 +30,7 @@ crons.hourly("end free plans that reached their date", { minuteUTC: 5 }, interna
 crons.interval("give older responses their search text", { minutes: 30 }, internal.responses.backfillSearch, {});
 crons.interval("give older responses their contact", { minutes: 30 }, internal.responses.backfillContacts, {});
 crons.hourly("count the admin overview", { minuteUTC: 25 }, internal.adminTally.run, {});
+crons.hourly("count the admin reports", { minuteUTC: 35 }, internal.adminReports.run, {});
 crons.daily("forget AI judgements over a month old", { hourUTC: 3, minuteUTC: 30 }, internal.aiLogic.prune, {});
 
 export default crons;

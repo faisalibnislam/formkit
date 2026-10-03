@@ -22,6 +22,7 @@ import {
   type Vars,
 } from "./emails/response";
 import { csv, xlsx } from "./model/sheet";
+import { contactsSheet, readPages, responsesSheet, type ExportContact, type ExportPage } from "./model/exportSheet";
 
 /**
  * What Formkit sends on a customer's behalf.
@@ -492,16 +493,27 @@ export const exportByEmail = action({
     const address = (to ?? me?.email ?? "").trim();
     if (!address.includes("@")) throw new Error("Add an address to send the export to.");
 
-    const data: { filename: string; title?: string; columns: string[]; rows: string[][] } =
+    // Read a page at a time, so an export is never one huge read.
+    const data =
       what === "contacts"
-        ? await ctx.runQuery(api.responses.contactsForExport, { formId })
-        : await ctx.runQuery(api.responses.forExport, { formId, ids, includePartial, from, to: until });
+        ? contactsSheet(
+            await readPages(
+              (cursor): Promise<{ people: ExportContact[]; cursor: string; done: boolean }> =>
+                ctx.runQuery(api.responses.contactsExportPage, { formId, cursor }),
+            ),
+          )
+        : responsesSheet(
+            await readPages(
+              (cursor): Promise<ExportPage> =>
+                ctx.runQuery(api.responses.exportPage, { formId, ids, includePartial, from, to: until, cursor }),
+            ),
+          );
     const filename = `${data.filename}.${format}`;
     const content =
       format === "xlsx"
-        ? bytesToBase64(xlsx([{ name: data.title ?? "Responses", columns: data.columns, rows: data.rows }]))
+        ? bytesToBase64(xlsx([{ name: data.title, columns: data.columns, rows: data.rows }]))
         : toBase64("\uFEFF" + csv(data));
-    const subject = `Your export from Formkit: ${data.title ?? data.filename}`;
+    const subject = `Your export from Formkit: ${data.title}`;
 
     const key = process.env.AUTH_RESEND_KEY;
     let result: { state: "sent" | "failed"; detail?: string };
@@ -515,7 +527,7 @@ export const exportByEmail = action({
           to: [address],
           subject,
           html: renderExport({
-            formTitle: data.title ?? data.filename,
+            formTitle: data.title,
             count: data.rows.length,
             filename,
           }),
