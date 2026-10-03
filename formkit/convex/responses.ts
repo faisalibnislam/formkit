@@ -23,7 +23,6 @@ import { currentSpace, spaceForms } from "./model/spaces";
 const DAY = 24 * 60 * 60 * 1000;
 const MAX_TAGS = 12;
 
-/** The forms a person sees in the all-forms inbox: their own, not in the bin. */
 /** Every response in scope - one form, or every form in the company being worked in. */
 async function scope(ctx: QueryCtx, formId: Id<"forms"> | undefined) {
   const user = await requireUser(ctx);

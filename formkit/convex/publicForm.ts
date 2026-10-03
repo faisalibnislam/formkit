@@ -119,7 +119,6 @@ async function resolve(
 /** A quiz shortly over its time is still accepted, marked late, for slow networks. */
 const LATE_GRACE_MS = 60_000;
 
-/** The form's quiz settings, when it is a quiz and the owner's plan has quizzes. */
 /**
  * Whether this person has already sent a complete answer to the form, matched
  * by device or by email. Read through the indexes, so the check costs the
@@ -149,6 +148,7 @@ async function answeredBefore(
   return false;
 }
 
+/** The form's quiz settings, when it is a quiz and the owner's plan has quizzes. */
 async function quizOf(ctx: QueryCtx | MutationCtx, form: Doc<"forms">) {
   if (!form.quiz?.enabled) return null;
   return (await hasFeature(ctx, form, "quiz")) ? form.quiz : null;
