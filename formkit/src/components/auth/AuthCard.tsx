@@ -183,7 +183,7 @@ export function AuthCard({ initialView }: { initialView: View }) {
       <NightSky />
       <SiteNav />
 
-      <div
+      <main
         id="fk-auth-main"
         style={{
           position: "relative",
@@ -195,6 +195,11 @@ export function AuthCard({ initialView }: { initialView: View }) {
           justifyContent: "center",
           gap: 20,
           padding: "calc(104px + 32px) 20px 48px",
+          // Not one of the page frame's rounded cards (.fk-page > main).
+          margin: 0,
+          borderRadius: 0,
+          boxShadow: "none",
+          overflow: "visible",
         }}
       >
         <div
@@ -540,7 +545,7 @@ export function AuthCard({ initialView }: { initialView: View }) {
           </Link>
           . Deleted accounts are kept for 30 days so you can reactivate them.
         </p>
-      </div>
+      </main>
     </div>
   );
 }

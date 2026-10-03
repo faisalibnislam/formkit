@@ -536,6 +536,9 @@ export const credits = mutation({
   },
 });
 
+/** Free plans ended in one run, at most; the rest wait for the next hour. */
+const EXPIRE_BATCH = 200;
+
 /** Hourly: free plans whose end date has come are ended, and their owners told. */
 export const expireComps = internalMutation({
   args: {},
@@ -543,13 +546,20 @@ export const expireComps = internalMutation({
   handler: async (ctx) => {
     const now = Date.now();
     let n = 0;
-    for (const u of await ctx.db.query("users").collect()) {
+    // Only plans with an end date that has passed are read.
+    for (const u of await ctx.db
+      .query("users")
+      .withIndex("by_comp_ends", (q) => q.gt("compEndsAt", 0).lte("compEndsAt", now))
+      .take(EXPIRE_BATCH)) {
       if (u.planComp && u.compEndsAt && u.compEndsAt <= now) {
         await endComp(ctx, null, { ownerId: u._id, brand: "me" }, { expired: true });
         n++;
       }
     }
-    for (const c of await ctx.db.query("companies").collect()) {
+    for (const c of await ctx.db
+      .query("companies")
+      .withIndex("by_comp_ends", (q) => q.gt("compEndsAt", 0).lte("compEndsAt", now))
+      .take(EXPIRE_BATCH)) {
       if (c.planComp && c.compEndsAt && c.compEndsAt <= now) {
         await endComp(ctx, null, { ownerId: c.ownerId, brand: c._id }, { expired: true });
         n++;

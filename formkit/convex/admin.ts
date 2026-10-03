@@ -149,8 +149,10 @@ export const overview = query({
   },
 });
 
-/** Reports and tickets waiting, counted up to this. */
+/** Reports and tickets waiting, counted and listed up to this. */
 const OPEN_CAP = 500;
+/** Reports, tickets and announcements already dealt with, listed up to this many, newest first. */
+const HISTORY = 200;
 /** Refresh waits this long after the last count before counting again. */
 const REFRESH_EVERY_MS = 60_000;
 
@@ -172,13 +174,6 @@ export const refreshOverview = mutation({
     return null;
   },
 });
-
-/** New forms built by AI this month, per company key, read in one pass. */
-async function buildsThisMonth(ctx: Parameters<typeof aiStatus>[0]) {
-  const rows = await ctx.db.query("aiAllowance").collect();
-  const now = aiPeriodNow();
-  return new Map(rows.filter((r) => r.period === now).map((r) => [r.space, r.builds]));
-}
 
 /** An account's monthly builds on their own company without a read per account. */
 function localAiLimit(
@@ -594,8 +589,11 @@ export const setAiPlatform = mutation({
   },
 });
 
-/** Who has Ask Formkit, how much they use, and who is on a limit of their own. */
+/** Accounts read for each part of Admin → AI access, at most. */
+const AI_SET = 2000;
+
 /**
+ * Who has Ask Formkit, how much they use, and who is on a limit of their own.
  * "on": everyone who has used Ask Formkit this month. "off": accounts staff
  * turned it off for. "all": both, plus anyone with a personal limit or grant.
  */
@@ -603,16 +601,35 @@ export const aiStats = query({
   args: { search: v.optional(v.string()), show: v.optional(v.union(v.literal("on"), v.literal("off"), v.literal("all"))) },
   handler: async (ctx, { search, show = "on" }) => {
     await requireStaff(ctx, "ai.access");
-    const access = await ctx.db.query("aiAccess").collect();
+    // Only the accounts that can show up are read: who built forms with AI
+    // this month, and who staff turned off or gave a different allowance.
+    const builders = await ctx.db
+      .query("aiAllowance")
+      .withIndex("by_period_builds", (q) => q.eq("period", aiPeriodNow()).gt("builds", 0))
+      .order("desc")
+      .take(AI_SET);
+    const spentBy = new Map(
+      builders.filter((r) => r.space.startsWith("me:")).map((r) => [r.space.slice(3), r.builds]),
+    );
+    const access = show === "on" ? [] : await ctx.db.query("aiAccess").take(AI_SET);
     const byUser = new Map(access.map((a) => [a.userId as string, a]));
     const freeDefault = (await platformValue<number>(ctx, "aiDefault")) ?? PLANS.free.ai.builds;
-    const buildsUsed = await buildsThisMonth(ctx);
     const term = search?.trim().toLowerCase();
-    const users = await ctx.db.query("users").collect();
+    const ids = new Set<string>([...(show === "off" ? [] : spentBy.keys()), ...byUser.keys()]);
     const rows = [];
-    for (const u of users) {
-      const row = byUser.get(u._id);
-      const spent = buildsUsed.get(`me:${u._id}`) ?? 0;
+    for (const id of ids) {
+      const userId = ctx.db.normalizeId("users", id);
+      const u = userId ? await ctx.db.get(userId) : null;
+      if (!u) continue;
+      const row =
+        byUser.get(id) ??
+        (await ctx.db
+          .query("aiAccess")
+          .withIndex("by_user", (q) => q.eq("userId", u._id))
+          .order("desc")
+          .first()) ??
+        undefined;
+      const spent = spentBy.get(id) ?? 0;
       const enabled = row?.enabled !== false;
       const touched = !!row && (row.enabled === false || row.limitOverride !== undefined || (row.granted ?? 0) > 0);
       if (show === "on" && !(enabled && spent > 0)) continue;
@@ -648,7 +665,15 @@ export const reports = query({
   args: {},
   handler: async (ctx) => {
     await requireStaff(ctx, "moderation");
-    const rows = (await ctx.db.query("moderation").collect()).sort((a, b) => b.reportedAt - a.reportedAt);
+    // Every open report, and the latest of the ones dealt with.
+    const open = await ctx.db
+      .query("moderation")
+      .withIndex("by_state", (q) => q.eq("state", "open"))
+      .take(OPEN_CAP);
+    const recent = await ctx.db.query("moderation").order("desc").take(HISTORY);
+    const rows = [...new Map([...open, ...recent].map((r) => [r._id as string, r])).values()].sort(
+      (a, b) => b.reportedAt - a.reportedAt,
+    );
     return Promise.all(
       rows.map(async (r) => ({ ...r, ownerId: r.formId ? ((await ctx.db.get(r.formId))?.ownerId ?? null) : null })),
     );
@@ -734,7 +759,15 @@ export const tickets = query({
     await requireStaff(ctx, "support");
     // Open Business tickets first, then everything newest first.
     const rank = (t: { state: string; priority?: boolean }) => (t.state === "open" && t.priority ? 0 : 1);
-    return (await ctx.db.query("tickets").collect()).sort((a, b) => rank(a) - rank(b) || b.openedAt - a.openedAt);
+    // Every open ticket, and the latest of the rest.
+    const open = await ctx.db
+      .query("tickets")
+      .withIndex("by_state", (q) => q.eq("state", "open"))
+      .take(OPEN_CAP);
+    const recent = await ctx.db.query("tickets").order("desc").take(HISTORY);
+    return [...new Map([...open, ...recent].map((t) => [t._id as string, t])).values()].sort(
+      (a, b) => rank(a) - rank(b) || b.openedAt - a.openedAt,
+    );
   },
 });
 
@@ -774,9 +807,7 @@ export const announcements = query({
   args: {},
   handler: async (ctx) => {
     await requireStaff(ctx, "announcements");
-    return (await ctx.db.query("announcements").collect()).sort(
-      (a, b) => b.createdAt - a.createdAt,
-    );
+    return (await ctx.db.query("announcements").order("desc").take(HISTORY)).sort((a, b) => b.createdAt - a.createdAt);
   },
 });
 
@@ -808,18 +839,21 @@ export const saveAnnouncement = mutation({
 /* Email log, platform-wide                                            */
 /* ------------------------------------------------------------------ */
 
+/** Emails listed at most. */
+const MAIL_CAP = 1000;
+
 export const mail = query({
   args: { limit: v.optional(v.number()), userId: v.optional(v.id("users")), days: v.optional(v.number()) },
   handler: async (ctx, { limit = 100, userId, days = 30 }) => {
     await requireStaff(ctx);
     const since = Date.now() - days * 24 * 60 * 60 * 1000;
-    const source = userId
-      ? await ctx.db.query("emailLog").withIndex("by_user", (q) => q.eq("userId", userId)).collect()
-      : await ctx.db.query("emailLog").collect();
-    const rows = source
-      .filter((r) => r.at >= since)
-      .sort((a, b) => b.at - a.at)
-      .slice(0, limit);
+    // Newest first, and only as many as are shown.
+    const rows = await (userId
+      ? ctx.db.query("emailLog").withIndex("by_user_at", (q) => q.eq("userId", userId).gte("at", since))
+      : ctx.db.query("emailLog").withIndex("by_at", (q) => q.gte("at", since))
+    )
+      .order("desc")
+      .take(Math.max(1, Math.min(MAIL_CAP, Math.floor(limit))));
     return Promise.all(
       rows.map(async (r) => ({
         _id: r._id,
@@ -843,7 +877,12 @@ export const team = query({
   args: {},
   handler: async (ctx) => {
     await requireStaff(ctx, "team");
-    const rows = (await ctx.db.query("users").collect()).filter((u) => u.staffRole);
+    const rows = (
+      await ctx.db
+        .query("users")
+        .withIndex("by_staff", (q) => q.gt("staffRole", undefined))
+        .collect()
+    ).filter((u) => u.staffRole);
     const overrides = (await platformValue<Record<string, string[]>>(ctx, "staffPerms")) ?? {};
     const roles = (await platformValue<Record<string, string[]>>(ctx, "rolePerms")) ?? {};
 
@@ -897,7 +936,13 @@ export const inviteStaff = mutation({
   handler: async (ctx, { email, role }) => {
     const staff = await requireStaff(ctx, "team");
     const wanted = email.trim().toLowerCase();
-    const target = (await ctx.db.query("users").collect()).find((u) => (u.email ?? "").toLowerCase() === wanted);
+    // Addresses are kept lower case (auth.ts); an older one may not be.
+    const byEmail = (address: string) =>
+      ctx.db
+        .query("users")
+        .withIndex("email", (q) => q.eq("email", address))
+        .first();
+    const target = (await byEmail(wanted)) ?? (await byEmail(email.trim()));
     if (!target) throw new Error("There is no Formkit account with that email. They need to sign up first.");
     if (target.staffRole) throw new Error(`They are already on the team as ${target.staffRole}.`);
     await ctx.db.patch(target._id, { staffRole: role });

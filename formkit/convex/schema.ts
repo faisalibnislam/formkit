@@ -209,6 +209,8 @@ export default defineSchema({
     .index("by_name", ["name"])
     .index("by_deactivated", ["deactivatedAt"])
     .index("by_staff", ["staffRole"])
+    // The hourly job that ends free plans staff gave, once their date comes.
+    .index("by_comp_ends", ["compEndsAt"])
     .searchIndex("search_name", { searchField: "name" }),
 
   companies: defineTable({
@@ -256,6 +258,7 @@ export default defineSchema({
     .index("by_subscription", ["polarSubscriptionId"])
     // Admin → Companies: by name, and a name search.
     .index("by_name", ["name"])
+    .index("by_comp_ends", ["compEndsAt"])
     .searchIndex("search_name", { searchField: "name" }),
 
   /**
@@ -842,7 +845,10 @@ export default defineSchema({
     at: v.number(),
   })
     .index("by_user", ["userId"])
-    .index("by_form", ["formId"]),
+    .index("by_form", ["formId"])
+    // Admin → Email log: the latest first, for everyone or one account.
+    .index("by_at", ["at"])
+    .index("by_user_at", ["userId", "at"]),
 
   /**
    * Platform state the admin console owns. A single settings row plus per-user
@@ -946,7 +952,10 @@ export default defineSchema({
     edits: v.number(),
     responses: v.number(),
     reports: v.number(),
-  }).index("by_space_period", ["space", "period"]),
+  })
+    .index("by_space_period", ["space", "period"])
+    // Admin → AI access: who built forms with AI this month, most first.
+    .index("by_period_builds", ["period", "builds"]),
 
   /** Bought AI credits, per company. Spent only once the monthly allowance runs out. */
   aiCredits: defineTable({
