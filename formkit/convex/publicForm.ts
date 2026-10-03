@@ -18,6 +18,7 @@ import { computeAll } from "./model/calc";
 import { accessOf } from "./model/access";
 import { searchTextOf } from "./model/responseSearch";
 import { countChange } from "./model/responseCounts";
+import { contactKeyOf, notePerson } from "./model/contacts";
 import { formUrl, liveDomainOf } from "./model/handles";
 
 /**
@@ -588,7 +589,7 @@ async function store(
         },
       }
     : withPay;
-  const searchable = { ...full, searchText: searchTextOf(full) };
+  const searchable = { ...full, searchText: searchTextOf(full), contactKey: contactKeyOf(full) };
 
   const responseId = existing
     ? (await ctx.db.replace(existing._id, searchable), existing._id)
@@ -598,6 +599,7 @@ async function store(
   // The form's running totals move by this one response, rather than being
   // counted again from every response the form has ever had.
   await countChange(ctx, form._id, existing ?? null, searchable);
+  if (!preview && searchable.contactKey) await notePerson(ctx, form.ownerId, searchable.contactKey, searchable.submittedAt);
 
   // A response limit closes the form as soon as it is reached.
   const after = await ctx.db.get(form._id);

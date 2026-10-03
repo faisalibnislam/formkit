@@ -1092,13 +1092,13 @@ function Contacts({ onOpenPerson }: { onOpenPerson: (who: string) => void }) {
   const exportRows = useExporter();
   const excel = useFlag("exports.xlsx");
   const excelGate = useGate("exports.xlsx");
-  const people = useQuery(api.responses.contacts, {});
   const [term, setTerm] = useState("");
-
-  const needle = term.trim().toLowerCase();
-  const rows = (people ?? []).filter((c) =>
-    needle ? [c.name, c.email, c.phone, c.company, c.source, ...c.tags].join(" ").toLowerCase().includes(needle) : true,
-  );
+  const [limit, setLimit] = useState(PAGE);
+  const search = useDebounced(term.trim(), SEARCH_DELAY_MS);
+  // The server finds and pages them; a new search keeps the last list on screen until it answers.
+  const data = useLastDefined(useQuery(api.responses.contacts, { limit, ...(search ? { search } : {}) }));
+  const rows = data?.people ?? [];
+  const more = data?.more ?? false;
   const tagsOf = (c: (typeof rows)[number]) => (
     <span className="fk-resp-tagrow">
       {c.unread && <Badge tone="info">New</Badge>}
@@ -1121,15 +1121,19 @@ function Contacts({ onOpenPerson }: { onOpenPerson: (who: string) => void }) {
       <div className="fk-resp-toolbar">
         <Input
           value={term}
-          onChange={(e) => setTerm(e.target.value)}
+          onChange={(e) => {
+            setTerm(e.target.value);
+            setLimit(PAGE);
+          }}
           placeholder="Search contacts"
           aria-label="Search contacts"
           icon={<Search size={17} strokeWidth={1.8} aria-hidden />}
           wrapStyle={{ width: 260, maxWidth: "100%" }}
         />
         <span className="fk-range-note">
-          {(people?.length ?? 0).toLocaleString("en-US")}{" "}
-          {people?.length === 1 ? "contact" : "contacts"}, collected from your forms
+          {rows.length.toLocaleString("en-US")}
+          {more ? "+" : ""} {rows.length === 1 && !more ? "contact" : "contacts"}
+          {search ? " found" : ", collected from your forms"}
         </span>
         <span className="fk-section-spacer" />
         {excel && (
@@ -1151,7 +1155,7 @@ function Contacts({ onOpenPerson }: { onOpenPerson: (who: string) => void }) {
         </Button>
       </div>
 
-      {people && people.length === 0 ? (
+      {data && rows.length === 0 && !search ? (
         <section className="fk-panel">
           <EmptyState
             title="No contacts yet."
@@ -1160,7 +1164,7 @@ function Contacts({ onOpenPerson }: { onOpenPerson: (who: string) => void }) {
         </section>
       ) : rows.length === 0 ? (
         <section className="fk-panel">
-          <EmptyState title={`Nobody matches “${term.trim()}”`} description="Try a shorter search." />
+          <EmptyState title={`Nobody matches “${search}”`} description="Try a shorter search." />
         </section>
       ) : narrow ? (
         <div className="fk-resp-cards">
@@ -1234,6 +1238,13 @@ function Contacts({ onOpenPerson }: { onOpenPerson: (who: string) => void }) {
             </table>
           </div>
         </section>
+      )}
+      {more && rows.length > 0 && (
+        <div className="fk-resp-more">
+          <Button variant="secondary" onClick={() => setLimit((n) => n + PAGE)}>
+            Load {PAGE} more
+          </Button>
+        </div>
       )}
     </>
   );

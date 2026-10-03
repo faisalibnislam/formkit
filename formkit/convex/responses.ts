@@ -9,6 +9,7 @@ import { formFor, ownersOf } from "./model/forms";
 import { currentSpace, spaceForms } from "./model/spaces";
 import { searchTextOf } from "./model/responseSearch";
 import { countChange } from "./model/responseCounts";
+import { contactKeyOf, contactOf, notePerson, type Contact } from "./model/contacts";
 
 /**
  * The response inbox.
@@ -394,74 +395,82 @@ export const get = query({
   },
 });
 
+/** Contacts shown at most, however far "Load more" is pressed. */
+const MAX_CONTACTS = 1000;
+/** People looked at to fill one request, at most; beyond it the tab offers "Load more". */
+const PEOPLE_SCAN = 3000;
+
 /**
- * Everyone who has answered, once each. People are matched on their email;
- * someone who never gave one is matched on their name within the same form.
- * Partial respondents are included - they are people too, and often the ones
- * most worth following up.
+ * The Contacts tab: people newest first, each built from their own
+ * responses (model/contacts.ts), only as many as are shown. A search finds
+ * responses through the search index and lists the people behind them.
  */
-async function collectContacts(ctx: QueryCtx, formId: Id<"forms"> | undefined) {
-  const { forms, rows } = await scope(ctx, formId);
-  const titles = new Map(forms.map((f) => [f._id as string, f.title]));
-  type Contact = {
-    key: string;
-    name: string | null;
-    email: string | null;
-    phone: string | null;
-    company: string | null;
-    source: string;
-    created: number;
-    last: number;
-    responses: number;
-    partialOnly: boolean;
-    unread: boolean;
-    tags: string[];
-    forms: string[];
-  };
-  const people = new Map<string, Contact>();
-  for (const r of [...rows].filter((r) => !r.preview).sort((a, b) => a.submittedAt - b.submittedAt)) {
-    const email = r.respondentEmail?.trim().toLowerCase() || null;
-    const name = r.respondentName?.trim() || null;
-    if (!email && !name) continue;
-    const key = email ?? `${r.formId}:${name!.toLowerCase()}`;
-    const title = titles.get(r.formId) ?? "A form";
-    const had = people.get(key);
-    if (!had) {
-      people.set(key, {
-        key,
-        name,
-        email,
-        phone: r.respondentPhone ?? null,
-        company: r.respondentCompany ?? null,
-        source: title,
-        created: r.submittedAt,
-        last: r.submittedAt,
-        responses: 1,
-        partialOnly: r.partial,
-        unread: r.status === "new" && !r.partial,
-        tags: [...(r.tags ?? [])],
-        forms: [title],
-      });
-      continue;
-    }
-    // The newest thing they told us wins; the first form they used stays
-    // the source.
-    had.name = name ?? had.name;
-    had.phone = r.respondentPhone ?? had.phone;
-    had.company = r.respondentCompany ?? had.company;
-    had.last = r.submittedAt;
-    had.responses += 1;
-    had.partialOnly = had.partialOnly && r.partial;
-    had.unread = had.unread || (r.status === "new" && !r.partial);
-    for (const t of r.tags ?? []) if (!had.tags.includes(t)) had.tags.push(t);
-    if (!had.forms.includes(title)) had.forms.push(title);
+async function listContacts(
+  ctx: QueryCtx,
+  { formId, search, limit }: { formId?: Id<"forms">; search?: string; limit: number },
+) {
+  let ownerId: Id<"users">;
+  let forms: Doc<"forms">[];
+  if (formId) {
+    const form = await formFor(ctx, formId, "read");
+    ownerId = form.ownerId;
+    forms = [form];
+  } else {
+    const user = await requireUser(ctx);
+    const space = await currentSpace(ctx, user);
+    ownerId = space.ownerId;
+    forms = (await spaceForms(ctx, space)).filter((f) => !f.deletedAt);
   }
-  return [...people.values()].sort((a, b) => b.last - a.last);
+  const titles = new Map(forms.map((f) => [f._id as string, f.title]));
+  const want = Math.max(1, Math.min(MAX_CONTACTS, Math.floor(limit)));
+  const people: Contact[] = [];
+  const seen = new Set<string>();
+  let looked = 0;
+
+  const keys: AsyncIterable<string> = search?.trim()
+    ? (async function* () {
+        const term = search.trim().slice(0, 100);
+        for await (const r of ctx.db
+          .query("responses")
+          .withSearchIndex("search", (q) => q.search("searchText", term).eq("ownerId", ownerId))) {
+          if (r.contactKey && !r.preview && titles.has(r.formId)) yield r.contactKey;
+        }
+      })()
+    : formId
+      ? (async function* () {
+          // One form's people: straight from its own responses, newest first.
+          for await (const r of ctx.db
+            .query("responses")
+            .withIndex("by_form_submitted", (q) => q.eq("formId", formId))
+            .order("desc")) {
+            if (r.contactKey && !r.preview) yield r.contactKey;
+          }
+        })()
+      : (async function* () {
+          for await (const p of ctx.db
+            .query("people")
+            .withIndex("by_owner_last", (q) => q.eq("ownerId", ownerId))
+            .order("desc")) {
+            yield p.key;
+          }
+        })();
+
+  for await (const key of keys) {
+    if (seen.has(key)) continue;
+    seen.add(key);
+    if (++looked > PEOPLE_SCAN) return { people, more: true };
+    const c = await contactOf(ctx, ownerId, key, titles);
+    if (!c) continue;
+    if (people.length === want) return { people, more: true };
+    people.push(c);
+  }
+  if (search?.trim()) people.sort((a, b) => b.last - a.last);
+  return { people, more: false };
 }
 
 export const contacts = query({
-  args: { formId: v.optional(v.id("forms")) },
-  handler: (ctx, { formId }) => collectContacts(ctx, formId),
+  args: { search: v.optional(v.string()), limit: v.number() },
+  handler: (ctx, args) => listContacts(ctx, args),
 });
 
 export const setStatus = mutation({
@@ -721,7 +730,7 @@ export const forExport = query({
 export const contactsForExport = query({
   args: { formId: v.optional(v.id("forms")) },
   handler: async (ctx, { formId }) => {
-    const people = await collectContacts(ctx, formId);
+    const { people } = await listContacts(ctx, { formId, limit: MAX_CONTACTS });
     return {
       filename: "contacts",
       columns: ["Name", "Email", "Phone", "Company", "Tags", "Source", "Created", "Responses"],
@@ -794,6 +803,35 @@ export const backfillSearch = internalMutation({
     if (job) await ctx.db.replace(job._id, next);
     else await ctx.db.insert("jobs", next);
     if (!page.isDone) await ctx.scheduler.runAfter(0, internal.responses.backfillSearch, {});
+    return null;
+  },
+});
+
+/**
+ * Gives responses saved before contacts were kept their contact key, and
+ * notes each person, a page at a time. Started by a cron until it has been
+ * through every response; after that a run is one read.
+ */
+export const backfillContacts = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const job = await ctx.db
+      .query("jobs")
+      .withIndex("by_key", (q) => q.eq("key", "contacts"))
+      .unique();
+    if (job?.done) return null;
+    const page = await ctx.db.query("responses").paginate({ numItems: BACKFILL_PAGE, cursor: job?.cursor ?? null });
+    for (const r of page.page) {
+      const key = r.contactKey ?? contactKeyOf(r);
+      if (!key) continue;
+      if (r.contactKey === undefined) await ctx.db.patch(r._id, { contactKey: key });
+      if (!r.preview) await notePerson(ctx, r.ownerId, key, r.submittedAt);
+    }
+    const next = { key: "contacts", cursor: page.continueCursor, done: page.isDone, at: Date.now() };
+    if (job) await ctx.db.replace(job._id, next);
+    else await ctx.db.insert("jobs", next);
+    if (!page.isDone) await ctx.scheduler.runAfter(0, internal.responses.backfillContacts, {});
     return null;
   },
 });

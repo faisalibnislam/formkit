@@ -52,6 +52,7 @@ import type * as model_aiReply from "../model/aiReply.js";
 import type * as model_apiKeys from "../model/apiKeys.js";
 import type * as model_builtinTemplates from "../model/builtinTemplates.js";
 import type * as model_calc from "../model/calc.js";
+import type * as model_contacts from "../model/contacts.js";
 import type * as model_flags from "../model/flags.js";
 import type * as model_forms from "../model/forms.js";
 import type * as model_gemini from "../model/gemini.js";
@@ -145,6 +146,7 @@ declare const fullApi: ApiFromModules<{
   "model/apiKeys": typeof model_apiKeys,
   "model/builtinTemplates": typeof model_builtinTemplates,
   "model/calc": typeof model_calc,
+  "model/contacts": typeof model_contacts,
   "model/flags": typeof model_flags,
   "model/forms": typeof model_forms,
   "model/gemini": typeof model_gemini,

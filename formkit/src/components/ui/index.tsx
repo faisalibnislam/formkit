@@ -7,6 +7,7 @@ import {
   useId,
   useRef,
   useState,
+  useSyncExternalStore,
   type ButtonHTMLAttributes,
   type CSSProperties,
   type InputHTMLAttributes,
@@ -716,9 +717,16 @@ export function Segmented<T extends string>({
  * fixed overlay is trapped in whatever stacking context its ancestors make,
  * and the sticky dock paints over it however high its own z-index is.
  */
+const noSubscription = () => () => {};
+
+/**
+ * Renders into <body>. The server has no <body> to portal into, so while the
+ * page hydrates this renders nothing, as the server did, and the portal
+ * appears straight after; mounted any later (a click), it appears at once.
+ */
 export function Portal({ children }: { children: ReactNode }) {
-  if (typeof document === "undefined") return null;
-  return createPortal(children, document.body);
+  const ready = useSyncExternalStore(noSubscription, () => true, () => false);
+  return ready ? createPortal(children, document.body) : null;
 }
 
 export function Modal({

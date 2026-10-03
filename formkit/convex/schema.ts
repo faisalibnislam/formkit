@@ -625,6 +625,8 @@ export default defineSchema({
      * inbox's search (model/responseSearch.ts). Written with every change.
      */
     searchText: v.optional(v.string()),
+    /** Who this is as a contact: their email, or the form and their name (model/contacts.ts). */
+    contactKey: v.optional(v.string()),
   })
     .index("by_form", ["formId"])
     .index("by_form_device", ["formId", "deviceId"])
@@ -637,6 +639,7 @@ export default defineSchema({
     .index("by_form_preview_submitted", ["formId", "preview", "submittedAt"])
     .index("by_owner_preview_submitted", ["ownerId", "preview", "submittedAt"])
     .index("by_form_status", ["formId", "status"])
+    .index("by_owner_contact", ["ownerId", "contactKey"])
     // The admin overview's day counts (adminTally.ts).
     .index("by_preview_submitted", ["preview", "submittedAt"])
     .index("by_resume", ["resumeToken"])
@@ -1198,6 +1201,19 @@ export default defineSchema({
     aiForms: v.number(),
     final: v.boolean(),
   }).index("by_day", ["day"]),
+
+  /**
+   * Everyone who has answered an owner's forms, by contact key, and when they
+   * last did: the Contacts tab lists people newest first from here and reads
+   * each one's details from their responses.
+   */
+  people: defineTable({
+    ownerId: v.id("users"),
+    key: v.string(),
+    last: v.number(),
+  })
+    .index("by_owner_key", ["ownerId", "key"])
+    .index("by_owner_last", ["ownerId", "last"]),
 
   /** Where a long data job has got to, so it can pick up where it stopped. */
   jobs: defineTable({

@@ -718,7 +718,7 @@ export const QUERIES: Record<string, unknown> = {
     forms: Object.entries(FORM_TITLES).map(([_id, title]) => ({ _id, title, owner: ownerOf(_id) })),
   },
   "responses:get": RESPONSES[0],
-  "responses:contacts": CONTACTS,
+  "responses:contacts": { people: CONTACTS, more: false },
   "responses:tagsInUse": ["Hot lead", "Follow up", "Retainer", "Not a fit"],
   "responses:forExport": { filename: "client-onboarding-responses", title: "Client Onboarding", rows: [["a"]], columns: ["A"] },
   "responses:contactsForExport": { filename: "contacts", rows: [["a"]], columns: ["A"] },

@@ -12,7 +12,8 @@ import { internal } from "./_generated/api";
  *   30 days after they were deleted.
  * - The admin overview's platform totals are counted again every hour.
  * - Responses saved before the inbox searched on the server get their search
- *   text; once every response has it, the job only checks that it is done.
+ *   text, and before contacts were kept, their contact; once every response
+ *   has them, each job only checks that it is done.
  */
 const crons = cronJobs();
 
@@ -27,6 +28,7 @@ crons.hourly("erase responses past each account's retention period", { minuteUTC
 crons.daily("erase account audit lines over a year old", { hourUTC: 3, minuteUTC: 10 }, internal.controls.purgeAudit, {});
 crons.hourly("end free plans that reached their date", { minuteUTC: 5 }, internal.adminCompanies.expireComps, {});
 crons.interval("give older responses their search text", { minutes: 30 }, internal.responses.backfillSearch, {});
+crons.interval("give older responses their contact", { minutes: 30 }, internal.responses.backfillContacts, {});
 crons.hourly("count the admin overview", { minuteUTC: 25 }, internal.adminTally.run, {});
 crons.daily("forget AI judgements over a month old", { hourUTC: 3, minuteUTC: 30 }, internal.aiLogic.prune, {});
 
