@@ -1,5 +1,3 @@
-"use client";
-
 import type { ComponentType } from "react";
 import { MousePointerClick } from "lucide-react";
 import type { SceneProps } from "./shared";
