@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { LegalDocument } from "@/components/site/LegalDocument";
 import { JsonLd, breadcrumb } from "@/components/site/JsonLd";
-import { LEGAL_UPDATED, PRIVACY, PRIVACY_FOOT } from "@/content/legal";
+import { PRIVACY, PRIVACY_FOOT, PRIVACY_UPDATED } from "@/content/legal";
 import { SHARE_IMAGE, SITE_URL } from "@/lib/site";
 
 const TITLE = "Privacy policy";
@@ -39,7 +39,7 @@ export default function PrivacyPage() {
       <LegalDocument
         title={TITLE}
         intro="What Formkit collects, how long it is kept, who can see it, and how to get rid of it. Your account is ours to look after; the answers in your forms are yours."
-        updated={LEGAL_UPDATED}
+        updated={PRIVACY_UPDATED}
         sections={PRIVACY}
         foot={PRIVACY_FOOT}
       />

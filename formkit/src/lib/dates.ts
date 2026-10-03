@@ -16,6 +16,7 @@ export const SITE_DATES = {
   contact: "2026-09-29",
   apiDocs: "2026-10-01",
   legal: "2026-09-21",
+  privacy: "2026-10-03",
 } as const;
 
 /** A content item's own date, or its collection's. */
