@@ -16,6 +16,8 @@ import { flagOn } from "./model/flags";
 import { PLANS, hasFeature, planOfId } from "./model/plans";
 import { computeAll } from "./model/calc";
 import { accessOf } from "./model/access";
+import { searchTextOf } from "./model/responseSearch";
+import { countChange } from "./model/responseCounts";
 import { formUrl, liveDomainOf } from "./model/handles";
 
 /**
@@ -586,13 +588,16 @@ async function store(
         },
       }
     : withPay;
+  const searchable = { ...full, searchText: searchTextOf(full) };
 
   const responseId = existing
-    ? (await ctx.db.replace(existing._id, full), existing._id)
-    : await ctx.db.insert("responses", full);
+    ? (await ctx.db.replace(existing._id, searchable), existing._id)
+    : await ctx.db.insert("responses", searchable);
   if (attempt && !attempt.responseId) await ctx.db.patch(attempt._id, { responseId });
 
-  await ctx.runMutation(internal.responses.recount, { formId: form._id });
+  // The form's running totals move by this one response, rather than being
+  // counted again from every response the form has ever had.
+  await countChange(ctx, form._id, existing ?? null, searchable);
 
   // A response limit closes the form as soon as it is reached.
   const after = await ctx.db.get(form._id);

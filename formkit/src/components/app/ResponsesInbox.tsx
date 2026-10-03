@@ -4,6 +4,8 @@ import { AiReplyPanel } from "./AiReplyPanel";
 import { QuizMarks } from "./QuizMarks";
 import { useSeededQuery } from "@/lib/seed";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useFirstLoad, useLastDefined } from "./useFirstLoad";
+import { INBOX_PAGE } from "@/lib/inbox";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
@@ -57,11 +59,9 @@ import { useFlag } from "./useFlags";
 import { downloadResponsePdf, printResponse, type ResponseDoc } from "./responseDoc";
 import { useNarrow } from "./useNarrow";
 import { PageSkeleton } from "./Skeleton";
-import { useFirstLoad } from "./useFirstLoad";
 import { ProChip } from "@/components/plan/UpgradeSheet";
 import { useGate } from "@/components/plan/usePlan";
 import { formOptions, ownerOptions, ownersFrom, OwnerLine, type Owner } from "./owners";
-import { responseStats } from "./respStats";
 
 /**
  * The response inbox, for one form or for everything, and - across every
@@ -76,9 +76,24 @@ import { responseStats } from "./respStats";
  * response opens in a drawer over it.
  */
 
-type Data = FunctionReturnType<typeof api.responses.list>;
-type Row = Data["responses"][number];
+type Data = FunctionReturnType<typeof api.responses.rows>;
+type Row = Data["rows"][number];
 type Kind = "all" | "complete" | "partial" | "preview";
+
+/** Rows the list shows at first, and adds with each "Load more". */
+const PAGE = INBOX_PAGE;
+/** A search waits for a pause in typing before it asks the server. */
+const SEARCH_DELAY_MS = 250;
+
+/** `value`, once it has stopped changing for `ms`. */
+function useDebounced<T>(value: T, ms: number) {
+  const [settled, setSettled] = useState(value);
+  useEffect(() => {
+    const t = window.setTimeout(() => setSettled(value), ms);
+    return () => window.clearTimeout(t);
+  }, [value, ms]);
+  return settled;
+}
 
 export function ResponsesInbox({ formId, openId }: { formId?: Id<"forms">; openId?: string | null }) {
   const router = useRouter();
@@ -175,8 +190,51 @@ function Responses({
   const exportRows = useExporter();
   const excel = useFlag("exports.xlsx");
   const excelGate = useGate("exports.xlsx");
-  const data = useSeededQuery(api.responses.list, { formId });
-  const loaded = useFirstLoad(data);
+  const [chosenKind, setKind] = useState<Kind>("all");
+  const [pickedForm, setPickedForm] = useState<string>("all");
+  const [pickedOwner, setPickedOwner] = useState<string>("all");
+  const [limit, setLimit] = useState(PAGE);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [open, setOpen] = useState<string | null>(openId);
+  const [asc, setAsc] = useState(false);
+  const [confirm, setConfirm] = useState<string[] | null>(null);
+  const search = useDebounced(term.trim(), SEARCH_DELAY_MS);
+
+  // The company's forms and owners, for the pickers, with the whole inbox's figures.
+  const base = useSeededQuery(api.responses.summary, formId ? { formId } : {});
+  const forms = base?.forms;
+  // Whose forms: the person's own, or one company's. Only offered when there
+  // is more than one owner to choose between.
+  const owners = useMemo(() => ownersFrom(forms), [forms]);
+  const ownerOf = useMemo(() => new Map<string, Owner>((forms ?? []).map((f) => [f._id, f.owner])), [forms]);
+  const multi = !formId && owners.length > 1;
+  const owner = multi && owners.some((o) => o.key === pickedOwner) ? pickedOwner : "all";
+
+  // Narrowed to one form or one owner's forms, the server counts just those.
+  const narrowTo = useMemo(() => {
+    if (formId) return undefined;
+    if (pickedForm !== "all") return [pickedForm as Id<"forms">];
+    if (owner !== "all") return (forms ?? []).filter((f) => f.owner.key === owner).map((f) => f._id);
+    return undefined;
+  }, [formId, pickedForm, owner, forms]);
+  const narrowed = narrowTo !== undefined;
+  const scope = formId ? { formId } : narrowTo ? { forms: narrowTo } : {};
+  const narrowSummary = useLastDefined(useQuery(api.responses.summary, narrowed ? scope : "skip"));
+  const s = narrowed ? narrowSummary?.stats : base?.stats;
+
+  const previews = s?.previews ?? 0;
+  // Previews with nothing left in them fall back to everything.
+  const kind: Kind = chosenKind === "preview" && previews === 0 ? "all" : chosenKind;
+  const listArgs = {
+    ...scope,
+    kind,
+    order: asc ? ("asc" as const) : ("desc" as const),
+    limit,
+    ...(search ? { search } : {}),
+  };
+  // A new filter keeps the last rows on screen until its own arrive.
+  const data = useLastDefined(useSeededQuery(api.responses.rows, listArgs));
+  const loaded = useFirstLoad(base && data);
   const setStatus = useMutation(api.responses.setStatus);
   const remove = useMutation(api.responses.remove);
   const readFor = useMutation(api.inbox.readFor);
@@ -190,59 +248,21 @@ function Responses({
     void readForRef.current({ formId, kinds: ["response"] }).catch(() => {});
   }, [formId]);
 
-  const [chosenKind, setKind] = useState<Kind>("all");
-  const [pickedForm, setPickedForm] = useState<string>("all");
-  const [pickedOwner, setPickedOwner] = useState<string>("all");
-  // "Today" and "this week" for a narrowed list count from when the page opened.
-  const [openedAt] = useState(() => Date.now());
-  const [picked, setPicked] = useState<Set<string>>(new Set());
-  const [open, setOpen] = useState<string | null>(openId);
-  const [asc, setAsc] = useState(false);
-  const [confirm, setConfirm] = useState<string[] | null>(null);
-
-  const all = useMemo(() => data?.responses ?? [], [data]);
-  // Whose forms: the person's own, or one company's. Only offered when there
-  // is more than one owner to choose between.
-  const owners = useMemo(() => ownersFrom(data?.forms), [data]);
-  const ownerOf = useMemo(() => new Map<string, Owner>((data?.forms ?? []).map((f) => [f._id, f.owner])), [data]);
-  const multi = !formId && owners.length > 1;
-  const owner = multi && owners.some((o) => o.key === pickedOwner) ? pickedOwner : "all";
-  const scoped = all.filter((r) =>
-    formId
-      ? true
-      : pickedForm !== "all"
-        ? r.formId === pickedForm
-        : owner === "all" || ownerOf.get(r.formId)?.key === owner,
-  );
-  const real = scoped.filter((r) => !r.preview);
-  const previews = scoped.length - real.length;
-  // Previews with nothing left in them fall back to everything.
-  const kind: Kind = chosenKind === "preview" && previews === 0 ? "all" : chosenKind;
-  const needle = term.trim().toLowerCase();
-  const rows = scoped
-    .filter((r) =>
-      kind === "preview" ? r.preview : !r.preview && (kind === "all" || (kind === "partial" ? r.partial : !r.partial)),
-    )
-    .filter((r) =>
-      needle
-        ? [
-            r.respondentName,
-            r.respondentEmail,
-            r.respondentCompany,
-            r.formTitle,
-            ...r.tags,
-            ...r.answers.map((a) => a.value),
-          ]
-            .join(" ")
-            .toLowerCase()
-            .includes(needle)
-        : true,
-    )
-    .sort((a, b) => (asc ? a.submittedAt - b.submittedAt : b.submittedAt - a.submittedAt));
+  const rows = useMemo(() => data?.rows ?? [], [data]);
+  const more = data?.more ?? false;
   const shownIds = new Set(rows.map((r) => r._id as string));
   const selected = [...picked].filter((id) => shownIds.has(id)) as Id<"responses">[];
-  const current = all.find((r) => r._id === open) ?? null;
+  // A response opened from a link may not be among the rows loaded yet.
+  const inList = rows.find((r) => r._id === open) ?? null;
+  const fetched = useQuery(api.responses.get, open && !inList ? { responseId: open as Id<"responses"> } : "skip");
+  const current = inList ?? fetched ?? null;
   const allPicked = rows.length > 0 && selected.length === rows.length;
+
+  /** Any change of filter starts the list again from its first page. */
+  function refilter() {
+    setLimit(PAGE);
+    setPicked(new Set());
+  }
 
   // Opening a response marks it read, in the inbox and in the bell alike.
   useEffect(() => {
@@ -260,26 +280,27 @@ function Responses({
     });
   }
 
-  const narrowed = !formId && (pickedForm !== "all" || owner !== "all");
-  const filtered = kind !== "all" || !!needle || narrowed;
+  // A whole form, or the whole inbox, exports on the server; a search, a kind
+  // or one owner's forms exports the rows shown.
+  const exportForm = formId ?? (pickedForm !== "all" ? (pickedForm as Id<"forms">) : undefined);
+  const byRows = !!search || kind !== "all" || (narrowed && pickedForm === "all");
   function exportHere(format: "csv" | "xlsx") {
     if (rows.length === 0) {
       toast("Nothing to export", { detail: "No responses match what is shown." });
       return;
     }
-    const exportForm = formId ?? (pickedForm !== "all" ? (pickedForm as Id<"forms">) : undefined);
     void exportRows({
       what: "responses",
       format,
       formId: exportForm,
-      ids: filtered ? rows.map((r) => r._id) : undefined,
+      ids: byRows ? rows.map((r) => r._id) : undefined,
     });
   }
 
   if (!loaded) return <PageSkeleton kind="table" />;
 
-  // The server counts everything; narrowed to one owner or form, count here.
-  const s = narrowed ? responseStats(scoped, openedAt) : data?.stats;
+  const total = s?.total ?? 0;
+  const plus = (n: number, more: boolean | undefined) => `${n.toLocaleString("en-US")}${more ? "+" : ""}`;
   const signed = (n: number | null | undefined, suffix = "") =>
     n === null || n === undefined || n === 0 ? undefined : `${n > 0 ? "+" : "−"}${Math.abs(n)}${suffix}`;
 
@@ -306,7 +327,7 @@ function Responses({
         <StatCard
           icon={<CalendarDays size={16} strokeWidth={1.9} aria-hidden />}
           label="This week"
-          value={(s?.week ?? 0).toLocaleString("en-US")}
+          value={plus(s?.week ?? 0, s?.more.week)}
           delta={signed(s?.weekChange, "%")}
           deltaTone={(s?.weekChange ?? 0) >= 0 ? "up" : "down"}
           tone="sky"
@@ -314,7 +335,7 @@ function Responses({
         <StatCard
           icon={<MailOpen size={16} strokeWidth={1.9} aria-hidden />}
           label="Unread"
-          value={(s?.unread ?? 0).toLocaleString("en-US")}
+          value={plus(s?.unread ?? 0, s?.more.unread)}
           tone="ink"
         />
       </div>
@@ -322,7 +343,10 @@ function Responses({
       <div className="fk-resp-toolbar">
         <Input
           value={term}
-          onChange={(e) => setTerm(e.target.value)}
+          onChange={(e) => {
+            setTerm(e.target.value);
+            refilter();
+          }}
           placeholder="Search responses"
           aria-label="Search responses"
           icon={<Search size={17} strokeWidth={1.8} aria-hidden />}
@@ -336,10 +360,10 @@ function Responses({
               setPickedOwner(next);
               // A form from another owner no longer belongs in the picker.
               if (next !== "all" && pickedForm !== "all" && ownerOf.get(pickedForm)?.key !== next) setPickedForm("all");
-              setPicked(new Set());
+              refilter();
             }}
             ariaLabel="Whose forms"
-            options={ownerOptions(owners, data?.forms)}
+            options={ownerOptions(owners, forms)}
           />
         )}
         {!formId && (
@@ -348,10 +372,10 @@ function Responses({
             value={pickedForm}
             onChange={(next) => {
               setPickedForm(next);
-              setPicked(new Set());
+              refilter();
             }}
             ariaLabel="Which form"
-            options={formOptions(data?.forms, owner, owners)}
+            options={formOptions(forms, owner, owners)}
           />
         )}
         <Segmented
@@ -360,18 +384,18 @@ function Responses({
           value={kind}
           onChange={(v) => {
             setKind(v);
-            setPicked(new Set());
+            refilter();
           }}
           options={[
             { value: "all", label: "All" },
             { value: "complete", label: "Complete" },
             { value: "partial", label: "Partial" },
-            ...(previews ? [{ value: "preview" as const, label: `Previews · ${previews}` }] : []),
+            ...(previews ? [{ value: "preview" as const, label: `Previews · ${plus(previews, s?.more.previews)}` }] : []),
           ]}
         />
         <span className="fk-section-spacer" />
         <span className="fk-range-note">
-          {rows.length.toLocaleString("en-US")} of {real.length.toLocaleString("en-US")} responses
+          {plus(rows.length, more)} of {total.toLocaleString("en-US")} responses
         </span>
         {excel && (
           <Button
@@ -392,7 +416,7 @@ function Responses({
         </Button>
       </div>
 
-      {data && real.length === 0 && kind !== "preview" ? (
+      {total === 0 && kind !== "preview" ? (
         <section className="fk-panel">
           <EmptyState
             title="No responses yet."
@@ -450,8 +474,8 @@ function Responses({
           {rows.length === 0 ? (
             <section className="fk-panel">
               <EmptyState
-                title={needle ? `Nothing matches “${term.trim()}”` : "Nothing here"}
-                description={needle ? "Try a shorter search, or another filter." : "Try another filter."}
+                title={search ? `Nothing matches “${search}”` : "Nothing here"}
+                description={search ? "Try a shorter search, or another filter." : "Try another filter."}
               />
             </section>
           ) : narrow ? (
@@ -503,7 +527,14 @@ function Responses({
                       {!formId && <th scope="col">Form</th>}
                       <th scope="col">Answers</th>
                       <th scope="col" aria-sort={asc ? "ascending" : "descending"}>
-                        <button type="button" className="fk-th-sort" onClick={() => setAsc((v) => !v)}>
+                        <button
+                          type="button"
+                          className="fk-th-sort"
+                          onClick={() => {
+                            setAsc((v) => !v);
+                            refilter();
+                          }}
+                        >
                           Submitted
                           {asc ? (
                             <ArrowUp size={13} strokeWidth={2} aria-hidden />
@@ -577,6 +608,13 @@ function Responses({
                 </table>
               </div>
             </section>
+          )}
+          {more && rows.length > 0 && (
+            <div className="fk-resp-more">
+              <Button variant="secondary" onClick={() => setLimit((n) => n + PAGE)}>
+                Load {PAGE} more
+              </Button>
+            </div>
           )}
         </>
       )}

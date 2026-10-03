@@ -620,6 +620,11 @@ export default defineSchema({
     preview: v.optional(v.boolean()),
     /** The owner's own labels, shown on the response and on the contact. */
     tags: v.optional(v.array(v.string())),
+    /**
+     * Who answered, their labels and their answers as one string, for the
+     * inbox's search (model/responseSearch.ts). Written with every change.
+     */
+    searchText: v.optional(v.string()),
   })
     .index("by_form", ["formId"])
     .index("by_form_device", ["formId", "deviceId"])
@@ -628,8 +633,15 @@ export default defineSchema({
     .index("by_owner_status", ["ownerId", "status"])
     .index("by_owner_submitted", ["ownerId", "submittedAt"])
     .index("by_form_submitted", ["formId", "submittedAt"])
+    // The inbox: real responses or previews, newest or oldest first.
+    .index("by_form_preview_submitted", ["formId", "preview", "submittedAt"])
+    .index("by_owner_preview_submitted", ["ownerId", "preview", "submittedAt"])
+    .index("by_form_status", ["formId", "status"])
+    // The admin overview's day counts (adminTally.ts).
+    .index("by_preview_submitted", ["preview", "submittedAt"])
     .index("by_resume", ["resumeToken"])
-    .index("by_payment", ["payment.status", "submittedAt"]),
+    .index("by_payment", ["payment.status", "submittedAt"])
+    .searchIndex("search", { searchField: "searchText", filterFields: ["ownerId", "formId"] }),
 
   /**
    * Each time a published form is opened or started, so views and starts can
@@ -780,7 +792,8 @@ export default defineSchema({
     at: v.number(),
   })
     .index("by_form", ["formId"])
-    .index("by_user", ["userId"]),
+    .index("by_user", ["userId"])
+    .index("by_at", ["at"]),
 
   /**
    * "Copy invite link": anyone who opens it while signed in joins the form in
@@ -1151,4 +1164,46 @@ export default defineSchema({
     addedAt: v.number(),
     checkedAt: v.optional(v.number()),
   }).index("by_owner", ["ownerId"]),
+
+  /**
+   * The admin overview's platform-wide numbers, worked out in pages by
+   * admin.tally (hourly, or when staff press Refresh) so the overview never
+   * reads whole tables. One row, key "overview".
+   */
+  adminSnapshot: defineTable({
+    key: v.string(),
+    at: v.number(),
+    users: v.number(),
+    staff: v.number(),
+    deactivated: v.number(),
+    standing: v.object({ active: v.number(), suspended: v.number(), deleting: v.number() }),
+    /** Customer sign-ups by UTC day ("2026-10-03"), the last 90 days. */
+    signups: v.record(v.string(), v.number()),
+    forms: v.number(),
+    live: v.number(),
+    responses: v.number(),
+    aiAllowed: v.number(),
+    aiUsed: v.number(),
+    aiCapacity: v.number(),
+    aiOutOfCredits: v.number(),
+  }).index("by_key", ["key"]),
+
+  /**
+   * Responses and AI-built forms per UTC day, for the admin overview. A day
+   * is counted again until two days after it ends, then kept as it is.
+   */
+  adminDays: defineTable({
+    day: v.string(),
+    responses: v.number(),
+    aiForms: v.number(),
+    final: v.boolean(),
+  }).index("by_day", ["day"]),
+
+  /** Where a long data job has got to, so it can pick up where it stopped. */
+  jobs: defineTable({
+    key: v.string(),
+    cursor: v.union(v.string(), v.null()),
+    done: v.boolean(),
+    at: v.number(),
+  }).index("by_key", ["key"]),
 });

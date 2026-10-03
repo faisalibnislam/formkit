@@ -1,16 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { ArrowRight } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
-import { ProgressBar, Segmented, Switch } from "@/components/ui";
+import { Button, ProgressBar, Segmented, Switch } from "@/components/ui";
+import { relativeTime } from "@/components/app/bits";
 import { StatCard } from "@/components/app/ds";
 import { useToast } from "@/components/ui/Toast";
 
 /**
- * What the platform is doing, counted from stored data: the headline numbers
+ * What the platform is doing, from the hourly count (convex/adminTally.ts) and,
+ * for what staff act on, live: the headline numbers
  * over 30 or 90 days, who is in what standing, sign-ups a day, Ask Formkit
  * against what accounts could spend, and the things waiting on staff.
  */
@@ -20,6 +22,17 @@ export function AdminOverview() {
   const [range, setRange] = useState<30 | 90>(30);
   const stats = useQuery(api.admin.overview, { range });
   const setAiPlatform = useMutation(api.admin.setAiPlatform);
+  const refresh = useMutation(api.admin.refreshOverview);
+  const [counting, setCounting] = useState(false);
+
+  // Nothing counted yet (a fresh deployment): count now rather than wait an hour.
+  const asked = useRef(false);
+  useEffect(() => {
+    if (stats?.asOf !== null || asked.current) return;
+    asked.current = true;
+    void refresh({}).catch(() => {});
+  }, [stats?.asOf, refresh]);
+
   if (!stats) return null;
 
   const peak = Math.max(1, ...stats.signups);
@@ -46,6 +59,26 @@ export function AdminOverview() {
           ]}
         />
         <span className="fk-admin-quiet">Everything below counts the last {range} days unless it says otherwise.</span>
+        <span className="fk-section-spacer" />
+        <span className="fk-admin-quiet">
+          {stats.asOf ? `Counted ${relativeTime(stats.asOf)}` : "Counting for the first time…"}
+        </span>
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={counting || !stats.asOf}
+          onClick={async () => {
+            setCounting(true);
+            try {
+              await refresh({});
+              toast("Counting again", { detail: "The numbers update in a minute or so." });
+            } finally {
+              setCounting(false);
+            }
+          }}
+        >
+          Refresh
+        </Button>
       </div>
 
       <div className="fk-grid" data-cols="stats-sm">

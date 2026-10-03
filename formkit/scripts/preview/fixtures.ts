@@ -686,7 +686,7 @@ export const QUERIES: Record<string, unknown> = {
     ],
     unattributed: 0,
   },
-  get "responses:list"() {
+  get "responses:rows"() {
     // ?fk_voice=1: the first response answered a voice question.
     const voiced = sticky("fk_voice")
       ? RESPONSES.map((r, i) =>
@@ -699,11 +699,23 @@ export const QUERIES: Record<string, unknown> = {
             : r,
         )
       : RESPONSES;
-    return {
-      stats: { total: 1117, today: 2, todayChange: 1, week: 8, weekChange: 14, unread: 3, partial: 2, completed: 1115, previews: 1 },
-      forms: Object.entries(FORM_TITLES).map(([_id, title]) => ({ _id, title, owner: ownerOf(_id) })),
-      responses: voiced,
-    };
+    // The fixture ignores filters: it is the inbox's default view, previews left out.
+    return { rows: voiced.filter((r) => !(r as { preview?: boolean }).preview), more: false };
+  },
+  "responses:summary": {
+    stats: {
+      total: 1117,
+      today: 2,
+      todayChange: 1,
+      week: 8,
+      weekChange: 14,
+      unread: 3,
+      partial: 2,
+      completed: 1115,
+      previews: 1,
+      more: { week: false, unread: false, previews: false },
+    },
+    forms: Object.entries(FORM_TITLES).map(([_id, title]) => ({ _id, title, owner: ownerOf(_id) })),
   },
   "responses:get": RESPONSES[0],
   "responses:contacts": CONTACTS,
@@ -1139,6 +1151,7 @@ export const QUERIES: Record<string, unknown> = {
     },
   },
   "admin:overview": {
+    asOf: now - 12 * 60 * 1000,
     users: 10020,
     newUsers: 184,
     deactivated: 37,
@@ -1546,8 +1559,9 @@ function derived(name: string): unknown {
     return list.forms.map((f) => ({ _id: f._id, title: f.title, status: f.status, responses: f.responses, owner: ownerOf(f._id) }));
   }
   if (name === "responses:recent") {
-    const list = QUERIES["responses:list"] as { stats: Record<string, number>; responses: { preview?: boolean }[] };
-    return { stats: list.stats, responses: list.responses.filter((r) => !r.preview).slice(0, 6) };
+    const { stats } = QUERIES["responses:summary"] as { stats: Record<string, unknown> };
+    const { rows } = QUERIES["responses:rows"] as { rows: unknown[] };
+    return { stats, responses: rows.slice(0, 6) };
   }
   return undefined;
 }

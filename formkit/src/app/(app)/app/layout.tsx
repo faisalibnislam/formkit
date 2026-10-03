@@ -7,6 +7,7 @@ import { headers } from "next/headers";
 import type { FunctionReference } from "convex/server";
 import type { Id } from "@convex/_generated/dataModel";
 import { api } from "@convex/_generated/api";
+import { FIRST_ROWS } from "@/lib/inbox";
 
 export const metadata: Metadata = {
   title: { default: "Formkit", template: "%s | Formkit" },
@@ -22,7 +23,7 @@ function pageSeeds(path: string): Seed[] {
   if (path === "/app") return [[api.forms.list, { filter: "all" }], [api.responses.recent], [api.analytics.overview]];
   if (path === "/app/forms" || path === "/app/templates") return [[api.forms.list, { filter: "all" }]];
   if (path === "/app/analytics") return [[api.forms.picker]];
-  if (path === "/app/responses") return [[api.responses.list, {}]];
+  if (path === "/app/responses") return [[api.responses.summary, {}], [api.responses.rows, { ...FIRST_ROWS }]];
   const editor = path.match(/^\/app\/forms\/([a-z0-9]+)$/);
   if (editor) {
     const formId = editor[1] as Id<"forms">;

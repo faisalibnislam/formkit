@@ -10,6 +10,7 @@
 import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
 import type * as admin from "../admin.js";
 import type * as adminCompanies from "../adminCompanies.js";
+import type * as adminTally from "../adminTally.js";
 import type * as ai from "../ai.js";
 import type * as aiLogic from "../aiLogic.js";
 import type * as aiReply from "../aiReply.js";
@@ -66,12 +67,15 @@ import type * as model_moreTemplates from "../model/moreTemplates.js";
 import type * as model_places from "../model/places.js";
 import type * as model_plans from "../model/plans.js";
 import type * as model_quiz from "../model/quiz.js";
+import type * as model_responseCounts from "../model/responseCounts.js";
+import type * as model_responseSearch from "../model/responseSearch.js";
 import type * as model_security from "../model/security.js";
 import type * as model_sheet from "../model/sheet.js";
 import type * as model_spaces from "../model/spaces.js";
 import type * as model_team from "../model/team.js";
 import type * as model_themePresets from "../model/themePresets.js";
 import type * as model_totp from "../model/totp.js";
+import type * as model_voice from "../model/voice.js";
 import type * as notifications from "../notifications.js";
 import type * as payments from "../payments.js";
 import type * as presence from "../presence.js";
@@ -99,6 +103,7 @@ import type * as users from "../users.js";
 declare const fullApi: ApiFromModules<{
   "admin": typeof admin,
   "adminCompanies": typeof adminCompanies,
+  "adminTally": typeof adminTally,
   "ai": typeof ai,
   "aiLogic": typeof aiLogic,
   "aiReply": typeof aiReply,
@@ -155,12 +160,15 @@ declare const fullApi: ApiFromModules<{
   "model/places": typeof model_places,
   "model/plans": typeof model_plans,
   "model/quiz": typeof model_quiz,
+  "model/responseCounts": typeof model_responseCounts,
+  "model/responseSearch": typeof model_responseSearch,
   "model/security": typeof model_security,
   "model/sheet": typeof model_sheet,
   "model/spaces": typeof model_spaces,
   "model/team": typeof model_team,
   "model/themePresets": typeof model_themePresets,
   "model/totp": typeof model_totp,
+  "model/voice": typeof model_voice,
   "notifications": typeof notifications,
   "payments": typeof payments,
   "presence": typeof presence,

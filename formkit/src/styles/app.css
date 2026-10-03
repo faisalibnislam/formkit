@@ -4029,6 +4029,12 @@ button.fk-chip {
   gap: 12px;
   flex-wrap: wrap;
 }
+/* After the last row: the next page of responses. */
+.fk-resp-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
 .fk-resp-toolbar > .ui-pilltabs {
   max-width: 100%;
   min-width: 0;

@@ -6,6 +6,8 @@ import { modelConfigured } from "./model/gemini";
 import { notify } from "./model/inbox";
 import { FLAGS, isFlagKey } from "./model/flags";
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { lastDays } from "./adminTally";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
   PERMS,
@@ -87,79 +89,85 @@ export const overview = query({
   args: { range: v.optional(v.union(v.literal(30), v.literal(90))) },
   handler: async (ctx, { range = 30 }) => {
     await requireStaff(ctx);
-    const users = await ctx.db.query("users").collect();
-    const forms = await ctx.db.query("forms").collect();
-    const responses = await ctx.db.query("responses").collect();
-    const access = await ctx.db.query("aiAccess").collect();
-    const reports = await ctx.db.query("moderation").collect();
-    const tickets = await ctx.db.query("tickets").collect();
-    const activity = await ctx.db.query("activity").collect();
-
-    const DAY = 24 * 60 * 60 * 1000;
-    const now = Date.now();
-    const since = now - range * DAY;
-    const week = now - 7 * DAY;
-    const customers = users.filter((u) => !u.staffRole);
-
-    // Sign-ups a day across the range, oldest first.
-    const start = new Date(now);
-    start.setHours(0, 0, 0, 0);
-    const first = start.getTime() - (range - 1) * DAY;
-    const signups = Array.from({ length: range }, () => 0);
-    for (const u of customers) {
-      const i = Math.floor((u._creationTime - first) / DAY);
-      if (i >= 0 && i < range) signups[i]! += 1;
-    }
-
-    // Ask Formkit: on for every customer unless turned off, builds by plan.
-    const buildsUsed = await buildsThisMonth(ctx);
-    const freeDefault = (await platformValue<number>(ctx, "aiDefault")) ?? PLANS.free.ai.builds;
-    const byUser = new Map(access.map((a) => [a.userId as string, a]));
-    let capacity = 0;
-    let used = 0;
-    let outOfCredits = 0;
-    let allowedCount = 0;
-    for (const u of customers) {
-      const row = byUser.get(u._id);
-      if (row?.enabled === false || u.deactivatedAt) continue;
-      allowedCount += 1;
-      const limit = localAiLimit(u, row, freeDefault);
-      const spent = buildsUsed.get(`me:${u._id}`) ?? 0;
-      capacity += limit;
-      used += spent;
-      if (spent > 0 && spent >= limit) outOfCredits += 1;
-    }
-
-    const suspended = customers.filter((u) => u.deactivatedAt && !u.selfDeletedAt).length;
-    const deleting = customers.filter((u) => u.selfDeletedAt).length;
+    // Platform totals come from the last tally (adminTally.ts); what staff
+    // act on straight away - reports, tickets, the AI switch - is read live.
+    const snap = await ctx.db
+      .query("adminSnapshot")
+      .withIndex("by_key", (q) => q.eq("key", "overview"))
+      .unique();
+    const keys = lastDays(range);
+    const days = new Map(
+      (
+        await ctx.db
+          .query("adminDays")
+          .withIndex("by_day", (q) => q.gte("day", keys[0]!))
+          .collect()
+      ).map((d) => [d.day, d]),
+    );
+    const week = keys.slice(-7);
+    const signups = keys.map((k) => snap?.signups[k] ?? 0);
+    const sum = (ks: string[], pick: (d: Doc<"adminDays">) => number) =>
+      ks.reduce((n, k) => n + (days.get(k) ? pick(days.get(k)!) : 0), 0);
+    const open = async (table: "moderation" | "tickets") =>
+      (
+        await ctx.db
+          .query(table)
+          .withIndex("by_state", (q) => q.eq("state", "open"))
+          .take(OPEN_CAP)
+      ).length;
 
     return {
       range,
-      users: users.length,
-      newUsers: users.filter((u) => u._creationTime >= week).length,
-      newInRange: customers.filter((u) => u._creationTime >= since).length,
-      deactivated: users.filter((u) => u.deactivatedAt).length,
-      staff: users.filter((u) => u.staffRole).length,
-      standing: { active: customers.length - suspended - deleting, suspended, deleting },
+      /** When the totals were counted; null until the first count has run. */
+      asOf: snap?.at ?? null,
+      users: snap?.users ?? 0,
+      newUsers: week.reduce((n, k) => n + (snap?.signups[k] ?? 0), 0),
+      newInRange: signups.reduce((a, b) => a + b, 0),
+      deactivated: snap?.deactivated ?? 0,
+      staff: snap?.staff ?? 0,
+      standing: snap?.standing ?? { active: 0, suspended: 0, deleting: 0 },
       signups,
-      forms: forms.filter((f) => !f.deletedAt).length,
-      live: forms.filter((f) => f.status === "published" && !f.deletedAt).length,
-      responses: responses.length,
-      responsesWeek: responses.filter((r) => r.submittedAt >= week).length,
-      responsesInRange: responses.filter((r) => r.submittedAt >= since && !r.preview).length,
-      aiFormsBuilt: activity.filter((a) => a.at >= since && a.what === "created the form with Ask Formkit").length,
-      aiAllowed: allowedCount,
-      aiUsed: used,
-      aiCapacity: capacity,
-      aiOutOfCredits: outOfCredits,
+      forms: snap?.forms ?? 0,
+      live: snap?.live ?? 0,
+      responses: snap?.responses ?? 0,
+      responsesWeek: sum(week, (d) => d.responses),
+      responsesInRange: sum(keys, (d) => d.responses),
+      aiFormsBuilt: sum(keys, (d) => d.aiForms),
+      aiAllowed: snap?.aiAllowed ?? 0,
+      aiUsed: snap?.aiUsed ?? 0,
+      aiCapacity: snap?.aiCapacity ?? 0,
+      aiOutOfCredits: snap?.aiOutOfCredits ?? 0,
       aiPaused: (await platformValue<boolean>(ctx, "aiPaused")) ?? false,
       aiDefault: (await platformValue<number>(ctx, "aiDefault")) ?? 5,
       aiDefaultPrevious: await platformValue<number>(ctx, "aiDefaultPrevious"),
       /** Whether the deployment has a model key; never the key itself. */
       aiModelReady: modelConfigured(),
-      openReports: reports.filter((r) => r.state === "open").length,
-      openTickets: tickets.filter((t) => t.state === "open").length,
+      openReports: await open("moderation"),
+      openTickets: await open("tickets"),
     };
+  },
+});
+
+/** Reports and tickets waiting, counted up to this. */
+const OPEN_CAP = 500;
+/** Refresh waits this long after the last count before counting again. */
+const REFRESH_EVERY_MS = 60_000;
+
+/** Count the overview's numbers again now, rather than at the next hourly run. */
+export const refreshOverview = mutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    await requireStaff(ctx);
+    const job = await ctx.db
+      .query("jobs")
+      .withIndex("by_key", (q) => q.eq("key", "adminTally"))
+      .unique();
+    if (job && Date.now() - job.at < REFRESH_EVERY_MS) return null;
+    if (job) await ctx.db.patch(job._id, { at: Date.now() });
+    else await ctx.db.insert("jobs", { key: "adminTally", cursor: null, done: false, at: Date.now() });
+    await ctx.scheduler.runAfter(0, internal.adminTally.run, {});
+    return null;
   },
 });
 

@@ -8,7 +8,7 @@
  * mutations log and resolve, so a click does not throw.
  */
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { getFunctionName } from "convex/server";
 import { aiReply, fixtureFor } from "./fixtures";
 
@@ -29,8 +29,9 @@ function nameOf(reference: unknown) {
  * product never server-renders - which hides real hydration bugs and invents
  * fake ones.
  */
-export function useQuery(reference: unknown, ..._args: unknown[]) {
-  void _args;
+export function useQuery(reference: unknown, ...args: unknown[]) {
+  // A skipped query has no answer, as in Convex.
+  const skipped = args[0] === "skip";
   const [ready, setReady] = useState(false);
   useEffect(() => {
     // ?fk_slow=2000 holds every query back, to see the loading states.
@@ -38,7 +39,11 @@ export function useQuery(reference: unknown, ..._args: unknown[]) {
     const t = window.setTimeout(() => setReady(true), slow);
     return () => window.clearTimeout(t);
   }, []);
-  return (ready ? fixtureFor(nameOf(reference)) : undefined) as never;
+  // Like Convex, the same answer object until the data changes, so code that
+  // compares answers between renders behaves as it does in the product.
+  const name = nameOf(reference);
+  const answer = useMemo(() => (ready && !skipped ? fixtureFor(name) : undefined), [ready, skipped, name]);
+  return answer as never;
 }
 
 export function useMutation(reference: unknown) {

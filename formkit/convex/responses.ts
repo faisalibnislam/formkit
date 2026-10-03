@@ -7,6 +7,8 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { requireUser } from "./model/identity";
 import { formFor, ownersOf } from "./model/forms";
 import { currentSpace, spaceForms } from "./model/spaces";
+import { searchTextOf } from "./model/responseSearch";
+import { countChange } from "./model/responseCounts";
 
 /**
  * The response inbox.
@@ -138,42 +140,205 @@ function startOfToday(now: number) {
   return d.getTime();
 }
 
-function stats(rows: Doc<"responses">[], now: number) {
-  const real = rows.filter((r) => !r.preview);
-  const today = startOfToday(now);
-  const week = now - 7 * DAY;
-  const pct = (a: number, b: number) => (b === 0 ? null : Math.round(((a - b) / b) * 100));
-  const inToday = real.filter((r) => r.submittedAt >= today).length;
-  const inYesterday = real.filter((r) => r.submittedAt >= today - DAY && r.submittedAt < today).length;
-  const inWeek = real.filter((r) => r.submittedAt >= week).length;
-  const inLastWeek = real.filter((r) => r.submittedAt >= week - 7 * DAY && r.submittedAt < week).length;
-  return {
-    total: real.length,
-    // Partials are excluded from Completed, deliberately.
-    completed: real.filter((r) => !r.partial).length,
-    partial: real.filter((r) => r.partial).length,
-    today: inToday,
-    todayChange: inToday - inYesterday,
-    week: inWeek,
-    weekChange: pct(inWeek, inLastWeek),
-    unread: real.filter((r) => r.status === "new" && !r.partial).length,
-    previews: rows.length - real.length,
-  };
+/** How many rows the inbox shows at most, however far "Load more" is pressed. */
+const MAX_ROWS = 1000;
+/** Rows read to fill one request, at most; beyond it the inbox offers "Load more". */
+const SCAN_CAP = 4000;
+/** Recent responses read for Today and This week, at most. */
+const RECENT_CAP = 3000;
+/** Unread and preview responses counted, at most; above it the count shows as "1,000+". */
+const COUNT_CAP = 1000;
+
+const scopeArgs = {
+  /** One form: the editor's Responses tab. */
+  formId: v.optional(v.id("forms")),
+  /** Some of the company's forms: one picked, or one owner's. */
+  forms: v.optional(v.array(v.id("forms"))),
+};
+
+/**
+ * The forms the inbox is looking at, and every form it could look at (for its
+ * pickers): one form, or the company being worked in, narrowed to `picked`.
+ */
+async function inboxForms(ctx: QueryCtx, formId: Id<"forms"> | undefined, picked: Id<"forms">[] | undefined) {
+  if (formId) {
+    const form = await formFor(ctx, formId, "read");
+    return { ownerId: form.ownerId, all: [form], forms: [form] };
+  }
+  const user = await requireUser(ctx);
+  const space = await currentSpace(ctx, user);
+  const all = (await spaceForms(ctx, space)).filter((f) => !f.deletedAt);
+  const wanted = picked ? new Set<string>(picked) : null;
+  return { ownerId: space.ownerId, all, forms: wanted ? all.filter((f) => wanted.has(f._id)) : all };
 }
 
-export const list = query({
-  args: { formId: v.optional(v.id("forms")) },
-  handler: async (ctx, { formId }) => {
-    const { forms, rows } = await scope(ctx, formId);
+/** Reads `source` until `limit` rows pass `keep`, or SCAN_CAP rows have been read. */
+async function gather(source: AsyncIterable<Doc<"responses">>, keep: (r: Doc<"responses">) => boolean, limit: number) {
+  const rows: Doc<"responses">[] = [];
+  let read = 0;
+  for await (const r of source) {
+    if (++read > SCAN_CAP) return { rows, more: true };
+    if (!keep(r)) continue;
+    if (rows.length === limit) return { rows, more: true };
+    rows.push(r);
+  }
+  return { rows, more: false };
+}
+
+/** Counts rows passing `keep`, reading at most `cap`; `more` when it stopped short. */
+async function countUpTo(source: AsyncIterable<Doc<"responses">>, keep: (r: Doc<"responses">) => boolean, cap: number) {
+  let n = 0;
+  let read = 0;
+  for await (const r of source) {
+    if (++read > cap) return { n, more: true };
+    if (keep(r)) n += 1;
+  }
+  return { n, more: false };
+}
+
+/**
+ * The inbox's list: newest (or oldest) first, filtered on the server, and
+ * only as many as it shows. "Load more" asks again with a higher limit. A
+ * search returns the best matches, then puts them in date order.
+ */
+export const rows = query({
+  args: {
+    ...scopeArgs,
+    kind: v.union(v.literal("all"), v.literal("complete"), v.literal("partial"), v.literal("preview")),
+    search: v.optional(v.string()),
+    order: v.union(v.literal("desc"), v.literal("asc")),
+    limit: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const { ownerId, forms } = await inboxForms(ctx, args.formId, args.forms);
+    if (!forms.length) return { rows: [], more: false };
     const titles = new Map(forms.map((f) => [f._id as string, f.title]));
-    const sorted = [...rows].sort((a, b) => b.submittedAt - a.submittedAt);
-    const owners = await ownersOf(ctx, forms);
+    const limit = Math.max(1, Math.min(MAX_ROWS, Math.floor(args.limit)));
+    const preview = args.kind === "preview";
+    const keep = (r: Doc<"responses">) =>
+      titles.has(r.formId) &&
+      !!r.preview === preview &&
+      (args.kind === "partial" ? r.partial : args.kind === "complete" ? !r.partial : true);
+    const single = forms.length === 1 ? forms[0]! : null;
+    const term = args.search?.trim().slice(0, 100);
+
+    const source = term
+      ? ctx.db.query("responses").withSearchIndex("search", (q) => {
+          const found = q.search("searchText", term).eq("ownerId", ownerId);
+          return single ? found.eq("formId", single._id) : found;
+        })
+      : single
+        ? ctx.db
+            .query("responses")
+            .withIndex("by_form_preview_submitted", (q) =>
+              q.eq("formId", single._id).eq("preview", preview ? true : undefined),
+            )
+            .order(args.order)
+        : ctx.db
+            .query("responses")
+            .withIndex("by_owner_preview_submitted", (q) =>
+              q.eq("ownerId", ownerId).eq("preview", preview ? true : undefined),
+            )
+            .order(args.order);
+
+    const { rows: found, more } = await gather(source, keep, limit);
+    if (term) found.sort((a, b) => (args.order === "asc" ? a.submittedAt - b.submittedAt : b.submittedAt - a.submittedAt));
     return {
-      stats: stats(rows, Date.now()),
-      forms: forms
+      rows: await Promise.all(found.map((r) => shape(ctx, r, titles.get(r.formId) ?? "A form"))),
+      more,
+    };
+  },
+});
+
+/**
+ * The inbox's figures and pickers. Completed and Partial come from the
+ * counts kept on each form; Today, This week, Unread and Previews are counted
+ * from an index, up to a ceiling, and say so (`more`) when they reach it.
+ */
+export const summary = query({
+  args: scopeArgs,
+  handler: async (ctx, { formId, forms: picked }) => {
+    const { ownerId, all, forms } = await inboxForms(ctx, formId, picked);
+    const ids = new Set<string>(forms.map((f) => f._id));
+    const owners = await ownersOf(ctx, all);
+    const single = forms.length === 1 ? forms[0]! : null;
+    const mine = (r: Doc<"responses">) => ids.has(r.formId);
+
+    const now = Date.now();
+    const today = startOfToday(now);
+    const week = now - 7 * DAY;
+    const since = Math.min(today - DAY, week - 7 * DAY);
+    const recent = single
+      ? ctx.db
+          .query("responses")
+          .withIndex("by_form_preview_submitted", (q) =>
+            q.eq("formId", single._id).eq("preview", undefined).gte("submittedAt", since),
+          )
+          .order("desc")
+      : ctx.db
+          .query("responses")
+          .withIndex("by_owner_preview_submitted", (q) =>
+            q.eq("ownerId", ownerId).eq("preview", undefined).gte("submittedAt", since),
+          )
+          .order("desc");
+    let inToday = 0;
+    let inYesterday = 0;
+    let inWeek = 0;
+    let inLastWeek = 0;
+    let read = 0;
+    let recentMore = false;
+    for await (const r of recent) {
+      if (++read > RECENT_CAP) {
+        recentMore = true;
+        break;
+      }
+      if (!mine(r)) continue;
+      if (r.submittedAt >= today) inToday += 1;
+      else if (r.submittedAt >= today - DAY) inYesterday += 1;
+      if (r.submittedAt >= week) inWeek += 1;
+      else if (r.submittedAt >= week - 7 * DAY) inLastWeek += 1;
+    }
+
+    const unread = await countUpTo(
+      single
+        ? ctx.db.query("responses").withIndex("by_form_status", (q) => q.eq("formId", single._id).eq("status", "new"))
+        : ctx.db.query("responses").withIndex("by_owner_status", (q) => q.eq("ownerId", ownerId).eq("status", "new")),
+      (r) => mine(r) && !r.partial && !r.preview,
+      COUNT_CAP,
+    );
+    const previews = await countUpTo(
+      single
+        ? ctx.db
+            .query("responses")
+            .withIndex("by_form_preview_submitted", (q) => q.eq("formId", single._id).eq("preview", true))
+        : ctx.db
+            .query("responses")
+            .withIndex("by_owner_preview_submitted", (q) => q.eq("ownerId", ownerId).eq("preview", true)),
+      mine,
+      COUNT_CAP,
+    );
+
+    const total = forms.reduce((n, f) => n + f.responsesCount, 0);
+    const completed = forms.reduce((n, f) => n + f.completedCount, 0);
+    const pct = (a: number, b: number) => (b === 0 ? null : Math.round(((a - b) / b) * 100));
+    return {
+      stats: {
+        total,
+        // Partials are excluded from Completed, deliberately.
+        completed,
+        partial: Math.max(0, total - completed),
+        today: inToday,
+        todayChange: recentMore ? null : inToday - inYesterday,
+        week: inWeek,
+        weekChange: recentMore ? null : pct(inWeek, inLastWeek),
+        unread: unread.n,
+        previews: previews.n,
+        /** Which figures stopped at their ceiling, to be shown as "n+". */
+        more: { week: recentMore, unread: unread.more, previews: previews.more },
+      },
+      forms: [...all]
         .sort((a, b) => b.updatedAt - a.updatedAt)
         .map((f) => ({ _id: f._id, title: f.title, owner: owners.get(f._id)! })),
-      responses: await Promise.all(sorted.map((r) => shape(ctx, r, titles.get(r.formId) ?? "A form"))),
     };
   },
 });
@@ -341,12 +506,16 @@ export const setTags = mutation({
       const tag = t.trim().replace(/\s+/g, " ").slice(0, 32);
       if (tag && !clean.some((c) => c.toLowerCase() === tag.toLowerCase())) clean.push(tag);
     }
-    await ctx.db.patch(responseId, { tags: clean.length ? clean.slice(0, MAX_TAGS) : undefined });
+    const next = clean.length ? clean.slice(0, MAX_TAGS) : undefined;
+    await ctx.db.patch(responseId, { tags: next, searchText: searchTextOf({ ...r, tags: next }) });
     return null;
   },
 });
 
-/** Every tag already in use, so the drawer can offer them again. */
+/** How far back the drawer looks for labels to offer again. */
+const TAGS_FROM_LATEST = 1000;
+
+/** Tags already in use on recent responses, most used first, for the drawer to offer again. */
 export const tagsInUse = query({
   args: {},
   handler: async (ctx) => {
@@ -354,8 +523,9 @@ export const tagsInUse = query({
     const space = await currentSpace(ctx, user);
     const rows = await ctx.db
       .query("responses")
-      .withIndex("by_owner", (q) => q.eq("ownerId", space.ownerId))
-      .collect();
+      .withIndex("by_owner_submitted", (q) => q.eq("ownerId", space.ownerId))
+      .order("desc")
+      .take(TAGS_FROM_LATEST);
     const seen = new Map<string, number>();
     for (const r of rows) for (const t of r.tags ?? []) seen.set(t, (seen.get(t) ?? 0) + 1);
     return [...seen.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t);
@@ -367,16 +537,12 @@ export const remove = mutation({
   args: { ids: v.array(v.id("responses")) },
   returns: v.null(),
   handler: async (ctx, { ids }) => {
-    const touched = new Set<string>();
     for (const id of ids) {
       const r = await ctx.db.get(id);
       if (!r) continue;
       await formFor(ctx, r.formId, "read");
       await ctx.db.delete(id);
-      touched.add(r.formId);
-    }
-    for (const formId of touched) {
-      await ctx.runMutation(internal.responses.recount, { formId: formId as Id<"forms"> });
+      await countChange(ctx, r.formId, r, null);
     }
     return null;
   },
@@ -601,5 +767,33 @@ export const unreadCount = query({
       .withIndex("by_owner_status", (q) => q.eq("ownerId", space.ownerId).eq("status", "new"))
       .collect();
     return rows.filter((r) => !r.partial && !r.preview && forms.has(r.formId)).length;
+  },
+});
+
+const BACKFILL_PAGE = 200;
+
+/**
+ * Writes searchText on responses saved before the inbox searched on the
+ * server, a page at a time, each page scheduling the next. Started by a cron
+ * until it has been through every response; after that a run is one read.
+ */
+export const backfillSearch = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const job = await ctx.db
+      .query("jobs")
+      .withIndex("by_key", (q) => q.eq("key", "responseSearch"))
+      .unique();
+    if (job?.done) return null;
+    const page = await ctx.db.query("responses").paginate({ numItems: BACKFILL_PAGE, cursor: job?.cursor ?? null });
+    for (const r of page.page) {
+      if (r.searchText === undefined) await ctx.db.patch(r._id, { searchText: searchTextOf(r) });
+    }
+    const next = { key: "responseSearch", cursor: page.continueCursor, done: page.isDone, at: Date.now() };
+    if (job) await ctx.db.replace(job._id, next);
+    else await ctx.db.insert("jobs", next);
+    if (!page.isDone) await ctx.scheduler.runAfter(0, internal.responses.backfillSearch, {});
+    return null;
   },
 });
