@@ -3,11 +3,16 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Check, Sparkles } from "lucide-react";
-import { AiBuildScene } from "@/components/site/scenes/AiBuildScene";
-import { ThinkScene } from "./ThinkScene";
 import { StarField } from "./StarField";
+import dynamic from "next/dynamic";
 import { NearView } from "@/components/site/NearView";
-import { ActScene } from "./ActScene";
+
+// Each row's scene is fetched when the row comes near (NearView), not with the page.
+const AiBuildScene = dynamic(() => import("@/components/site/scenes/AiBuildScene").then((m) => m.AiBuildScene), {
+  ssr: false,
+});
+const ThinkScene = dynamic(() => import("./ThinkScene").then((m) => m.ThinkScene), { ssr: false });
+const ActScene = dynamic(() => import("./ActScene").then((m) => m.ActScene), { ssr: false });
 
 /**
  * AI, the third thing on the page and the reason to pick Formkit: it builds

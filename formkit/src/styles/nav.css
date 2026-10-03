@@ -86,8 +86,10 @@
 
 .fk-nav-signin {
   display: inline-flex;
+  flex: none;
   align-items: center;
   height: 40px;
+  white-space: nowrap;
   padding: 0 16px;
   margin-right: 4px;
   border-radius: var(--radius-pill);
@@ -102,8 +104,10 @@
 
 .fk-nav-signup {
   display: inline-flex;
+  flex: none;
   align-items: center;
   gap: 8px;
+  white-space: nowrap;
   height: 42px;
   padding: 0 20px;
   border-radius: var(--radius-pill);
@@ -291,12 +295,47 @@
     display: inline-flex;
   }
 }
-@media (max-width: 400px) {
+/* Phones: a little less air, so the bar's buttons stay on one line and
+   inside the bar. */
+@media (max-width: 440px) {
+  .fk-nav {
+    gap: 4px;
+    padding: 0 6px;
+  }
+  .fk-nav-logo {
+    padding: 0 6px;
+  }
+  .fk-nav-logo svg {
+    height: 16px;
+    width: auto;
+  }
+  .fk-nav-burger {
+    width: 40px;
+    height: 40px;
+    margin-right: 0;
+  }
   .fk-nav-signin {
-    padding: 0 10px;
+    padding: 0 8px;
+    margin-right: 0;
   }
   .fk-nav-signup {
-    padding: 0 14px;
+    padding: 0 12px;
+  }
+}
+/* The smallest phones show the mark without the word. */
+.fk-nav-logo-full,
+.fk-nav-logo-mark {
+  display: inline-flex;
+}
+.fk-nav-logo-mark {
+  display: none;
+}
+@media (max-width: 350px) {
+  .fk-nav-logo-full {
+    display: none;
+  }
+  .fk-nav-logo-mark {
+    display: inline-flex;
   }
 }
 .fk-nav-avatar {

@@ -115,7 +115,12 @@ export function SiteNav({ current }: { current?: NavKey }) {
         className="fk-nav-logo"
         aria-label={signedIn ? "Formkit, go to your dashboard" : "Formkit home"}
       >
-        <Logo size={19} tone="current" />
+        <span className="fk-nav-logo-full">
+          <Logo size={19} tone="current" />
+        </span>
+        <span className="fk-nav-logo-mark">
+          <Logo size={19} tone="current" wordmark={false} />
+        </span>
       </Link>
 
       <nav className="fk-nav-links" aria-label="Sections">

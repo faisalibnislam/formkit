@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import { MousePointerClick } from "lucide-react";
 import type { SceneProps } from "./shared";
+import { sceneSlug } from "./slugs";
 import { AiBuildScene } from "./AiBuildScene";
 import { LogicScene } from "./LogicScene";
 import { QuizScene } from "./QuizScene";
@@ -28,18 +29,9 @@ export const SCENES: Record<string, { Scene: ComponentType<SceneProps>; hint: st
   versions: { Scene: VersionsScene, hint: "Watch a version restored and the answers exported" },
 };
 
-/** The use-case pages borrow the scene closest to their work. */
-const CASE_SCENES: Record<string, string> = {
-  agencies: "branding",
-  education: "quizzes",
-  sales: "ai-replies",
-  events: "payments",
-  hr: "logic",
-};
-
 /** The scene for a feature or use-case page, with what to try under it. */
 export function StoryScene({ slug, compact, hint }: { slug: string; compact?: boolean; hint?: boolean }) {
-  const entry = SCENES[slug] ?? SCENES[CASE_SCENES[slug] ?? ""];
+  const entry = SCENES[sceneSlug(slug, (s) => s in SCENES)];
   if (!entry) return null;
   const { Scene } = entry;
   if (!hint) return <Scene compact={compact} />;
