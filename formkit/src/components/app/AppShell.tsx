@@ -4,6 +4,7 @@ import { Scroller } from "./Scroller";
 import { useSeedClock, useSeeded, useSeededQuery } from "@/lib/seed";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
@@ -33,8 +34,6 @@ import type { Id } from "../../../convex/_generated/dataModel";
 import { AppSky, periodFor } from "@/components/brand/AppSky";
 import { Logo } from "@/components/brand/Logo";
 import { PillTabs } from "@/components/ui";
-import { CreateFormDialog } from "./CreateFormDialog";
-import { NotificationsDrawer } from "./NotificationsDrawer";
 import { AskProvider } from "./ai/AskProvider";
 import { AskDock } from "./ai/AskDock";
 import { AppScrollbar } from "./AppScrollbar";
@@ -43,12 +42,24 @@ import { SupportBanner, SupportView } from "./SupportView";
 import { useToast } from "@/components/ui/Toast";
 import { useEscape, useTipEscape } from "@/components/ui/useEscape";
 import { useInboxAlerts } from "./useInboxAlerts";
-import { CommandPalette } from "./CommandPalette";
 import { EditorHeader } from "./EditorHeader";
 import { AvatarPill, ClientTab, TabSummary } from "./ds";
 import { SessionGate } from "./AccountGates";
 import { SETTINGS_TABS, settingsHref, settingsTabOf } from "./Settings";
 import { clearViewerHint } from "@/lib/viewerHint";
+
+/**
+ * Opened by a click or a shortcut, so not part of the first load; fetched in
+ * the background once the shell is up, so opening one never waits.
+ */
+const PANELS = {
+  CreateFormDialog: () => import("./CreateFormDialog").then((m) => m.CreateFormDialog),
+  NotificationsDrawer: () => import("./NotificationsDrawer").then((m) => m.NotificationsDrawer),
+  CommandPalette: () => import("./CommandPalette").then((m) => m.CommandPalette),
+};
+const CreateFormDialog = dynamic(PANELS.CreateFormDialog);
+const NotificationsDrawer = dynamic(PANELS.NotificationsDrawer);
+const CommandPalette = dynamic(PANELS.CommandPalette);
 
 /**
  * The signed-in shell.
@@ -187,6 +198,11 @@ function AppFrame({ children }: { children: ReactNode }) {
   // The sessions list in Settings names each device; this is where it learns
   // this one, and where a new sign-in alert is set off.
   const touched = useRef(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => Object.values(PANELS).forEach((load) => void load()), 1500);
+    return () => window.clearTimeout(t);
+  }, []);
+
   useEffect(() => {
     if (!liveViewer || touched.current) return;
     touched.current = true;

@@ -4,6 +4,7 @@ import { Scroller } from "./Scroller";
 import { useSeededQuery } from "@/lib/seed";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMutation } from "convex/react";
 import {
@@ -28,18 +29,34 @@ import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { useEscape } from "@/components/ui/useEscape";
 import { ClientTab, TabSummary } from "./ds";
-import { CloseFormDialog } from "./dialogs/CloseFormDialog";
-import { CollaboratorsDialog } from "./dialogs/CollaboratorsDialog";
-import { CommentsDrawer } from "./dialogs/CommentsDrawer";
-import { PreviewOverlay } from "./dialogs/PreviewOverlay";
 import { useCommentRequests, usePresence, usePresenceBeat } from "./editor/collab";
 import { usePreviewRequests, type PreviewRequest } from "./editor/previewBus";
-import { SaveTemplateDialog } from "./dialogs/SaveTemplateDialog";
-import { PublishDialog } from "./dialogs/PublishDialog";
-import { ShareDialog } from "./dialogs/ShareDialog";
-import { VersionsDialog } from "./dialogs/VersionsDialog";
 import { THEME_PRESETS, themeOf } from "./editor/themes";
 import { resetSaveStatus, tracked, useSaveStatus } from "./editor/saveStatus";
+
+/**
+ * The header's dialogs open on a click, so they are not part of the first
+ * load; they are fetched in the background once the editor is up, so a
+ * click never waits on the network.
+ */
+const DIALOGS = {
+  CloseFormDialog: () => import("./dialogs/CloseFormDialog").then((m) => m.CloseFormDialog),
+  CollaboratorsDialog: () => import("./dialogs/CollaboratorsDialog").then((m) => m.CollaboratorsDialog),
+  CommentsDrawer: () => import("./dialogs/CommentsDrawer").then((m) => m.CommentsDrawer),
+  PreviewOverlay: () => import("./dialogs/PreviewOverlay").then((m) => m.PreviewOverlay),
+  SaveTemplateDialog: () => import("./dialogs/SaveTemplateDialog").then((m) => m.SaveTemplateDialog),
+  PublishDialog: () => import("./dialogs/PublishDialog").then((m) => m.PublishDialog),
+  ShareDialog: () => import("./dialogs/ShareDialog").then((m) => m.ShareDialog),
+  VersionsDialog: () => import("./dialogs/VersionsDialog").then((m) => m.VersionsDialog),
+};
+const CloseFormDialog = dynamic(DIALOGS.CloseFormDialog);
+const CollaboratorsDialog = dynamic(DIALOGS.CollaboratorsDialog);
+const CommentsDrawer = dynamic(DIALOGS.CommentsDrawer);
+const PreviewOverlay = dynamic(DIALOGS.PreviewOverlay);
+const SaveTemplateDialog = dynamic(DIALOGS.SaveTemplateDialog);
+const PublishDialog = dynamic(DIALOGS.PublishDialog);
+const ShareDialog = dynamic(DIALOGS.ShareDialog);
+const VersionsDialog = dynamic(DIALOGS.VersionsDialog);
 
 /**
  * The editor's own header: the form's name, edited in place, what it is doing
@@ -81,6 +98,11 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
   const [preview, setPreview] = useState<PreviewRequest | null>(null);
   const [comments, setComments] = useState<{ blockId: string | null } | null>(null);
   usePreviewRequests(useCallback((r: PreviewRequest) => setPreview(r), []));
+
+  useEffect(() => {
+    const t = window.setTimeout(() => Object.values(DIALOGS).forEach((load) => void load()), 1500);
+    return () => window.clearTimeout(t);
+  }, []);
 
   // The forms list can open a form straight into its preview or share panel.
   const search = useSearchParams();
