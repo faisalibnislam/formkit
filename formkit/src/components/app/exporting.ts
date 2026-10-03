@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import { useConvex, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import { csv, xlsx, XLSX_TYPE, type Sheet } from "../../../convex/model/sheet";
+import type { Sheet } from "../../../convex/model/sheet";
 import { useToast } from "@/components/ui/Toast";
 
 /**
@@ -26,8 +26,12 @@ export function saveBytes(bytes: BlobPart, filename: string, type: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-/** One file from one or more sheets. A CSV holds the first sheet only. */
-export function downloadSheets(sheets: Sheet[], basename: string, format: Format) {
+/**
+ * One file from one or more sheets. A CSV holds the first sheet only. The
+ * writer (and the zip library an .xlsx needs) loads with the first export.
+ */
+export async function downloadSheets(sheets: Sheet[], basename: string, format: Format) {
+  const { csv, xlsx, XLSX_TYPE } = await import("../../../convex/model/sheet");
   const filename = `${basename}.${format}`;
   if (format === "xlsx") saveBytes(xlsx(sheets) as BlobPart, filename, XLSX_TYPE);
   else saveBytes("﻿" + csv(sheets[0]!), filename, "text/csv;charset=utf-8");
@@ -70,7 +74,7 @@ export function useExporter() {
                 includePartial: req.includePartial,
               });
         const title = sheet.title;
-        const filename = downloadSheets(
+        const filename = await downloadSheets(
           [{ name: title, columns: sheet.columns, rows: sheet.rows }],
           sheet.filename,
           req.format,

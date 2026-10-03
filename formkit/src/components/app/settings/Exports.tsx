@@ -270,7 +270,7 @@ function Recent() {
                     from: x.from ?? undefined,
                     to: x.to ?? undefined,
                   });
-                  downloadAnalytics(data, x.formTitle ?? "All forms", x.format);
+                  await downloadAnalytics(data, x.formTitle ?? "All forms", x.format);
                   toast(`Downloading ${x.filename}`);
                   return;
                 }

@@ -183,14 +183,14 @@ const GROUP_ICON: Record<string, typeof Check> = {
 
 function Yes() {
   return (
-    <span className="fk-cmp-yes" aria-label="Included">
+    <span className="fk-cmp-yes" role="img" aria-label="Included">
       <Check size={13} strokeWidth={2.6} aria-hidden />
     </span>
   );
 }
 function No() {
   return (
-    <span className="fk-cmp-no" aria-label="Not included">
+    <span className="fk-cmp-no" role="img" aria-label="Not included">
       <Minus size={14} strokeWidth={2} aria-hidden />
     </span>
   );

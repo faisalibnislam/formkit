@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { strFromU8, unzipSync } from "fflate";
 import {
   ArrowRight,
   ArrowUp,
@@ -145,6 +144,7 @@ export function AskComposer({ placeholder, autoFocus }: { placeholder?: string; 
         attach = { kind: "file", label: f.name, storageId, mime: "application/pdf" };
       } else if (name.endsWith(".docx")) {
         // A .docx is a zip; the words are in word/document.xml.
+        const { strFromU8, unzipSync } = await import("fflate");
         const files = unzipSync(new Uint8Array(await f.arrayBuffer()), { filter: (x) => x.name === "word/document.xml" });
         const xml = strFromU8(files["word/document.xml"] ?? new Uint8Array());
         const text = xml

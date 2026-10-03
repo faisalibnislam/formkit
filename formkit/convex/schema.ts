@@ -623,6 +623,7 @@ export default defineSchema({
   })
     .index("by_form", ["formId"])
     .index("by_form_device", ["formId", "deviceId"])
+    .index("by_form_email", ["formId", "respondentEmail"])
     .index("by_owner", ["ownerId"])
     .index("by_owner_status", ["ownerId", "status"])
     .index("by_owner_submitted", ["ownerId", "submittedAt"])
@@ -869,7 +870,9 @@ export default defineSchema({
     openedAt: v.number(),
     /** Business customers are answered first. */
     priority: v.optional(v.boolean()),
-  }).index("by_state", ["state"]),
+  })
+    .index("by_state", ["state"])
+    .index("by_user_opened", ["userId", "openedAt"]),
 
   /**
    * What the help centre hears: searches that found nothing, and answers to
@@ -893,7 +896,7 @@ export default defineSchema({
     audience: v.string(),
     state: v.union(v.literal("draft"), v.literal("live"), v.literal("ended")),
     createdAt: v.number(),
-  }),
+  }).index("by_state", ["state"]),
 
   featureFlags: defineTable({
     key: v.string(),

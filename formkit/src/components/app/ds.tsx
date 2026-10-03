@@ -269,9 +269,8 @@ export function FormCard({
 
     The dock that hosts these must keep SHOULDER-wide gutters, or the first and
     last tab's flare is clipped by its scroll box. */
-export const COLLAR = 20; /* bottom padding on an inactive tab */
-export const MIN_WIDTH = 216; /* below this the name truncates, so the dock scrolls */
-export const SHOULDER = 20; /* radius of the bottom corner flare - LOCKED */
+const MIN_WIDTH = 216; /* below this the name truncates, so the dock scrolls */
+const SHOULDER = 20; /* radius of the bottom corner flare - LOCKED */
 
 function Shoulder({ side }: { side: "left" | "right" }) {
   const style: CSSProperties = {

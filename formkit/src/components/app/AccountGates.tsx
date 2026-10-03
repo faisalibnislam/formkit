@@ -42,7 +42,7 @@ function Head({ icon, title, children }: { icon: ReactNode; title: string; child
   );
 }
 
-export function TwoFactorGate({ email, onSignOut }: { email: string; onSignOut: () => void }) {
+function TwoFactorGate({ email, onSignOut }: { email: string; onSignOut: () => void }) {
   const verify = useMutation(api.security.verifySession);
   const [code, setCode] = useState("");
   const [recovery, setRecovery] = useState(false);
@@ -114,7 +114,7 @@ export function TwoFactorGate({ email, onSignOut }: { email: string; onSignOut: 
   );
 }
 
-export function DeactivatedGate({ restoreUntil, onSignOut }: { restoreUntil: number | null; onSignOut: () => void }) {
+function DeactivatedGate({ restoreUntil, onSignOut }: { restoreUntil: number | null; onSignOut: () => void }) {
   const reactivate = useMutation(api.security.reactivate);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -160,7 +160,7 @@ export function DeactivatedGate({ restoreUntil, onSignOut }: { restoreUntil: num
 }
 
 /** Suspended by Formkit staff: nothing to restore from here. */
-export function SuspendedGate({ onSignOut }: { onSignOut: () => void }) {
+function SuspendedGate({ onSignOut }: { onSignOut: () => void }) {
   return (
     <Frame>
       <Head icon={<ShieldCheck size={20} strokeWidth={1.8} />} title="This account is suspended">

@@ -6,7 +6,7 @@
 
 /** The lengths a builder can pick, in seconds: 15 seconds to 5 minutes. */
 export const VOICE_LENGTHS = [15, 30, 60, 120, 180, 300] as const;
-export const VOICE_DEFAULT = 60;
+const VOICE_DEFAULT = 60;
 
 /** The nearest allowed length, for anything sent from outside the builder. */
 export function voiceLength(seconds: number | null | undefined): number {

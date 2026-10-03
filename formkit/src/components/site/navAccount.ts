@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { useViewer } from "@/lib/seed";
+import { api } from "@convex/_generated/api";
+import { useSeededQuery } from "@/lib/seed";
 import { useSiteSession } from "@/components/site/SiteSession";
 import { clearViewerHint, initialsOf, useViewerHint, writeViewerHint } from "@/lib/viewerHint";
 
@@ -24,9 +25,11 @@ export type NavAccount = {
  * and once the real one arrives it is written back for next time.
  */
 export function useNavAccount(): NavAccount | null | "unknown" {
-  const live = useViewer();
-  const hint = useViewerHint();
   const session = useSiteSession();
+  // On a marketing page, only ask once the session check says someone is
+  // signed in: an anonymous visitor then never opens a Convex connection.
+  const live = useSeededQuery(api.users.viewer, session === null || session === "in" ? {} : "skip");
+  const hint = useViewerHint();
 
   useEffect(() => {
     if (session !== null && live) writeViewerHint(live);

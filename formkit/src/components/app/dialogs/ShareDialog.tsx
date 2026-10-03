@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
-import QRCode from "qrcode";
 import { Check, Code2, Copy, Download, Link2, QrCode } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import { Button, Input, Modal, PillTabs, Segmented } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
+
+/** The QR encoder, fetched when the dialog first draws a code. */
+const loadQr = () => import("qrcode").then((m) => m.default);
 
 /**
  * Share owns the public link and nothing else: the URL, the QR code, the
@@ -46,7 +48,10 @@ export function ShareDialog({ formId, onClose }: { formId: Id<"forms">; onClose:
   useEffect(() => {
     if (!qrUrl) return;
     let alive = true;
-    QRCode.toString(qrUrl, { type: "svg", margin: 1, color: { dark: "#21282E", light: "#ffffff" } })
+    loadQr()
+      .then((QRCode) =>
+        QRCode.toString(qrUrl, { type: "svg", margin: 1, color: { dark: "#21282E", light: "#ffffff" } }),
+      )
       .then((svg) => {
         if (alive) setQr(svg);
       })
@@ -81,6 +86,7 @@ export function ShareDialog({ formId, onClose }: { formId: Id<"forms">; onClose:
 
   async function downloadQr() {
     if (!form) return;
+    const QRCode = await loadQr();
     const png = await QRCode.toDataURL(qrUrl, {
       width: 1024,
       margin: 2,

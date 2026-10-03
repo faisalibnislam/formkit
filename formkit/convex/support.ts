@@ -13,19 +13,20 @@ export const mine = query({
   args: {},
   handler: async (ctx) => {
     const me = await requireUser(ctx);
-    const rows = (await ctx.db.query("tickets").collect()).filter((t) => t.userId === me._id);
+    const rows = await ctx.db
+      .query("tickets")
+      .withIndex("by_user_opened", (q) => q.eq("userId", me._id))
+      .order("desc")
+      .take(10);
     return {
       priority: await hasFeature(ctx, me, "support.priority"),
-      tickets: rows
-        .sort((a, b) => b.openedAt - a.openedAt)
-        .slice(0, 10)
-        .map((t) => ({
-          _id: t._id,
-          subject: t.subject,
-          state: t.state,
-          openedAt: t.openedAt,
-          messages: t.messages,
-        })),
+      tickets: rows.map((t) => ({
+        _id: t._id,
+        subject: t.subject,
+        state: t.state,
+        openedAt: t.openedAt,
+        messages: t.messages,
+      })),
     };
   },
 });
@@ -38,9 +39,10 @@ export const open = mutation({
     const s = subject.trim().slice(0, 140);
     const b = body.trim().slice(0, 5000);
     if (!s || !b) throw new ConvexError("Add a subject and say what is happening.");
-    const recent = (await ctx.db.query("tickets").collect()).filter(
-      (t) => t.userId === me._id && Date.now() - t.openedAt < 3600_000,
-    );
+    const recent = await ctx.db
+      .query("tickets")
+      .withIndex("by_user_opened", (q) => q.eq("userId", me._id).gt("openedAt", Date.now() - 3600_000))
+      .take(5);
     if (recent.length >= 5) throw new ConvexError("That is a lot of tickets in an hour. We will get to the ones you sent.");
     return await ctx.db.insert("tickets", {
       userId: me._id,

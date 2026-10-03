@@ -71,11 +71,11 @@ export function PreviewOverlay({
 
   const upload = useCallback(
     async (file: File) => {
-      const url = await uploadUrl({});
+      const url = await uploadUrl({ formId });
       const res = await fetch(url, { method: "POST", headers: { "Content-Type": file.type }, body: file });
       return ((await res.json()) as { storageId: Id<"_storage"> }).storageId;
     },
-    [uploadUrl],
+    [formId, uploadUrl],
   );
 
   const theme = themeOf(data?.theme ?? null);

@@ -37,7 +37,7 @@ function parse(body: string): Block[] {
 }
 
 /** A heading's anchor: "Turning auto-renew off" → "turning-auto-renew-off". */
-export function slugify(text: string) {
+function slugify(text: string) {
   return text
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")

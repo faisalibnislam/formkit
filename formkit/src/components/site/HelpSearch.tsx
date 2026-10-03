@@ -5,13 +5,21 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Search } from "lucide-react";
-import { HELP_ARTICLES } from "@/content/help";
+import type { HelpArticle, HelpCategory } from "@/content/help";
 
 /**
  * Search over article titles, summaries and body text, with a snippet showing
- * where the match landed. Client-side because the whole corpus is 37KB and
- * ships with the page anyway.
+ * where the match landed. Client-side, over the whole corpus, which is
+ * fetched the first time someone reaches for the box rather than with the
+ * page: most visitors to the help center never search.
  */
+type Indexed = HelpArticle & { category: HelpCategory };
+let corpus: Promise<Indexed[]> | null = null;
+function loadCorpus() {
+  corpus ??= import("@/content/help").then((m) => m.HELP_ARTICLES);
+  return corpus;
+}
+
 function snippet(body: string, term: string) {
   const at = body.toLowerCase().indexOf(term);
   if (at === -1) return null;
@@ -22,6 +30,7 @@ function snippet(body: string, term: string) {
 
 export function HelpSearch() {
   const [term, setTerm] = useState("");
+  const [articles, setArticles] = useState<Indexed[] | null>(null);
   const query = term.trim().toLowerCase();
   const log = useMutation(api.helpSignals.log);
   const box = useRef<HTMLInputElement | null>(null);
@@ -47,9 +56,16 @@ export function HelpSearch() {
     if (q) setTerm(q);
   }, []);
 
+  // Fetch the corpus as soon as there is something to search for (a ?q= link
+  // included); focusing the box starts it a moment earlier.
+  const prepare = () => void loadCorpus().then(setArticles);
+  useEffect(() => {
+    if (query.length >= 2) void loadCorpus().then(setArticles);
+  }, [query]);
+
   const results = useMemo(() => {
-    if (query.length < 2) return [];
-    return HELP_ARTICLES.filter(
+    if (query.length < 2 || !articles) return [];
+    return articles.filter(
       (a) =>
         a.title.toLowerCase().includes(query) ||
         a.summary.toLowerCase().includes(query) ||
@@ -57,10 +73,10 @@ export function HelpSearch() {
     )
       .slice(0, 12)
       .map((a) => ({ article: a, match: snippet(a.body, query) }));
-  }, [query]);
+  }, [query, articles]);
 
   // A search that finds nothing, once they stop typing, tells us what to write next.
-  const missed = query.length >= 3 && results.length === 0;
+  const missed = articles !== null && query.length >= 3 && results.length === 0;
   useEffect(() => {
     if (!missed || logged.current.has(query)) return;
     const t = setTimeout(() => {
@@ -80,6 +96,7 @@ export function HelpSearch() {
           aria-label="Search the help center"
           placeholder="Search the help center"
           value={term}
+          onFocus={prepare}
           onChange={(e) => setTerm(e.target.value)}
         />
         {!term && (
@@ -101,7 +118,9 @@ export function HelpSearch() {
         >
           <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "16px 0 0", flexWrap: "wrap" }}>
             <p style={{ flex: 1, margin: 0, fontSize: 13.5, color: "var(--color-text-tertiary)" }}>
-              {results.length === 0
+              {articles === null
+                ? "Searching…"
+                : results.length === 0
                 ? `Nothing matches “${term.trim()}”. Try a shorter word, or browse the categories below. We note searches like this and write the articles people look for.`
                 : `${results.length} article${results.length === 1 ? "" : "s"} match “${term.trim()}”`}
             </p>

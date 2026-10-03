@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
-import QRCode from "qrcode";
 import {
   Copy,
   Download,
@@ -523,6 +522,7 @@ function EnableTwoFactor({ email, onClose }: { email: string; onClose: () => voi
     let alive = true;
     start({})
       .then(async (s) => {
+        const QRCode = (await import("qrcode")).default;
         const qr = await QRCode.toString(s.uri, { type: "svg", margin: 1, color: { dark: "#21282E", light: "#ffffff" } });
         if (alive) setSetup({ ...s, qr });
       })

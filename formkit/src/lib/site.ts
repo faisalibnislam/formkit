@@ -2,8 +2,6 @@
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "https://formkit.app";
 
-export const SITE_NAME = "Formkit";
-
 /**
  * The picture a shared link shows. Every page that sets its own Open Graph or
  * Twitter metadata lists it too: a page's `openGraph` replaces the layout's
@@ -52,10 +50,6 @@ export const FOOTER_COLUMNS = [
     ],
   },
 ] as const;
-
-/** Two honest product facts that several pages state rather than hide. */
-export const UPLOAD_CAP_MB = 20;
-export const LANGUAGE = "English (US)";
 
 /**
  * Formkit's own hosts. Any other host reaching the app is a customer's custom

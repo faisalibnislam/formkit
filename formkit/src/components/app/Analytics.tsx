@@ -138,7 +138,7 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
   const excel = useFlag("exports.xlsx");
   const excelGate = useGate("exports.xlsx");
 
-  function exportAnalytics(format: "csv" | "xlsx") {
+  async function exportAnalytics(format: "csv" | "xlsx") {
     if (!data) return;
     const title =
       scope && forms
@@ -148,7 +148,7 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
           : owner !== "all"
             ? `${owners.find((o) => o.key === owner)?.name ?? "Their"} forms`
             : "All forms";
-    const filename = downloadAnalytics(data, title, format);
+    const filename = await downloadAnalytics(data, title, format);
     void record({
       formId: scope,
       what: "analytics",

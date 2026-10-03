@@ -25,7 +25,7 @@ const FALLBACK_ZONES = [
 ];
 
 /** Every zone the browser knows, or a short list where it cannot say. */
-export function allZones(): string[] {
+function allZones(): string[] {
   try {
     const list = (Intl as unknown as { supportedValuesOf?: (k: string) => string[] })
       .supportedValuesOf?.("timeZone");

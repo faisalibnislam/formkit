@@ -102,7 +102,7 @@ function pdfText(s: string) {
   return out;
 }
 
-export function safeName(s: string) {
+function safeName(s: string) {
   return (
     s
       .normalize("NFKD")

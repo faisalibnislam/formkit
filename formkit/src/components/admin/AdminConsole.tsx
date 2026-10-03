@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, type ReactNode } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
@@ -27,21 +28,23 @@ import { api } from "../../../convex/_generated/api";
 import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui";
 import { AdminOverview } from "./sections/AdminOverview";
-import { AdminUsers } from "./sections/AdminUsers";
-import { AdminCompanies } from "./sections/AdminCompanies";
-import { AdminAi } from "./sections/AdminAi";
-import { AdminModeration } from "./sections/AdminModeration";
-import { AdminSupport } from "./sections/AdminSupport";
-import { AdminHelp } from "./sections/AdminHelp";
-import { AdminAnnouncements } from "./sections/AdminAnnouncements";
-import { AdminMail } from "./sections/AdminMail";
-import { AdminTeam } from "./sections/AdminTeam";
-import { AdminFlags } from "./sections/AdminFlags";
-import { AdminRevenue } from "./sections/AdminRevenue";
-import { AdminAiCost } from "./sections/AdminAiCost";
-import { AdminBilling } from "./sections/AdminBilling";
-import { AdminAudit } from "./sections/AdminAudit";
 import { clearViewerHint } from "@/lib/viewerHint";
+
+// The overview opens first; every other section loads when it is opened.
+const AdminUsers = dynamic(() => import("./sections/AdminUsers").then((m) => m.AdminUsers));
+const AdminCompanies = dynamic(() => import("./sections/AdminCompanies").then((m) => m.AdminCompanies));
+const AdminAi = dynamic(() => import("./sections/AdminAi").then((m) => m.AdminAi));
+const AdminModeration = dynamic(() => import("./sections/AdminModeration").then((m) => m.AdminModeration));
+const AdminSupport = dynamic(() => import("./sections/AdminSupport").then((m) => m.AdminSupport));
+const AdminHelp = dynamic(() => import("./sections/AdminHelp").then((m) => m.AdminHelp));
+const AdminAnnouncements = dynamic(() => import("./sections/AdminAnnouncements").then((m) => m.AdminAnnouncements));
+const AdminMail = dynamic(() => import("./sections/AdminMail").then((m) => m.AdminMail));
+const AdminTeam = dynamic(() => import("./sections/AdminTeam").then((m) => m.AdminTeam));
+const AdminFlags = dynamic(() => import("./sections/AdminFlags").then((m) => m.AdminFlags));
+const AdminRevenue = dynamic(() => import("./sections/AdminRevenue").then((m) => m.AdminRevenue));
+const AdminAiCost = dynamic(() => import("./sections/AdminAiCost").then((m) => m.AdminAiCost));
+const AdminBilling = dynamic(() => import("./sections/AdminBilling").then((m) => m.AdminBilling));
+const AdminAudit = dynamic(() => import("./sections/AdminAudit").then((m) => m.AdminAudit));
 
 /**
  * formkit.app/admin.

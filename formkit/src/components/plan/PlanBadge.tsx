@@ -10,7 +10,7 @@ import { Crown, Star } from "lucide-react";
 type Paid = "pro" | "business";
 const isPaid = (plan: string | null | undefined): plan is Paid => plan === "pro" || plan === "business";
 
-export const PLAN_LABEL: Record<Paid, string> = { pro: "Pro", business: "Business" };
+const PLAN_LABEL: Record<Paid, string> = { pro: "Pro", business: "Business" };
 
 export function PlanBadge({ plan, size = 18 }: { plan: string | null | undefined; size?: number }) {
   if (!isPaid(plan)) return null;

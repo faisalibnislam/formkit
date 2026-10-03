@@ -26,7 +26,6 @@ import {
 } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import { useToast } from "@/components/ui/Toast";
 import { useEscape } from "@/components/ui/useEscape";
 import { ClientTab, TabSummary } from "./ds";
 import { CloseFormDialog } from "./dialogs/CloseFormDialog";
@@ -62,7 +61,6 @@ const TABS = [
 
 export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string }) {
   const router = useRouter();
-  const toast = useToast();
   const form = useSeededQuery(api.forms.get, { formId });
   const pending = useSeededQuery(api.forms.unpublishedChanges, { formId });
   const update = useMutation(api.forms.update);

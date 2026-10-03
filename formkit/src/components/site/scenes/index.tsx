@@ -31,7 +31,7 @@ export const SCENES: Record<string, { Scene: ComponentType<SceneProps>; hint: st
 };
 
 /** The use-case pages borrow the scene closest to their work. */
-export const CASE_SCENES: Record<string, string> = {
+const CASE_SCENES: Record<string, string> = {
   agencies: "branding",
   education: "quizzes",
   sales: "ai-replies",

@@ -7,7 +7,7 @@ import type { CSSProperties } from "react";
  *
  * Server-safe (no hooks), so a route's loading.tsx can render it.
  */
-export function Skel({ w = "100%", h = 14, r = 8, style }: { w?: number | string; h?: number | string; r?: number; style?: CSSProperties }) {
+function Skel({ w = "100%", h = 14, r = 8, style }: { w?: number | string; h?: number | string; r?: number; style?: CSSProperties }) {
   return <span className="fk-skel" aria-hidden style={{ width: w, height: h, borderRadius: r, ...style }} />;
 }
 

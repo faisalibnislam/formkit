@@ -57,7 +57,7 @@ import { INK, THEME_PRESETS } from "../../../../convex/model/themePresets";
 
 export { THEME_PRESETS };
 
-export const DEFAULT_THEME: Theme = {
+const DEFAULT_THEME: Theme = {
   preset: "minimal",
   bg: "#ffffff",
   surface: "#ffffff",

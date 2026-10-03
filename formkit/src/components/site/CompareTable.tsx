@@ -6,7 +6,7 @@ import { COMPARE_ROWS, COLUMNS, type Cell, type Rival } from "@/content/compare"
 import { Logo } from "@/components/brand/Logo";
 
 /** Each product by its own logo; the name stays for screen readers. */
-export function ProductLogo({ name, height = 22 }: { name: string; height?: number }) {
+function ProductLogo({ name, height = 22 }: { name: string; height?: number }) {
   if (name === "Formkit") return <Logo size={height} />;
   // Only the two on the hub table have a wordmark; the rest go by name.
   if (name !== "Google Forms" && name !== "Typeform") {

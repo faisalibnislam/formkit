@@ -29,7 +29,7 @@ export function duration(seconds: number | null) {
   return m ? `${m}m ${String(s).padStart(2, "0")}s` : `${s}s`;
 }
 
-export function downloadAnalytics(data: AnalyticsData, title: string, format: Format) {
+export async function downloadAnalytics(data: AnalyticsData, title: string, format: Format) {
   const overTime = {
     name: "Over time",
     columns: ["Date", "Views", "Started", "Responses", "Completed"],

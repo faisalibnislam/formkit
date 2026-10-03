@@ -25,7 +25,10 @@ const DAY = 24 * 60 * 60 * 1000;
 const SHOW = 50;
 
 async function announcementsFor(ctx: QueryCtx, user: Doc<"users">) {
-  const live = (await ctx.db.query("announcements").collect()).filter((a) => a.state === "live");
+  const live = await ctx.db
+    .query("announcements")
+    .withIndex("by_state", (q) => q.eq("state", "live"))
+    .collect();
   if (!live.length) return [];
   const seen = new Set(
     (

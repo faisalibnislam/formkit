@@ -76,12 +76,12 @@ export function LiveForm({
 
   const upload = useCallback(
     async (file: File) => {
-      const url = await uploadUrl({});
+      const url = await uploadUrl({ formId: open!.formId });
       const res = await fetch(url, { method: "POST", headers: { "Content-Type": file.type }, body: file });
       const { storageId } = (await res.json()) as { storageId: Id<"_storage"> };
       return storageId;
     },
-    [uploadUrl],
+    [open, uploadUrl],
   );
 
   if (data === undefined) return null;

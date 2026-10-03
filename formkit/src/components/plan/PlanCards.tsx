@@ -59,7 +59,7 @@ export const PLAN_POINTS: Record<PlanId, { lead?: string; points: string[] }> = 
 export const PER_SEAT_NOTE =
   "Prices and AI allowances are per seat: every member of a company is one. A company’s seats share one AI pool. Past it, AI credits keep things going, from $5 for 100.";
 
-export function priceLine(plan: PlanId, interval: Interval) {
+function priceLine(plan: PlanId, interval: Interval) {
   const p = PLANS[plan].price;
   if (plan === "free") return { amount: "$0", per: "forever" };
   return interval === "month"
@@ -68,7 +68,7 @@ export function priceLine(plan: PlanId, interval: Interval) {
 }
 
 /** "Save $21" against paying monthly for a year, or null when it is not a saving. */
-export function yearlySaving(plan: PlanId) {
+function yearlySaving(plan: PlanId) {
   const p = PLANS[plan].price;
   const saved = p.month * 12 - p.year;
   return saved > 0 ? saved : null;

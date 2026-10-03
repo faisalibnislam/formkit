@@ -328,7 +328,9 @@
   cursor: pointer;
   transition: var(--transition-control);
 }
-.ui-pilltab[aria-selected="true"] {
+/* Tabs mark the current one aria-selected; a radio group, aria-checked. */
+.ui-pilltab[aria-selected="true"],
+.ui-pilltab[aria-checked="true"] {
   background: var(--neutral-0);
   color: var(--neutral-900);
   box-shadow: var(--shadow-sm);

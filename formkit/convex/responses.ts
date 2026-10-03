@@ -24,15 +24,6 @@ const DAY = 24 * 60 * 60 * 1000;
 const MAX_TAGS = 12;
 
 /** The forms a person sees in the all-forms inbox: their own, not in the bin. */
-async function ownForms(ctx: QueryCtx, userId: Id<"users">) {
-  return (
-    await ctx.db
-      .query("forms")
-      .withIndex("by_owner", (q) => q.eq("ownerId", userId))
-      .collect()
-  ).filter((f) => !f.deletedAt);
-}
-
 /** Every response in scope - one form, or every form in the company being worked in. */
 async function scope(ctx: QueryCtx, formId: Id<"forms"> | undefined) {
   const user = await requireUser(ctx);

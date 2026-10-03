@@ -37,7 +37,7 @@ const title = (b: Block | undefined) => b?.title || "Untitled question";
 type Check = { level: "warn" | "info"; rule?: string; text: string };
 
 /** What is wrong, or likely wrong, with a form's rules. */
-export function logicChecks(form: Form, rules: Rule[]): Check[] {
+function logicChecks(form: Form, rules: Rule[]): Check[] {
   const out: Check[] = [];
   const blocks = form.blocks;
   const byId = new Map(blocks.map((b) => [b._id as string, b]));

@@ -132,7 +132,7 @@ function statusBadge(r: Pick<Row, "partial" | "preview" | "status">) {
 }
 
 /** 2500, "usd" → "$25.00". Stripe counts most currencies in cents. */
-export function payText(p: { amount: number; currency: string }) {
+function payText(p: { amount: number; currency: string }) {
   const major = ["jpy", "krw", "vnd", "clp"].includes(p.currency) ? p.amount : p.amount / 100;
   try {
     return new Intl.NumberFormat("en-US", { style: "currency", currency: p.currency.toUpperCase() }).format(major);
@@ -716,7 +716,7 @@ function ResponseDrawer({
       });
     }
     return out;
-  }, [form, response.answers, response.calc, response.payment, response.ending]);
+  }, [form, response.answers, response.calc, response.payment, response.ending, response.files]);
 
   const name = who(response);
   const meta = [

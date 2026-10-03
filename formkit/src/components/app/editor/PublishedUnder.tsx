@@ -21,7 +21,7 @@ import { tracked } from "./saveStatus";
 
 type Form = NonNullable<FunctionReturnType<typeof api.forms.get>>;
 
-export function ownerOfForm(form: Form): Owner {
+function ownerOfForm(form: Form): Owner {
   return {
     key: form.brand,
     kind: form.identity.kind,

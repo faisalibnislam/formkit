@@ -6,15 +6,10 @@ import { usePathname, useSearchParams } from "next/navigation";
 /**
  * A thin bar across the top of the window while a page is on its way.
  *
- * It starts on a click on any link to another page on this site, or when code
- * that navigates says so (startNavigation), and finishes when the address
- * changes. A navigation that lands within a moment never shows it at all.
+ * It starts on a click on any link to another page on this site and finishes
+ * when the address changes. A navigation that lands within a moment never
+ * shows it at all.
  */
-const START = "fk:navigate";
-
-export function startNavigation() {
-  window.dispatchEvent(new Event(START));
-}
 
 export function NavProgress() {
   const pathname = usePathname();
@@ -54,11 +49,9 @@ export function NavProgress() {
       start();
     };
     document.addEventListener("click", onClick);
-    window.addEventListener(START, start);
     window.addEventListener("fk:navigated", finish);
     return () => {
       document.removeEventListener("click", onClick);
-      window.removeEventListener(START, start);
       window.removeEventListener("fk:navigated", finish);
       clear();
     };

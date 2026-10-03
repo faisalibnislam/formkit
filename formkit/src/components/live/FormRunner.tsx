@@ -249,7 +249,7 @@ export function FormRunner({
     () => applyLogic(data.logic, { answers, calc: results, ai: judged, types }),
     [answers, data.logic, results, judged, types],
   );
-  const { hidden, forced, jumpTo, hiddenOptions } = outcome;
+  const { hidden, forced, hiddenOptions } = outcome;
   /** Text with {{key}} filled in from earlier answers, when the plan has piping. */
   const say = (text: string | null | undefined) => (data.smart?.piping ? pipe(text, piped) : (text ?? ""));
 
@@ -944,7 +944,8 @@ export function Shell({
   children: React.ReactNode;
 }) {
   const t = theme ?? themeOf(null);
-  const brandFont = custom?.font ? `${custom.font.name.replace(/["\\]/g, "")} Formkit brand` : null;
+  // Written into a <style>: nothing that could end the string, the rule or the element.
+  const brandFont = custom?.font ? `${custom.font.name.replace(/["\\<>{};]/g, "")} Formkit brand` : null;
   const css = cleanCss(custom?.css);
   useEffect(() => {
     loadFont(t.font);
@@ -1268,7 +1269,7 @@ function Control({
 }
 
 /** Enough to tell a phone from a laptop, and nothing more. */
-export function describeDevice() {
+function describeDevice() {
   if (typeof navigator === "undefined") return undefined;
   const ua = navigator.userAgent;
   if (/iPad|Tablet/i.test(ua)) return "Tablet";

@@ -722,7 +722,7 @@
 
 /* The three AI features: pinned on a desktop and slid through one at a
    time by scrolling; every scene the same size. Stacked on smaller screens. */
-.fk-landing > section.fk-aib {
+.fk-lp-main > section.fk-aib {
   overflow: clip;
 }
 .fk-aib-rail {

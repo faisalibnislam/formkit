@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import { ArrowRight, Check, ChevronDown, Paperclip, Star } from "lucide-react";
 import { NightSky } from "@/components/brand/NightSky";

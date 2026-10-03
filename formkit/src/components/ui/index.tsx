@@ -695,7 +695,6 @@ export function Segmented<T extends string>({
           type="button"
           role="radio"
           aria-checked={o.value === value}
-          aria-selected={o.value === value}
           aria-label={o.label ? undefined : (o.title ?? o.value)}
           title={o.title}
           className="ui-pilltab"

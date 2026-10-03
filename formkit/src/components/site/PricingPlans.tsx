@@ -47,6 +47,7 @@ export function PricingPlans() {
         ))}
       </div>
 
+      <h2 className="sr-only">Plans</h2>
       <div className="fk-price-cards">
         {(["free", "pro", "business"] as const).map((id) => {
           const plan = PLANS[id];

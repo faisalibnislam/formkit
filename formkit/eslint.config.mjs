@@ -12,7 +12,15 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Written by `convex codegen`.
+    "convex/_generated/**",
   ]),
+  {
+    rules: {
+      // `const { _id, _creationTime, ...rest } = doc` is how a copy drops fields.
+      "@typescript-eslint/no-unused-vars": ["warn", { ignoreRestSiblings: true }],
+    },
+  },
 ]);
 
 export default eslintConfig;

@@ -51,14 +51,6 @@ async function freeKey(ctx: MutationCtx, formId: Id<"forms">, want: string) {
   for (let i = 2; ; i++) if (!used.has(`${base}_${i}`)) return `${base}_${i}`;
 }
 
-async function nextOrder(ctx: Parameters<typeof formFor>[0], formId: string) {
-  const blocks = await ctx.db
-    .query("blocks")
-    .withIndex("by_form_order", (q) => q.eq("formId", formId as never))
-    .collect();
-  return blocks.length ? Math.max(...blocks.map((b) => b.order)) + 1 : 0;
-}
-
 export const add = mutation({
   args: {
     formId: v.id("forms"),

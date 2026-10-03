@@ -10,7 +10,7 @@ import { chargeResponse, usesAiLogic } from "./model/aiMeter";
 import { markAll, marked } from "./model/quiz";
 import { Doc, Id } from "./_generated/dataModel";
 import { QueryCtx } from "./_generated/server";
-import { brandOf, shouldAutoClose, themeLogos } from "./model/forms";
+import { brandOf, formFor, shouldAutoClose, themeLogos } from "./model/forms";
 import { passwordMatches, securityOf } from "./model/security";
 import { flagOn } from "./model/flags";
 import { PLANS, hasFeature, planOfId } from "./model/plans";
@@ -120,6 +120,35 @@ async function resolve(
 const LATE_GRACE_MS = 60_000;
 
 /** The form's quiz settings, when it is a quiz and the owner's plan has quizzes. */
+/**
+ * Whether this person has already sent a complete answer to the form, matched
+ * by device or by email. Read through the indexes, so the check costs the
+ * same on a form with ten answers as on one with ten thousand.
+ */
+async function answeredBefore(
+  ctx: QueryCtx,
+  formId: Id<"forms">,
+  deviceId: string | undefined,
+  email: string | undefined,
+) {
+  const sent = (rows: Doc<"responses">[]) => rows.some((r) => !r.partial && !r.preview);
+  if (deviceId) {
+    const mine = await ctx.db
+      .query("responses")
+      .withIndex("by_form_device", (q) => q.eq("formId", formId).eq("deviceId", deviceId))
+      .collect();
+    if (sent(mine)) return true;
+  }
+  if (email) {
+    const mine = await ctx.db
+      .query("responses")
+      .withIndex("by_form_email", (q) => q.eq("formId", formId).eq("respondentEmail", email))
+      .collect();
+    if (sent(mine)) return true;
+  }
+  return false;
+}
+
 async function quizOf(ctx: QueryCtx | MutationCtx, form: Doc<"forms">) {
   if (!form.quiz?.enabled) return null;
   return (await hasFeature(ctx, form, "quiz")) ? form.quiz : null;
@@ -374,11 +403,29 @@ export const recordView = mutation({
   },
 });
 
-/** Where a respondent's upload goes. The cap follows the owner's plan, stated on the field. */
+/**
+ * Where a respondent's upload goes. The cap follows the owner's plan, stated
+ * on the field, and is checked when the answer is sent (checkUploads). Only
+ * handed out for a form that asks for a file or a recording, and that is
+ * either live or open to the caller in the builder (its preview), so the
+ * storage is not an open drop box.
+ */
 export const uploadUrl = mutation({
-  args: {},
+  args: { formId: v.id("forms") },
   returns: v.string(),
-  handler: async (ctx) => ctx.storage.generateUploadUrl(),
+  handler: async (ctx, { formId }) => {
+    const form = await ctx.db.get(formId);
+    if (!form || form.deletedAt) throw new ConvexError("That form is not here any more.");
+    if (form.status !== "published") await formFor(ctx, formId, "read");
+    const blocks = await ctx.db
+      .query("blocks")
+      .withIndex("by_form_order", (q) => q.eq("formId", formId))
+      .collect();
+    if (!blocks.some((b) => b.type === "file" || b.type === "voice")) {
+      throw new ConvexError("This form does not take uploads.");
+    }
+    return await ctx.storage.generateUploadUrl();
+  },
 });
 
 /**
@@ -685,34 +732,18 @@ export const submit = mutation({
       }
 
       if (!s.multiple && !existing) {
-        const before = await ctx.db
-          .query("responses")
-          .withIndex("by_form", (q) => q.eq("formId", form._id))
-          .collect();
-        const again = before.some(
-          (r) =>
-            !r.partial &&
-            !r.preview &&
-            ((args.deviceId && r.deviceId === args.deviceId) || (email && r.respondentEmail === email)),
-        );
-        if (again) throw new ConvexError("You have already answered this form. Thank you.");
+        if (await answeredBefore(ctx, form._id, args.deviceId, email)) {
+          throw new ConvexError("You have already answered this form. Thank you.");
+        }
       }
 
       // Business: a quiz taken once per person - by device and by email.
       const quiz = await quizOf(ctx, form);
       if (quiz && existing && !existing.partial) throw new ConvexError("Answers to a quiz can’t be changed once sent.");
       if (quiz?.oneAttempt && !existing) {
-        const before = await ctx.db
-          .query("responses")
-          .withIndex("by_form", (q) => q.eq("formId", form._id))
-          .collect();
-        const again = before.some(
-          (r) =>
-            !r.partial &&
-            !r.preview &&
-            ((args.deviceId && r.deviceId === args.deviceId) || (email && r.respondentEmail === email)),
-        );
-        if (again) throw new ConvexError("You’ve already taken this quiz. It allows one attempt.");
+        if (await answeredBefore(ctx, form._id, args.deviceId, email)) {
+          throw new ConvexError("You’ve already taken this quiz. It allows one attempt.");
+        }
       }
     }
 
