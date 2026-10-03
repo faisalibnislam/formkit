@@ -1,0 +1,8 @@
+/* The app: dashboard, builder, settings, admin, sign-in and published forms.
+   Imported by app/(app)/layout.tsx; globals.css holds what every page shares. */
+@import "./app.css";
+@import "./plans.css";
+@import "./logic.css";
+@import "./ai.css";
+@import "./dark.css";
+@import "./admin.css";

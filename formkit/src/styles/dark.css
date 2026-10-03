@@ -117,13 +117,11 @@ html[data-app-theme="dark"] .fk-statcard[data-tone="ink"] .fk-statcard-delta {
 }
 html[data-app-theme="dark"] .ui-toast-action,
 html[data-app-theme="dark"] .fk-bulk-btn,
-html[data-app-theme="dark"] .fk-coedit-bar button,
 html[data-app-theme="dark"] .fk-ask-launch-count {
   background: rgba(20, 26, 31, 0.08);
 }
 html[data-app-theme="dark"] .ui-toast-action:hover,
 html[data-app-theme="dark"] .fk-bulk-btn:hover,
-html[data-app-theme="dark"] .fk-coedit-bar button:hover,
 html[data-app-theme="dark"] .fk-bulkbar .ui-btn[data-variant="ghost"]:hover {
   background: rgba(20, 26, 31, 0.14);
 }

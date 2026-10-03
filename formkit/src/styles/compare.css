@@ -1,41 +1,5 @@
 /* Comparison pages. */
 
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-.fk-rival-card {
-  display: flex;
-  flex-direction: column;
-  padding: 24px;
-  border-radius: var(--radius-card);
-  background: var(--neutral-50);
-  color: var(--neutral-900);
-  transition: var(--transition-surface);
-}
-.fk-rival-card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-lg);
-  color: var(--neutral-900);
-}
-
-.fk-pick {
-  padding: 22px;
-  border-radius: var(--radius-card);
-  background: var(--neutral-50);
-}
-.fk-pick[data-ours="true"] {
-  background: var(--blue-50);
-}
-
 /* The comparison on a phone: one product against Formkit at a time
    (CompareTable's CompareList). The table stays for wider screens. */
 .fk-cmp-list {

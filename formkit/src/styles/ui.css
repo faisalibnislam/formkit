@@ -289,13 +289,6 @@
 
 /* ---------- surfaces ---------- */
 
-.ui-card {
-  padding: var(--space-card-padding);
-  border-radius: var(--radius-card);
-  background: var(--color-surface-card);
-  box-shadow: var(--shadow-card);
-}
-
 .ui-badge {
   display: inline-flex;
   align-items: center;

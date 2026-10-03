@@ -5,6 +5,70 @@
    overlap the header's bottom edge by 30px, which is why the header's padding
    ends at 30 and the cards carry a negative margin of the same. */
 
+/* Chips, question cards and live answer choices: the base look, refined
+   further down this file. */
+.fk-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: var(--radius-pill);
+  background: var(--neutral-100);
+  color: var(--neutral-800);
+  font-size: 14px;
+  transition: var(--transition-control);
+}
+.fk-chip:hover {
+  background: var(--blue-50);
+  color: var(--blue-700);
+}
+
+/* The chip is also used as a button, so reset the UA styles. */
+button.fk-chip {
+  border: none;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.fk-qcard {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  flex: 0 0 auto;
+  padding: 16px 20px;
+  border-radius: var(--radius-card);
+  background: var(--neutral-0);
+  box-shadow: var(--shadow-card);
+}
+.fk-qcard[data-selected="true"] {
+  background: var(--blue-50);
+  box-shadow: inset 0 0 0 1.5px var(--blue-500);
+}
+.fk-live-choice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--neutral-200);
+  border-radius: 12px;
+  background: #ffffff;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    transform 0.12s ease;
+}
+.fk-live-choice[data-on="true"] {
+  border-color: var(--blue-500);
+  background: var(--blue-50);
+}
+.fk-live-choice:active {
+  transform: scale(0.985);
+}
+
+
 .fk-app {
   display: flex;
   flex-direction: column;
@@ -77,33 +141,6 @@
   opacity: 0.82;
 }
 
-/* The glass icon buttons that sit on the sky. */
-.fk-glass {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  flex: 0 0 auto;
-  border: none;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.16);
-  color: var(--neutral-0);
-  cursor: pointer;
-  font: inherit;
-  transition: var(--transition-control);
-}
-.fk-glass:hover {
-  background: rgba(255, 255, 255, 0.28);
-}
-.fk-glass-pill {
-  width: auto;
-  gap: 9px;
-  padding: 0 20px;
-  border-radius: var(--radius-pill);
-  font-size: 15px;
-  font-weight: 500;
-}
 /* The one filled control on the sky: Formkit's single dark pill. */
 .fk-cta {
   display: inline-flex;
@@ -565,7 +602,6 @@
   text-overflow: ellipsis;
 }
 
-
 /* The rail that replaces the header once it scrolls away. */
 .fk-float {
   position: fixed;
@@ -712,13 +748,6 @@
   align-items: center;
   gap: 10px;
   flex: 0 0 auto;
-}
-.fk-row-unread {
-  width: 8px;
-  height: 8px;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  background: var(--blue-500);
 }
 
 .fk-toolbar {
@@ -2781,7 +2810,6 @@
   gap: 4px;
 }
 
-
 /* A faked control, drawn in the builder so a question looks like itself. */
 .fk-ghost {
   height: 44px;
@@ -2840,46 +2868,6 @@
   overflow-wrap: anywhere;
 }
 
-/* ---------- analytics ---------- */
-
-.fk-bars {
-  display: flex;
-  align-items: flex-end;
-  gap: 6px;
-  height: 160px;
-}
-.fk-bar {
-  flex: 1;
-  min-width: 4px;
-  border-radius: 8px 8px 4px 4px;
-  background: var(--blue-300);
-  transition: var(--transition-surface);
-}
-.fk-bar[data-empty="true"] {
-  background: var(--neutral-200);
-}
-.fk-funnel {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.fk-funnel-row {
-  display: grid;
-  grid-template-columns: 170px minmax(0, 1fr) 72px;
-  align-items: center;
-  gap: 14px;
-  font-size: 14.5px;
-}
-@media (max-width: 620px) {
-  .fk-funnel-row {
-    grid-template-columns: minmax(0, 1fr) 64px;
-  }
-  .fk-funnel-row > :nth-child(2) {
-    grid-column: 1 / -1;
-    order: 3;
-  }
-}
-
 /* ---------- settings ---------- */
 
 .fk-settings {
@@ -2887,16 +2875,7 @@
   flex-direction: column;
   gap: clamp(16px, 2.2vw, 22px);
 }
-.fk-fieldrow {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-.fk-fieldrow > :first-child {
-  flex: 1;
-  min-width: 240px;
-}
+
 .fk-note {
   display: flex;
   align-items: flex-start;
@@ -3869,44 +3848,9 @@
 
 /* ---------- analytics ---------- */
 
-.fk-range-row {
-  display: flex;
-  align-items: center;
-  gap: clamp(10px, 1.6vw, 18px);
-  flex-wrap: wrap;
-}
-
 /* A choice among a fixed few: one sunken track, the chosen one lifted out of
    it in white. Used where the options will not grow. */
-.fk-segmented {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  flex: 0 0 auto;
-  padding: 5px;
-  border-radius: var(--radius-pill);
-  background: var(--color-surface-sunken);
-}
-.fk-segmented button {
-  height: 38px;
-  padding: 0 20px;
-  border: none;
-  border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--color-text-tertiary);
-  font: inherit;
-  font-size: 14.5px;
-  cursor: pointer;
-  transition: var(--transition-control);
-}
-.fk-segmented button:hover {
-  color: var(--color-text-primary);
-}
-.fk-segmented button[aria-pressed="true"] {
-  background: var(--neutral-0);
-  box-shadow: var(--shadow-sm);
-  color: var(--color-text-primary);
-}
+
 .fk-range-note {
   font-size: 14.5px;
   color: var(--color-text-tertiary);
@@ -3945,17 +3889,6 @@
 }
 
 /* ---------- tables ---------- */
-
-.fk-visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
 
 .fk-table-wrap {
   overflow-x: auto;
@@ -4912,7 +4845,6 @@
 .fk-person[data-link="true"]:hover .fk-person-name {
   color: var(--blue-700);
 }
-.fk-corow-mark,
 .fk-person-avatar {
   display: inline-flex;
   flex: 0 0 auto;
@@ -4933,12 +4865,7 @@
   background: var(--neutral-100);
   color: var(--color-text-secondary);
 }
-.fk-corow-mark img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  background: var(--neutral-0);
-}
+
 .fk-corow-name,
 .fk-person-name,
 .fk-maillog-subject {
@@ -4994,31 +4921,7 @@
   background: var(--neutral-100);
   color: var(--color-text-secondary);
 }
-.fk-coedit-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 20px;
-  border-radius: var(--radius-pill);
-  background: var(--neutral-900);
-  color: var(--neutral-0);
-  font-size: 14px;
-}
-.fk-coedit-bar button {
-  min-height: 36px;
-  padding: 0 14px;
-  border: none;
-  border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.14);
-  color: var(--neutral-0);
-  font: inherit;
-  font-size: 13.5px;
-  cursor: pointer;
-}
-.fk-coedit-bar button:hover {
-  background: rgba(255, 255, 255, 0.22);
-}
+
 .fk-handle {
   display: flex;
   flex-wrap: wrap;
@@ -6385,46 +6288,11 @@ html.fk-own-bar::-webkit-scrollbar {
   }
 }
 
-/* The navigation bar (NavProgress.tsx): a thin line across the very top. */
-.fk-navbar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 1000;
-  height: 3px;
-  pointer-events: none;
-  transform-origin: 0 50%;
-  transform: scaleX(0);
-  background: linear-gradient(90deg, var(--blue-400), var(--blue-600));
-  box-shadow: 0 0 10px rgba(46, 120, 187, 0.5);
-  opacity: 0;
-}
-.fk-navbar[data-state="loading"] {
-  opacity: 1;
-  transform: scaleX(0.82);
-  /* Quick to a third, then a long crawl - it never looks stuck, never finishes early. */
-  transition:
-    transform 7s cubic-bezier(0.08, 0.82, 0.17, 1),
-    opacity 0.1s ease;
-}
-.fk-navbar[data-state="done"] {
-  opacity: 0;
-  transform: scaleX(1);
-  transition:
-    transform 0.18s ease-out,
-    opacity 0.3s ease 0.18s;
-}
 @media (prefers-reduced-motion: reduce) {
   .fk-skel {
     animation: none;
   }
-  .fk-navbar[data-state="loading"] {
-    transition: opacity 0.1s ease;
-    transform: scaleX(0.6);
-  }
 }
-
 
 /* A row that scrolls sideways, with arrows at the ends that have more. */
 .fk-scroller {
@@ -6676,74 +6544,6 @@ html.fk-own-bar::-webkit-scrollbar {
   max-height: none;
   border-radius: 18px;
   object-fit: cover;
-}
-/* A company's mark is a rounded square; a square logo fills it. */
-.fk-corow-mark {
-  border-radius: 28%;
-}
-.fk-corow-mark img:not([data-fit]) {
-  object-fit: cover;
-}
-
-/* ---------- the plan, worn on the avatar ---------- */
-.fk-planavatar {
-  position: relative;
-  display: inline-flex;
-  flex: 0 0 auto;
-  border-radius: 50%;
-}
-.fk-planavatar[data-plan] > :first-child {
-  box-shadow:
-    0 0 0 2px var(--neutral-0),
-    0 0 0 3.5px var(--fk-plan-ring);
-}
-.fk-planavatar[data-plan="pro"] {
-  --fk-plan-ring: #5aa9e6;
-}
-.fk-planavatar[data-plan="business"] {
-  --fk-plan-ring: #d9a13b;
-}
-.fk-planavatar > .fk-plancoin {
-  position: absolute;
-  right: -4px;
-  bottom: -3px;
-}
-.fk-plancoin {
-  display: inline-grid;
-  place-items: center;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  color: #fff;
-  box-shadow:
-    0 0 0 2px var(--neutral-0),
-    0 2px 6px rgba(10, 30, 60, 0.28);
-}
-.fk-plancoin[data-plan="pro"] {
-  background: linear-gradient(140deg, #8ccaf5 0%, #3f8fd6 55%, #2466a8 100%);
-}
-.fk-plancoin[data-plan="business"] {
-  background: linear-gradient(140deg, #fbe29a 0%, #e0a93c 50%, #b37314 100%);
-}
-.fk-planchip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 6px;
-  padding: 3px 9px 3px 4px;
-  border-radius: var(--radius-pill);
-  font-size: 12px;
-  font-weight: 500;
-}
-.fk-planchip .fk-plancoin {
-  box-shadow: none;
-}
-.fk-planchip[data-plan="pro"] {
-  background: #e8f3fc;
-  color: #1f5f99;
-}
-.fk-planchip[data-plan="business"] {
-  background: #fdf3dc;
-  color: #8a5a0e;
 }
 
 /* ---------- the company switcher, beside the logo ---------- */

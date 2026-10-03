@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react";
 import { NightSky } from "@/components/brand/NightSky";
 import { PublicPage } from "@/components/site/PublicPage";
 import { SiteSession } from "@/components/site/SiteSession";
+import "@/styles/site.css";
 
 export const metadata: Metadata = {
   title: "Page not found",

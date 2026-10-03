@@ -20,8 +20,7 @@
 }
 
 .fk-page > section,
-.fk-page > main,
-.fk-page > .fk-card {
+.fk-page > main {
   margin: 0 var(--fk-gutter) var(--fk-gap);
   border-radius: var(--fk-round);
   box-shadow: var(--fk-ring);
@@ -32,12 +31,6 @@
    full-bleed and transparent and the rounding, tint and ring live on the
    sticky shell inside it. Never give that shell height:auto - its children are
    absolutely positioned, so it collapses to 0 and overflow:hidden erases it. */
-.fk-page > section.fk-pinned {
-  margin: 0;
-  border-radius: 0;
-  box-shadow: none;
-  overflow: visible;
-}
 
 .fk-shell {
   position: sticky;

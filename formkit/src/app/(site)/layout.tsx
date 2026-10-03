@@ -1,4 +1,5 @@
 import { SiteSession } from "@/components/site/SiteSession";
+import "@/styles/site.css";
 
 /**
  * The marketing pages: static, the same for everyone, served from the CDN.

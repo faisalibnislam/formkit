@@ -16,24 +16,12 @@
 @import "../styles/nav.css";
 @import "../styles/footer.css";
 @import "../styles/sky.css";
-@import "../styles/templates.css";
-@import "../styles/story.css";
-@import "../styles/scenes.css";
-@import "../styles/compare.css";
-@import "../styles/help.css";
-@import "../styles/landing.css";
-@import "../styles/landing-mobile.css";
-@import "../styles/landing-more.css";
-@import "../styles/logicsection.css";
-@import "../styles/stats.css";
-@import "../styles/pricing.css";
+@import "../styles/shared.css";
 @import "../styles/ui.css";
-@import "../styles/app.css";
-@import "../styles/plans.css";
-@import "../styles/logic.css";
-@import "../styles/ai.css";
-@import "../styles/dark.css";
-@import "../styles/admin.css";
+
+/* The rest is loaded per half of the site, so a page downloads only its own:
+   styles/site.css from app/(site)/layout.tsx (and not-found.tsx), and
+   styles/app-bundle.css from app/(app)/layout.tsx. */
 
 /* Outfit is loaded through next/font, which exposes it as --font-outfit. The
    design system's own fonts.css is deliberately not imported: it pulls Google

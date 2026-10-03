@@ -15,8 +15,6 @@
   color: #ffffff;
 }
 
-
-
 .fk-tpl-tile {
   display: inline-flex;
   align-items: center;
@@ -27,19 +25,6 @@
   background: var(--blue-50);
   color: var(--blue-700);
 }
-
-
-
-.fk-tpl-meta {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  flex-wrap: wrap;
-  margin-top: 16px;
-  font-size: 13px;
-  color: var(--color-text-tertiary);
-}
-
 
 /* Detail page */
 .fk-tpl-qrow {
@@ -70,57 +55,8 @@
   color: var(--neutral-700);
 }
 
-.fk-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 38px;
-  padding: 0 16px;
-  border-radius: var(--radius-pill);
-  background: var(--neutral-100);
-  color: var(--neutral-800);
-  font-size: 14px;
-  transition: var(--transition-control);
-}
-.fk-chip:hover {
-  background: var(--blue-50);
-  color: var(--blue-700);
-}
-
-/* The chip is also used as a button (help feedback), so reset the UA styles. */
-button.fk-chip {
-  border: none;
-  font: inherit;
-  font-size: 14px;
-  cursor: pointer;
-}
-
 /* /templates: categories to jump to, and a heading for each group. */
-.fk-tpl-cats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: clamp(20px, 3vw, 32px);
-}
-.fk-tpl-cats a {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  border-radius: 999px;
-  background: var(--neutral-50);
-  box-shadow: inset 0 0 0 1px var(--neutral-150);
-  color: var(--neutral-900);
-  font-size: 14px;
-  text-decoration: none;
-}
-.fk-tpl-cats a:hover {
-  background: var(--blue-50);
-}
-.fk-tpl-cats span {
-  font-size: 12px;
-  color: var(--neutral-500);
-}
+
 .fk-tpl-group {
   scroll-margin-top: 96px;
 }

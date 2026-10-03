@@ -3,6 +3,7 @@ import { ConvexClientProvider } from "../ConvexClientProvider";
 import { SeedProvider } from "@/lib/seed";
 import { seedViewer } from "@/lib/seedServer";
 import { ViewerHintSync } from "@/components/site/ViewerHintSync";
+import "@/styles/app-bundle.css";
 
 /**
  * Everything signed in or drawn per visitor: the app, admin, onboarding,

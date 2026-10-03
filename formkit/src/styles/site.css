@@ -1,0 +1,13 @@
+/* The marketing pages. Imported by app/(site)/layout.tsx and the 404 page;
+   globals.css holds what every page shares. */
+@import "./templates.css";
+@import "./story.css";
+@import "./scenes.css";
+@import "./compare.css";
+@import "./help.css";
+@import "./landing.css";
+@import "./landing-mobile.css";
+@import "./landing-more.css";
+@import "./logicsection.css";
+@import "./stats.css";
+@import "./pricing.css";
