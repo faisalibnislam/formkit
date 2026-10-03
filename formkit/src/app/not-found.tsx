@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { NightSky } from "@/components/brand/NightSky";
+import { Analytics } from "@/components/site/Analytics";
 import { PublicPage } from "@/components/site/PublicPage";
 import { SiteSession } from "@/components/site/SiteSession";
 import "@/styles/site.css";
@@ -141,6 +142,7 @@ export default function NotFound() {
           </div>
         </section>
       </PublicPage>
+      <Analytics />
     </SiteSession>
   );
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
+import { GA_ID, openConsentSettings } from "@/lib/consent";
 import { FOOTER_COLUMNS } from "@/lib/site";
 
 /**
@@ -104,6 +105,11 @@ export function SiteFooter() {
         <Link href="/privacy">Privacy</Link>
         <Link href="/terms">Terms</Link>
         <Link href="/dpa">DPA</Link>
+        {GA_ID && (
+          <button type="button" onClick={openConsentSettings}>
+            Cookie settings
+          </button>
+        )}
       </div>
     </footer>
   );

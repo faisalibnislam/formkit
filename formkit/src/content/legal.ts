@@ -16,6 +16,8 @@ export type LegalSection = {
 };
 
 export const LEGAL_UPDATED = "21 September 2026";
+/** The privacy policy alone moved on when Google Analytics was added. */
+export const PRIVACY_UPDATED = "3 October 2026";
 
 export const PRIVACY: LegalSection[] = [
   {
@@ -56,7 +58,7 @@ export const PRIVACY: LegalSection[] = [
     id: "who-else-sees-it",
     title: "Who else touches it",
     paras: [
-      "A small number of companies handle data for us because they run the machines: our hosting provider, our email delivery provider and our error-tracking tool. They are bound to use it only to provide that service.",
+      "A small number of companies handle data for us because they run the machines: our hosting provider, our email delivery provider and our error-tracking tool. They are bound to use it only to provide that service. If you allow it on our public pages, Google Analytics also receives visit data from those pages (see Cookies).",
       "Formkit staff can reach your account for support: to answer a ticket, look into a report, or investigate abuse. When they do, it is logged, and a support view is read-only: staff can see what you see and change nothing.",
     ],
   },
@@ -84,7 +86,9 @@ export const PRIVACY: LegalSection[] = [
     id: "cookies",
     title: "Cookies",
     paras: [
-      "Formkit sets one cookie, to keep you signed in. There is no advertising cookie, no third-party tracker and no consent banner to dismiss, because there is nothing to consent to.",
+      "Inside the app, Formkit sets two cookies: one keeps you signed in, the other remembers your time zone so dates show in your local time. Your published forms set none of their own, and your respondents are never tracked.",
+      "On our public pages (the homepage, templates, help and the rest of formkit.app outside the app), we use Google Analytics to count visits and see which pages people find useful, but only if you say yes. Until you do, it is not loaded at all: no script, no cookie, nothing sent to Google. If you accept, it sets a few cookies whose names begin with _ga, which last up to two years. Google's advertising features are switched off.",
+      "Your answer is remembered in your browser, not in a cookie. To change it, use Cookie settings at the foot of any public page; withdrawing removes the Google Analytics cookies.",
     ],
   },
   {
