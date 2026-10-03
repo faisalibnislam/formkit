@@ -1,6 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { requireStaff } from "./model/identity";
+import { RULES, allow } from "./model/rateLimit";
 
 /**
  * The help centre's two signals: a search that matched nothing, and whether
@@ -18,6 +19,8 @@ export const log = mutation({
     if (clean.length < 2) return null;
     // Feedback names an article id; a search term can be anything.
     if (kind !== "missed" && !/^[a-z0-9-]{2,48}$/.test(clean)) return null;
+    // Past the hourly allowance for everyone together, signals are dropped.
+    if (!(await allow(ctx, "help", RULES.helpSignals))) return null;
     const now = Date.now();
     const row = await ctx.db
       .query("helpSignals")

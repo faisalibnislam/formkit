@@ -5,7 +5,7 @@ import { personalSpace } from "./model/spaces";
 import { modelConfigured } from "./model/gemini";
 import { notify } from "./model/inbox";
 import { FLAGS, isFlagKey } from "./model/flags";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query, type MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { lastDays } from "./adminTally";
 import { scanPage } from "./model/scan";
@@ -581,10 +581,39 @@ export const setAiPlatform = mutation({
       await writeAudit(ctx, staff, `${revert ? "Reverted" : "Set"} the AI default to ${limit} a month`, undefined, `Was ${current}`);
     }
     if (applyToAll) {
-      const rows = (await ctx.db.query("aiAccess").collect()).filter((r) => r.limitOverride !== undefined);
-      for (const r of rows) await ctx.db.patch(r._id, { limitOverride: undefined, changedBy: staff._id, changedAt: Date.now() });
-      await writeAudit(ctx, staff, "Applied the AI default to everyone", undefined, `${rows.length} personal limits cleared`);
+      const cleared = await clearAiOverrides(ctx, staff._id);
+      await writeAudit(
+        ctx,
+        staff,
+        "Applied the AI default to everyone",
+        undefined,
+        cleared.more ? `${cleared.n} personal limits cleared, the rest in the background` : `${cleared.n} personal limits cleared`,
+      );
     }
+    return null;
+  },
+});
+
+/** Personal AI limits cleared per go; more than this carry on in the background. */
+const OVERRIDES_BATCH = 500;
+
+/** Clears a batch of personal AI limits, read through their own index. */
+async function clearAiOverrides(ctx: MutationCtx, staffId: Id<"users">) {
+  const rows = await ctx.db
+    .query("aiAccess")
+    .withIndex("by_override", (q) => q.gt("limitOverride", undefined))
+    .take(OVERRIDES_BATCH);
+  for (const r of rows) await ctx.db.patch(r._id, { limitOverride: undefined, changedBy: staffId, changedAt: Date.now() });
+  const more = rows.length === OVERRIDES_BATCH;
+  if (more) await ctx.scheduler.runAfter(0, internal.admin.clearAiOverridesRest, { staffId });
+  return { n: rows.length, more };
+}
+
+export const clearAiOverridesRest = internalMutation({
+  args: { staffId: v.id("users") },
+  returns: v.null(),
+  handler: async (ctx, { staffId }) => {
+    await clearAiOverrides(ctx, staffId);
     return null;
   },
 });

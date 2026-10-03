@@ -70,6 +70,7 @@ import type * as model_moreTemplates from "../model/moreTemplates.js";
 import type * as model_places from "../model/places.js";
 import type * as model_plans from "../model/plans.js";
 import type * as model_quiz from "../model/quiz.js";
+import type * as model_rateLimit from "../model/rateLimit.js";
 import type * as model_responseCounts from "../model/responseCounts.js";
 import type * as model_responseSearch from "../model/responseSearch.js";
 import type * as model_scan from "../model/scan.js";
@@ -86,6 +87,7 @@ import type * as payments from "../payments.js";
 import type * as presence from "../presence.js";
 import type * as publicForm from "../publicForm.js";
 import type * as quiz from "../quiz.js";
+import type * as rateLimits from "../rateLimits.js";
 import type * as responses from "../responses.js";
 import type * as restApi from "../restApi.js";
 import type * as revenue from "../revenue.js";
@@ -168,6 +170,7 @@ declare const fullApi: ApiFromModules<{
   "model/places": typeof model_places,
   "model/plans": typeof model_plans,
   "model/quiz": typeof model_quiz,
+  "model/rateLimit": typeof model_rateLimit,
   "model/responseCounts": typeof model_responseCounts,
   "model/responseSearch": typeof model_responseSearch,
   "model/scan": typeof model_scan,
@@ -184,6 +187,7 @@ declare const fullApi: ApiFromModules<{
   "presence": typeof presence,
   "publicForm": typeof publicForm,
   "quiz": typeof quiz,
+  "rateLimits": typeof rateLimits,
   "responses": typeof responses,
   "restApi": typeof restApi,
   "revenue": typeof revenue,

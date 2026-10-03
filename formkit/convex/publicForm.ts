@@ -18,6 +18,7 @@ import { computeAll } from "./model/calc";
 import { accessOf } from "./model/access";
 import { searchTextOf } from "./model/responseSearch";
 import { countChange } from "./model/responseCounts";
+import { RULES, allowForm } from "./model/rateLimit";
 import { contactKeyOf, notePerson } from "./model/contacts";
 import { formUrl, liveDomainOf } from "./model/handles";
 
@@ -371,6 +372,9 @@ export const startQuiz = mutation({
     if (!form || form.status !== "published") throw new ConvexError("That quiz is not open.");
     const quiz = await quizOf(ctx, form);
     if (!quiz) throw new ConvexError("That form is not a quiz.");
+    if (!(await allowForm(ctx, "quiz", formId, deviceId, RULES.quizPerForm, RULES.quizPerDevice))) {
+      throw new ConvexError("Too many attempts started from here. Try again later.");
+    }
     if (quiz.oneAttempt && deviceId) {
       const done = await ctx.db
         .query("responses")
@@ -386,11 +390,18 @@ export const startQuiz = mutation({
 
 /** A view, counted once per opened form. */
 export const recordView = mutation({
-  args: { formId: v.id("forms"), started: v.optional(v.boolean()), source: v.optional(v.string()) },
+  args: {
+    formId: v.id("forms"),
+    started: v.optional(v.boolean()),
+    source: v.optional(v.string()),
+    deviceId: v.optional(v.string()),
+  },
   returns: v.null(),
-  handler: async (ctx, { formId, started, source }) => {
+  handler: async (ctx, { formId, started, source, deviceId }) => {
     const form = await ctx.db.get(formId);
     if (!form || form.status !== "published") return null;
+    // Past the limit a view is simply not counted.
+    if (!(await allowForm(ctx, "view", formId, deviceId, RULES.viewsPerForm, RULES.viewsPerDevice))) return null;
     await ctx.db.patch(formId, {
       views: (form.views ?? 0) + (started ? 0 : 1),
       starts: (form.starts ?? 0) + (started ? 1 : 0),
@@ -414,9 +425,9 @@ export const recordView = mutation({
  * storage is not an open drop box.
  */
 export const uploadUrl = mutation({
-  args: { formId: v.id("forms") },
+  args: { formId: v.id("forms"), deviceId: v.optional(v.string()) },
   returns: v.string(),
-  handler: async (ctx, { formId }) => {
+  handler: async (ctx, { formId, deviceId }) => {
     const form = await ctx.db.get(formId);
     if (!form || form.deletedAt) throw new ConvexError("That form is not here any more.");
     if (form.status !== "published") await formFor(ctx, formId, "read");
@@ -426,6 +437,9 @@ export const uploadUrl = mutation({
       .collect();
     if (!blocks.some((b) => b.type === "file" || b.type === "voice")) {
       throw new ConvexError("This form does not take uploads.");
+    }
+    if (!(await allowForm(ctx, "upload", formId, deviceId, RULES.uploadsPerForm, RULES.uploadsPerDevice))) {
+      throw new ConvexError("Too many uploads from here for now. Try again later.");
     }
     return await ctx.storage.generateUploadUrl();
   },
@@ -687,6 +701,14 @@ export const submit = mutation({
     if (existing && existing.formId !== form._id) throw new ConvexError("That link belongs to another form.");
     if (existing && !existing.partial && !s.editAfter) {
       throw new ConvexError("This form does not allow changing an answer once it is sent.");
+    }
+    // A new response, complete or partial, counts against the form's limits;
+    // saving more answers into one already started does not.
+    if (
+      !existing &&
+      !(await allowForm(ctx, "response", form._id, args.deviceId, RULES.responsesPerForm, RULES.responsesPerDevice))
+    ) {
+      throw new ConvexError("This form is taking a lot of answers right now. Try again in a minute.");
     }
 
     if (!args.partial) {

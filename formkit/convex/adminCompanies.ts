@@ -279,24 +279,31 @@ export const list = query({
             const key = m.companyId ?? `me:${m.ownerId}`;
             count.set(key, (count.get(key) ?? 0) + 1);
           }
-        const ranked = [...count.entries()].sort((a, b) => b[1] - a[1]).map(([key]) => key);
-        const teams = new Set(ranked);
+        // Each of them read once, so equal seat counts can go newest first.
+        const teamRows: { c: Candidate; seats: number }[] = [];
+        for (const [key, n] of count) {
+          const c = key.startsWith("me:")
+            ? await (async () => {
+                const id = ctx.db.normalizeId("users", key.slice(3));
+                const u = id ? await ctx.db.get(id) : null;
+                return u ? personal(u) : null;
+              })()
+            : await (async () => {
+                const id = ctx.db.normalizeId("companies", key);
+                const co = id ? await ctx.db.get(id) : null;
+                return co ? await ofCompany(co) : null;
+              })();
+          if (c) teamRows.push({ c, seats: n });
+        }
+        teamRows.sort((a, b) => b.seats - a.seats || b.c.created - a.c.created);
+        const ranked = teamRows.map((t) => t.c);
+        const teams = new Set(count.keys());
         picked = [];
         let phase2: number | null = null;
         if (!cursor || cursor.startsWith("t:")) {
           let at = cursor ? Number(cursor.slice(2)) : 0;
           for (; at < ranked.length && picked.length < PAGE; at++) {
-            const key = ranked[at]!;
-            const c = key.startsWith("me:")
-              ? await (async () => {
-                  const u = await ctx.db.get(key.slice(3) as Id<"users">);
-                  return u ? personal(u) : null;
-                })()
-              : await (async () => {
-                  const co = await ctx.db.get(key as Id<"companies">);
-                  return co ? await ofCompany(co) : null;
-                })();
-            const r = c && shape(c);
+            const r = shape(ranked[at]!);
             if (r) picked.push(r);
           }
           next = at < ranked.length ? `t:${at}` : "n:";

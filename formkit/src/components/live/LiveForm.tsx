@@ -17,6 +17,9 @@ import { sourceLabel } from "./source";
 
 const DEVICE_KEY = "fk.device";
 
+/** For browsers that keep nothing: an id for as long as the page is open. */
+let pageDevice: string | undefined;
+
 /** A random id this browser keeps, for the per-device rules. Never personal. */
 function deviceId() {
   try {
@@ -27,7 +30,12 @@ function deviceId() {
     }
     return id;
   } catch {
-    return undefined;
+    try {
+      pageDevice ??= crypto.randomUUID();
+      return pageDevice;
+    } catch {
+      return undefined;
+    }
   }
 }
 
@@ -57,7 +65,7 @@ export function LiveForm({
   useEffect(() => {
     if (open && !viewed.current) {
       viewed.current = true;
-      void recordView({ formId: open.formId, source: sourceLabel() });
+      void recordView({ formId: open.formId, source: sourceLabel(), deviceId: deviceId() });
     }
   }, [open, recordView]);
 
@@ -76,7 +84,7 @@ export function LiveForm({
 
   const upload = useCallback(
     async (file: File) => {
-      const url = await uploadUrl({ formId: open!.formId });
+      const url = await uploadUrl({ formId: open!.formId, deviceId: deviceId() });
       const res = await fetch(url, { method: "POST", headers: { "Content-Type": file.type }, body: file });
       const { storageId } = (await res.json()) as { storageId: Id<"_storage"> };
       return storageId;
@@ -183,7 +191,7 @@ export function LiveForm({
       onPay={checkout}
       onThink={(a) => think({ formId: (data as OpenForm).formId, ...a })}
       onStartQuiz={() => startQuiz({ formId: (data as OpenForm).formId, deviceId: deviceId() })}
-      onStart={() => void recordView({ formId: data.formId, started: true, source: sourceLabel() })}
+      onStart={() => void recordView({ formId: data.formId, started: true, source: sourceLabel(), deviceId: deviceId() })}
       upload={upload}
     />
   );

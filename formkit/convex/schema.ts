@@ -211,6 +211,8 @@ export default defineSchema({
     .index("by_staff", ["staffRole"])
     // The hourly job that ends free plans staff gave, once their date comes.
     .index("by_comp_ends", ["compEndsAt"])
+    // The digest job: whoever it is 8am for, a time zone at a time.
+    .index("by_timezone", ["timezone"])
     .searchIndex("search_name", { searchField: "name" }),
 
   companies: defineTable({
@@ -866,7 +868,10 @@ export default defineSchema({
     granted: v.optional(v.number()),
     changedBy: v.optional(v.id("users")),
     changedAt: v.number(),
-  }).index("by_user", ["userId"]),
+  })
+    .index("by_user", ["userId"])
+    // Staff clearing every personal limit at once.
+    .index("by_override", ["limitOverride"]),
 
   auditLog: defineTable({
     actorId: v.optional(v.id("users")),
@@ -1244,6 +1249,15 @@ export default defineSchema({
     .index("by_owner_last", ["ownerId", "last"]),
 
   /** Where a long data job has got to, so it can pick up where it stopped. */
+  /** Counts behind the limits on signed-out writes (model/rateLimit.ts). */
+  rateLimits: defineTable({
+    key: v.string(),
+    windowStart: v.number(),
+    count: v.number(),
+  })
+    .index("by_key", ["key"])
+    .index("by_window", ["windowStart"]),
+
   jobs: defineTable({
     key: v.string(),
     cursor: v.union(v.string(), v.null()),

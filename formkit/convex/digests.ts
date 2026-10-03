@@ -34,18 +34,48 @@ function localParts(at: number, zone: string) {
   }
 }
 
-export const due = internalQuery({
-  args: { now: v.number() },
-  handler: async (ctx, { now }) => {
-    const out: { userId: Id<"users">; kind: "daily" | "weekly"; date: string }[] = [];
-    for (const user of await ctx.db.query("users").collect()) {
-      if (!user.email || user.deactivatedAt) continue;
-      const local = localParts(now, user.timezone ?? "UTC");
-      if (local.hour !== HOUR_TO_SEND) continue;
-      out.push({ userId: user._id, kind: "daily", date: local.date });
-      if (local.weekday === "Mon") out.push({ userId: user._id, kind: "weekly", date: local.date });
+/** People read for one page of a time zone's digests. */
+const DUE_PAGE = 200;
+/** Time zones looked at per read. */
+const ZONES_PAGE = 100;
+
+/**
+ * The next time zones people have set, in order, after `after` (null: from
+ * the start). Read through the time zone index one zone at a time, so a run
+ * reads one row per zone rather than every account. Accounts with no zone
+ * set are sent at 8am UTC and are not listed here.
+ */
+export const zones = internalQuery({
+  args: { after: v.union(v.string(), v.null()) },
+  handler: async (ctx, { after }) => {
+    const out: string[] = [];
+    let from = after;
+    while (out.length < ZONES_PAGE) {
+      const next = await ctx.db
+        .query("users")
+        .withIndex("by_timezone", (q) => (from === null ? q.gte("timezone", "") : q.gt("timezone", from)))
+        .first();
+      if (!next || next.timezone === undefined) return { zones: out, done: true };
+      out.push(next.timezone);
+      from = next.timezone;
     }
-    return out;
+    return { zones: out, done: false };
+  },
+});
+
+/** One page of the people in a time zone (null: those who never set one). */
+export const inZone = internalQuery({
+  args: { zone: v.union(v.string(), v.null()), cursor: v.union(v.string(), v.null()) },
+  handler: async (ctx, { zone, cursor }) => {
+    const page = await ctx.db
+      .query("users")
+      .withIndex("by_timezone", (q) => q.eq("timezone", zone ?? undefined))
+      .paginate({ numItems: DUE_PAGE, cursor });
+    return {
+      ids: page.page.filter((u) => u.email && !u.deactivatedAt).map((u) => u._id),
+      cursor: page.continueCursor,
+      done: page.isDone,
+    };
   },
 });
 
@@ -75,12 +105,12 @@ export const content = internalQuery({
     const rows: { form: string; line: string; count: number }[] = [];
     let total = 0;
     for (const f of forms) {
-      const responses = (
-        await ctx.db
-          .query("responses")
-          .withIndex("by_form", (q) => q.eq("formId", f._id))
-          .collect()
-      ).filter((r) => !r.preview && r.submittedAt >= from && r.submittedAt < now);
+      const responses = await ctx.db
+        .query("responses")
+        .withIndex("by_form_preview_submitted", (q) =>
+          q.eq("formId", f._id).eq("preview", undefined).gte("submittedAt", from).lt("submittedAt", now),
+        )
+        .collect();
       if (!responses.length) continue;
       total += responses.length;
       const completed = responses.filter((r) => !r.partial).length;
@@ -150,35 +180,70 @@ export const mark = internalMutation({
   },
 });
 
+type Job = { userId: Id<"users">; kind: "daily" | "weekly"; date: string };
+
+/**
+ * Hourly: finds whoever it is 8am for, a time zone at a time, and hands each
+ * of them to `sendOne`, so one slow send never holds up the rest.
+ */
 export const run = internalAction({
   args: {},
   returns: v.number(),
   handler: async (ctx) => {
     const now = Date.now();
-    const jobs: { userId: Id<"users">; kind: "daily" | "weekly"; date: string }[] = await ctx.runQuery(
-      internal.digests.due,
-      { now },
-    );
-    let sent = 0;
-    for (const job of jobs) {
-      const c: Content = await ctx.runQuery(internal.digests.content, { ...job, now });
-      // Marked even when there was nothing to say, so the hour is not retried.
-      await ctx.runMutation(internal.digests.mark, job);
-      if (!c) continue;
-      const result = await send({
-        to: c.to,
-        subject: c.subject,
-        html: renderDigest({ heading: c.heading, lede: c.lede, rows: c.rows, link: `${SITE}/app/responses` }),
-      });
-      await ctx.runMutation(internal.notifications.record, {
-        userId: job.userId,
-        kind: job.kind === "daily" ? "daily summary" : "weekly report",
-        to: c.to.join(", "),
-        subject: c.subject,
-        ...result,
-      });
-      sent++;
+    const zones: (string | null)[] = [null];
+    let after: string | null = null;
+    for (;;) {
+      const p: { zones: string[]; done: boolean } = await ctx.runQuery(internal.digests.zones, { after });
+      zones.push(...p.zones);
+      if (p.done || !p.zones.length) break;
+      after = p.zones[p.zones.length - 1]!;
     }
-    return sent;
+    let queued = 0;
+    for (const zone of zones) {
+      const local = localParts(now, zone ?? "UTC");
+      if (local.hour !== HOUR_TO_SEND) continue;
+      let cursor: string | null = null;
+      for (;;) {
+        const p: { ids: Id<"users">[]; cursor: string; done: boolean } = await ctx.runQuery(internal.digests.inZone, {
+          zone,
+          cursor,
+        });
+        for (const userId of p.ids) {
+          const jobs: Job[] = [{ userId, kind: "daily", date: local.date }];
+          if (local.weekday === "Mon") jobs.push({ userId, kind: "weekly", date: local.date });
+          for (const job of jobs) await ctx.scheduler.runAfter(0, internal.digests.sendOne, { ...job, now });
+          queued += jobs.length;
+        }
+        if (p.done) break;
+        cursor = p.cursor;
+      }
+    }
+    return queued;
+  },
+});
+
+/** One person's daily summary or weekly report, if there is anything to say. */
+export const sendOne = internalAction({
+  args: { userId: v.id("users"), kind: v.union(v.literal("daily"), v.literal("weekly")), date: v.string(), now: v.number() },
+  returns: v.null(),
+  handler: async (ctx, { now, ...job }) => {
+    const c: Content = await ctx.runQuery(internal.digests.content, { ...job, now });
+    // Marked even when there was nothing to say, so the hour is not retried.
+    await ctx.runMutation(internal.digests.mark, job);
+    if (!c) return null;
+    const result = await send({
+      to: c.to,
+      subject: c.subject,
+      html: renderDigest({ heading: c.heading, lede: c.lede, rows: c.rows, link: `${SITE}/app/responses` }),
+    });
+    await ctx.runMutation(internal.notifications.record, {
+      userId: job.userId,
+      kind: job.kind === "daily" ? "daily summary" : "weekly report",
+      to: c.to.join(", "),
+      subject: c.subject,
+      ...result,
+    });
+    return null;
   },
 });
