@@ -13,6 +13,14 @@ import { errorText } from "../settings/bits";
 import { fullTime } from "../bits";
 
 type Kind = "webhook" | "slack" | "discord" | "teams" | "sheets";
+type AppKind = "gsheets" | "notion" | "airtable" | "hubspot";
+const APP_KINDS: AppKind[] = ["gsheets", "notion", "airtable", "hubspot"];
+const APP_HINT: Record<AppKind, string> = {
+  gsheets: "A spreadsheet Formkit makes in your Google Drive, with a row for each response, kept up to date.",
+  notion: "A database in a Notion page you pick, with a page for each response.",
+  airtable: "A table in an Airtable base you pick, with a record for each response.",
+  hubspot: "Each person who leaves an email becomes a HubSpot contact, or updates theirs.",
+};
 
 const KINDS: { kind: Kind; label: string; icon: React.ReactNode; hint: string; feature: "connect.webhooks" | "connect.slack" | "connect.sheets" }[] = [
   {
@@ -45,9 +53,9 @@ const KINDS: { kind: Kind; label: string; icon: React.ReactNode; hint: string; f
   },
   {
     kind: "sheets",
-    label: "Google Sheets",
+    label: "Google Sheets, by link",
     icon: <Sheet size={17} strokeWidth={1.8} aria-hidden />,
-    hint: "A sheet that keeps itself up to date from a private link.",
+    hint: "A sheet you make reads your responses from a private link. Nothing to sign in to.",
     feature: "connect.sheets",
   },
 ];
@@ -150,6 +158,41 @@ export function ConnectionsSection({
   const [busy, setBusy] = useState<string | null>(null);
   const [secret, setSecret] = useState<string | null>(null);
   const [script, setScript] = useState<string | null>(null);
+  // Apps over OAuth: which Formkit is set up for, and the person's accounts.
+  const apps = useQuery(api.integrations.available, {});
+  const begin = useMutation(api.integrations.begin);
+  const setupApp = useAction(api.integrations.setup);
+  const loadPlaces = useAction(api.integrations.places);
+  const [app, setApp] = useState<{ kind: AppKind; provider: string; label: string; accountId: string; places: { id: string; name: string }[] | null; place: string } | null>(null);
+  const appsGate = useGate("connect.apps", features);
+
+  async function startApp(kind: AppKind) {
+    const p = apps?.providers.find((x) => x.kind === kind);
+    if (!p) return;
+    const gate = kind === "gsheets" ? sheets : appsGate;
+    if (gate.locked) {
+      openUpgrade({ feature: kind === "gsheets" ? "connect.sheets" : "connect.apps" });
+      return;
+    }
+    const account = apps!.accounts.find((a) => a.provider === p.id);
+    if (!account) {
+      try {
+        window.location.assign(await begin({ provider: p.id, returnTo: `${window.location.pathname}${window.location.search}` }));
+      } catch (e) {
+        toast(errorText(e, "That could not start."));
+      }
+      return;
+    }
+    setApp({ kind, provider: p.id, label: p.label, accountId: account.id, places: null, place: "" });
+    if (kind === "notion" || kind === "airtable") {
+      try {
+        const places = await loadPlaces({ accountId: account.id as never });
+        setApp((cur) => (cur && cur.accountId === account.id ? { ...cur, places, place: places[0]?.id ?? "" } : cur));
+      } catch (e) {
+        toast(errorText(e, "That account did not answer."));
+      }
+    }
+  }
 
   const start = (kind: Kind) => {
     if (gates[kind].locked) {
@@ -201,8 +244,34 @@ export function ConnectionsSection({
         ))}
       </div>
 
+      {(apps?.providers.length ?? 0) > 0 && (
+        <div className="fk-connect-kinds" style={{ marginTop: 10 }}>
+          {APP_KINDS.filter((k) => apps!.providers.some((p) => p.kind === k)).map((k) => {
+            const p = apps!.providers.find((x) => x.kind === k)!;
+            const locked = (k === "gsheets" ? sheets : appsGate).locked;
+            const account = apps!.accounts.find((a) => a.provider === p.id);
+            return (
+              <button key={k} type="button" className="fk-connect-kind" onClick={() => void startApp(k)}>
+                <span className="fk-connect-icon">{k === "gsheets" ? <Sheet size={17} strokeWidth={1.8} aria-hidden /> : <Link2 size={17} strokeWidth={1.8} aria-hidden />}</span>
+                <span style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 500 }}>
+                    {p.label}
+                    {locked && <ProChip />}
+                  </span>
+                  <span className="fk-proprow-hint">
+                    {APP_HINT[k]} {account ? `Connected as ${account.label}.` : "You sign in to it once."}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {(rows ?? []).map((c) => {
-        const meta = KINDS.find((k) => k.kind === c.kind)!;
+        const meta =
+          KINDS.find((k) => k.kind === c.kind) ??
+          ({ kind: c.kind, label: apps?.providers.find((p) => p.kind === c.kind)?.label ?? "App", icon: <Link2 size={17} strokeWidth={1.8} aria-hidden />, hint: "", feature: "connect.sheets" } as (typeof KINDS)[number]);
         return (
           <div key={c._id} className="fk-domainrow">
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -223,7 +292,7 @@ export function ConnectionsSection({
                 label={c.enabled ? "On" : "Off"}
                 onChange={(enabled) => void setEnabled({ connectionId: c._id, enabled })}
               />
-              {c.kind !== "sheets" && (
+              {c.kind !== "sheets" && !c.place && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -259,8 +328,21 @@ export function ConnectionsSection({
             </div>
 
             {c.url && <p className="fk-proprow-hint fk-connect-url">{c.url}</p>}
+            {c.place && (
+              <p className="fk-proprow-hint" style={{ margin: "6px 0 0" }}>
+                Into{" "}
+                {c.place.url ? (
+                  <a href={c.place.url} target="_blank" rel="noreferrer" className="fk-linkbtn">
+                    {c.place.name}
+                  </a>
+                ) : (
+                  c.place.name
+                )}
+                . Changed responses update what they became there.
+              </p>
+            )}
 
-            {c.kind !== "sheets" && (
+            {c.kind !== "sheets" && !c.place && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
                 <span className="fk-proprow-hint" style={{ margin: 0 }}>
                   Sends:
@@ -406,6 +488,71 @@ export function ConnectionsSection({
                 onChange={(e) => setLabel(e.target.value)}
               />
             </Field>
+          </div>
+        </Modal>
+      )}
+
+      {app && (
+        <Modal
+          title={`Send responses to ${app.label}`}
+          description={APP_HINT[app.kind]}
+          onClose={() => setApp(null)}
+          width={520}
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setApp(null)}>
+                Cancel
+              </Button>
+              <Button
+                disabled={busy === "app" || ((app.kind === "notion" || app.kind === "airtable") && !app.place)}
+                onClick={async () => {
+                  setBusy("app");
+                  try {
+                    const made = await setupApp({ formId, accountId: app.accountId as never, place: app.place || undefined });
+                    setApp(null);
+                    toast(`Connected to ${app.label}`, { detail: `New responses go into ${made.name}.` });
+                  } catch (e) {
+                    if (!upgradeOnPlanError(e)) toast(errorText(e, "That did not connect."));
+                  } finally {
+                    setBusy(null);
+                  }
+                }}
+              >
+                {busy === "app" ? "Setting it up…" : app.kind === "gsheets" ? "Make the spreadsheet" : app.kind === "hubspot" ? "Connect" : "Make it"}
+              </Button>
+            </>
+          }
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <p className="fk-proprow-hint" style={{ margin: 0 }}>
+              Signed in as {apps?.accounts.find((a) => a.id === app.accountId)?.label}.{" "}
+              <button
+                type="button"
+                className="fk-linkbtn"
+                onClick={async () => window.location.assign(await begin({ provider: app.provider, returnTo: `${window.location.pathname}${window.location.search}` }))}
+              >
+                Use another account
+              </button>
+            </p>
+            {(app.kind === "notion" || app.kind === "airtable") && (
+              <Field
+                label={app.kind === "notion" ? "The page to make the database in" : "The base to make the table in"}
+                help={app.kind === "notion" ? "Only pages you shared with Formkit when you connected are listed." : undefined}
+              >
+                {app.places === null ? (
+                  <p className="fk-proprow-hint" style={{ margin: 0 }}>Looking…</p>
+                ) : app.places.length ? (
+                  <Select
+                    ariaLabel="Where"
+                    value={app.place}
+                    options={app.places.map((x) => ({ value: x.id, label: x.name }))}
+                    onChange={(place) => setApp({ ...app, place })}
+                  />
+                ) : (
+                  <p className="fk-proprow-hint" style={{ margin: 0 }}>Nothing is shared with Formkit yet. Use another account, and pick a page or base to share.</p>
+                )}
+              </Field>
+            )}
           </div>
         </Modal>
       )}

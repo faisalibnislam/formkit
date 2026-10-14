@@ -113,6 +113,7 @@ export const FEATURES = {
   "connect.webhooks": { plan: "pro", label: "Webhooks, to Zapier, Make or your own code", group: "Connections" },
   "connect.slack": { plan: "pro", label: "Slack, Discord and Microsoft Teams", group: "Connections" },
   "connect.sheets": { plan: "pro", label: "Google Sheets", group: "Connections" },
+  "connect.apps": { plan: "pro", label: "Notion, Airtable and HubSpot", group: "Connections" },
   payments: { plan: "pro", label: "Payments with your own Stripe", group: "Connections" },
   // Pro - AI on responses
   "ai.reply": { plan: "pro", label: "AI-written replies to every submission", group: "AI" },

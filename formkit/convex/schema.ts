@@ -1323,6 +1323,37 @@ export default defineSchema({
     picks: v.array(v.object({ option: v.string(), n: v.number() })),
   }).index("by_form_block", ["formId", "blockId"]),
 
+  /**
+   * An app account someone connected over OAuth (model/providers.ts), for
+   * their forms to send responses into. Tokens are sealed (model/sealed.ts).
+   */
+  integrationAccounts: defineTable({
+    ownerId: v.id("users"),
+    provider: v.union(v.literal("google"), v.literal("notion"), v.literal("airtable"), v.literal("hubspot")),
+    label: v.string(),
+    access: v.string(),
+    refresh: v.optional(v.string()),
+    expiresAt: v.optional(v.number()),
+    createdAt: v.number(),
+  }).index("by_owner", ["ownerId"]),
+
+  /** Between sending someone to an app's sign-in and their coming back. */
+  integrationStates: defineTable({
+    state: v.string(),
+    userId: v.id("users"),
+    provider: v.string(),
+    verifier: v.optional(v.string()),
+    returnTo: v.string(),
+    expiresAt: v.number(),
+  }).index("by_state", ["state"]),
+
+  /** Which row, page, record or contact a response became in an app, so a change updates it. */
+  integrationRefs: defineTable({
+    connectionId: v.id("connections"),
+    responseId: v.id("responses"),
+    ref: v.string(),
+  }).index("by_connection_response", ["connectionId", "responseId"]),
+
   /** One-time codes from the consent screen, swapped for tokens within minutes. */
   oauthCodes: defineTable({
     codeHash: v.string(),
@@ -1365,9 +1396,32 @@ export default defineSchema({
   connections: defineTable({
     formId: v.id("forms"),
     ownerId: v.id("users"),
-    kind: v.union(v.literal("webhook"), v.literal("slack"), v.literal("sheets"), v.literal("discord"), v.literal("teams")),
+    kind: v.union(
+      v.literal("webhook"),
+      v.literal("slack"),
+      v.literal("sheets"),
+      v.literal("discord"),
+      v.literal("teams"),
+      // Apps reached over OAuth (integrations.ts): a live Google Sheet, Notion, Airtable, HubSpot.
+      v.literal("gsheets"),
+      v.literal("notion"),
+      v.literal("airtable"),
+      v.literal("hubspot"),
+    ),
     label: v.optional(v.string()),
     url: v.optional(v.string()),
+    /** For an app: the connected account, and where in it responses go. */
+    accountId: v.optional(v.id("integrationAccounts")),
+    target: v.optional(
+      v.object({
+        id: v.string(),
+        sub: v.optional(v.string()),
+        name: v.string(),
+        url: v.optional(v.string()),
+        /** The questions, in the order their columns or fields were made. */
+        columns: v.optional(v.array(v.string())),
+      }),
+    ),
     /** Which events it is sent (model of `EVENTS`); every one when unset. */
     events: v.optional(v.array(v.string())),
     /** Made through the API (a Zapier or Make subscription), which may also remove it. */

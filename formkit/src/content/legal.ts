@@ -296,7 +296,7 @@ export const DPA: LegalSection[] = [
     id: "your-own-services",
     title: "Services you connect yourself",
     paras: [
-      "Webhooks, Slack, Google Sheets and Stripe payments send data where you tell them to. Those services are yours to choose, and your agreement with them, not this one, covers what they do with it.",
+      "Webhooks, Slack, Discord, Microsoft Teams, Google Sheets, Notion, Airtable, HubSpot and Stripe payments send data where you tell them to. Those services are yours to choose, and your agreement with them, not this one, covers what they do with it.",
     ],
   },
   {

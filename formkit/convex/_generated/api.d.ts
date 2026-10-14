@@ -46,6 +46,7 @@ import type * as http from "../http.js";
 import type * as importForm from "../importForm.js";
 import type * as inbox from "../inbox.js";
 import type * as insights from "../insights.js";
+import type * as integrations from "../integrations.js";
 import type * as logic from "../logic.js";
 import type * as model_access from "../model/access.js";
 import type * as model_aiForms from "../model/aiForms.js";
@@ -78,6 +79,7 @@ import type * as model_moreTemplates from "../model/moreTemplates.js";
 import type * as model_oauthProfile from "../model/oauthProfile.js";
 import type * as model_places from "../model/places.js";
 import type * as model_plans from "../model/plans.js";
+import type * as model_providers from "../model/providers.js";
 import type * as model_questionTypes from "../model/questionTypes.js";
 import type * as model_quiz from "../model/quiz.js";
 import type * as model_rateLimit from "../model/rateLimit.js";
@@ -164,6 +166,7 @@ declare const fullApi: ApiFromModules<{
   "importForm": typeof importForm,
   "inbox": typeof inbox,
   "insights": typeof insights,
+  "integrations": typeof integrations,
   "logic": typeof logic,
   "model/access": typeof model_access,
   "model/aiForms": typeof model_aiForms,
@@ -196,6 +199,7 @@ declare const fullApi: ApiFromModules<{
   "model/oauthProfile": typeof model_oauthProfile,
   "model/places": typeof model_places,
   "model/plans": typeof model_plans,
+  "model/providers": typeof model_providers,
   "model/questionTypes": typeof model_questionTypes,
   "model/quiz": typeof model_quiz,
   "model/rateLimit": typeof model_rateLimit,

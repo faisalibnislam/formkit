@@ -301,6 +301,8 @@ export async function purgeStep(ctx: MutationCtx, formId: Id<"forms">): Promise<
   for (const c of await ctx.db.query("connections").withIndex("by_form", (q) => q.eq("formId", formId)).take(50)) {
     const sent = await ctx.db.query("deliveries").withIndex("by_connection", (q) => q.eq("connectionId", c._id)).take(left);
     if (!(await gone(sent))) return false;
+    const refs = await ctx.db.query("integrationRefs").withIndex("by_connection_response", (q) => q.eq("connectionId", c._id)).take(left);
+    if (!(await gone(refs))) return false;
     await ctx.db.delete(c._id);
   }
   const more = await ctx.db.query("connections").withIndex("by_form", (q) => q.eq("formId", formId)).first();

@@ -75,6 +75,18 @@ its consent banner, and `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (with
 is sent while it is unset). Errors inside Convex functions are reported by
 Convex's own Sentry integration, set up in the Convex dashboard.
 
+**Apps a form sends responses into** (Pro: a live Google Sheet, Notion,
+Airtable, HubSpot) each appear once their OAuth app is set on the Convex
+deployment, and stay hidden until then. Register each app with the redirect
+URL `https://formkit.app/integrations/callback/<google|notion|airtable|hubspot>`,
+then set `GOOGLE_INTEGRATION_CLIENT_ID` / `GOOGLE_INTEGRATION_CLIENT_SECRET`
+(scope `drive.file` only), `NOTION_CLIENT_ID` / `NOTION_CLIENT_SECRET` (a public
+integration), `AIRTABLE_CLIENT_ID` / `AIRTABLE_CLIENT_SECRET` (scopes
+`data.records:write schema.bases:read schema.bases:write`) and
+`HUBSPOT_CLIENT_ID` / `HUBSPOT_CLIENT_SECRET` (scopes
+`crm.objects.contacts.read crm.objects.contacts.write`). Their tokens are
+sealed with `SECRETS_KEY`, so set that first.
+
 **Google and Microsoft sign-in** (Business single sign-on) are switched on by
 setting their OAuth apps on the Convex deployment: `AUTH_GOOGLE_ID` /
 `AUTH_GOOGLE_SECRET`, and `AUTH_MICROSOFT_ENTRA_ID_ID` /

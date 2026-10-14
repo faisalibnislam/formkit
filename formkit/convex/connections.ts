@@ -7,6 +7,8 @@ import { formFor } from "./model/forms";
 import { hasFeature, requireFeature, type Feature } from "./model/plans";
 import { moneyText } from "./model/money";
 import { csv } from "./model/sheet";
+import { APP_KINDS } from "./model/providers";
+import { forgetRefs, pushToApp } from "./integrations";
 
 /**
  * Connections (Pro): where a form's new responses go.
@@ -33,6 +35,10 @@ const FEATURE: Record<Doc<"connections">["kind"], Feature> = {
   discord: "connect.slack",
   teams: "connect.slack",
   sheets: "connect.sheets",
+  gsheets: "connect.sheets",
+  notion: "connect.apps",
+  airtable: "connect.apps",
+  hubspot: "connect.apps",
 };
 
 /** What a connection can be told about. Chat apps hear about new and paid responses by default. */
@@ -108,7 +114,8 @@ export const forForm = query({
         _id: c._id,
         kind: c.kind,
         label: c.label ?? null,
-        url: c.kind === "sheets" ? null : (c.url ?? null),
+        url: c.kind === "sheets" || APP_KINDS.has(c.kind) ? null : (c.url ?? null),
+        place: c.target ? { name: c.target.name, url: c.target.url ?? null } : null,
         events: c.kind === "sheets" ? [] : (c.events ?? (CHAT.has(c.kind) ? CHAT_DEFAULT : [...EVENTS])),
         feed: c.kind === "sheets" && c.token ? `${SITE_API}/sheets/${c.token}` : null,
         enabled: c.enabled,
@@ -200,6 +207,7 @@ export const remove = mutation({
       .withIndex("by_connection", (q) => q.eq("connectionId", connectionId))
       .collect();
     for (const d of log) await ctx.db.delete(d._id);
+    await forgetRefs(ctx, connectionId);
     await ctx.db.delete(connectionId);
     return null;
   },
@@ -297,6 +305,7 @@ export const test = action({
   handler: async (ctx, { connectionId }): Promise<{ ok: boolean; status: number; detail?: string }> => {
     const c: Doc<"connections"> | null = await ctx.runQuery(internal.connections.ownConnection, { connectionId });
     if (!c) throw new ConvexError("That connection no longer exists.");
+    if (APP_KINDS.has(c.kind)) throw new ConvexError("Send a real response to try it: it shows up there as it arrives.");
     const payload: Payload | null = await ctx.runQuery(internal.connections.samplePayload, { formId: c.formId });
     if (!payload) throw new ConvexError("That form no longer exists.");
     return await sendOne(ctx, c, payload, undefined, 1, true);
@@ -462,7 +471,9 @@ export const deliver = internalAction({
     if (!c || !c.enabled) return null;
     const job: { payload: Payload } | null = await ctx.runQuery(internal.connections.payloadFor, { responseId, event });
     if (!job) return null;
-    const result = await sendOne(ctx, c, job.payload, responseId, attempt, false, replay);
+    const result = APP_KINDS.has(c.kind)
+      ? await logged(ctx, c, job.payload, responseId, attempt, await pushToApp(ctx, c, job.payload, responseId), replay)
+      : await sendOne(ctx, c, job.payload, responseId, attempt, false, replay);
     if (replay) return null;
     if (!result.ok && attempt < 3) {
       await ctx.scheduler.runAfter(attempt === 1 ? 60_000 : 600_000, internal.connections.deliver, {
@@ -565,6 +576,28 @@ function bodyFor(c: Doc<"connections">, payload: Payload) {
   if (c.kind === "discord") return JSON.stringify(discordBody(payload));
   if (c.kind === "teams") return JSON.stringify(teamsBody(payload));
   return JSON.stringify(payload);
+}
+
+/** An app delivery's outcome, into the same log as every other. */
+async function logged(
+  ctx: { runMutation: import("./_generated/server").ActionCtx["runMutation"] },
+  c: Doc<"connections">,
+  payload: Payload,
+  responseId: Id<"responses">,
+  attempt: number,
+  result: { ok: boolean; status: number; detail?: string },
+  replay = false,
+) {
+  await ctx.runMutation(internal.connections.recordDelivery, {
+    connectionId: c._id,
+    responseId,
+    event: payload.event,
+    attempt,
+    ok: result.ok,
+    status: result.status,
+    detail: replay ? `Sent again${result.detail ? `: ${result.detail}` : ""}` : result.detail,
+  });
+  return result;
 }
 
 async function sendOne(
