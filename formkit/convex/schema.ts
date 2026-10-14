@@ -685,6 +685,8 @@ export default defineSchema({
     resumeEmailedAt: v.optional(v.number()),
     /** When the one reminder to finish went out (forms.remind). */
     remindedAt: v.optional(v.number()),
+    /** Who on the team is looking after it. */
+    assigneeId: v.optional(v.id("users")),
     /** Business: the AI-written reply to this response, and where it went. */
     aiReply: v.optional(
       v.object({
@@ -1273,6 +1275,22 @@ export default defineSchema({
     /** When a metadata document was last read. */
     fetchedAt: v.optional(v.number()),
   }).index("by_client", ["clientId"]),
+
+  /** A person's own named filters for the responses inbox. */
+  savedViews: defineTable({
+    userId: v.id("users"),
+    name: v.string(),
+    filters: v.object({
+      kind: v.optional(v.string()),
+      status: v.optional(v.string()),
+      tag: v.optional(v.string()),
+      when: v.optional(v.string()),
+      form: v.optional(v.string()),
+      owner: v.optional(v.string()),
+      assigned: v.optional(v.string()),
+    }),
+    createdAt: v.number(),
+  }).index("by_user", ["userId"]),
 
   /**
    * Limited places (Pro): how many complete responses picked each option of

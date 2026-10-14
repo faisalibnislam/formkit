@@ -1,12 +1,13 @@
 import { moneyText } from "./model/money";
 import { isAudio } from "./model/voice";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { internalMutation, mutation, query, type QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { requireUser } from "./model/identity";
 import { formFor, ownersOf } from "./model/forms";
-import { currentSpace, roleIn, spaceForms } from "./model/spaces";
+import { currentSpace, membersOf, roleIn, spaceForms, spaceOfForm } from "./model/spaces";
+import { nameOf, notify } from "./model/inbox";
 import { accessOf } from "./model/access";
 import { searchTextOf } from "./model/responseSearch";
 import { tellDeleted } from "./connections";
@@ -83,6 +84,12 @@ async function shape(ctx: QueryCtx, r: Doc<"responses">, formTitle: string) {
     durationMs: r.durationMs ?? null,
     status: r.status,
     note: r.note ?? null,
+    assignee: r.assigneeId
+      ? await (async () => {
+          const u = await ctx.db.get(r.assigneeId!);
+          return { id: r.assigneeId!, name: u?.name?.trim() || u?.email || "Someone" };
+        })()
+      : null,
     tags: r.tags ?? [],
     versionNumber: r.versionNumber ?? null,
     resumeToken: r.partial ? (r.resumeToken ?? null) : null,
@@ -205,6 +212,8 @@ export const rows = query({
     /** Only responses whose AI reply is waiting for the owner. */
     held: v.optional(v.boolean()),
     tag: v.optional(v.string()),
+    /** Whose they are: the person asking's, nobody's, or someone's. */
+    assigned: v.optional(v.union(v.literal("me"), v.literal("nobody"), v.id("users"))),
     since: v.optional(v.number()),
     until: v.optional(v.number()),
   },
@@ -212,6 +221,7 @@ export const rows = query({
     const { ownerId, forms } = await inboxForms(ctx, args.formId, args.forms);
     if (!forms.length) return { rows: [], more: false };
     const titles = new Map(forms.map((f) => [f._id as string, f.title]));
+    const whose = args.assigned === "me" ? (await requireUser(ctx))._id : args.assigned;
     const limit = Math.max(1, Math.min(MAX_ROWS, Math.floor(args.limit)));
     const preview = args.kind === "preview";
     const tag = args.tag?.trim().toLowerCase();
@@ -222,6 +232,7 @@ export const rows = query({
       (!args.status || r.status === args.status) &&
       (!args.held || !!r.aiReply?.held) &&
       (!tag || (r.tags ?? []).some((t) => t.toLowerCase() === tag)) &&
+      (!whose || (whose === "nobody" ? !r.assigneeId : r.assigneeId === whose)) &&
       (args.since === undefined || r.submittedAt >= args.since) &&
       (args.until === undefined || r.submittedAt < args.until);
     // A window of time narrows the index itself, not just the rows read.
@@ -516,6 +527,121 @@ export const setStatus = mutation({
       await formFor(ctx, r.formId, seen ? "read" : "write");
       await ctx.db.patch(id, { status });
     }
+    return null;
+  },
+});
+
+/** Everyone who can be given a response on this form: its owner, guests and the company's members. */
+async function assignable(ctx: QueryCtx, form: Doc<"forms">) {
+  const ids = new Set<string>([form.ownerId]);
+  for (const c of await ctx.db
+    .query("collaborators")
+    .withIndex("by_form", (q) => q.eq("formId", form._id))
+    .collect()) {
+    if (c.status === "active" && c.userId) ids.add(c.userId);
+  }
+  for (const m of await membersOf(ctx, spaceOfForm(form))) if (m.status === "active" && m.userId) ids.add(m.userId);
+  return ids;
+}
+
+/** The people a response on this form can be assigned to, for the drawer. */
+export const assignees = query({
+  args: { formId: v.id("forms") },
+  handler: async (ctx, { formId }) => {
+    const form = await formFor(ctx, formId, "read");
+    const me = await requireUser(ctx);
+    const out = [];
+    for (const id of await assignable(ctx, form)) {
+      const u = await ctx.db.get(id as Id<"users">);
+      if (u) out.push({ id: u._id, name: id === me._id ? "Me" : u.name?.trim() || u.email || "Someone" });
+    }
+    return out.sort((a, b) => (a.name === "Me" ? -1 : b.name === "Me" ? 1 : a.name.localeCompare(b.name)));
+  },
+});
+
+/** Gives a response to someone on the team, or to nobody; they are told. */
+export const assign = mutation({
+  args: { responseId: v.id("responses"), userId: v.union(v.id("users"), v.null()) },
+  returns: v.null(),
+  handler: async (ctx, { responseId, userId }) => {
+    const r = await ctx.db.get(responseId);
+    if (!r) throw new ConvexError("That response no longer exists.");
+    const form = await formFor(ctx, r.formId, "write");
+    const me = await requireUser(ctx);
+    if (userId && !(await assignable(ctx, form)).has(userId)) throw new ConvexError("They cannot see this form, so it cannot be theirs.");
+    await ctx.db.patch(responseId, { assigneeId: userId ?? undefined });
+    if (userId && userId !== me._id && userId !== r.assigneeId) {
+      await notify(ctx, userId, {
+        kind: "assigned",
+        title: `${nameOf(me)} gave you a response to ${form.title}`,
+        body: r.respondentName ?? r.respondentEmail ?? undefined,
+        href: `/app/responses?open=${responseId}`,
+        action: "Open the response",
+        icon: "user-check",
+        formId: form._id,
+        actorId: me._id,
+      });
+    }
+    return null;
+  },
+});
+
+/* Saved views: a person's own named filters for the inbox. */
+
+export const views = query({
+  args: {},
+  handler: async (ctx) => {
+    const me = await requireUser(ctx);
+    return (
+      await ctx.db
+        .query("savedViews")
+        .withIndex("by_user", (q) => q.eq("userId", me._id))
+        .take(50)
+    )
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((v) => ({ id: v._id, name: v.name, filters: v.filters }));
+  },
+});
+
+export const saveView = mutation({
+  args: {
+    name: v.string(),
+    filters: v.object({
+      kind: v.optional(v.string()),
+      status: v.optional(v.string()),
+      tag: v.optional(v.string()),
+      when: v.optional(v.string()),
+      form: v.optional(v.string()),
+      owner: v.optional(v.string()),
+      assigned: v.optional(v.string()),
+    }),
+  },
+  returns: v.id("savedViews"),
+  handler: async (ctx, { name, filters }) => {
+    const me = await requireUser(ctx);
+    const clean = name.trim().slice(0, 40);
+    if (!clean) throw new ConvexError("Give the view a name.");
+    const mine = await ctx.db
+      .query("savedViews")
+      .withIndex("by_user", (q) => q.eq("userId", me._id))
+      .take(51);
+    const same = mine.find((x) => x.name.toLowerCase() === clean.toLowerCase());
+    if (same) {
+      await ctx.db.patch(same._id, { filters });
+      return same._id;
+    }
+    if (mine.length >= 50) throw new ConvexError("Fifty views is the most. Delete one first.");
+    return await ctx.db.insert("savedViews", { userId: me._id, name: clean, filters, createdAt: Date.now() });
+  },
+});
+
+export const removeView = mutation({
+  args: { viewId: v.id("savedViews") },
+  returns: v.null(),
+  handler: async (ctx, { viewId }) => {
+    const me = await requireUser(ctx);
+    const view = await ctx.db.get(viewId);
+    if (view?.userId === me._id) await ctx.db.delete(viewId);
     return null;
   },
 });

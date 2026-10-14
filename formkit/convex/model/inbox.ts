@@ -19,6 +19,7 @@ export type InboxKind =
   | "reply"
   | "mention"
   | "resolved"
+  | "assigned"
   | "response"
   | "closed"
   | "published"
@@ -43,6 +44,8 @@ const GROUP: Record<InboxKind, Group> = {
   reply: "comments",
   mention: "comments",
   resolved: "comments",
+  // Being given a response is a mention by another name.
+  assigned: "comments",
   response: "responses",
   closed: "forms",
   published: "forms",

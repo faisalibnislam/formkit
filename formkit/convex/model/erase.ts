@@ -67,6 +67,9 @@ export async function eraseUser(ctx: MutationCtx, user: Doc<"users">) {
       .collect();
     for (const row of rows) await ctx.db.delete(row._id);
   }
+  for (const row of await ctx.db.query("savedViews").withIndex("by_user", (q) => q.eq("userId", userId)).collect()) {
+    await ctx.db.delete(row._id);
+  }
   // Apps the person connected stop working with the account.
   for (const row of await ctx.db.query("oauthTokens").withIndex("by_user", (q) => q.eq("userId", userId)).collect()) {
     await ctx.db.delete(row._id);

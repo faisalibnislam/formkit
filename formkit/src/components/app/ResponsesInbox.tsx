@@ -202,6 +202,13 @@ function Responses({
   const [status, setStatusFilter] = useState<"any" | "new" | "read" | "reviewed" | "held">("any");
   const [tag, setTag] = useState("any");
   const [when, setWhen] = useState<"any" | "today" | "7" | "30" | "90">("any");
+  const [assigned, setAssigned] = useState<"any" | "me" | "nobody">("any");
+  // Saved views: a person's own named filter sets.
+  const views = useQuery(api.responses.views, {});
+  const saveView = useMutation(api.responses.saveView);
+  const removeView = useMutation(api.responses.removeView);
+  const [viewId, setViewId] = useState<string>("none");
+  const [naming, setNaming] = useState<string | null>(null);
   const tagsInUse = useQuery(api.responses.tagsInUse, {});
   const [confirm, setConfirm] = useState<string[] | null>(null);
   const search = useDebounced(term.trim(), SEARCH_DELAY_MS);
@@ -249,7 +256,25 @@ function Responses({
     ...(status === "held" ? { held: true } : status !== "any" ? { status } : {}),
     ...(tag !== "any" ? { tag } : {}),
     ...(since !== undefined ? { since } : {}),
+    ...(assigned !== "any" ? { assigned } : {}),
   };
+  const currentFilters = { kind: chosenKind, status, tag, when, form: pickedForm, owner: pickedOwner, assigned };
+  function applyView(id: string) {
+    setViewId(id);
+    const v = views?.find((x) => x.id === id);
+    if (!v) return;
+    const f = v.filters;
+    setKind((f.kind as Kind) ?? "all");
+    setStatusFilter((f.status as typeof status) ?? "any");
+    setTag(f.tag ?? "any");
+    setWhen((f.when as typeof when) ?? "any");
+    if (!formId) {
+      setPickedForm(f.form ?? "all");
+      setPickedOwner(f.owner ?? "all");
+    }
+    setAssigned((f.assigned as typeof assigned) ?? "any");
+    refilter();
+  }
   // A new filter keeps the last rows on screen until its own arrive.
   const data = useLastDefined(useSeededQuery(api.responses.rows, listArgs));
   const loaded = useFirstLoad(base && data);
@@ -443,6 +468,20 @@ function Responses({
         )}
         <Select
           size="sm"
+          value={assigned}
+          onChange={(next) => {
+            setAssigned(next as typeof assigned);
+            refilter();
+          }}
+          ariaLabel="Whose"
+          options={[
+            { value: "any", label: "Anyone's" },
+            { value: "me", label: "Assigned to me" },
+            { value: "nobody", label: "Not assigned" },
+          ]}
+        />
+        <Select
+          size="sm"
           value={when}
           onChange={(next) => {
             setWhen(next as typeof when);
@@ -455,6 +494,24 @@ function Responses({
             { value: "7", label: "Last 7 days" },
             { value: "30", label: "Last 30 days" },
             { value: "90", label: "Last 90 days" },
+          ]}
+        />
+        <Select
+          size="sm"
+          value={viewId}
+          onChange={(next) => {
+            if (next === "save") setNaming(views?.find((v) => v.id === viewId)?.name ?? "");
+            else if (next === "delete") {
+              void removeView({ viewId: viewId as Id<"savedViews"> });
+              setViewId("none");
+            } else applyView(next);
+          }}
+          ariaLabel="Saved views"
+          options={[
+            { value: "none", label: "Saved views" },
+            ...(views ?? []).map((v) => ({ value: v.id, label: v.name })),
+            { value: "save", label: "Save these filters…" },
+            ...(viewId !== "none" ? [{ value: "delete", label: "Delete this view" }] : []),
           ]}
         />
         <span className="fk-section-spacer" />
@@ -697,6 +754,35 @@ function Responses({
         />
       )}
 
+      {naming !== null && (
+        <Modal
+          title="Save these filters"
+          description="Give the view a name. Saving with a name you already use updates that view."
+          onClose={() => setNaming(null)}
+          width={440}
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setNaming(null)}>
+                Cancel
+              </Button>
+              <Button
+                disabled={!naming.trim()}
+                onClick={async () => {
+                  const id = await saveView({ name: naming, filters: currentFilters });
+                  setViewId(id);
+                  setNaming(null);
+                  toast("View saved", { detail: naming.trim() });
+                }}
+              >
+                Save view
+              </Button>
+            </>
+          }
+        >
+          <Input autoFocus value={naming} placeholder="Unread leads" maxLength={40} onChange={(e) => setNaming(e.target.value)} aria-label="View name" />
+        </Modal>
+      )}
+
       {confirm && (
         <Modal
           title={
@@ -765,6 +851,8 @@ function ResponseDrawer({
   const setStatus = useMutation(api.responses.setStatus);
   const addNote = useMutation(api.responses.addNote);
   const [note, setNote] = useState(response.note ?? "");
+  const assign = useMutation(api.responses.assign);
+  const people = useQuery(api.responses.assignees, response.preview ? "skip" : { formId: response.formId });
 
   // Answers grouped by the page they sit on, in the form's own order. A
   // question since removed from the form still shows, at the end.
@@ -1050,6 +1138,31 @@ function ResponseDrawer({
                   {f.audio ? "Download the recording" : `Download ${f.name}`}
                 </a>
               ),
+          )}
+        </div>
+      )}
+
+      {!response.preview && people && (manage || response.assignee) && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 20 }}>
+          <span style={{ fontSize: 14, color: "var(--color-text-secondary)" }}>Assigned to</span>
+          {manage ? (
+            <Select
+              size="sm"
+              ariaLabel="Assigned to"
+              value={response.assignee?.id ?? ""}
+              options={[{ value: "", label: "Nobody" }, ...people.map((p) => ({ value: p.id, label: p.name }))]}
+              onChange={async (next) => {
+                try {
+                  await assign({ responseId: response._id, userId: next ? (next as Id<"users">) : null });
+                  const who = people.find((p) => p.id === next)?.name;
+                  toast(next ? `Assigned to ${who === "Me" ? "you" : who}` : "Unassigned");
+                } catch (e) {
+                  toast(e instanceof Error ? e.message : "That did not change");
+                }
+              }}
+            />
+          ) : (
+            <span style={{ fontSize: 14 }}>{response.assignee?.name}</span>
           )}
         </div>
       )}
