@@ -165,6 +165,10 @@ export const update = mutation({
       }
       patch = { ...patch, followUp: { on: true, instruction: patch.followUp.instruction?.trim().slice(0, 300) || undefined } };
     }
+    if (patch.transcribe) {
+      await requireFeature(ctx, form, "ai.transcribe");
+      if ((patch.type ?? block.type) !== "voice") throw new ConvexError("Only a voice recording can be written out.");
+    }
     if (patch.extract) {
       await requireFeature(ctx, form, "logic.ai");
       if ((patch.type ?? block.type) !== "hidden") throw new ConvexError("Only a hidden field can be filled in by AI.");

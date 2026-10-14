@@ -30,7 +30,8 @@ export type AiFeature =
   | "reply.try"
   | "logic.check"
   | "logic.write"
-  | "insights";
+  | "insights"
+  | "transcribe";
 
 /** Who a call is for and why, so its cost lands on the right account. */
 export type Meter = {

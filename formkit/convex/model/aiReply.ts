@@ -5,6 +5,7 @@ import { CREDIT_PACKS, hasFeature } from "./plans";
 import { chargeResponse } from "./aiMeter";
 import { notify } from "./inbox";
 import { aiAllowed } from "./identity";
+import { servedForm } from "./served";
 
 /**
  * AI replies. Each response a reply is written for counts once against the
@@ -19,14 +20,19 @@ export const month = () => new Date().toISOString().slice(0, 7);
  * Called as a complete response is stored: queues its reply, or records why
  * there won't be one.
  */
-export async function queueReply(ctx: MutationCtx, form: Doc<"forms">, responseId: Id<"responses">) {
-  if (!form.aiReply?.enabled || !form.aiReply.prompt.trim()) return;
+export async function queueReply(
+  ctx: MutationCtx,
+  form: Doc<"forms">,
+  responseId: Id<"responses">,
+  { hold = false }: { hold?: boolean } = {},
+): Promise<boolean> {
+  if (!form.aiReply?.enabled || !form.aiReply.prompt.trim()) return false;
   const owner = await ctx.db.get(form.ownerId);
-  if (!owner || !(await hasFeature(ctx, form, "ai.reply"))) return;
+  if (!owner || !(await hasFeature(ctx, form, "ai.reply"))) return false;
   // Staff paused AI for everyone, or turned it off for this account.
   if (!(await aiAllowed(ctx, owner._id))) {
     await ctx.db.patch(responseId, { aiReply: { status: "skipped", reason: "off", at: Date.now() } });
-    return;
+    return false;
   }
 
   const charged = await chargeResponse(ctx, form, responseId);
@@ -45,10 +51,12 @@ export async function queueReply(ctx: MutationCtx, form: Doc<"forms">, responseI
         formId: form._id,
       });
     }
-    return;
+    return false;
   }
   await ctx.db.patch(responseId, { aiReply: { status: "pending", at: Date.now() } });
-  await ctx.scheduler.runAfter(0, internal.aiReply.generate, { responseId });
+  // Held while its voice answers are written out; the transcription starts it.
+  if (!hold) await ctx.scheduler.runAfter(0, internal.aiReply.generate, { responseId });
+  return true;
 }
 
 /** Whether the reply goes by email, so the usual confirmation can wait for it. */
@@ -61,10 +69,30 @@ export function emailsReply(form: Pick<Doc<"forms">, "aiReply">) {
  * queues just the reading. A form with AI reply on gets it from the reply.
  * Counted once against the company's AI, like every per-response AI feature.
  */
-export async function queueClassify(ctx: MutationCtx, form: Doc<"forms">, responseId: Id<"responses">) {
-  if (!form.aiClassify || form.aiReply?.enabled) return;
-  if (!(await hasFeature(ctx, form, "ai.insights"))) return;
-  if (!(await aiAllowed(ctx, form.ownerId))) return;
-  if (!(await chargeResponse(ctx, form, responseId))) return;
-  await ctx.scheduler.runAfter(0, internal.insights.classify, { responseId });
+export async function queueClassify(
+  ctx: MutationCtx,
+  form: Doc<"forms">,
+  responseId: Id<"responses">,
+  { hold = false }: { hold?: boolean } = {},
+): Promise<boolean> {
+  if (!form.aiClassify || form.aiReply?.enabled) return false;
+  if (!(await hasFeature(ctx, form, "ai.insights"))) return false;
+  if (!(await aiAllowed(ctx, form.ownerId))) return false;
+  if (!(await chargeResponse(ctx, form, responseId))) return false;
+  if (!hold) await ctx.scheduler.runAfter(0, internal.insights.classify, { responseId });
+  return true;
+}
+
+/**
+ * Pro: the voice answers a complete response has on questions that ask to be
+ * written out. Counted once against the company's AI, like the rest.
+ */
+export async function voiceToWrite(ctx: MutationCtx, form: Doc<"forms">, response: Doc<"responses">) {
+  const { blocks } = await servedForm(ctx, form);
+  const asked = new Set<string>(blocks.filter((b) => b.type === "voice" && b.transcribe).map((b) => b._id));
+  const waiting = response.answers.filter((a) => a.fileId && asked.has(a.blockId) && !a.transcript);
+  if (!waiting.length) return false;
+  if (!(await hasFeature(ctx, form, "ai.transcribe"))) return false;
+  if (!(await aiAllowed(ctx, form.ownerId))) return false;
+  return !!(await chargeResponse(ctx, form, response._id));
 }

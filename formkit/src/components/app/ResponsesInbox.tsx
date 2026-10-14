@@ -773,7 +773,10 @@ function ResponseDrawer({
       a ? (a.fileName ?? (a.value || "-")) : "-";
     // Voice recordings play in place, under their question.
     const sound = new Map(response.files.filter((f) => f.audio && f.url).map((f) => [f.blockId as string, f.url!]));
-    const out: { title: string; rows: { q: string; a: string; empty: boolean; file: boolean; audio?: string }[] }[] = [];
+    const out: {
+      title: string;
+      rows: { q: string; a: string; empty: boolean; file: boolean; audio?: string; transcript?: string | null }[];
+    }[] = [];
     let g: (typeof out)[number] = { title: "Answers", rows: [] };
     const used = new Set<string>();
     for (const b of form?.blocks ?? []) {
@@ -792,6 +795,7 @@ function ResponseDrawer({
         empty: !a || (!a.value && !a.fileName),
         file: !!a?.fileName,
         audio: sound.get(b._id),
+        transcript: a?.transcript,
       });
     }
     if (g.rows.length) out.push(g);
@@ -1002,7 +1006,15 @@ function ResponseDrawer({
                   {r.empty ? (
                     <span style={{ color: "var(--color-text-tertiary)" }}>Not answered</span>
                   ) : r.audio ? (
-                    <audio controls preload="none" src={r.audio} style={{ width: "100%", maxWidth: 360, height: 36 }} aria-label={`Recording for ${r.q}`} />
+                    <>
+                      <audio controls preload="none" src={r.audio} style={{ width: "100%", maxWidth: 360, height: 36 }} aria-label={`Recording for ${r.q}`} />
+                      {r.transcript && (
+                        <div style={{ marginTop: 8, whiteSpace: "pre-wrap" }}>
+                          <span style={{ display: "block", fontSize: 12, color: "var(--color-text-tertiary)", marginBottom: 2 }}>Written out by AI</span>
+                          {r.transcript}
+                        </div>
+                      )}
+                    </>
                   ) : r.file ? (
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
                       <Paperclip size={15} strokeWidth={1.8} aria-hidden />

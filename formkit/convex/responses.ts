@@ -68,6 +68,7 @@ async function shape(ctx: QueryCtx, r: Doc<"responses">, formTitle: string) {
       question: a.question,
       value: answerText(a),
       fileName: a.fileName ?? null,
+      transcript: a.transcript ?? null,
     })),
     files,
     respondentName: r.respondentName ?? null,
@@ -680,7 +681,7 @@ export const exportPage = query({
         const text = a.values
           ? a.values.join("; ")
           : a.fileId
-            ? ((await ctx.storage.getUrl(a.fileId)) ?? a.fileName ?? "")
+            ? ((await ctx.storage.getUrl(a.fileId)) ?? a.fileName ?? "") + (a.transcript ? `\n${a.transcript}` : "")
             : (withFollowUp(a.fileName ?? a.value ?? "", a.followUp) ?? "");
         answers.push({ q: a.question, text });
       }

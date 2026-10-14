@@ -74,6 +74,8 @@ export const blockExtras = {
    * when the answer is vague; `instruction` says what to dig into.
    */
   followUp: v.optional(v.object({ on: v.boolean(), instruction: v.optional(v.string()) })),
+  /** Pro, voice questions: the AI writes out each recording once it is sent. */
+  transcribe: v.optional(v.boolean()),
   /** Content blocks: an uploaded image and its description, or a video link. */
   imageId: v.optional(v.id("_storage")),
   alt: v.optional(v.string()),
@@ -594,6 +596,8 @@ export default defineSchema({
         fileName: v.optional(v.string()),
         /** The AI's follow-up question to this answer, and what they said to it. */
         followUp: v.optional(v.object({ question: v.string(), answer: v.string() })),
+        /** A voice recording, written out by the AI (Pro, when the question asks for it). */
+        transcript: v.optional(v.string()),
       }),
     ),
     /**

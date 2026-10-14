@@ -109,6 +109,7 @@ function responseRow(r: Doc<"responses">, byId: Map<string, Doc<"blocks">>, link
       question: a.question,
       value: a.values?.length ? a.values : (a.fileName ?? a.value ?? null),
       ...(a.fileId ? { fileUrl: links.get(a.fileId) ?? null } : {}),
+      ...(a.transcript ? { transcript: a.transcript } : {}),
     })),
     calculations: r.calc ?? {},
     payment: r.payment ? { status: r.payment.status, amount: r.payment.amount, currency: r.payment.currency } : null,

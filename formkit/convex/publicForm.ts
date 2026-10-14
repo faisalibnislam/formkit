@@ -10,7 +10,7 @@ import { servedForm } from "./model/served";
 import type { Rule } from "./model/logicEval";
 import { internal } from "./_generated/api";
 import { closedReason, notifyResponse, tellFormTeam } from "./model/inbox";
-import { queueClassify, queueReply } from "./model/aiReply";
+import { queueClassify, queueReply, voiceToWrite } from "./model/aiReply";
 import { chargeResponse, usesAiLogic } from "./model/aiMeter";
 import { markAll, marked } from "./model/quiz";
 import { Doc, Id } from "./_generated/dataModel";
@@ -681,10 +681,14 @@ async function store(
     // AI logic read this response while it was filled in: it counts once
     // against the company's AI, whether or not a reply is written too.
     if (await usesAiLogic(ctx, form)) await chargeResponse(ctx, form, responseId);
+    // Pro: voice answers are written out first, so the AI reply and reading
+    // that follow can use what was said. They wait for it.
+    const hold = !!saved && (await voiceToWrite(ctx, form, saved));
     // The AI reply is queued first, so the confirmation knows to wait for it.
-    if (!existing?.aiReply) await queueReply(ctx, form, responseId);
+    const reply = !existing?.aiReply && (await queueReply(ctx, form, responseId, { hold }));
     // Pro: reading every response without a reply (sentiment, topics, urgency).
-    if (!existing?.insight) await queueClassify(ctx, form, responseId);
+    const classify = !existing?.insight && (await queueClassify(ctx, form, responseId, { hold }));
+    if (hold) await ctx.scheduler.runAfter(0, internal.transcribe.run, { responseId, reply, classify });
     // Instant quiz results go out by email as soon as the mark is in.
     if (quizOn?.results === "instant" && quizOn.emailResults && "quiz" in full && !full.quiz.pending) {
       await ctx.scheduler.runAfter(0, internal.quiz.emailResult, { responseId });

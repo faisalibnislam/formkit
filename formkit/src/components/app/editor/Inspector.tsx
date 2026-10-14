@@ -389,6 +389,7 @@ export function FieldSettings({
           <PropertyRow label="Maximum size" hint="Set by your plan. A five-minute recording is around 3 MB">
             <span className="fk-static-pill">{plan?.limits.uploadMb ?? 10} MB</span>
           </PropertyRow>
+          <TranscribeSetting block={block} patch={patch} />
         </>
       )}
 
@@ -1000,6 +1001,38 @@ export function ContentSettings({ block, imageUrl }: { block: Doc<"blocks">; ima
         )}
       </div>
     </section>
+  );
+}
+
+/**
+ * Pro: each recording written out by the AI once the response is sent, so it
+ * can be searched, exported and read without pressing play.
+ */
+function TranscribeSetting({
+  block,
+  patch,
+}: {
+  block: Doc<"blocks">;
+  patch: (p: Partial<Doc<"blocks">>) => void;
+}) {
+  const gate = useGate("ai.transcribe");
+  return (
+    <div className="fk-proprow">
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>
+          Write out recordings with AI
+          {gate.locked && <ProChip plan="pro" onClick={() => openUpgrade({ feature: "ai.transcribe" })} />}
+        </div>
+        <div className="fk-proprow-hint">
+          Each recording is written out after it is sent. You can search it, export it, and AI replies read it.
+        </div>
+      </div>
+      <Switch
+        checked={!!block.transcribe}
+        label="Write out recordings with AI"
+        onChange={gate.guard((next: boolean) => patch({ transcribe: next }))}
+      />
+    </div>
   );
 }
 

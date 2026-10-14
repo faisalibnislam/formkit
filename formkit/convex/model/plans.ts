@@ -116,6 +116,7 @@ export const FEATURES = {
   // Pro - AI on responses
   "ai.reply": { plan: "pro", label: "AI-written replies to every submission", group: "AI" },
   "ai.insights": { plan: "pro", label: "AI insights on your submissions", group: "AI" },
+  "ai.transcribe": { plan: "pro", label: "Voice answers written out, searchable and in exports", group: "AI" },
   "logic.ai": { plan: "pro", label: "AI decides: logic that reads answers, and facts pulled from them", group: "AI" },
   // Pro - quizzes
   quiz: { plan: "pro", label: "Quizzes and exams: marking, a timer and results", group: "Smarter forms" },
