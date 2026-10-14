@@ -77,6 +77,45 @@ export function LiveForm({
   const resetCaptcha = useRef<() => void>(() => {});
   const checking = !!open?.rules.spam && !!TURNSTILE_SITE_KEY;
 
+  // Embedded on another site: tell the page how tall the form is, so its
+  // frame can fit it (embed.js does), and when it has been sent.
+  useEffect(() => {
+    if (!open || window.parent === window) return;
+    // The page fills its frame (min-height 100vh), so measure what is in it:
+    // the form's content and the padding below it.
+    const post = () => {
+      const live = document.querySelector<HTMLElement>(".fk-live");
+      const inner = document.querySelector<HTMLElement>(".fk-live-inner");
+      const height = inner && live
+        ? inner.getBoundingClientRect().bottom + window.scrollY + parseFloat(getComputedStyle(live).paddingBottom || "0")
+        : document.documentElement.scrollHeight;
+      window.parent.postMessage({ type: "formkit:resize", height: Math.ceil(height) }, "*");
+    };
+    // Pages swap their content, so any change in the form is a cue to
+    // measure again (debounced; a timer, since animation frames pause in a
+    // frame the browser is not showing), and to watch the content now there.
+    let queued = 0;
+    const watch = new ResizeObserver(() => schedule());
+    const schedule = () => {
+      if (queued) return;
+      queued = window.setTimeout(() => {
+        queued = 0;
+        const inner = document.querySelector(".fk-live-inner");
+        if (inner) watch.observe(inner);
+        post();
+      }, 60);
+    };
+    const changes = new MutationObserver(schedule);
+    changes.observe(document.body, { childList: true, subtree: true });
+    watch.observe(document.body);
+    schedule();
+    return () => {
+      watch.disconnect();
+      changes.disconnect();
+      window.clearTimeout(queued);
+    };
+  }, [open]);
+
   const onSubmit = useCallback(
     async (args: SubmitArgs) => {
       let pass: Id<"humanPasses"> | undefined;
@@ -84,7 +123,7 @@ export function LiveForm({
         pass = (await verifyHuman({ formId: open!.formId, token: captcha.current }).catch(() => null)) ?? undefined;
         resetCaptcha.current();
       }
-      return submit({
+      const sent = await submit({
         formId: open!.formId,
         ...args,
         ...(pass ? { pass } : {}),
@@ -93,6 +132,10 @@ export function LiveForm({
         deviceId: deviceId(),
         source: sourceLabel(),
       });
+      if (sent && !args.partial && window.parent !== window) {
+        window.parent.postMessage({ type: "formkit:submit", responseId: sent.responseId, formId: open!.formId }, "*");
+      }
+      return sent;
     },
     [open, password, resume?.token, submit, verifyHuman, checking],
   );

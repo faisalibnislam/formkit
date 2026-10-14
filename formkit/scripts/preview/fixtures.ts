@@ -1074,6 +1074,7 @@ export const QUERIES: Record<string, unknown> = {
       suggestions: ["Add a budget question with ranges so replies can be more specific.", "Put two short case studies in the reply background for booking projects."],
     },
   },
+  "mutation:publicForm:submit": () => ({ responseId: "r-preview", resumeToken: "t-preview", pay: false }),
   "mutation:publicForm:startQuiz": () => ({ attemptId: "qa1", startedAt: Date.now(), endsAt: Date.now() + 20 * 60_000 }),
   "quiz:summary": {
     count: 64,

@@ -64,10 +64,14 @@ export function ShareDialog({ formId, onClose }: { formId: Id<"forms">; onClose:
   }, [qrUrl]);
 
   const script = "scr" + "ipt";
+  // The script comes from the form's own address (formkit.app or the
+  // owner's domain), which is what embed.js trusts.
+  const from = url ? new URL(url).origin : origin;
+  const attr = (v: string) => v.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
   const embed = {
-    inline: `<iframe src="${url}" title="${form?.title ?? "Form"}" width="100%" height="720" style="border:0" loading="lazy"></iframe>`,
-    popup: `<${script} src="${origin}/embed.js" data-form="${url}" data-mode="popup" data-label="Open the form" async></${script}>`,
-    fullscreen: `<${script} src="${origin}/embed.js" data-form="${url}" data-mode="fullscreen" async></${script}>`,
+    inline: `<${script} src="${from}/embed.js" data-form="${attr(url)}" data-mode="inline" data-title="${attr(form?.title ?? "Form")}" async></${script}>`,
+    popup: `<${script} src="${from}/embed.js" data-form="${attr(url)}" data-mode="popup" data-label="Open the form" async></${script}>`,
+    fullscreen: `<${script} src="${from}/embed.js" data-form="${attr(url)}" data-mode="fullscreen" async></${script}>`,
   }[kind];
 
   async function copy(what: string, value: string, message: string) {
@@ -230,7 +234,7 @@ export function ShareDialog({ formId, onClose }: { formId: Id<"forms">; onClose:
           />
           <p className="fk-proprow-hint" style={{ margin: 0, fontSize: 13.5 }}>
             {kind === "inline"
-              ? "The form sits in the page where you paste this, 720 pixels tall. Change the height to suit."
+              ? "The form sits in the page where you paste this and grows to fit each page of questions. Listen for the formkit:submit event on window to know when it is sent."
               : kind === "popup"
                 ? "A button that opens the form over your page. Change the label to whatever you like."
                 : "The form fills the window as soon as the page loads, with a close button."}
