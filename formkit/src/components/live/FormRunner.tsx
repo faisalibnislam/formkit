@@ -396,6 +396,14 @@ export function FormRunner({
       const data = (e as { data?: unknown }).data;
       if (data && typeof data === "object" && (data as { code?: string }).code === "prove") {
         setProve(true);
+      } else if (data && typeof data === "object" && (data as { code?: string }).code === "invalid") {
+        // The server found an answer the form does not allow: point at it.
+        const bad = data as { message?: string; blockId?: string | null };
+        setFailed(bad.message || "One of the answers needs another look.");
+        if (bad.blockId) {
+          setProblem(bad.blockId);
+          document.getElementById(`q-${bad.blockId}`)?.scrollIntoView({ block: "center" });
+        }
       } else {
         const msg = typeof data === "string" ? data : e instanceof Error ? e.message : "";
         setFailed(msg || "That did not send. Try again in a moment.");

@@ -860,6 +860,18 @@ export default defineSchema({
    * Platform state the admin console owns. A single settings row plus per-user
    * AI access, so the customer app follows an admin change on the next read.
    */
+  /**
+   * Submissions whose answers the form would not have allowed, recorded while
+   * server checks run in log-only mode (flag forms.strictAnswers off), so they
+   * can be reviewed before checks are enforced. Kept 30 days.
+   */
+  validationLog: defineTable({
+    formId: v.id("forms"),
+    at: v.number(),
+    partial: v.boolean(),
+    problems: v.array(v.object({ code: v.string(), blockId: v.optional(v.string()) })),
+  }).index("by_at", ["at"]),
+
   platform: defineTable({
     key: v.string(),
     value: v.any(),

@@ -2,7 +2,9 @@ import { hasLimits, placesLeft, placesTaken } from "./model/places";
 import { isAudio, voiceLength } from "./model/voice";
 import { owed, takesPayment } from "./payments";
 import { ConvexError, v } from "convex/values";
-import { mutation, query, type MutationCtx } from "./_generated/server";
+import { internalMutation, internalQuery, mutation, query, type MutationCtx } from "./_generated/server";
+import { validateAnswers } from "./model/validate";
+import type { Rule } from "./model/logicEval";
 import { internal } from "./_generated/api";
 import { closedReason, notifyResponse, tellFormTeam } from "./model/inbox";
 import { queueReply } from "./model/aiReply";
@@ -651,6 +653,80 @@ async function store(
 }
 
 /**
+ * The answers checked against the form on the server (model/validate.ts).
+ * While the forms.strictAnswers flag is off for the owner, what would be
+ * refused is only recorded, so false alarms can be found first.
+ */
+async function checkAnswers(
+  ctx: MutationCtx,
+  form: Doc<"forms">,
+  args: { partial: boolean; ending?: string; answers: AnswerIn[] },
+) {
+  const blocks = await ctx.db
+    .query("blocks")
+    .withIndex("by_form_order", (q) => q.eq("formId", form._id))
+    .collect();
+  const advanced = await hasFeature(ctx, form, "logic.advanced");
+  const rules = (
+    await ctx.db
+      .query("logicRules")
+      .withIndex("by_form", (q) => q.eq("formId", form._id))
+      .collect()
+  )
+    .filter((r) => r.enabled && (advanced || (r.action !== "hide-options" && r.action !== "ending")))
+    .sort((a, b) => a.order - b.order);
+  const problems = validateAnswers(form, blocks, rules as unknown as Rule[], args.answers, {
+    partial: args.partial,
+    ending: args.ending,
+  });
+  if (!problems.length) return;
+  if (await flagOn(ctx, "forms.strictAnswers", form.ownerId)) {
+    throw new ConvexError({ code: "invalid", message: problems[0]!.message, blockId: problems[0]!.blockId ?? null });
+  }
+  await ctx.db.insert("validationLog", {
+    formId: form._id,
+    at: Date.now(),
+    partial: args.partial,
+    problems: problems.slice(0, 12).map((p) => ({ code: p.code, ...(p.blockId ? { blockId: p.blockId } : {}) })),
+  });
+}
+
+/**
+ * What log-only checking found in the last `days` days, by kind: the review
+ * before switching on forms.strictAnswers. `npx convex run publicForm:validationReport`.
+ */
+export const validationReport = internalQuery({
+  args: { days: v.optional(v.number()) },
+  handler: async (ctx, { days }) => {
+    const since = Date.now() - (days ?? 7) * 86_400_000;
+    const rows = await ctx.db
+      .query("validationLog")
+      .withIndex("by_at", (q) => q.gt("at", since))
+      .take(5000);
+    const byCode: Record<string, number> = {};
+    const forms = new Set<string>();
+    for (const r of rows) {
+      forms.add(r.formId);
+      for (const p of r.problems) byCode[p.code] = (byCode[p.code] ?? 0) + 1;
+    }
+    return { submissions: rows.length, forms: forms.size, byCode, latest: rows.slice(-20) };
+  },
+});
+
+export const pruneValidationLog = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const old = await ctx.db
+      .query("validationLog")
+      .withIndex("by_at", (q) => q.lt("at", Date.now() - 30 * 86_400_000))
+      .take(500);
+    for (const r of old) await ctx.db.delete(r._id);
+    return null;
+  },
+});
+
+/**
  * Submitting. A partial is a real record - it keeps what was answered before
  * the person left, and carries a token so they can be sent back to it. The
  * token, not a response id, is what lets a record be replaced.
@@ -691,6 +767,7 @@ export const submit = mutation({
     if (args.partial && !(await partialsOn(ctx, form.ownerId))) {
       throw new ConvexError("This form does not keep unfinished answers.");
     }
+    await checkAnswers(ctx, form, args);
 
     const existing = args.resumeToken
       ? await ctx.db
