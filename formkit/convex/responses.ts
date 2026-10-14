@@ -9,6 +9,7 @@ import { formFor, ownersOf } from "./model/forms";
 import { currentSpace, roleIn, spaceForms } from "./model/spaces";
 import { accessOf } from "./model/access";
 import { searchTextOf } from "./model/responseSearch";
+import { tellDeleted } from "./connections";
 import { countChange } from "./model/responseCounts";
 import { contactKeyOf, contactOf, notePerson, type Contact } from "./model/contacts";
 import type { ExportContact, ExportPage, ExportRecord } from "./model/exportSheet";
@@ -579,6 +580,7 @@ export const remove = mutation({
       await formFor(ctx, r.formId, "write");
       await ctx.db.delete(id);
       await countChange(ctx, r.formId, r, null);
+      await tellDeleted(ctx, r);
     }
     return null;
   },

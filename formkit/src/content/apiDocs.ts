@@ -125,7 +125,7 @@ export const API_DOCS: LegalSection[] = [
     id: "webhooks",
     title: "Webhook signatures",
     paras: [
-      "Webhooks (Pro and Business, in a form's Settings → Connections) POST each new response as JSON. The Formkit-Event header says what happened (response.created, response.updated when someone changes a response they sent, response.paid or response.test) and Formkit-Signature proves it came from Formkit:",
+      "Webhooks (Pro and Business, in a form's Settings → Connections) POST each new response as JSON. The Formkit-Event header says what happened (response.created, response.updated when someone changes a response they sent, response.paid, response.deleted with only the response id, or response.test; each webhook picks which it is sent) and Formkit-Signature proves it came from Formkit:",
       "Formkit-Signature: t=<unix seconds>,v1=<hex HMAC-SHA256 of \"<t>.<raw body>\" keyed with the webhook's secret>. Check it, and refuse anything older than five minutes. In Node:",
     ],
     code: [

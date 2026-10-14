@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
-import { Check, Copy, CreditCard, Hash, Link2, Send, Sheet, Trash2, Unplug, Webhook } from "lucide-react";
+import { Check, Copy, CreditCard, Hash, KeyRound, Link2, MessageSquare, RotateCcw, Send, Sheet, Trash2, Unplug, UsersRound, Webhook } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import { Badge, Button, Field, Input, Modal, Select, Switch } from "@/components/ui";
@@ -12,7 +12,7 @@ import { openUpgrade, upgradeOnPlanError, useGate } from "@/components/plan/useP
 import { errorText } from "../settings/bits";
 import { fullTime } from "../bits";
 
-type Kind = "webhook" | "slack" | "sheets";
+type Kind = "webhook" | "slack" | "discord" | "teams" | "sheets";
 
 const KINDS: { kind: Kind; label: string; icon: React.ReactNode; hint: string; feature: "connect.webhooks" | "connect.slack" | "connect.sheets" }[] = [
   {
@@ -27,6 +27,20 @@ const KINDS: { kind: Kind; label: string; icon: React.ReactNode; hint: string; f
     label: "Slack",
     icon: <Hash size={17} strokeWidth={1.8} aria-hidden />,
     hint: "A short message in a channel for each new response.",
+    feature: "connect.slack",
+  },
+  {
+    kind: "discord",
+    label: "Discord",
+    icon: <MessageSquare size={17} strokeWidth={1.8} aria-hidden />,
+    hint: "A message in a Discord channel for each new response.",
+    feature: "connect.slack",
+  },
+  {
+    kind: "teams",
+    label: "Microsoft Teams",
+    icon: <UsersRound size={17} strokeWidth={1.8} aria-hidden />,
+    hint: "A card in a Teams channel for each new response.",
     feature: "connect.slack",
   },
   {
@@ -63,6 +77,41 @@ function CopyLine({ text }: { text: string }) {
   );
 }
 
+const EVENT_LABEL: Record<string, string> = {
+  "response.created": "New",
+  "response.updated": "Changed",
+  "response.paid": "Paid",
+  "response.deleted": "Deleted",
+};
+
+/** What each kind's add dialog says. */
+const ADDING: Record<Exclude<Kind, "sheets">, { title: string; description: string; placeholder: string; name: string }> = {
+  webhook: {
+    title: "Add a webhook",
+    description: "Paste the address that should receive each response. For Zapier, use a “Catch Hook” trigger; for Make, a “Custom webhook”.",
+    placeholder: "https://hooks.zapier.com/…",
+    name: "Zapier: add to CRM",
+  },
+  slack: {
+    title: "Post to Slack",
+    description: "In Slack, add the Incoming Webhooks app to the channel, then paste the address it gives you.",
+    placeholder: "https://hooks.slack.com/services/…",
+    name: "#new-leads",
+  },
+  discord: {
+    title: "Post to Discord",
+    description: "In the channel's settings, open Integrations → Webhooks → New Webhook, then copy its address here.",
+    placeholder: "https://discord.com/api/webhooks/…",
+    name: "#signups",
+  },
+  teams: {
+    title: "Post to Microsoft Teams",
+    description: "In the channel, open Workflows and pick “Post to a channel when a webhook request is received”. Paste the address it gives you.",
+    placeholder: "https://….logic.azure.com/workflows/…",
+    name: "Sales channel",
+  },
+};
+
 const SCRIPT = (feed: string) => `function refreshFormkit() {
   var res = UrlFetchApp.fetch("${feed}.json");
   var data = JSON.parse(res.getContentText());
@@ -86,11 +135,14 @@ export function ConnectionsSection({
   const setEnabled = useMutation(api.connections.setEnabled);
   const remove = useMutation(api.connections.remove);
   const rotate = useMutation(api.connections.rotateToken);
+  const rotateSecret = useMutation(api.connections.rotateSecret);
+  const setEvents = useMutation(api.connections.setEvents);
+  const replay = useMutation(api.connections.replay);
   const test = useAction(api.connections.test);
   const hooks = useGate("connect.webhooks", features);
   const slack = useGate("connect.slack", features);
   const sheets = useGate("connect.sheets", features);
-  const gates = { webhook: hooks, slack, sheets };
+  const gates = { webhook: hooks, slack, discord: slack, teams: slack, sheets };
 
   const [adding, setAdding] = useState<Kind | null>(null);
   const [url, setUrl] = useState("");
@@ -208,6 +260,46 @@ export function ConnectionsSection({
 
             {c.url && <p className="fk-proprow-hint fk-connect-url">{c.url}</p>}
 
+            {c.kind !== "sheets" && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+                <span className="fk-proprow-hint" style={{ margin: 0 }}>
+                  Sends:
+                </span>
+                {Object.keys(EVENT_LABEL)
+                  .filter((e) => c.kind === "webhook" || e !== "response.deleted")
+                  .map((e) => {
+                    const on = c.events.includes(e);
+                    return (
+                      <button
+                        key={e}
+                        type="button"
+                        className="fk-filter"
+                        aria-pressed={on}
+                        onClick={async () => {
+                          try {
+                            await setEvents({ connectionId: c._id, events: on ? c.events.filter((x) => x !== e) : [...c.events, e] });
+                          } catch (err) {
+                            toast(errorText(err, "That did not change."));
+                          }
+                        }}
+                      >
+                        {EVENT_LABEL[e]}
+                      </button>
+                    );
+                  })}
+                {c.kind === "webhook" && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    iconLeft={<KeyRound size={15} strokeWidth={1.8} aria-hidden />}
+                    onClick={async () => setSecret(await rotateSecret({ connectionId: c._id }))}
+                  >
+                    New secret
+                  </Button>
+                )}
+              </div>
+            )}
+
             {c.feed && (
               <div className="fk-connect-sheet">
                 <p className="fk-proprow-hint" style={{ margin: "10px 0 8px" }}>
@@ -244,8 +336,26 @@ export function ConnectionsSection({
                       {d.status || "-"}
                     </span>
                     <span>{fullTime(d.at)}</span>
+                    {d.event && <span className="fk-proprow-hint">{EVENT_LABEL[d.event] ?? d.event}</span>}
                     {d.attempt > 1 && <span className="fk-proprow-hint">try {d.attempt}</span>}
                     {d.detail && <span className="fk-proprow-hint fk-connect-detail">{d.detail}</span>}
+                    {d.canReplay && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        iconLeft={<RotateCcw size={14} strokeWidth={1.8} aria-hidden />}
+                        onClick={async () => {
+                          try {
+                            await replay({ deliveryId: d.id });
+                            toast("Sending it again");
+                          } catch (err) {
+                            toast(errorText(err, "That could not be sent again."));
+                          }
+                        }}
+                      >
+                        Send again
+                      </Button>
+                    )}
                   </div>
                 ))}
               </details>
@@ -264,12 +374,8 @@ export function ConnectionsSection({
 
       {adding && (
         <Modal
-          title={adding === "slack" ? "Post to Slack" : "Add a webhook"}
-          description={
-            adding === "slack"
-              ? "In Slack, add the Incoming Webhooks app to the channel, then paste the address it gives you."
-              : "Paste the address that should receive each response. For Zapier, use a “Catch Hook” trigger; for Make, a “Custom webhook”."
-          }
+          title={ADDING[adding as Exclude<Kind, "sheets">].title}
+          description={ADDING[adding as Exclude<Kind, "sheets">].description}
           onClose={() => setAdding(null)}
           width={520}
           footer={
@@ -288,7 +394,7 @@ export function ConnectionsSection({
               <Input
                 value={url}
                 autoFocus
-                placeholder={adding === "slack" ? "https://hooks.slack.com/services/…" : "https://hooks.zapier.com/…"}
+                placeholder={ADDING[adding as Exclude<Kind, "sheets">].placeholder}
                 onChange={(e) => setUrl(e.target.value)}
                 icon={<Link2 size={17} strokeWidth={1.8} aria-hidden />}
               />
@@ -296,7 +402,7 @@ export function ConnectionsSection({
             <Field label="Name" help="Only you see this.">
               <Input
                 value={label}
-                placeholder={adding === "slack" ? "#new-leads" : "Zapier: add to CRM"}
+                placeholder={ADDING[adding as Exclude<Kind, "sheets">].name}
                 onChange={(e) => setLabel(e.target.value)}
               />
             </Field>
@@ -306,8 +412,8 @@ export function ConnectionsSection({
 
       {secret && (
         <Modal
-          title="Webhook added"
-          description="This is the secret that signs every delivery. Copy it now. It is not shown again."
+          title="The webhook's secret"
+          description="This signs every delivery. Copy it now. It is not shown again, and any earlier secret stops working."
           onClose={() => setSecret(null)}
           width={520}
           footer={<Button onClick={() => setSecret(null)}>Done</Button>}

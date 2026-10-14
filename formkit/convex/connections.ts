@@ -2,7 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { action, httpAction, internalAction, internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
-import type { QueryCtx } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { formFor } from "./model/forms";
 import { hasFeature, requireFeature, type Feature } from "./model/plans";
 import { moneyText } from "./model/money";
@@ -15,7 +15,9 @@ import { csv } from "./model/sheet";
  *   signed with a secret (Formkit-Signature: t=<unix>,v1=<hex HMAC-SHA256 of
  *   "<t>.<body>">). Zapier's and Make's "catch hook" URLs are webhooks too.
  *   A failed delivery is tried again after a minute, then after ten.
- * - Slack: a short summary to an incoming-webhook URL.
+ * - Slack, Discord and Microsoft Teams: a short message in a channel, each
+ *   in the shape that app shows well.
+ * - Each webhook can pick its events: created, updated, paid, deleted.
  * - Google Sheets: a private link the sheet pulls from - =IMPORTDATA() for
  *   CSV, or a small Apps Script for faster refreshes - so Google never needs
  *   to grant Formkit access to anything.
@@ -28,7 +30,35 @@ const SITE_API = process.env.CONVEX_SITE_URL ?? "";
 const FEATURE: Record<Doc<"connections">["kind"], Feature> = {
   webhook: "connect.webhooks",
   slack: "connect.slack",
+  discord: "connect.slack",
+  teams: "connect.slack",
   sheets: "connect.sheets",
+};
+
+/** What a connection can be told about. Chat apps hear about new and paid responses by default. */
+export const EVENTS = ["response.created", "response.updated", "response.paid", "response.deleted"] as const;
+type Event = (typeof EVENTS)[number];
+const CHAT_DEFAULT: Event[] = ["response.created", "response.paid"];
+const CHAT = new Set<Doc<"connections">["kind"]>(["slack", "discord", "teams"]);
+
+function hears(c: Doc<"connections">, event: Event) {
+  return (c.events ?? (CHAT.has(c.kind) ? CHAT_DEFAULT : EVENTS)).includes(event);
+}
+
+/** Where each chat app's incoming webhooks live. */
+const CHAT_HOSTS: Partial<Record<Doc<"connections">["kind"], { test: RegExp; message: string }>> = {
+  slack: {
+    test: /^https:\/\/hooks\.slack\.com\/services\//,
+    message: "That is not a Slack incoming-webhook address. It starts https://hooks.slack.com/services/.",
+  },
+  discord: {
+    test: /^https:\/\/(ptb\.|canary\.)?(discord|discordapp)\.com\/api\/webhooks\//,
+    message: "That is not a Discord webhook address. It starts https://discord.com/api/webhooks/.",
+  },
+  teams: {
+    test: /^https:\/\/([a-z0-9-]+\.)*(webhook\.office\.com|logic\.azure\.com|api\.powerplatform\.com)(:443)?\//,
+    message: "That is not a Microsoft Teams workflow address. Make one with the “Post to a channel when a webhook request is received” workflow.",
+  },
 };
 
 function randomHex(bytes: number) {
@@ -79,6 +109,7 @@ export const forForm = query({
         kind: c.kind,
         label: c.label ?? null,
         url: c.kind === "sheets" ? null : (c.url ?? null),
+        events: c.kind === "sheets" ? [] : (c.events ?? (CHAT.has(c.kind) ? CHAT_DEFAULT : [...EVENTS])),
         feed: c.kind === "sheets" && c.token ? `${SITE_API}/sheets/${c.token}` : null,
         enabled: c.enabled,
         last: c.last ?? null,
@@ -88,7 +119,16 @@ export const forForm = query({
             .withIndex("by_connection", (q) => q.eq("connectionId", c._id))
             .order("desc")
             .take(8)
-        ).map((d) => ({ at: d.at, ok: d.ok, status: d.status, attempt: d.attempt, detail: d.detail ?? null })),
+        ).map((d) => ({
+          id: d._id,
+          at: d.at,
+          ok: d.ok,
+          status: d.status,
+          attempt: d.attempt,
+          detail: d.detail ?? null,
+          event: d.event ?? null,
+          canReplay: !!d.responseId && d.event !== "response.deleted",
+        })),
       })),
     );
   },
@@ -97,7 +137,7 @@ export const forForm = query({
 export const add = mutation({
   args: {
     formId: v.id("forms"),
-    kind: v.union(v.literal("webhook"), v.literal("slack"), v.literal("sheets")),
+    kind: v.union(v.literal("webhook"), v.literal("slack"), v.literal("sheets"), v.literal("discord"), v.literal("teams")),
     url: v.optional(v.string()),
     label: v.optional(v.string()),
   },
@@ -115,9 +155,8 @@ export const add = mutation({
     if (kind !== "sheets") {
       clean = publicHttps(url ?? "") ?? undefined;
       if (!clean) throw new ConvexError("Use a public https:// address.");
-      if (kind === "slack" && !/^https:\/\/hooks\.slack\.com\/services\//.test(clean)) {
-        throw new ConvexError("That is not a Slack incoming-webhook address. It starts https://hooks.slack.com/services/.");
-      }
+      const chat = CHAT_HOSTS[kind];
+      if (chat && !chat.test.test(clean)) throw new ConvexError(chat.message);
     } else if (existing.some((c) => c.kind === "sheets")) {
       throw new ConvexError("This form already has a Google Sheets link.");
     }
@@ -166,6 +205,78 @@ export const remove = mutation({
   },
 });
 
+/** Which events a connection is sent. */
+export const setEvents = mutation({
+  args: { connectionId: v.id("connections"), events: v.array(v.string()) },
+  returns: v.null(),
+  handler: async (ctx, { connectionId, events }) => {
+    const c = await ctx.db.get(connectionId);
+    if (!c || c.kind === "sheets") return null;
+    await formFor(ctx, c.formId);
+    const picked = EVENTS.filter((e) => events.includes(e));
+    if (!picked.length) throw new ConvexError("Leave at least one event on, or turn the connection off.");
+    await ctx.db.patch(connectionId, { events: picked });
+    return null;
+  },
+});
+
+/** A new signing secret for a webhook, shown once; the old one stops matching at once. */
+export const rotateSecret = mutation({
+  args: { connectionId: v.id("connections") },
+  returns: v.string(),
+  handler: async (ctx, { connectionId }) => {
+    const c = await ctx.db.get(connectionId);
+    if (!c || c.kind !== "webhook") throw new ConvexError("Only a webhook has a secret.");
+    await formFor(ctx, c.formId);
+    const secret = `fks_${randomHex(24)}`;
+    await ctx.db.patch(connectionId, { secret });
+    return secret;
+  },
+});
+
+/** Sends a past delivery's response again, as it is now. */
+export const replay = mutation({
+  args: { deliveryId: v.id("deliveries") },
+  returns: v.null(),
+  handler: async (ctx, { deliveryId }) => {
+    const d = await ctx.db.get(deliveryId);
+    if (!d || !d.responseId) throw new ConvexError("That delivery cannot be sent again.");
+    const c = await ctx.db.get(d.connectionId);
+    if (!c) throw new ConvexError("That connection no longer exists.");
+    await formFor(ctx, c.formId);
+    if (!(await ctx.db.get(d.responseId))) throw new ConvexError("That response has been deleted.");
+    const event =
+      d.event === "response.updated" || d.event === "response.paid" || d.event === "response.created" ? d.event : undefined;
+    await ctx.scheduler.runAfter(0, internal.connections.deliver, { connectionId: c._id, responseId: d.responseId, event, attempt: 1, replay: true });
+    return null;
+  },
+});
+
+/**
+ * Called as a response is deleted: webhooks that asked for it hear which
+ * one, with nothing else about it.
+ */
+export async function tellDeleted(ctx: MutationCtx, r: Doc<"responses">) {
+  if (r.preview || r.partial) return;
+  const form = await ctx.db.get(r.formId);
+  if (!form || !(await hasFeature(ctx, form, "connect.webhooks"))) return;
+  const hooks = (
+    await ctx.db
+      .query("connections")
+      .withIndex("by_form", (q) => q.eq("formId", r.formId))
+      .collect()
+  ).filter((c) => c.enabled && c.kind === "webhook" && hears(c, "response.deleted"));
+  for (const c of hooks) {
+    await ctx.scheduler.runAfter(0, internal.connections.deliverDeleted, {
+      connectionId: c._id,
+      formId: form._id,
+      formTitle: form.title,
+      responseId: r._id,
+      attempt: 1,
+    });
+  }
+}
+
 /** A new private link for a sheet; the old one stops answering at once. */
 export const rotateToken = mutation({
   args: { connectionId: v.id("connections") },
@@ -207,7 +318,7 @@ export const ownConnection = internalQuery({
 /* ------------------------------------------------------------------ */
 
 type Payload = {
-  event: "response.created" | "response.updated" | "response.paid" | "response.test";
+  event: "response.created" | "response.updated" | "response.paid" | "response.test" | "response.deleted";
   form: { id: string; title: string };
   response: {
     id: string;
@@ -263,7 +374,7 @@ export const payloadFor = internalQuery({
         .query("connections")
         .withIndex("by_form", (q) => q.eq("formId", form._id))
         .collect()
-    ).filter((c) => c.enabled && c.kind !== "sheets");
+    ).filter((c) => c.enabled && c.kind !== "sheets" && hears(c, event ?? "response.created"));
     const allowed = [];
     for (const c of connections) if (await hasFeature(ctx, form, FEATURE[c.kind])) allowed.push(c._id);
     const links = await fileLinks(ctx, [r]);
@@ -338,14 +449,21 @@ export const connection = internalQuery({
 });
 
 export const deliver = internalAction({
-  args: { connectionId: v.id("connections"), responseId: v.id("responses"), event: EVENT, attempt: v.number() },
+  args: {
+    connectionId: v.id("connections"),
+    responseId: v.id("responses"),
+    event: EVENT,
+    attempt: v.number(),
+    replay: v.optional(v.boolean()),
+  },
   returns: v.null(),
-  handler: async (ctx, { connectionId, responseId, event, attempt }): Promise<null> => {
+  handler: async (ctx, { connectionId, responseId, event, attempt, replay }): Promise<null> => {
     const c: Doc<"connections"> | null = await ctx.runQuery(internal.connections.connection, { connectionId });
     if (!c || !c.enabled) return null;
     const job: { payload: Payload } | null = await ctx.runQuery(internal.connections.payloadFor, { responseId, event });
     if (!job) return null;
-    const result = await sendOne(ctx, c, job.payload, responseId, attempt, false);
+    const result = await sendOne(ctx, c, job.payload, responseId, attempt, false, replay);
+    if (replay) return null;
     if (!result.ok && attempt < 3) {
       await ctx.scheduler.runAfter(attempt === 1 ? 60_000 : 600_000, internal.connections.deliver, {
         connectionId,
@@ -353,6 +471,25 @@ export const deliver = internalAction({
         event,
         attempt: attempt + 1,
       });
+    }
+    return null;
+  },
+});
+
+export const deliverDeleted = internalAction({
+  args: { connectionId: v.id("connections"), formId: v.id("forms"), formTitle: v.string(), responseId: v.id("responses"), attempt: v.number() },
+  returns: v.null(),
+  handler: async (ctx, a): Promise<null> => {
+    const c: Doc<"connections"> | null = await ctx.runQuery(internal.connections.connection, { connectionId: a.connectionId });
+    if (!c || !c.enabled) return null;
+    const payload: Payload = {
+      event: "response.deleted",
+      form: { id: a.formId, title: a.formTitle },
+      response: { id: a.responseId, submittedAt: "", respondent: { name: null, email: null }, answers: [], calculations: {}, payment: null },
+    };
+    const result = await sendOne(ctx, c, payload, a.responseId, a.attempt, false);
+    if (!result.ok && a.attempt < 3) {
+      await ctx.scheduler.runAfter(a.attempt === 1 ? 60_000 : 600_000, internal.connections.deliverDeleted, { ...a, attempt: a.attempt + 1 });
     }
     return null;
   },
@@ -383,8 +520,51 @@ function slackText(p: Payload) {
       ? `Test from Formkit: ${p.form.title}`
       : p.event === "response.updated"
         ? `Answers changed on *${p.form.title}*`
+        : p.event === "response.deleted"
+          ? `A response to *${p.form.title}* was deleted`
         : `New response to *${p.form.title}*`;
   return [head, ...lines].join("\n\n");
+}
+
+/** The message for Discord: markdown, links as [text](url), at most 2,000 characters, no pings. */
+function discordBody(p: Payload) {
+  const text = slackText(p)
+    .replace(/<([^|>]+)\|([^>]+)>/g, "[$2]($1)")
+    .replace(/\*([^*\n]+)\*/g, "**$1**");
+  return { content: text.slice(0, 1990), allowed_mentions: { parse: [] } };
+}
+
+/** The message for a Teams workflow: an Adaptive Card. */
+function teamsBody(p: Payload) {
+  const plain = (s: string) => s.replace(/<([^|>]+)\|([^>]+)>/g, "[$2]($1)");
+  return {
+    type: "message",
+    attachments: [
+      {
+        contentType: "application/vnd.microsoft.card.adaptive",
+        content: {
+          $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
+          type: "AdaptiveCard",
+          version: "1.4",
+          body: slackText(p)
+            .split("\n\n")
+            .map((l, i) => ({
+              type: "TextBlock",
+              text: plain(l).slice(0, 1000),
+              wrap: true,
+              ...(i === 0 ? { weight: "Bolder", size: "Medium" } : {}),
+            })),
+        },
+      },
+    ],
+  };
+}
+
+function bodyFor(c: Doc<"connections">, payload: Payload) {
+  if (c.kind === "slack") return JSON.stringify({ text: slackText(payload) });
+  if (c.kind === "discord") return JSON.stringify(discordBody(payload));
+  if (c.kind === "teams") return JSON.stringify(teamsBody(payload));
+  return JSON.stringify(payload);
 }
 
 async function sendOne(
@@ -394,8 +574,9 @@ async function sendOne(
   responseId: Id<"responses"> | undefined,
   attempt: number,
   test: boolean,
+  replay = false,
 ) {
-  const body = c.kind === "slack" ? JSON.stringify({ text: slackText(payload) }) : JSON.stringify(payload);
+  const body = bodyFor(c, payload);
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     "User-Agent": "Formkit-Webhooks/1",
@@ -425,10 +606,11 @@ async function sendOne(
   await ctx.runMutation(internal.connections.recordDelivery, {
     connectionId: c._id,
     responseId,
+    event: test ? undefined : payload.event,
     attempt,
     ok,
     status,
-    detail: test ? `Test${detail ? `: ${detail}` : ""}` : detail,
+    detail: test ? `Test${detail ? `: ${detail}` : ""}` : replay ? `Sent again${detail ? `: ${detail}` : ""}` : detail,
   });
   return { ok, status, detail };
 }
@@ -437,6 +619,7 @@ export const recordDelivery = internalMutation({
   args: {
     connectionId: v.id("connections"),
     responseId: v.optional(v.id("responses")),
+    event: v.optional(v.string()),
     attempt: v.number(),
     ok: v.boolean(),
     status: v.number(),
@@ -453,7 +636,7 @@ export const recordDelivery = internalMutation({
       .query("deliveries")
       .withIndex("by_connection", (q) => q.eq("connectionId", a.connectionId))
       .order("desc")
-      .collect();
+      .take(60);
     for (const d of old.slice(50)) await ctx.db.delete(d._id);
     return null;
   },

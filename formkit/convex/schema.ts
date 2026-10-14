@@ -1310,9 +1310,11 @@ export default defineSchema({
   connections: defineTable({
     formId: v.id("forms"),
     ownerId: v.id("users"),
-    kind: v.union(v.literal("webhook"), v.literal("slack"), v.literal("sheets")),
+    kind: v.union(v.literal("webhook"), v.literal("slack"), v.literal("sheets"), v.literal("discord"), v.literal("teams")),
     label: v.optional(v.string()),
     url: v.optional(v.string()),
+    /** Which events it is sent (model of `EVENTS`); every one when unset. */
+    events: v.optional(v.array(v.string())),
     /** Signs each webhook delivery; shown once, when the webhook is made. */
     secret: v.optional(v.string()),
     /** The private part of a Sheets link. */
@@ -1328,6 +1330,8 @@ export default defineSchema({
   deliveries: defineTable({
     connectionId: v.id("connections"),
     responseId: v.optional(v.id("responses")),
+    /** What was sent, so it can be sent again. */
+    event: v.optional(v.string()),
     at: v.number(),
     attempt: v.number(),
     ok: v.boolean(),
