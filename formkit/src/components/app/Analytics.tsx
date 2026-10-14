@@ -458,6 +458,43 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
                   )}
                 </div>
               </section>
+
+              {data.full && data.devices.length > 0 && (
+                <section>
+                  <h3 className="fk-outside-title">Devices</h3>
+                  <div className="fk-panel" data-pad="none">
+                    <div className="fk-table-wrap">
+                      <table className="fk-table" data-static="true">
+                        <thead>
+                          <tr>
+                            <th scope="col">Device</th>
+                            <th scope="col" style={{ textAlign: "right" }}>
+                              Responses
+                            </th>
+                            <th scope="col" style={{ textAlign: "right" }}>
+                              Share
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(() => {
+                            const total = data.devices.reduce((n, d) => n + d.count, 0);
+                            return data.devices.map((d) => (
+                              <tr key={d.name}>
+                                <td className="fk-table-name">{d.name}</td>
+                                <td className="fk-table-quiet" style={{ textAlign: "right" }}>
+                                  {d.count.toLocaleString("en-US")}
+                                </td>
+                                <td style={{ textAlign: "right" }}>{total ? Math.round((d.count / total) * 100) : 0}%</td>
+                              </tr>
+                            ));
+                          })()}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </section>
+              )}
             </div>
 
             {scope && <AiInsights formId={scope} from={span.from} to={span.to} />}

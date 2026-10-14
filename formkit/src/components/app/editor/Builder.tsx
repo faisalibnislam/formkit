@@ -64,6 +64,9 @@ type Payload = { kind: "block"; id: string } | { kind: "new"; type: string };
 
 type Block = Doc<"blocks">;
 
+/** How long a deleted question can be brought back: as long as its toast shows. */
+const UNDO_MS = 7000;
+
 /** A page, as the rail lists it: a run of blocks that starts at a break. */
 type Run = {
   /** The page break that opens it; null for the questions before the first. */
@@ -136,7 +139,32 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
     null,
   );
 
-  const blocks = useMemo(() => form?.blocks ?? [], [form]);
+  // Deleting a question waits out the toast's Undo before it reaches the
+  // server, so undoing puts back the very same question: its id, its logic
+  // rules and the answers already given to it. Until then it is only hidden.
+  const [leaving, setLeaving] = useState<ReadonlySet<string>>(() => new Set());
+  const pendingDeletes = useRef(new Map<string, number>());
+  const removeRef = useRef(removeBlock);
+  useEffect(() => {
+    removeRef.current = removeBlock;
+  });
+  const blocks = useMemo(() => (form?.blocks ?? []).filter((b) => !leaving.has(b._id)), [form, leaving]);
+  // Leaving the builder (or the page) sends any delete still waiting on Undo.
+  useEffect(() => {
+    const pending = pendingDeletes.current;
+    const flush = () => {
+      for (const [id, timer] of pending) {
+        window.clearTimeout(timer);
+        void removeRef.current({ blockId: id as Id<"blocks"> });
+      }
+      pending.clear();
+    };
+    window.addEventListener("pagehide", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, []);
 
   // Others see which question this person is on.
   useEffect(() => {
@@ -295,10 +323,41 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
     });
   }
 
-  async function deleteQuestion(id: Id<"blocks">) {
+  const forget = (id: string) =>
+    setLeaving((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+
+  function finishDelete(id: Id<"blocks">) {
+    const timer = pendingDeletes.current.get(id);
+    if (timer === undefined) return;
+    window.clearTimeout(timer);
+    pendingDeletes.current.delete(id);
+    void tracked(removeBlock({ blockId: id })).finally(() => forget(id));
+  }
+
+  function undoDelete(id: Id<"blocks">) {
+    const timer = pendingDeletes.current.get(id);
+    if (timer === undefined) return;
+    window.clearTimeout(timer);
+    pendingDeletes.current.delete(id);
+    forget(id);
+    setSelected(id);
+  }
+
+  function deleteQuestion(id: Id<"blocks">) {
     if (selected === id) setSelected(null);
-    await tracked(removeBlock({ blockId: id }));
-    toast("Question deleted", { detail: "That one is gone." });
+    setLeaving((prev) => new Set(prev).add(id));
+    pendingDeletes.current.set(
+      id,
+      window.setTimeout(() => finishDelete(id), UNDO_MS),
+    );
+    toast("Question deleted", {
+      detail: "Any logic rule that points at it goes too.",
+      action: { label: "Undo", onClick: () => undoDelete(id) },
+    });
   }
 
   async function duplicate(id: Id<"blocks">) {

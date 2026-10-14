@@ -57,7 +57,7 @@ export type Block = {
   defaultValue?: string | null;
   /** Pro: places left per option; null where an option has no limit. */
   left?: (number | null)[] | null;
-  /** Business: a hidden field AI fills from another answer. */
+  /** Pro: a hidden field AI fills from another answer. */
   extract?: { from: Id<"blocks"> } | null;
   /** Quiz: what the question is worth, when it counts. */
   marks?: number | null;
@@ -78,7 +78,7 @@ export type Ending = {
 
 export type Answer = { value?: string; values?: string[]; fileId?: Id<"_storage">; fileName?: string };
 
-/** Business: the quiz settings the form itself needs. */
+/** Pro: the quiz settings the form itself needs. */
 export type QuizSettings = {
   timeLimit: number | null;
   shuffleQuestions: boolean;
@@ -176,9 +176,9 @@ export function FormRunner({
   /** Opens the payment page for a response that owes one; the live form only. */
   onPay?: (r: { responseId: Id<"responses">; resumeToken: string }) => Promise<{ url: string } | { paid: true } | null>;
   onStart?: () => void;
-  /** Business: starts a quiz attempt on the server, which keeps its clock. The live form only. */
+  /** Pro: starts a quiz attempt on the server, which keeps its clock. The live form only. */
   onStartQuiz?: () => Promise<{ attemptId: Id<"quizAttempts">; startedAt: number; endsAt: number | null }>;
-  /** Business: asks the AI about answers when a page is finished. The live form only. */
+  /** Pro: asks the AI about answers when a page is finished. The live form only. */
   onThink?: (a: {
     checks: string[];
     facts: string[];
@@ -231,13 +231,13 @@ export function FormRunner({
   const piped = useMemo(() => pipeValues(blocks, answers, results), [blocks, answers, results]);
 
   /* ---------- logic ---------- */
-  // Business: what the AI said about answers, by condition id, once asked.
+  // Pro: what the AI said about answers, by condition id, once asked.
   const [judged, setJudged] = useState<Record<string, boolean>>({});
   const [thinking, setThinking] = useState(false);
   // The answer each AI condition or hidden field was last asked about.
   const askedWith = useRef<Record<string, string>>({});
 
-  /* ---------- quiz: attempt, clock and shuffling (Business) ---------- */
+  /* ---------- quiz: attempt, clock and shuffling (Pro) ---------- */
   const quiz = data.quiz ?? null;
   const [attempt, setAttempt] = useState<{ attemptId?: Id<"quizAttempts">; endsAt: number | null } | null>(null);
   const [quizBlocked, setQuizBlocked] = useState<string | null>(null);
@@ -428,7 +428,7 @@ export function FormRunner({
   }
 
   /**
-   * Business: asks the AI about the answers just given - its yes-or-no
+   * Pro: asks the AI about the answers just given - its yes-or-no
    * conditions and the hidden fields it fills - and works the rules out
    * again with what it said. Never holds anyone up for long: after a few
    * seconds, or on any failure, the form goes on with the fallbacks.

@@ -1,5 +1,13 @@
 # Formkit — project notes
 
+> **Superseded (14 October 2026).** Formkit now has paid plans: Free, Pro and
+> Business through Polar (`formkit/convex/model/plans.ts`); AI is on for every
+> account with a monthly allowance and staff kill switches; and the model is
+> Google Gemini, not the Claude API. The sections below on "Formkit is free",
+> "AI access is an allow-list, off by default" and the Claude API record the
+> original design intent and no longer describe the product. Everything else
+> here still stands.
+
 ## AI form generation
 The **Ask Formkit** assistant in `Formkit Main App.dc.html` is a working prototype of the real
 feature, not a mock. It has two engines behind the Live / Tested patterns chip:

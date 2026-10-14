@@ -1,5 +1,5 @@
 import { ConvexError, v } from "convex/values";
-import { action, internalAction, internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import { action, internalAction, internalMutation, internalQuery, mutation, query, type QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { aiAllowed, requireUser } from "./model/identity";
@@ -14,7 +14,7 @@ import { paragraph, renderShell, safeColor, type Brand } from "./emails/kit";
 import { generate as askModel, ModelError, parseJson, voice, type Meter } from "./model/gemini";
 
 /**
- * Business: a reply written by AI to every person who answers a form.
+ * Pro: a reply written by AI to every person who answers a form.
  *
  * The owner writes the instructions ("thank them, look at the challenges they
  * describe, say how we could help"), may add background the reply can draw
@@ -155,14 +155,30 @@ async function write(meter: Meter, s: Settings, ctx: { brand: string; title: str
 
 const firstName = (name?: string | null) => (name ?? "").trim().split(/\s+/)[0]?.slice(0, 40) || undefined;
 
-function rowsOf(response: Pick<Doc<"responses">, "answers">): Row[] {
+/**
+ * Answers the reply never needs and the model never sees: how to reach the
+ * person and their signature. The reply greets them by first name, which is
+ * passed separately.
+ */
+const WITHHELD = new Set(["email", "phone", "address", "signature"]);
+
+function rowsOf(response: Pick<Doc<"responses">, "answers">, withheld: Set<string> = new Set()): Row[] {
   return response.answers
+    .filter((a) => !withheld.has(a.blockId))
     .map((a) => ({ question: a.question, answer: a.fileName ?? (a.values ? a.values.join(", ") : (a.value ?? "")) }))
     .filter((r) => r.answer.trim());
 }
 
 /* ------------------------------------------------------------------ */
 /* Writing and sending a response's reply                              */
+
+async function withheldBlocks(ctx: QueryCtx, formId: Id<"forms">) {
+  const blocks = await ctx.db
+    .query("blocks")
+    .withIndex("by_form_order", (q) => q.eq("formId", formId))
+    .collect();
+  return new Set<string>(blocks.filter((b) => b.type && WITHHELD.has(b.type)).map((b) => b._id));
+}
 
 export const context = internalQuery({
   args: { responseId: v.id("responses") },
@@ -186,7 +202,7 @@ export const context = internalQuery({
       replyTo: notify.replyTo || owner.email || undefined,
       email: response.respondentEmail ?? null,
       name: response.respondentName ?? null,
-      rows: rowsOf(response),
+      rows: rowsOf(response, await withheldBlocks(ctx, form._id)),
       reply: response.aiReply ?? null,
     };
   },
@@ -560,7 +576,7 @@ export const tryContext = internalQuery({
       usedToday: user.aiRuleDay === new Date().toISOString().slice(0, 10) ? (user.aiRuleCount ?? 0) : 0,
       title: form.title,
       brand: (await brandOf(ctx, form)).name,
-      sample: latest ? { name: latest.respondentName ?? null, rows: rowsOf(latest) } : null,
+      sample: latest ? { name: latest.respondentName ?? null, rows: rowsOf(latest, await withheldBlocks(ctx, formId)) } : null,
       questions: blocks.map((b) => ({ title: b.title ?? "", type: b.type ?? "short-text", options: b.options ?? [] })),
     };
   },
@@ -596,7 +612,7 @@ export const tryIt = action({
   handler: async (ctx, { formId, settings }): Promise<TryOut> => {
     const c: TryCtx = await ctx.runQuery(internal.aiReply.tryContext, { formId });
     if (!c.allowed) throw new ConvexError("AI is switched off for this account.");
-    if (!c.business) throw new ConvexError("AI replies are part of Business.");
+    if (!c.business) throw new ConvexError("AI replies are part of Pro.");
     if (c.usedToday >= 40) throw new ConvexError("That’s enough tries for today. Try again tomorrow.");
     if (!settings.prompt.trim()) throw new ConvexError("Write the instructions for the AI first.");
     const made = !c.sample;

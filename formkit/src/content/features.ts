@@ -52,7 +52,7 @@ export const FEATURE_PAGES: Story[] = [
       },
       {
         title: "Edit by asking",
-        body: "Once there is a draft, ask for changes the way you would ask a colleague: “make the budget question a range”, “add a thank-you page”, “only ask about print if they need it”. Each change lands on the canvas where you can see it and undo it.",
+        body: "Once there is a draft, ask for changes the way you would ask a colleague: “make the budget question a range”, “add a thank-you page”, “only ask about print if they need it”. Each change lands on the canvas where you can see it, and rewrites are shown side by side before you accept them.",
         points: ["Reword questions and options", "Add or reorder pages", "Write logic rules from a sentence", "Suggest a theme from a brand description"],
       },
       {

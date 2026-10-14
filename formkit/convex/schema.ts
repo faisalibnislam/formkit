@@ -102,7 +102,7 @@ export default defineSchema({
     hideBadge: v.optional(v.boolean()),
     /** When the current paid plan began - for tenure and cohort figures. */
     planSince: v.optional(v.number()),
-    /** Business: AI replies and AI logic checks used this month ("2026-09"). */
+    /** Pro: AI replies and AI logic checks used this month ("2026-09"). */
     aiReplyPeriod: v.optional(v.string()),
     aiReplyUsed: v.optional(v.number()),
     /** Bought replies, which roll over until used. */
@@ -335,7 +335,7 @@ export default defineSchema({
         }),
       ),
     ),
-    /** Business: the form is a quiz or exam, marked as it is sent. See convex/quiz.ts. */
+    /** Pro: the form is a quiz or exam, marked as it is sent. See convex/quiz.ts. */
     quiz: v.optional(
       v.object({
         enabled: v.boolean(),
@@ -359,7 +359,7 @@ export default defineSchema({
       }),
     ),
     /**
-     * Business: a reply written by AI for each person who answers, from the
+     * Pro: a reply written by AI for each person who answers, from the
      * owner's instructions and their answers. See convex/aiReply.ts.
      */
     aiReply: v.optional(
@@ -459,14 +459,14 @@ export default defineSchema({
     /** Pro: how many people can pick each option, in the same order as `options`; 0 is no limit. */
     limits: v.optional(v.array(v.number())),
     /**
-     * Business: a hidden field filled by AI from another answer - "the budget
+     * Pro: a hidden field filled by AI from another answer - "the budget
      * in dollars, as a number" read out of a free-text reply.
      */
     extract: v.optional(v.object({ from: v.id("blocks"), what: v.string() })),
   }).index("by_form_order", ["formId", "order"]),
 
   /**
-   * Business: what the AI said about an answer, kept so the same answer is
+   * Pro: what the AI said about an answer, kept so the same answer is
    * never asked about twice. `key` hashes the condition (or hidden field) with
    * the answer it read. Also counts a form's checks per hour.
    */
@@ -483,7 +483,7 @@ export default defineSchema({
     .index("by_form_at", ["formId", "at"])
     .index("by_at", ["at"]),
 
-  /** Business: a quiz started, so the timer is kept by the server, not the browser. */
+  /** Pro: a quiz started, so the timer is kept by the server, not the browser. */
   quizAttempts: defineTable({
     formId: v.id("forms"),
     startedAt: v.number(),
@@ -568,7 +568,7 @@ export default defineSchema({
     calc: v.optional(v.record(v.string(), v.number())),
     /** Which ending the person saw, when it was not the default. */
     ending: v.optional(v.string()),
-    /** Business: the mark, when the form is a quiz. */
+    /** Pro: the mark, when the form is a quiz. */
     quiz: v.optional(
       v.object({
         score: v.number(),
@@ -615,7 +615,7 @@ export default defineSchema({
         edited: v.optional(v.boolean()),
       }),
     ),
-    /** Business: what the AI read in this response, recorded with its reply. */
+    /** Pro: what the AI read in this response, recorded with its reply. */
     insight: v.optional(
       v.object({
         sentiment: v.union(v.literal("positive"), v.literal("neutral"), v.literal("negative")),

@@ -115,3 +115,31 @@ describe("replies the AI flags for a person are held", () => {
     expect(r?.held).toBeUndefined();
   });
 });
+
+test("an AI reply never sends the respondent's email, phone or address to the model", async () => {
+  const t = backend();
+  modelSays({ subject: "Thanks", reply: "Thanks!", needs_human: false, insight: { sentiment: "positive", topics: [], score: 50, urgency: "low", summary: "ok" } });
+  const owner = await person(t, "owner@example.com");
+  const formId = await form(t, owner.userId, {
+    aiReply: { enabled: true, prompt: "Thank them.", delivery: "form", style: "plain" },
+  });
+  const ids = await t.run(async (ctx) => ({
+    email: await ctx.db.insert("blocks", { formId, order: 0, kind: "field", type: "email", title: "Email" } as never),
+    phone: await ctx.db.insert("blocks", { formId, order: 1, kind: "field", type: "phone", title: "Phone" } as never),
+    idea: await ctx.db.insert("blocks", { formId, order: 2, kind: "field", type: "long-text", title: "Your idea" } as never),
+  }));
+  const responseId = await response(t, formId, owner.userId, {
+    respondentEmail: "secret@example.com",
+    answers: [
+      { blockId: ids.email, question: "Email", value: "secret@example.com" },
+      { blockId: ids.phone, question: "Phone", value: "+44 7700 900123" },
+      { blockId: ids.idea, question: "Your idea", value: "A rooftop garden" },
+    ],
+    aiReply: { status: "pending", at: Date.now() },
+  });
+  await t.action(internal.aiReply.generate, { responseId });
+  const sent = geminiCalls().map(([, init]) => String((init as RequestInit).body)).join("\n");
+  expect(sent).toContain("A rooftop garden");
+  expect(sent).not.toContain("secret@example.com");
+  expect(sent).not.toContain("7700 900123");
+});

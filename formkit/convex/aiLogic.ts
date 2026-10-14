@@ -14,7 +14,7 @@ import { generate, ModelError, parseJson, voice } from "./model/gemini";
 /**
  * AI in a form's logic.
  *
- * "AI decides" (Business): a condition that asks the AI a yes-or-no question
+ * "AI decides" (Pro): a condition that asks the AI a yes-or-no question
  * about an answer, and hidden fields the AI fills with a fact pulled out of an
  * answer. The form asks when a page is finished. Each answer is asked about
  * once - judgements are kept by a hash of the question and the answer - and

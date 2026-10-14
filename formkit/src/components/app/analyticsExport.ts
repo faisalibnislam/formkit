@@ -75,6 +75,15 @@ export async function downloadAnalytics(data: AnalyticsData, title: string, form
         s.completion === null ? "" : `${s.completion}%`,
       ]),
     },
+    ...(data.devices.length
+      ? [
+          {
+            name: "Devices",
+            columns: ["Device", "Responses"],
+            rows: data.devices.map((d) => [d.name, String(d.count)]),
+          },
+        ]
+      : []),
   ];
   const base = `analytics-${ymd(data.from)}-to-${ymd(data.to - 1)}`;
   // A CSV holds one table; the day-by-day figures are the one worth having.

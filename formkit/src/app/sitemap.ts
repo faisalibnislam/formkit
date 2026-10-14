@@ -26,7 +26,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE_URL}/contact`, lastModified: at(SITE_DATES.contact), priority: 0.5, changeFrequency: "yearly" },
     { url: `${SITE_URL}/privacy`, lastModified: at(SITE_DATES.privacy), priority: 0.3, changeFrequency: "yearly" },
     { url: `${SITE_URL}/terms`, lastModified: at(SITE_DATES.legal), priority: 0.3, changeFrequency: "yearly" },
-    { url: `${SITE_URL}/dpa`, lastModified: at(SITE_DATES.legal), priority: 0.2, changeFrequency: "yearly" },
+    { url: `${SITE_URL}/dpa`, lastModified: at(SITE_DATES.dpa), priority: 0.2, changeFrequency: "yearly" },
   ];
 
   return [

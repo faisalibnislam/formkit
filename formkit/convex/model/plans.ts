@@ -109,7 +109,7 @@ export const FEATURES = {
   // Pro - people
   collaborators: { plan: "pro", label: "Unlimited guests on every form", group: "Teams" },
   // Pro - connections
-  "connect.webhooks": { plan: "pro", label: "Webhooks, Zapier and Make", group: "Connections" },
+  "connect.webhooks": { plan: "pro", label: "Webhooks, to Zapier, Make or your own code", group: "Connections" },
   "connect.slack": { plan: "pro", label: "Slack", group: "Connections" },
   "connect.sheets": { plan: "pro", label: "Google Sheets", group: "Connections" },
   payments: { plan: "pro", label: "Payments with your own Stripe", group: "Connections" },

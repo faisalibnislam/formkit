@@ -48,15 +48,14 @@ export type { Draft, DraftItem, DraftRule };
 /**
  * Ask Formkit, on Gemini.
  *
- * Access is an admin-granted allow-list, off by default. An account without it
- * has no AI surface anywhere in the product - this module refuses, and the app
- * never renders a locked state or an upsell. That was decided deliberately;
- * please do not add one back.
+ * On for every account, with a monthly allowance from its plan
+ * (model/aiMeter.ts). Staff can turn it off for one account, or pause AI for
+ * everyone, and then this module refuses.
  *
- * Only building a new form spends a credit, and only once the model has
- * answered with something usable - a refused, failed or unreadable call costs
- * nothing. Adding questions, rewriting them, writing logic, picking a theme,
- * reading responses and talking are free.
+ * Building a new form uses a build; every other change it makes (questions,
+ * rewrites, logic, a theme, reading responses) uses an edit. Either is spent
+ * only once the model has answered with something usable - a refused, failed
+ * or unreadable call costs nothing - and just talking is free.
  *
  * Every answer from the model is treated as untrusted input: types are coerced,
  * rules are checked against the same operators the Logic tab offers, a theme
@@ -481,12 +480,17 @@ export const commit = mutation({
 /* ------------------------------------------------------------------ */
 /* The conversation                                                     */
 
-function chatFallback(t: string, left: number, limit: number, formTitle: string | null) {
+/** What this month's AI allowance looks like, in the words Ask Formkit uses. */
+function allowanceText(seat: Pick<Seat, "limit" | "used" | "editLimit" | "editsUsed">) {
+  const builds = Math.max(0, seat.limit - seat.used);
+  const edits = Math.max(0, seat.editLimit - seat.editsUsed);
+  return `This month you have ${builds} of ${seat.limit} new forms and ${edits} of ${seat.editLimit} edits left. Building a form uses one of the first; adding or rewriting questions, writing logic, picking a theme and reading responses each use an edit. Just talking is free, and both reset on the first.`;
+}
+
+function chatFallback(t: string, seat: Pick<Seat, "limit" | "used" | "editLimit" | "editsUsed">, formTitle: string | null) {
   const p = ` ${t.toLowerCase()} `;
   if (/how many credits|credits left|what do you cost|how much/.test(p)) {
-    return left > 0
-      ? `You have ${left} of ${limit} form credits left this month. Building a new form spends one. Adding questions, rewriting them, writing logic, picking a theme and reading responses are all free.`
-      : `You have used all ${limit} form credits this month. Changing forms you already have is still free, and the count resets on the first.`;
+    return allowanceText(seat);
   }
   if (/^\s*(thanks|thank you|cheers|ta|nice one|great|perfect|cool)\b/.test(p)) return "Any time.";
   if (/^\s*(bye|never mind|nevermind)\b/.test(p)) return "I am here when you need me.";
@@ -533,14 +537,12 @@ export const run = action({
 
     const pending = args.draft ? toDraft(parseJson<RawDraft>(draftAsJson(args.draft as Draft)))?.draft : undefined;
     const intent: Intent = aiIntent(text, { hasForm: Boolean(seat.form), hasDraft: Boolean(pending) });
-    const left = Math.max(0, seat.limit - seat.used);
-
     try {
       // The "Live AI generation" flag: off, nothing reaches the model and
       // nothing is written or spent; plain questions still get an answer.
       if (!seat.live) {
         if (intent === "chat") {
-          return { kind: "chat", text: chatFallback(text, left, seat.limit, seat.form?.title ?? null), note: "Answered offline" };
+          return { kind: "chat", text: chatFallback(text, seat, seat.form?.title ?? null), note: "Answered offline" };
         }
         return {
           kind: "say",
@@ -569,7 +571,7 @@ export const run = action({
     } catch (e) {
       if (e instanceof ModelError) {
         if (intent === "chat") {
-          return { kind: "chat", text: chatFallback(text, left, seat.limit, seat.form?.title ?? null), note: "Answered offline" };
+          return { kind: "chat", text: chatFallback(text, seat, seat.form?.title ?? null), note: "Answered offline" };
         }
         return {
           kind: "say",
@@ -589,7 +591,7 @@ export const run = action({
     async function answer(): Promise<AskResult> {
       switch (intent) {
         case "chat":
-          return await chat(m, text, args.history ?? [], seat, left);
+          return await chat(m, text, args.history ?? [], seat);
         case "create":
           return await create(ctx, m, text, attach, seat);
         case "revise":
@@ -622,16 +624,18 @@ type Seat = {
   space: { ownerId: Id<"users">; brand: "me" | Id<"companies"> };
   limit: number;
   used: number;
+  editLimit: number;
+  editsUsed: number;
   form: Snapshot | null;
   riff: Snapshot | null;
 };
 
-async function chat(m: Asker, text: string, history: HistoryTurn[], seat: Seat, left: number): Promise<AskResult> {
+async function chat(m: Asker, text: string, history: HistoryTurn[], seat: Seat): Promise<AskResult> {
   const system = `You are Formkit, a form building tool, talking to the person using it${seat.firstName ? ` (${seat.firstName})` : ""}.
 Reply in plain text, no markdown, at most three sentences. Never say you are an AI model.
 ${VOICE}
 State what is true and what they can do next.
-Facts you may use: they have ${left} of ${seat.limit} monthly form credits left. Building a new form spends one credit; adding questions, rewriting questions, writing logic rules, picking a theme and summarising responses are free. Credits reset on the first of the month. Formkit has three plans: Free, Pro and Business. For prices and what each includes, send them to formkit.app/pricing rather than quoting figures.
+Facts you may use: ${allowanceText(seat)} Formkit has three plans: Free, Pro and Business. For prices and what each includes, send them to formkit.app/pricing rather than quoting figures.
 ${seat.form ? `They are working on the form "${seat.form.title}".` : "No form is selected; they can pick one from the menu above the chat."}
 You can: write a whole form from a sentence, a pasted brief or a document; add questions; rewrite questions in another tone; write show, hide and require rules; pick one of the ten themes; read what the responses say.
 You cannot: publish, send email, delete questions or change settings. Those are done in the builder.

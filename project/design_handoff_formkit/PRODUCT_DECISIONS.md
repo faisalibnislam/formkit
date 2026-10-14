@@ -1,5 +1,13 @@
 # Formkit — product decisions
 
+> **Superseded (14 October 2026).** Formkit now has paid plans: Free, Pro and
+> Business through Polar (`formkit/convex/model/plans.ts`); AI is on for every
+> account with a monthly allowance and staff kill switches; and the model is
+> Google Gemini, not the Claude API. The sections below on "Formkit is free",
+> "AI access is an allow-list, off by default" and the Claude API record the
+> original design intent and no longer describe the product. Everything else
+> here still stands.
+
 _A copy of the project's running CLAUDE.md. Several entries record mistakes that cost a debugging pass; read the relevant section before changing that area._
 
 ---
