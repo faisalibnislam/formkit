@@ -189,6 +189,11 @@ export const rows = query({
     search: v.optional(v.string()),
     order: v.union(v.literal("desc"), v.literal("asc")),
     limit: v.number(),
+    /** Narrowing: a status, a tag, and a window of time (submittedAt, ms). */
+    status: v.optional(v.union(v.literal("new"), v.literal("read"), v.literal("reviewed"))),
+    tag: v.optional(v.string()),
+    since: v.optional(v.number()),
+    until: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const { ownerId, forms } = await inboxForms(ctx, args.formId, args.forms);
@@ -196,10 +201,18 @@ export const rows = query({
     const titles = new Map(forms.map((f) => [f._id as string, f.title]));
     const limit = Math.max(1, Math.min(MAX_ROWS, Math.floor(args.limit)));
     const preview = args.kind === "preview";
+    const tag = args.tag?.trim().toLowerCase();
     const keep = (r: Doc<"responses">) =>
       titles.has(r.formId) &&
       !!r.preview === preview &&
-      (args.kind === "partial" ? r.partial : args.kind === "complete" ? !r.partial : true);
+      (args.kind === "partial" ? r.partial : args.kind === "complete" ? !r.partial : true) &&
+      (!args.status || r.status === args.status) &&
+      (!tag || (r.tags ?? []).some((t) => t.toLowerCase() === tag)) &&
+      (args.since === undefined || r.submittedAt >= args.since) &&
+      (args.until === undefined || r.submittedAt < args.until);
+    // A window of time narrows the index itself, not just the rows read.
+    const since = args.since ?? 0;
+    const until = args.until ?? Number.MAX_SAFE_INTEGER;
     const single = forms.length === 1 ? forms[0]! : null;
     const term = args.search?.trim().slice(0, 100);
 
@@ -212,13 +225,13 @@ export const rows = query({
         ? ctx.db
             .query("responses")
             .withIndex("by_form_preview_submitted", (q) =>
-              q.eq("formId", single._id).eq("preview", preview ? true : undefined),
+              q.eq("formId", single._id).eq("preview", preview ? true : undefined).gte("submittedAt", since).lt("submittedAt", until),
             )
             .order(args.order)
         : ctx.db
             .query("responses")
             .withIndex("by_owner_preview_submitted", (q) =>
-              q.eq("ownerId", ownerId).eq("preview", preview ? true : undefined),
+              q.eq("ownerId", ownerId).eq("preview", preview ? true : undefined).gte("submittedAt", since).lt("submittedAt", until),
             )
             .order(args.order);
 

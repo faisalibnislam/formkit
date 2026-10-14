@@ -197,6 +197,11 @@ function Responses({
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState<string | null>(openId);
   const [asc, setAsc] = useState(false);
+  // Narrowing beyond complete/partial: a status, a tag, a window of time.
+  const [status, setStatusFilter] = useState<"any" | "new" | "read" | "reviewed">("any");
+  const [tag, setTag] = useState("any");
+  const [when, setWhen] = useState<"any" | "today" | "7" | "30" | "90">("any");
+  const tagsInUse = useQuery(api.responses.tagsInUse, {});
   const [confirm, setConfirm] = useState<string[] | null>(null);
   const search = useDebounced(term.trim(), SEARCH_DELAY_MS);
 
@@ -225,12 +230,24 @@ function Responses({
   const previews = s?.previews ?? 0;
   // Previews with nothing left in them fall back to everything.
   const kind: Kind = chosenKind === "preview" && previews === 0 ? "all" : chosenKind;
+  // The window starts at midnight (today) or that many days back; it is
+  // worked out once per choice so the query's arguments stay stable.
+  const since = useMemo(() => {
+    if (when === "any") return undefined;
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    if (when !== "today") d.setDate(d.getDate() - (Number(when) - 1));
+    return d.getTime();
+  }, [when]);
   const listArgs = {
     ...scope,
     kind,
     order: asc ? ("asc" as const) : ("desc" as const),
     limit,
     ...(search ? { search } : {}),
+    ...(status !== "any" ? { status } : {}),
+    ...(tag !== "any" ? { tag } : {}),
+    ...(since !== undefined ? { since } : {}),
   };
   // A new filter keeps the last rows on screen until its own arrive.
   const data = useLastDefined(useSeededQuery(api.responses.rows, listArgs));
@@ -393,6 +410,49 @@ function Responses({
             { value: "complete", label: "Complete" },
             { value: "partial", label: "Partial" },
             ...(previews ? [{ value: "preview" as const, label: `Previews · ${plus(previews, s?.more.previews)}` }] : []),
+          ]}
+        />
+        <Select
+          size="sm"
+          value={status}
+          onChange={(next) => {
+            setStatusFilter(next as typeof status);
+            refilter();
+          }}
+          ariaLabel="Status"
+          options={[
+            { value: "any", label: "Any status" },
+            { value: "new", label: "Unread" },
+            { value: "read", label: "Read" },
+            { value: "reviewed", label: "Reviewed" },
+          ]}
+        />
+        {(tagsInUse?.length ?? 0) > 0 && (
+          <Select
+            size="sm"
+            value={tag}
+            onChange={(next) => {
+              setTag(next);
+              refilter();
+            }}
+            ariaLabel="Tag"
+            options={[{ value: "any", label: "Any tag" }, ...(tagsInUse ?? []).slice(0, 50).map((t) => ({ value: t, label: t }))]}
+          />
+        )}
+        <Select
+          size="sm"
+          value={when}
+          onChange={(next) => {
+            setWhen(next as typeof when);
+            refilter();
+          }}
+          ariaLabel="When"
+          options={[
+            { value: "any", label: "Any time" },
+            { value: "today", label: "Today" },
+            { value: "7", label: "Last 7 days" },
+            { value: "30", label: "Last 30 days" },
+            { value: "90", label: "Last 90 days" },
           ]}
         />
         <span className="fk-section-spacer" />
@@ -838,6 +898,18 @@ function ResponseDrawer({
             Export
           </Button>
           <span className="fk-section-spacer" />
+          {manage && response.status !== "new" && (
+            <Button
+              variant="ghost"
+              onClick={async () => {
+                await setStatus({ ids: [response._id], status: "new" });
+                toast("Marked as unread", { detail: name });
+                onClose();
+              }}
+            >
+              Mark unread
+            </Button>
+          )}
           {!manage ? null : response.status === "reviewed" ? (
             <Button variant="secondary" onClick={() => setStatus({ ids: [response._id], status: "read" })}>
               Undo reviewed
