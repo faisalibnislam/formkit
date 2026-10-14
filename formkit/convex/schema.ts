@@ -869,6 +869,17 @@ export default defineSchema({
    * server checks run in log-only mode (flag forms.strictAnswers off), so they
    * can be reviewed before checks are enforced. Kept 30 days.
    */
+  /**
+   * One-time proof that a Cloudflare Turnstile check passed for a form,
+   * issued by an action (mutations cannot call Cloudflare) and spent by the
+   * submission it was issued for. Old ones are swept hourly.
+   */
+  humanPasses: defineTable({
+    formId: v.id("forms"),
+    at: v.number(),
+    used: v.optional(v.boolean()),
+  }).index("by_at", ["at"]),
+
   validationLog: defineTable({
     formId: v.id("forms"),
     at: v.number(),

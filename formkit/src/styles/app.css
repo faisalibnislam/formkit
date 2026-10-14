@@ -2993,6 +2993,16 @@ button.fk-chip {
   height: 1px;
   opacity: 0;
 }
+/* Cloudflare Turnstile: shown only when Cloudflare asks for an interaction. */
+.fk-live-turnstile {
+  display: flex;
+  justify-content: center;
+  padding: 0 16px 24px;
+}
+.fk-live-turnstile:empty {
+  display: none;
+}
+
 .fk-live-prove {
   display: flex;
   align-items: center;

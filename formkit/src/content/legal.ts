@@ -91,6 +91,7 @@ export const PRIVACY: LegalSection[] = [
     paras: [
       "Inside the app, Formkit sets two cookies: one keeps you signed in, the other remembers your time zone so dates show in your local time.",
       "Your published forms set no cookies. To stop duplicate and automated submissions, a form keeps a random device code in the respondent's browser storage. It identifies a browser, not a person, and it is never shared or used for advertising. On Pro, a form also records where each response came from (the link, a QR code or the referring site) and what kind of device sent it, for the form's own analytics.",
+      "When a form's spam protection is on, Cloudflare Turnstile checks that a person, not a script, is sending it. Cloudflare sees the respondent's browser and connection for that check only, and does not use it for advertising.",
       "On our public pages (the homepage, templates, help and the rest of formkit.app outside the app), we use Google Analytics to count visits and see which pages people find useful, but only if you say yes. Until you do, it is not loaded at all: no script, no cookie, nothing sent to Google. If you accept, it sets a few cookies whose names begin with _ga, which last up to two years. Google's advertising features are switched off.",
       "Your answer is remembered in your browser, not in a cookie. To change it, use Cookie settings at the foot of any public page; withdrawing removes the Google Analytics cookies.",
     ],
@@ -277,6 +278,7 @@ export const DPA: LegalSection[] = [
       "Convex: database, file storage and back-end hosting.",
       "Vercel: hosting for the website and the forms.",
       "Resend: delivery of the emails Formkit sends.",
+      "Cloudflare (Turnstile): the spam check on forms with spam protection on. It sees the respondent's browser and connection, never their answers.",
       "Polar: billing for Formkit plans (your account details only, never your responses).",
       "Google (Gemini): the AI features. It receives your prompts and the form when you use Ask Formkit; responses without names, emails or phone numbers when you ask it to read them; and each response to a form with AI replies, AI logic or AI insights turned on. It may not use the data to train its models.",
     ],

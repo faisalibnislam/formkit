@@ -2,7 +2,7 @@ import { hasLimits, placesLeft, placesTaken } from "./model/places";
 import { isAudio, voiceLength } from "./model/voice";
 import { owed, takesPayment } from "./payments";
 import { ConvexError, v } from "convex/values";
-import { internalMutation, internalQuery, mutation, query, type MutationCtx } from "./_generated/server";
+import { action, internalMutation, internalQuery, mutation, query, type MutationCtx } from "./_generated/server";
 import { validateAnswers } from "./model/validate";
 import { servedForm } from "./model/served";
 import type { Rule } from "./model/logicEval";
@@ -646,6 +646,62 @@ async function store(
   return { responseId, resumeToken: record.resumeToken, pay: payment?.status === "pending" };
 }
 
+/** How long a passed Turnstile check can be used to send. */
+const PASS_MS = 10 * 60_000;
+
+async function spendPass(ctx: MutationCtx, id: Id<"humanPasses">, formId: Id<"forms">) {
+  const pass = await ctx.db.get(id);
+  if (!pass || pass.used || pass.formId !== formId || Date.now() - pass.at > PASS_MS) return false;
+  await ctx.db.patch(id, { used: true });
+  return true;
+}
+
+/**
+ * Checks a Cloudflare Turnstile token and, when it passes, hands back a
+ * one-time pass the submission spends. Null when Turnstile is not set up
+ * or the check failed; the form then asks the person to tick a box.
+ */
+export const verifyHuman = action({
+  args: { formId: v.id("forms"), token: v.string() },
+  returns: v.union(v.id("humanPasses"), v.null()),
+  handler: async (ctx, { formId, token }): Promise<Id<"humanPasses"> | null> => {
+    const secret = process.env.TURNSTILE_SECRET_KEY;
+    if (!secret || !token) return null;
+    try {
+      const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ secret, response: token.slice(0, 2048) }).toString(),
+        signal: AbortSignal.timeout(8000),
+      });
+      const out = (await res.json()) as { success?: boolean };
+      if (!out.success) return null;
+    } catch {
+      return null;
+    }
+    return await ctx.runMutation(internal.publicForm.issuePass, { formId });
+  },
+});
+
+export const issuePass = internalMutation({
+  args: { formId: v.id("forms") },
+  returns: v.id("humanPasses"),
+  handler: async (ctx, { formId }) => ctx.db.insert("humanPasses", { formId, at: Date.now() }),
+});
+
+export const prunePasses = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const old = await ctx.db
+      .query("humanPasses")
+      .withIndex("by_at", (q) => q.lt("at", Date.now() - 3_600_000))
+      .take(1000);
+    for (const p of old) await ctx.db.delete(p._id);
+    return null;
+  },
+});
+
 /**
  * The answers checked against the form on the server (model/validate.ts).
  * While the forms.strictAnswers flag is off for the owner, what would be
@@ -731,6 +787,8 @@ export const submit = mutation({
     trap: v.optional(v.string()),
     /** The person ticked "I am a person" after being asked. */
     human: v.optional(v.boolean()),
+    /** A Turnstile check that passed (verifyHuman), spent by this submission. */
+    pass: v.optional(v.id("humanPasses")),
     /** The ending the person's answers led to, when it was not the default. */
     ending: v.optional(v.string()),
     /** Quiz: the attempt started when the timer began, and whether it ran out. */
@@ -783,7 +841,11 @@ export const submit = mutation({
       if (s.spam) {
         if (args.trap) throw new ConvexError("That did not send. Try again in a moment.");
         const fast = (args.durationMs ?? Number.POSITIVE_INFINITY) < TOO_FAST_MS;
-        if (fast && !args.human && !existing) {
+        // With Turnstile set up, a submission either carries a pass from it,
+        // or the person ticks the box (when Turnstile could not run for them).
+        const turnstile = !!process.env.TURNSTILE_SECRET_KEY;
+        const proven = !!args.pass && (await spendPass(ctx, args.pass, form._id));
+        if (!proven && !args.human && !existing && (turnstile || fast)) {
           throw new ConvexError({ code: "prove", message: "Tick the box to show you are a person." });
         }
       }

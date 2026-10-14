@@ -63,11 +63,14 @@ npx convex env set --prod POLAR_SERVER    sandbox                # only while te
 npx convex env set --prod VERCEL_API_TOKEN ...                   # custom domains: adds customers' domains to the project
 npx convex env set --prod VERCEL_PROJECT_ID prj_...              # the Vercel project that serves formkit.app
 npx convex env set --prod VERCEL_TEAM_ID  team_...               # when that project belongs to a team
+npx convex env set --prod SECRETS_KEY "$(openssl rand -base64 32)" # seals Stripe keys at rest; then: npx convex run --prod payments:sealStoredKeys
+npx convex env set --prod TURNSTILE_SECRET_KEY 0x...             # Cloudflare Turnstile, the spam check on forms
 ```
 
 On Vercel (all environments): `NEXT_PUBLIC_CONVEX_URL`, `NEXT_PUBLIC_SITE_URL`,
-and `NEXT_PUBLIC_GA_ID` to switch on Google Analytics on the public pages,
-behind its consent banner.
+`NEXT_PUBLIC_GA_ID` to switch on Google Analytics on the public pages, behind
+its consent banner, and `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (with
+`TURNSTILE_SECRET_KEY` on Convex) to switch on Turnstile.
 
 **Google and Microsoft sign-in** (Business single sign-on) are switched on by
 setting their OAuth apps on the Convex deployment: `AUTH_GOOGLE_ID` /

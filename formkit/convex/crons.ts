@@ -34,6 +34,7 @@ crons.daily("clear old rate-limit counts", { hourUTC: 3, minuteUTC: 40 }, intern
 crons.hourly("count the admin reports", { minuteUTC: 35 }, internal.adminReports.run, {});
 crons.daily("forget AI judgements over a month old", { hourUTC: 3, minuteUTC: 30 }, internal.aiLogic.prune, {});
 crons.interval("freeze the live version of forms published before snapshots", { minutes: 10 }, internal.forms.snapshotLiveForms, {});
+crons.hourly("sweep used spam checks", { minuteUTC: 15 }, internal.publicForm.prunePasses, {});
 crons.daily("forget answer checks over a month old", { hourUTC: 3, minuteUTC: 50 }, internal.publicForm.pruneValidationLog, {});
 
 export default crons;
