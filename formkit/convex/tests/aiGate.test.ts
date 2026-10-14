@@ -143,3 +143,26 @@ test("an AI reply never sends the respondent's email, phone or address to the mo
   expect(sent).not.toContain("secret@example.com");
   expect(sent).not.toContain("7700 900123");
 });
+
+describe("review before sending", () => {
+  async function run(review: "auto" | "unsure" | "always", needsHuman: boolean) {
+    const t = backend();
+    modelSays({ subject: "Hi", reply: "Thanks", needs_human: needsHuman, insight: { sentiment: "neutral", topics: [], score: 50, urgency: "low", summary: "s" } });
+    const owner = await person(t, "owner@example.com");
+    const formId = await form(t, owner.userId, {
+      aiReply: { enabled: true, prompt: "Thank them.", delivery: "email", style: "plain", review },
+    });
+    const responseId = await response(t, formId, owner.userId, {
+      respondentEmail: "ada@example.com",
+      aiReply: { status: "pending", at: Date.now() },
+    });
+    await t.action(internal.aiReply.generate, { responseId });
+    return (await reply(t, responseId))?.held ?? false;
+  }
+  test("always check holds every reply", async () => expect(await run("always", false)).toBe(true));
+  test("hold if unsure holds only flagged ones", async () => {
+    expect(await run("unsure", true)).toBe(true);
+    expect(await run("unsure", false)).toBe(false);
+  });
+  test("send never holds", async () => expect(await run("auto", true)).toBe(false));
+});

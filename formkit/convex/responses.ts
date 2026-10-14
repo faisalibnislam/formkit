@@ -191,6 +191,8 @@ export const rows = query({
     limit: v.number(),
     /** Narrowing: a status, a tag, and a window of time (submittedAt, ms). */
     status: v.optional(v.union(v.literal("new"), v.literal("read"), v.literal("reviewed"))),
+    /** Only responses whose AI reply is waiting for the owner. */
+    held: v.optional(v.boolean()),
     tag: v.optional(v.string()),
     since: v.optional(v.number()),
     until: v.optional(v.number()),
@@ -207,6 +209,7 @@ export const rows = query({
       !!r.preview === preview &&
       (args.kind === "partial" ? r.partial : args.kind === "complete" ? !r.partial : true) &&
       (!args.status || r.status === args.status) &&
+      (!args.held || !!r.aiReply?.held) &&
       (!tag || (r.tags ?? []).some((t) => t.toLowerCase() === tag)) &&
       (args.since === undefined || r.submittedAt >= args.since) &&
       (args.until === undefined || r.submittedAt < args.until);

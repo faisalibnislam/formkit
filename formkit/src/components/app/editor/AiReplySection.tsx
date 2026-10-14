@@ -29,6 +29,7 @@ type Settings = {
   signature?: string;
   subject?: string;
   knowledge?: string;
+  review?: "auto" | "unsure" | "always";
 };
 type Tried = FunctionReturnType<typeof api.aiReply.tryIt>;
 
@@ -155,6 +156,29 @@ export function AiReplySection({ formId, form }: { formId: Id<"forms">; form: Fo
               { value: "form", label: "On the form", icon: <MonitorSmartphone size={14} strokeWidth={1.8} aria-hidden /> },
               { value: "email", label: "By email", icon: <Mail size={14} strokeWidth={1.8} aria-hidden /> },
               { value: "both", label: "Both" },
+            ]}
+          />
+        </div>
+        <div className="fk-proprow" style={{ marginTop: 10 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14 }}>Before it goes out</div>
+            <div className="fk-proprow-hint">
+              {(stored.review ?? "unsure") === "auto"
+                ? "Every reply goes out as soon as it’s written."
+                : (stored.review ?? "unsure") === "unsure"
+                  ? "Replies go out by themselves, except ones the AI thinks a person should answer: those wait for you."
+                  : "Every reply waits for you to check it and send it. Find them under Responses → Waiting for you."}
+            </div>
+          </div>
+          <Segmented
+            ariaLabel="Before it goes out"
+            size="sm"
+            value={stored.review ?? "unsure"}
+            onChange={(review) => void put({ review })}
+            options={[
+              { value: "auto", label: "Send" },
+              { value: "unsure", label: "Hold if unsure" },
+              { value: "always", label: "Always check" },
             ]}
           />
         </div>

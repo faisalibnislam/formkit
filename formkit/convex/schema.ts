@@ -411,6 +411,12 @@ export default defineSchema({
         subject: v.optional(v.string()),
         /** Background the reply may draw on: services, prices, FAQs. */
         knowledge: v.optional(v.string()),
+        /**
+         * Before a reply goes out: "auto" sends it, "unsure" (the default)
+         * holds the ones the AI flags for a person, "always" holds every one
+         * for the owner to check and send.
+         */
+        review: v.optional(v.union(v.literal("auto"), v.literal("unsure"), v.literal("always"))),
       }),
     ),
 

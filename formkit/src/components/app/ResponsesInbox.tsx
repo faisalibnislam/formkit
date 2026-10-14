@@ -198,7 +198,7 @@ function Responses({
   const [open, setOpen] = useState<string | null>(openId);
   const [asc, setAsc] = useState(false);
   // Narrowing beyond complete/partial: a status, a tag, a window of time.
-  const [status, setStatusFilter] = useState<"any" | "new" | "read" | "reviewed">("any");
+  const [status, setStatusFilter] = useState<"any" | "new" | "read" | "reviewed" | "held">("any");
   const [tag, setTag] = useState("any");
   const [when, setWhen] = useState<"any" | "today" | "7" | "30" | "90">("any");
   const tagsInUse = useQuery(api.responses.tagsInUse, {});
@@ -245,7 +245,7 @@ function Responses({
     order: asc ? ("asc" as const) : ("desc" as const),
     limit,
     ...(search ? { search } : {}),
-    ...(status !== "any" ? { status } : {}),
+    ...(status === "held" ? { held: true } : status !== "any" ? { status } : {}),
     ...(tag !== "any" ? { tag } : {}),
     ...(since !== undefined ? { since } : {}),
   };
@@ -425,6 +425,7 @@ function Responses({
             { value: "new", label: "Unread" },
             { value: "read", label: "Read" },
             { value: "reviewed", label: "Reviewed" },
+            { value: "held", label: "AI reply waiting for you" },
           ]}
         />
         {(tagsInUse?.length ?? 0) > 0 && (

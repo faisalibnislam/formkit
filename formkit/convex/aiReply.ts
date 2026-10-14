@@ -336,7 +336,7 @@ export const holdNotice = internalMutation({
     await notify(ctx, form.ownerId, {
       kind: "ai",
       title: `An AI reply is waiting for you on ${form.title}`,
-      body: `${who}'s answers need a person, so the AI's reply was not sent. Check it, change it if you like, and send it.`,
+      body: `The AI's reply to ${who} is waiting for you. Check it, change it if you like, and send it.`,
       href: `/app/forms/${form._id}?tab=responses&open=${responseId}`,
       action: "Review the reply",
       icon: "sparkles",
@@ -363,16 +363,20 @@ export const generate = internalAction({
     try {
       const out = await write({ ctx, userId: c.ownerId, feature: "reply" }, c.settings, { brand: c.brand.name, title: c.title, firstName: firstName(c.name), rows: c.rows });
       const subject = subjectFor(c, out.subject);
+      // Held for the owner: every reply, the ones the AI is unsure of (the
+      // default), or none.
+      const review = c.settings.review ?? "unsure";
+      const hold = review === "always" || (review === "unsure" && out.needsHuman);
       await ctx.runMutation(internal.aiReply.settle, {
         responseId,
         ok: true,
         subject,
         text: out.reply,
         needsHuman: out.needsHuman,
-        held: out.needsHuman,
+        held: hold,
         insight: out.insight,
       });
-      if (out.needsHuman) {
+      if (hold) {
         if (emails) {
           await ctx.runMutation(internal.aiReply.recordEmail, { responseId, state: "held" });
           await ctx.runAction(internal.notifications.confirmOnly, { responseId });
@@ -525,6 +529,7 @@ const settingsArg = v.object({
   signature: v.optional(v.string()),
   subject: v.optional(v.string()),
   knowledge: v.optional(v.string()),
+  review: v.optional(v.union(v.literal("auto"), v.literal("unsure"), v.literal("always"))),
 });
 
 export const save = mutation({
@@ -544,6 +549,7 @@ export const save = mutation({
         signature: s.signature?.trim().slice(0, 600) || undefined,
         subject: s.subject?.trim().slice(0, 150) || undefined,
         knowledge: s.knowledge?.trim().slice(0, 8000) || undefined,
+        review: s.review,
       },
       updatedAt: Date.now(),
     });
