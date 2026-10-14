@@ -49,7 +49,6 @@ export function useQuery(reference: unknown, ...args: unknown[]) {
 export function useMutation(reference: unknown) {
   const name = nameOf(reference);
   return (async (args: unknown) => {
-    // eslint-disable-next-line no-console
     console.info("[preview] mutation", name, args);
     // The upload flow posts to whatever this returns, so it has to be a URL.
     if (name === "users:generateUploadUrl" || name === "publicForm:uploadUrl") return "/__preview_upload";
@@ -79,6 +78,9 @@ export function useAction(reference: unknown) {
       return canned;
     }) as never;
   }
+  // Not a React hook: the shim's useMutation only builds a function, and `name`
+  // is fixed per call site, so the order never changes between renders.
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   return useMutation(reference);
 }
 

@@ -23,6 +23,18 @@ export function LiveReply({ responseId, token }: { responseId: Id<"responses">; 
   if (!r || r.status === "skipped" || r.status === "failed") return null;
   const byEmail = r.delivery !== "form" && r.hasEmail;
 
+  // The AI flagged these answers for a person: say so instead of showing its draft.
+  if (r.held) {
+    return (
+      <div className="fk-live-reply" aria-live="polite">
+        <div className="fk-live-reply-wait">
+          <Mail size={17} strokeWidth={1.8} aria-hidden style={{ display: "inline-block" }} />
+          Thanks. Someone will read your answers and get back to you personally.
+        </div>
+      </div>
+    );
+  }
+
   if (r.delivery === "email") {
     return byEmail ? (
       <div className="fk-live-reply" aria-live="polite">

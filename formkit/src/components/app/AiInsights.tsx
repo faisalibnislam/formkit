@@ -33,6 +33,8 @@ export function AiInsights({ formId, from, to }: { formId: Id<"forms">; from: nu
   const toast = useToast();
   const data = useQuery(api.insights.overview, { formId, from, to });
   const report = useAction(api.insights.report);
+  // A report spends the company's allowance: Viewers and Commenters read the last one.
+  const canWrite = useQuery(api.responses.canManage, { formId }) ?? false;
   const [writing, setWriting] = useState(false);
 
   if (!data) return null;
@@ -242,14 +244,16 @@ export function AiInsights({ formId, from, to }: { formId: Id<"forms">; from: nu
                     : "Reads across your latest responses and says what stands out: themes, opportunities, risks and what to do next."}
                 </p>
               </div>
-              <Button
-                variant="secondary"
-                disabled={writing}
-                iconLeft={<Sparkles size={15} strokeWidth={1.8} aria-hidden />}
-                onClick={() => void write()}
-              >
-                {writing ? "Reading…" : data.report ? "Write a new one" : "Write a report"}
-              </Button>
+              {canWrite && (
+                <Button
+                  variant="secondary"
+                  disabled={writing}
+                  iconLeft={<Sparkles size={15} strokeWidth={1.8} aria-hidden />}
+                  onClick={() => void write()}
+                >
+                  {writing ? "Reading…" : data.report ? "Write a new one" : "Write a report"}
+                </Button>
+              )}
             </div>
             {data.report && (
               <div className="fk-report-body">

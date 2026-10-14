@@ -20,6 +20,7 @@ type Reply = {
   at: number | null;
   emailedAt: number | null;
   emailState: string | null;
+  held?: boolean;
   rating: "up" | "down" | null;
   needsHuman: boolean;
   edited: boolean;
@@ -120,17 +121,24 @@ export function AiReplyPanel({
           )}
           {reply.status === "ready" && (
             <div className="fk-resp-ai-meta">
-              {reply.needsHuman && (
+              {reply.held ? (
                 <span className="fk-aireply-flag">
-                  <AlertTriangle size={14} strokeWidth={1.8} aria-hidden /> Worth a personal follow-up
+                  <AlertTriangle size={14} strokeWidth={1.8} aria-hidden /> Held for you: the AI thought a person should
+                  answer this, so it was not sent. Check it, edit if needed, then send it.
                 </span>
+              ) : (
+                reply.needsHuman && (
+                  <span className="fk-aireply-flag">
+                    <AlertTriangle size={14} strokeWidth={1.8} aria-hidden /> Worth a personal follow-up
+                  </span>
+                )
               )}
               {reply.emailedAt ? (
                 <span>
                   <Mail size={13} strokeWidth={1.8} aria-hidden style={{ display: "inline-block", marginRight: 5 }} />
                   Emailed {fullTime(reply.emailedAt)}
                 </span>
-              ) : reply.emailState && reply.emailState !== "sent" ? (
+              ) : reply.emailState && reply.emailState !== "sent" && reply.emailState !== "held" ? (
                 <span>Not emailed{reply.emailState === "no-address" ? ", no email address" : ""}</span>
               ) : null}
               {reply.rating && (

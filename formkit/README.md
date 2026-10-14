@@ -3,9 +3,13 @@
 Forms people actually finish. Next.js 16 on the front, Convex for data and auth,
 Resend for email, Vercel for hosting.
 
-Formkit is free. There are no plans, no prices and no billing anywhere in the
-product - see `PRODUCT_DECISIONS.md` in the handoff for the rest of the standing
-decisions before changing anything.
+Formkit has three plans: Free, Pro and Business, billed per seat through Polar
+(see `convex/model/plans.ts`, the single source of truth for what each
+includes). AI is Google Gemini (`convex/model/gemini.ts`), on for every account
+with a monthly allowance from its plan. Read `PRODUCT_DECISIONS.md` in the
+handoff for the standing design decisions, but note the decisions it records
+as superseded at its top: the handoff was written when Formkit was going to be
+free, with AI off by default and the Claude API.
 
 ## Running it
 
@@ -46,18 +50,48 @@ npx @convex-dev/auth --prod      # writes JWT_PRIVATE_KEY and JWKS
 The rest:
 
 ```bash
-npx convex env set --prod AUTH_RESEND_KEY re_...                 # Resend, send-only, scoped to formkit.app
+npx convex env set --prod AUTH_RESEND_KEY re_...                 # Resend; full access, so customers' sending domains can be added
 npx convex env set --prod AUTH_EMAIL_FROM "Formkit <hello@formkit.app>"
 npx convex env set --prod SITE_URL        https://formkit.app    # links inside notification emails
 npx convex env set --prod STAFF_EMAILS    you@formkit.app        # who gets the admin console
-npx convex env set --prod GEMINI_API_KEY  ...                    # Gemini API key; only if Ask Formkit is to work
+npx convex env set --prod GEMINI_API_KEY  ...                    # Gemini API key; every AI feature needs it
 npx convex env set --prod GEMINI_MODEL    gemini-3.8-flash       # optional: tried first, before the built-in list
+npx convex env set --prod GEMINI_LITE_MODEL ...                  # optional: first choice for small, frequent AI jobs
+npx convex env set --prod POLAR_ACCESS_TOKEN polar_oat_...       # billing (convex/billing.ts)
+npx convex env set --prod POLAR_WEBHOOK_SECRET ...               # verifies Polar's webhook at /polar/webhook
+npx convex env set --prod POLAR_SERVER    sandbox                # only while testing; omit for production
+npx convex env set --prod VERCEL_API_TOKEN ...                   # custom domains: adds customers' domains to the project
+npx convex env set --prod VERCEL_PROJECT_ID prj_...              # the Vercel project that serves formkit.app
+npx convex env set --prod VERCEL_TEAM_ID  team_...               # when that project belongs to a team
+npx convex env set --prod SECRETS_KEY "$(openssl rand -base64 32)" # seals Stripe keys at rest; then: npx convex run --prod payments:sealStoredKeys
+npx convex env set --prod TURNSTILE_SECRET_KEY 0x...             # Cloudflare Turnstile, the spam check on forms
 ```
+
+On Vercel (all environments): `NEXT_PUBLIC_CONVEX_URL`, `NEXT_PUBLIC_SITE_URL`,
+`NEXT_PUBLIC_GA_ID` to switch on Google Analytics on the public pages, behind
+its consent banner, and `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (with
+`TURNSTILE_SECRET_KEY` on Convex) to switch on Turnstile, and
+`NEXT_PUBLIC_SENTRY_DSN` to send errors to Sentry (browser and server; nothing
+is sent while it is unset). Errors inside Convex functions are reported by
+Convex's own Sentry integration, set up in the Convex dashboard.
+
+**Google and Microsoft sign-in** (Business single sign-on) are switched on by
+setting their OAuth apps on the Convex deployment: `AUTH_GOOGLE_ID` /
+`AUTH_GOOGLE_SECRET`, and `AUTH_MICROSOFT_ENTRA_ID_ID` /
+`AUTH_MICROSOFT_ENTRA_ID_SECRET` (optionally `AUTH_MICROSOFT_ENTRA_ID_ISSUER`).
+Formkit only accepts an address the provider has verified, so the Microsoft
+app registration must include the **`xms_edov`** optional claim on the ID token
+(Entra admin centre → App registrations → Token configuration → Add optional
+claim → ID → `xms_edov`). Without it, Microsoft sign-in is refused rather than
+trusting an email any tenant could claim. After enabling either provider on a
+deployment that already has users, run `npx convex run security:oauthLinkAudit`
+once and check that the list is empty.
 
 `STAFF_EMAILS` is how the first staff account comes to exist. The console at
 `/admin` is gated on a staff role, and nothing in the product can grant one, so
 a fresh deployment would otherwise have a console nobody can reach. Addresses
-listed here get the owner role the first time they sign in; after that every
+listed here get the owner role once, when a new account first verifies one of
+them (the emailed code, or a provider-verified sign-in); after that every
 role is changed from inside the console, where the change is audited.
 
 Without `AUTH_RESEND_KEY` nothing is sent and every attempt is written to the
@@ -194,5 +228,8 @@ are in `../project/shots/`.
 - **Sharing is three separate things.** The Share panel owns the public link and
   has no on/off switch, Collaborators owns people, and a claimed handle owns the
   shape of the URL. Do not fold them together.
-- **Ask Formkit is an allow-list, off by default.** An account without it has no
-  AI surface at all - no launcher, no locked state, no mention in settings.
+- **AI is on for every account, metered by plan.** Each company gets a monthly
+  allowance of builds, edits, responses and reports (`model/aiMeter.ts`),
+  then credits. Staff can turn AI off for one account or pause it for
+  everyone, and every AI path checks that switch (`aiAllowed`), including the
+  ones that run by themselves on responses.

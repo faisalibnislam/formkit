@@ -186,7 +186,7 @@ export async function tellFormTeam(
 /** Why a form closed itself, in the words the notice uses. */
 export function closedReason(form: Doc<"forms">, now: number) {
   const c = form.closing;
-  if (c?.closeAfter !== undefined && form.responsesCount >= c.closeAfter) {
+  if (c?.closeAfter !== undefined && form.completedCount >= c.closeAfter) {
     return `It reached its limit of ${c.closeAfter.toLocaleString("en-US")} responses.`;
   }
   if (c?.closeAt !== undefined && c.closeAt <= now) return "Its closing time arrived.";

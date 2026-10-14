@@ -87,7 +87,8 @@ export function completionRate(form: Doc<"forms">) {
 export function shouldAutoClose(form: Doc<"forms">, now: number) {
   if (form.status !== "published" || !form.closing) return false;
   if (form.closing.closeAt && form.closing.closeAt <= now) return true;
-  if (form.closing.closeAfter && form.responsesCount >= form.closing.closeAfter) return true;
+  // Only finished responses count: half-answers left behind never close a form.
+  if (form.closing.closeAfter && form.completedCount >= form.closing.closeAfter) return true;
   return false;
 }
 
@@ -287,5 +288,27 @@ export async function purgeFormData(ctx: MutationCtx, form: Doc<"forms">) {
     .withIndex("by_form_at", (q) => q.eq("formId", form._id))
     .collect();
   for (const row of events) await ctx.db.delete(row._id);
+  // Connections (and what they delivered), AI judgements and reports, quiz attempts.
+  const connections = await ctx.db
+    .query("connections")
+    .withIndex("by_form", (q) => q.eq("formId", form._id))
+    .collect();
+  for (const c of connections) {
+    const sent = await ctx.db
+      .query("deliveries")
+      .withIndex("by_connection", (q) => q.eq("connectionId", c._id))
+      .collect();
+    for (const d of sent) await ctx.db.delete(d._id);
+    await ctx.db.delete(c._id);
+  }
+  for (const row of await ctx.db.query("aiJudgements").withIndex("by_form_at", (q) => q.eq("formId", form._id)).collect()) {
+    await ctx.db.delete(row._id);
+  }
+  for (const row of await ctx.db.query("aiReports").withIndex("by_form", (q) => q.eq("formId", form._id)).collect()) {
+    await ctx.db.delete(row._id);
+  }
+  for (const row of await ctx.db.query("quizAttempts").withIndex("by_form", (q) => q.eq("formId", form._id)).collect()) {
+    await ctx.db.delete(row._id);
+  }
   await ctx.db.delete(form._id);
 }

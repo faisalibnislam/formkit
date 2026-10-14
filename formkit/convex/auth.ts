@@ -6,6 +6,7 @@ import { ConvexError } from "convex/values";
 import { DataModel } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { ResendResetOTP, ResendVerifyOTP, normaliseEmail } from "./email";
+import { bootstrapStaffRole, googleProfile, microsoftProfile } from "./model/oauthProfile";
 
 /**
  * Email and password, run by Convex. Google and Microsoft sign-in exist only
@@ -56,12 +57,18 @@ passwordOptions.authorize = async (params, ctx) => {
 };
 const FormkitPassword = BasePassword;
 
+// Both only ever vouch for an address the provider has verified (see
+// model/oauthProfile.ts): otherwise a Microsoft tenant could claim anyone's
+// email and be signed into their account.
 const oauth = [
-  ...(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET ? [Google] : []),
+  ...(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET
+    ? [Google({ profile: (p) => googleProfile(p as unknown as Record<string, unknown>) })]
+    : []),
   ...(process.env.AUTH_MICROSOFT_ENTRA_ID_ID && process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET
     ? [
         MicrosoftEntraID({
           issuer: process.env.AUTH_MICROSOFT_ENTRA_ID_ISSUER ?? "https://login.microsoftonline.com/common/v2.0",
+          profile: (p) => microsoftProfile(p as unknown as Record<string, unknown>),
         }),
       ]
     : []),
@@ -73,27 +80,19 @@ const oauth = [
  * The admin console is gated on `staffRole`, and nothing in the product can
  * grant it - so without this, a fresh deployment has a console nobody can
  * reach. `STAFF_EMAILS` on the Convex deployment is a comma-separated list of
- * addresses that get the owner role the first time they sign in. Everyone
+ * addresses that get the owner role once, when a new account proves it owns
+ * one of them (the emailed code, or a provider-verified sign-in). Everyone
  * else's role is only ever changed from inside the console.
  */
-function bootstrapStaff(email: string | undefined) {
-  if (!email) return undefined;
-  const listed = (process.env.STAFF_EMAILS ?? "")
-    .split(",")
-    .map((a) => a.trim().toLowerCase())
-    .filter(Boolean);
-  return listed.includes(email.toLowerCase()) ? ("owner" as const) : undefined;
-}
-
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [FormkitPassword, ...oauth],
   callbacks: {
-    async afterUserCreatedOrUpdated(ctx, { userId, existingUserId }) {
-      // Only on the way in - an existing person's role is the console's to set.
-      if (existingUserId) return;
+    async afterUserCreatedOrUpdated(ctx, { userId }) {
+      // Runs on sign-up and again when the emailed code is entered, which is
+      // when a password account's address becomes verified.
       const user = await ctx.db.get(userId);
-      const role = bootstrapStaff(user?.email);
-      if (role) await ctx.db.patch(userId, { staffRole: role });
+      const role = bootstrapStaffRole(user, process.env.STAFF_EMAILS, Date.now());
+      if (role) await ctx.db.patch(userId, { staffRole: role, staffBootstrapAt: Date.now() });
     },
   },
 });

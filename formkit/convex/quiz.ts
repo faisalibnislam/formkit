@@ -2,6 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { internalAction, internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
+import { servedForm } from "./model/served";
 import { brandOf, formFor } from "./model/forms";
 import { hasFeature, requireFeature } from "./model/plans";
 import { marked, totals } from "./model/quiz";
@@ -147,10 +148,8 @@ export const result = query({
     if (!released(form)) {
       return { ...head, released: false as const, releaseAt: form.quiz.releaseAt ?? null };
     }
-    const blocks = await ctx.db
-      .query("blocks")
-      .withIndex("by_form_order", (q) => q.eq("formId", form._id))
-      .collect();
+    // The questions as published: the version this person answered.
+    const { blocks } = await servedForm(ctx, form);
     const byId = new Map(blocks.map((b) => [b._id as string, b]));
     const answers = new Map(r.answers.map((a) => [a.blockId as string, a]));
     return {

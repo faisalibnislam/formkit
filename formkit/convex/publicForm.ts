@@ -2,7 +2,10 @@ import { hasLimits, placesLeft, placesTaken } from "./model/places";
 import { isAudio, voiceLength } from "./model/voice";
 import { owed, takesPayment } from "./payments";
 import { ConvexError, v } from "convex/values";
-import { mutation, query, type MutationCtx } from "./_generated/server";
+import { action, internalMutation, internalQuery, mutation, query, type MutationCtx } from "./_generated/server";
+import { validateAnswers } from "./model/validate";
+import { servedForm } from "./model/served";
+import type { Rule } from "./model/logicEval";
 import { internal } from "./_generated/api";
 import { closedReason, notifyResponse, tellFormTeam } from "./model/inbox";
 import { queueReply } from "./model/aiReply";
@@ -163,22 +166,12 @@ function publicCondition<C extends { source?: string; value?: string }>(c: C): C
 }
 
 /** Everything the runner needs to show the questions. */
-async function payload(ctx: QueryCtx, form: Doc<"forms">) {
-  const blocks = (
-    await ctx.db
-      .query("blocks")
-      .withIndex("by_form_order", (q) => q.eq("formId", form._id))
-      .collect()
-  ).sort((a, b) => a.order - b.order);
-
-  const rules = (
-    await ctx.db
-      .query("logicRules")
-      .withIndex("by_form", (q) => q.eq("formId", form._id))
-      .collect()
-  )
-    .filter((r) => r.enabled)
-    .sort((a, b) => a.order - b.order);
+async function payload(ctx: QueryCtx, live: Doc<"forms">, opts: { draft?: boolean } = {}) {
+  // The published version for respondents; the draft for the builder's preview.
+  const served = await servedForm(ctx, live, opts);
+  const form = served.form;
+  const blocks = served.blocks;
+  const rules = served.rules.filter((r) => r.enabled);
 
   const s = securityOf(form.security);
   const smart = await smartOf(ctx, form);
@@ -353,7 +346,7 @@ export const preview = query({
   handler: async (ctx, { formId }) => {
     const { form } = await accessOf(ctx, formId);
     return {
-      ...(await payload(ctx, form)),
+      ...(await payload(ctx, form, { draft: true })),
       status: form.status,
       url: await formUrl(ctx, form),
     };
@@ -431,10 +424,7 @@ export const uploadUrl = mutation({
     const form = await ctx.db.get(formId);
     if (!form || form.deletedAt) throw new ConvexError("That form is not here any more.");
     if (form.status !== "published") await formFor(ctx, formId, "read");
-    const blocks = await ctx.db
-      .query("blocks")
-      .withIndex("by_form_order", (q) => q.eq("formId", formId))
-      .collect();
+    const { blocks } = await servedForm(ctx, form, { draft: form.status !== "published" });
     if (!blocks.some((b) => b.type === "file" || b.type === "voice")) {
       throw new ConvexError("This form does not take uploads.");
     }
@@ -503,7 +493,7 @@ type AnswerIn = {
 /** Build and store the record; shared by the public link and the preview. */
 async function store(
   ctx: MutationCtx,
-  form: Doc<"forms">,
+  live: Doc<"forms">,
   args: {
     partial: boolean;
     device?: string;
@@ -518,12 +508,11 @@ async function store(
   existing: Doc<"responses"> | null,
   preview: boolean,
 ) {
-  const blocks = (
-    await ctx.db
-      .query("blocks")
-      .withIndex("by_form_order", (q) => q.eq("formId", form._id))
-      .collect()
-  ).filter((b) => b.kind === "field");
+  // Everything the response is checked and marked against is the version
+  // the person was shown: published, or the draft for a preview.
+  const served = await servedForm(ctx, live, { draft: preview });
+  const form = served.form;
+  const blocks = served.blocks.filter((b) => b.kind === "field");
   const byId = new Map(blocks.map((b) => [b._id as string, b]));
 
   const answers = args.answers
@@ -632,6 +621,13 @@ async function store(
     });
   }
 
+  // Changing a response that was already sent: its integrations hear about
+  // the change, and nothing that greets a new response runs again.
+  if (!args.partial && !preview && existing && !existing.partial) {
+    await ctx.scheduler.runAfter(0, internal.connections.fanout, { responseId, event: "response.updated" });
+    return { responseId, resumeToken: record.resumeToken, pay: payment?.status === "pending" };
+  }
+
   if (!args.partial && !preview) {
     const saved = await ctx.db.get(responseId);
     if (saved && after) await notifyResponse(ctx, after, saved);
@@ -649,6 +645,128 @@ async function store(
   }
   return { responseId, resumeToken: record.resumeToken, pay: payment?.status === "pending" };
 }
+
+/** How long a passed Turnstile check can be used to send. */
+const PASS_MS = 10 * 60_000;
+
+async function spendPass(ctx: MutationCtx, id: Id<"humanPasses">, formId: Id<"forms">) {
+  const pass = await ctx.db.get(id);
+  if (!pass || pass.used || pass.formId !== formId || Date.now() - pass.at > PASS_MS) return false;
+  await ctx.db.patch(id, { used: true });
+  return true;
+}
+
+/**
+ * Checks a Cloudflare Turnstile token and, when it passes, hands back a
+ * one-time pass the submission spends. Null when Turnstile is not set up
+ * or the check failed; the form then asks the person to tick a box.
+ */
+export const verifyHuman = action({
+  args: { formId: v.id("forms"), token: v.string() },
+  returns: v.union(v.id("humanPasses"), v.null()),
+  handler: async (ctx, { formId, token }): Promise<Id<"humanPasses"> | null> => {
+    const secret = process.env.TURNSTILE_SECRET_KEY;
+    if (!secret || !token) return null;
+    try {
+      const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ secret, response: token.slice(0, 2048) }).toString(),
+        signal: AbortSignal.timeout(8000),
+      });
+      const out = (await res.json()) as { success?: boolean };
+      if (!out.success) return null;
+    } catch {
+      return null;
+    }
+    return await ctx.runMutation(internal.publicForm.issuePass, { formId });
+  },
+});
+
+export const issuePass = internalMutation({
+  args: { formId: v.id("forms") },
+  returns: v.id("humanPasses"),
+  handler: async (ctx, { formId }) => ctx.db.insert("humanPasses", { formId, at: Date.now() }),
+});
+
+export const prunePasses = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const old = await ctx.db
+      .query("humanPasses")
+      .withIndex("by_at", (q) => q.lt("at", Date.now() - 3_600_000))
+      .take(1000);
+    for (const p of old) await ctx.db.delete(p._id);
+    return null;
+  },
+});
+
+/**
+ * The answers checked against the form on the server (model/validate.ts).
+ * While the forms.strictAnswers flag is off for the owner, what would be
+ * refused is only recorded, so false alarms can be found first.
+ */
+async function checkAnswers(
+  ctx: MutationCtx,
+  form: Doc<"forms">,
+  args: { partial: boolean; ending?: string; answers: AnswerIn[] },
+) {
+  const served = await servedForm(ctx, form);
+  const advanced = await hasFeature(ctx, form, "logic.advanced");
+  const rules = served.rules.filter(
+    (r) => r.enabled && (advanced || (r.action !== "hide-options" && r.action !== "ending")),
+  );
+  const problems = validateAnswers(served.form, served.blocks, rules as unknown as Rule[], args.answers, {
+    partial: args.partial,
+    ending: args.ending,
+  });
+  if (!problems.length) return;
+  if (await flagOn(ctx, "forms.strictAnswers", form.ownerId)) {
+    throw new ConvexError({ code: "invalid", message: problems[0]!.message, blockId: problems[0]!.blockId ?? null });
+  }
+  await ctx.db.insert("validationLog", {
+    formId: form._id,
+    at: Date.now(),
+    partial: args.partial,
+    problems: problems.slice(0, 12).map((p) => ({ code: p.code, ...(p.blockId ? { blockId: p.blockId } : {}) })),
+  });
+}
+
+/**
+ * What log-only checking found in the last `days` days, by kind: the review
+ * before switching on forms.strictAnswers. `npx convex run publicForm:validationReport`.
+ */
+export const validationReport = internalQuery({
+  args: { days: v.optional(v.number()) },
+  handler: async (ctx, { days }) => {
+    const since = Date.now() - (days ?? 7) * 86_400_000;
+    const rows = await ctx.db
+      .query("validationLog")
+      .withIndex("by_at", (q) => q.gt("at", since))
+      .take(5000);
+    const byCode: Record<string, number> = {};
+    const forms = new Set<string>();
+    for (const r of rows) {
+      forms.add(r.formId);
+      for (const p of r.problems) byCode[p.code] = (byCode[p.code] ?? 0) + 1;
+    }
+    return { submissions: rows.length, forms: forms.size, byCode, latest: rows.slice(-20) };
+  },
+});
+
+export const pruneValidationLog = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const old = await ctx.db
+      .query("validationLog")
+      .withIndex("by_at", (q) => q.lt("at", Date.now() - 30 * 86_400_000))
+      .take(500);
+    for (const r of old) await ctx.db.delete(r._id);
+    return null;
+  },
+});
 
 /**
  * Submitting. A partial is a real record - it keeps what was answered before
@@ -669,6 +787,8 @@ export const submit = mutation({
     trap: v.optional(v.string()),
     /** The person ticked "I am a person" after being asked. */
     human: v.optional(v.boolean()),
+    /** A Turnstile check that passed (verifyHuman), spent by this submission. */
+    pass: v.optional(v.id("humanPasses")),
     /** The ending the person's answers led to, when it was not the default. */
     ending: v.optional(v.string()),
     /** Quiz: the attempt started when the timer began, and whether it ran out. */
@@ -691,6 +811,7 @@ export const submit = mutation({
     if (args.partial && !(await partialsOn(ctx, form.ownerId))) {
       throw new ConvexError("This form does not keep unfinished answers.");
     }
+    await checkAnswers(ctx, form, args);
 
     const existing = args.resumeToken
       ? await ctx.db
@@ -701,6 +822,11 @@ export const submit = mutation({
     if (existing && existing.formId !== form._id) throw new ConvexError("That link belongs to another form.");
     if (existing && !existing.partial && !s.editAfter) {
       throw new ConvexError("This form does not allow changing an answer once it is sent.");
+    }
+    // Leaving the page while changing a sent response saves nothing: what
+    // was sent stays sent, rather than turning back into a partial.
+    if (existing && !existing.partial && args.partial) {
+      return { responseId: existing._id, resumeToken: existing.resumeToken ?? args.resumeToken!, pay: false };
     }
     // A new response, complete or partial, counts against the form's limits;
     // saving more answers into one already started does not.
@@ -715,7 +841,11 @@ export const submit = mutation({
       if (s.spam) {
         if (args.trap) throw new ConvexError("That did not send. Try again in a moment.");
         const fast = (args.durationMs ?? Number.POSITIVE_INFINITY) < TOO_FAST_MS;
-        if (fast && !args.human && !existing) {
+        // With Turnstile set up, a submission either carries a pass from it,
+        // or the person ticks the box (when Turnstile could not run for them).
+        const turnstile = !!process.env.TURNSTILE_SECRET_KEY;
+        const proven = !!args.pass && (await spendPass(ctx, args.pass, form._id));
+        if (!proven && !args.human && !existing && (turnstile || fast)) {
           throw new ConvexError({ code: "prove", message: "Tick the box to show you are a person." });
         }
       }
@@ -730,10 +860,7 @@ export const submit = mutation({
         }
       }
 
-      const blocks = await ctx.db
-        .query("blocks")
-        .withIndex("by_form_order", (q) => q.eq("formId", form._id))
-        .collect();
+      const { blocks } = await servedForm(ctx, form);
       const emailIds = new Set(blocks.filter((b) => b.type === "email").map((b) => b._id as string));
       const email = args.answers
         .find((a) => emailIds.has(a.blockId) && a.value?.trim())

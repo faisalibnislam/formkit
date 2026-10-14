@@ -1,3 +1,5 @@
+import { eraseUser } from "./model/erase";
+import { subscriptionsPaidBy } from "./billing";
 import { v } from "convex/values";
 import { PLANS, compOf, planOf } from "./model/plans";
 import { aiStatus, period as aiPeriodNow } from "./model/aiMeter";
@@ -428,46 +430,23 @@ export const deleteUser = mutation({
     if (confirm !== (target.email ?? "")) {
       throw new Error("Type the account's email address exactly to confirm.");
     }
-
-    const forms = await ctx.db
-      .query("forms")
-      .withIndex("by_owner", (q) => q.eq("ownerId", userId))
-      .collect();
-    for (const form of forms) {
-      const blocks = await ctx.db
-        .query("blocks")
-        .withIndex("by_form_order", (q) => q.eq("formId", form._id))
-        .collect();
-      for (const b of blocks) await ctx.db.delete(b._id);
-      for (const table of ["logicRules", "responses", "versions"] as const) {
-        const rows = await ctx.db
-          .query(table)
-          .withIndex("by_form", (q) => q.eq("formId", form._id))
-          .collect();
-        for (const r of rows) await ctx.db.delete(r._id);
-      }
-      await ctx.db.delete(form._id);
+    // Read before the account goes: the plans it pays for end, with the
+    // unused part refunded.
+    const subscriptions = await subscriptionsPaidBy(ctx, userId);
+    const { forms } = await eraseUser(ctx, target);
+    if (subscriptions.length) {
+      await ctx.scheduler.runAfter(0, internal.billing.endForDeletion, {
+        userId,
+        why: "was deleted by Formkit staff",
+        subscriptions,
+      });
     }
-
-    const companies = await ctx.db
-      .query("companies")
-      .withIndex("by_owner", (q) => q.eq("ownerId", userId))
-      .collect();
-    for (const c of companies) await ctx.db.delete(c._id);
-
-    const handles = await ctx.db
-      .query("handles")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect();
-    for (const h of handles) await ctx.db.delete(h._id);
-
-    await ctx.db.delete(userId);
     await writeAudit(
       ctx,
       staff,
       "Deleted an account and all of its data",
       target.email ?? target.name,
-      `${forms.length} forms`,
+      `${forms} forms${subscriptions.length ? `, ${subscriptions.length} paid plan${subscriptions.length === 1 ? "" : "s"} ended` : ""}`,
     );
     return null;
   },

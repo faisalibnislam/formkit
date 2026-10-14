@@ -57,7 +57,7 @@ export type Block = {
   defaultValue?: string | null;
   /** Pro: places left per option; null where an option has no limit. */
   left?: (number | null)[] | null;
-  /** Business: a hidden field AI fills from another answer. */
+  /** Pro: a hidden field AI fills from another answer. */
   extract?: { from: Id<"blocks"> } | null;
   /** Quiz: what the question is worth, when it counts. */
   marks?: number | null;
@@ -78,7 +78,7 @@ export type Ending = {
 
 export type Answer = { value?: string; values?: string[]; fileId?: Id<"_storage">; fileName?: string };
 
-/** Business: the quiz settings the form itself needs. */
+/** Pro: the quiz settings the form itself needs. */
 export type QuizSettings = {
   timeLimit: number | null;
   shuffleQuestions: boolean;
@@ -176,9 +176,9 @@ export function FormRunner({
   /** Opens the payment page for a response that owes one; the live form only. */
   onPay?: (r: { responseId: Id<"responses">; resumeToken: string }) => Promise<{ url: string } | { paid: true } | null>;
   onStart?: () => void;
-  /** Business: starts a quiz attempt on the server, which keeps its clock. The live form only. */
+  /** Pro: starts a quiz attempt on the server, which keeps its clock. The live form only. */
   onStartQuiz?: () => Promise<{ attemptId: Id<"quizAttempts">; startedAt: number; endsAt: number | null }>;
-  /** Business: asks the AI about answers when a page is finished. The live form only. */
+  /** Pro: asks the AI about answers when a page is finished. The live form only. */
   onThink?: (a: {
     checks: string[];
     facts: string[];
@@ -231,13 +231,13 @@ export function FormRunner({
   const piped = useMemo(() => pipeValues(blocks, answers, results), [blocks, answers, results]);
 
   /* ---------- logic ---------- */
-  // Business: what the AI said about answers, by condition id, once asked.
+  // Pro: what the AI said about answers, by condition id, once asked.
   const [judged, setJudged] = useState<Record<string, boolean>>({});
   const [thinking, setThinking] = useState(false);
   // The answer each AI condition or hidden field was last asked about.
   const askedWith = useRef<Record<string, string>>({});
 
-  /* ---------- quiz: attempt, clock and shuffling (Business) ---------- */
+  /* ---------- quiz: attempt, clock and shuffling (Pro) ---------- */
   const quiz = data.quiz ?? null;
   const [attempt, setAttempt] = useState<{ attemptId?: Id<"quizAttempts">; endsAt: number | null } | null>(null);
   const [quizBlocked, setQuizBlocked] = useState<string | null>(null);
@@ -396,6 +396,15 @@ export function FormRunner({
       const data = (e as { data?: unknown }).data;
       if (data && typeof data === "object" && (data as { code?: string }).code === "prove") {
         setProve(true);
+      } else if (data && typeof data === "object" && (data as { code?: string }).code === "invalid") {
+        // The server found an answer the form does not allow: point at it.
+        const bad = data as { message?: string; blockId?: string | null };
+        setFailed(bad.message || "One of the answers needs another look.");
+        if (bad.blockId) {
+          setProblem(bad.blockId);
+          focusQuestion(bad.blockId);
+          document.getElementById(`q-${bad.blockId}`)?.scrollIntoView({ block: "center" });
+        }
       } else {
         const msg = typeof data === "string" ? data : e instanceof Error ? e.message : "";
         setFailed(msg || "That did not send. Try again in a moment.");
@@ -428,7 +437,7 @@ export function FormRunner({
   }
 
   /**
-   * Business: asks the AI about the answers just given - its yes-or-no
+   * Pro: asks the AI about the answers just given - its yes-or-no
    * conditions and the hidden fields it fills - and works the rules out
    * again with what it said. Never holds anyone up for long: after a few
    * seconds, or on any failure, the form goes on with the fallbacks.
@@ -486,6 +495,7 @@ export function FormRunner({
     const missing = firstMissing(current?.fields ?? []);
     if (missing) {
       setProblem(missing._id);
+      focusQuestion(missing._id);
       document.getElementById(`q-${missing._id}`)?.scrollIntoView({ block: "center" });
       return;
     }
@@ -508,6 +518,7 @@ export function FormRunner({
     if (!cur) return;
     if (isRequired(cur) && !filled(kept[cur._id])) {
       setProblem(cur._id);
+      focusQuestion(cur._id);
       return;
     }
     setProblem(null);
@@ -523,6 +534,7 @@ export function FormRunner({
     if (missing) {
       setStep(fields.indexOf(missing));
       setProblem(missing._id);
+      focusQuestion(missing._id);
       return;
     }
     void send(human, { answers: now.answers, ending: now.outcome.ending });
@@ -720,7 +732,7 @@ export function FormRunner({
           >
             {data.welcome?.button || "Start"}
           </button>
-          <span style={{ fontSize: 13.5, opacity: 0.6 }}>
+          <span style={{ fontSize: 13.5, opacity: 0.75 }}>
             {fields.length} {fields.length === 1 ? "question" : "questions"}
           </span>
         </div>
@@ -756,9 +768,18 @@ export function FormRunner({
 
   const failure = failed && <div className="fk-live-err" role="alert" style={{ marginTop: 18 }}>{failed}</div>;
 
-  const question = (b: Block, big = false) => (
+  const question = (b: Block, big = false) => {
+    const err = fileProblem[b._id] ?? (problem === b._id ? "This one is needed before you can go on." : null);
+    const a11y: A11y = {
+      id: `q-${b._id}-input`,
+      labelledBy: `q-${b._id}-title`,
+      describedBy: [b.help ? `q-${b._id}-help` : null, err ? `q-${b._id}-err` : null].filter(Boolean).join(" ") || undefined,
+      required: isRequired(b),
+      invalid: !!err,
+    };
+    return (
     <div key={b._id} className="fk-live-q" id={`q-${b._id}`} data-big={big ? "true" : undefined}>
-      <div className="fk-live-q-title">
+      <div className="fk-live-q-title" id={`q-${b._id}-title`}>
         {say(b.title)}
         {isRequired(b) && (
           <span className="fk-live-req" aria-hidden>
@@ -771,9 +792,14 @@ export function FormRunner({
           </span>
         ) : null}
       </div>
-      {b.help && <div className="fk-live-q-help">{say(b.help)}</div>}
+      {b.help && (
+        <div className="fk-live-q-help" id={`q-${b._id}-help`}>
+          {say(b.help)}
+        </div>
+      )}
       <div className="fk-live-q-control">
         <Control
+          a11y={a11y}
           block={b}
           theme={theme}
           value={answers[b._id]}
@@ -788,16 +814,24 @@ export function FormRunner({
           shuffle={quiz?.shuffleOptions ? seed : undefined}
         />
       </div>
-      {fileProblem[b._id] ? (
-        <div className="fk-live-err">{fileProblem[b._id]}</div>
-      ) : (
-        problem === b._id && <div className="fk-live-err">This one is needed before you can go on.</div>
+      {err && (
+        <div className="fk-live-err" id={`q-${b._id}-err`} role="alert">
+          {err}
+        </div>
       )}
     </div>
-  );
+    );
+  };
 
   const progress = (n: number, of: number) => (
-    <div className="fk-live-progress" aria-hidden>
+    <div
+      className="fk-live-progress"
+      role="progressbar"
+      aria-label="Progress through the form"
+      aria-valuemin={0}
+      aria-valuemax={of}
+      aria-valuenow={n}
+    >
       <span style={{ width: `${of ? Math.round((n / of) * 100) : 0}%`, background: theme.primary }} />
     </div>
   );
@@ -918,7 +952,7 @@ export function FormRunner({
           <button type="submit" style={button(true)} disabled={busy || thinking || !fields.length}>
             {thinking ? "One moment…" : busy ? "Sending…" : lastPage ? (resume?.editing ? "Save changes" : "Submit") : "Next"}
           </button>
-          <span style={{ fontSize: 13.5, opacity: 0.6 }}>
+          <span style={{ fontSize: 13.5, opacity: 0.75 }}>
             {answeredCount} of {fields.length} answered
           </span>
         </div>
@@ -965,6 +999,7 @@ export function Shell({
           fontFamily: brandFont ? `"${brandFont}", ${fontStack(t.font)}` : fontStack(t.font),
           "--fk-live-heading": brandFont ? `"${brandFont}", ${fontStack(t.heading)}` : fontStack(t.heading),
           "--fk-live-weight": WEIGHTS[t.weight],
+          "--fk-live-accent": t.primary,
         } as React.CSSProperties
       }
     >
@@ -992,6 +1027,7 @@ export function Shell({
 /* ---------- one answer control ---------- */
 
 function Control({
+  a11y,
   block,
   theme,
   value,
@@ -1002,6 +1038,8 @@ function Control({
   hiddenOptions,
   shuffle,
 }: {
+  /** Names, states and descriptions for assistive technology. */
+  a11y: A11y;
   block: Block;
   theme: ReturnType<typeof themeOf>;
   value?: Answer;
@@ -1016,6 +1054,22 @@ function Control({
   shuffle?: number;
 }) {
   const radius = Math.min(theme.radius, 24);
+  // What every native control carries: its name (the question), its help and
+  // error text, and whether it is required or wrong.
+  const native = {
+    id: a11y.id,
+    "aria-labelledby": a11y.labelledBy,
+    "aria-describedby": a11y.describedBy,
+    "aria-required": a11y.required || undefined,
+    "aria-invalid": a11y.invalid || undefined,
+  };
+  const group = {
+    id: a11y.id,
+    "aria-labelledby": a11y.labelledBy,
+    "aria-describedby": a11y.describedBy,
+    "aria-required": a11y.required || undefined,
+    "aria-invalid": a11y.invalid || undefined,
+  };
   // The options on offer: minus any a rule hides, each with its places left.
   const listed = (block.options ?? [])
     .map((o, i) => ({ o, left: block.left?.[i] ?? null }))
@@ -1045,7 +1099,7 @@ function Control({
           autoComplete="street-address"
           placeholder={block.placeholder ?? ""}
           value={value?.value ?? ""}
-          aria-label={block.title ?? "Address"}
+          {...native}
           onChange={(e) => onChange({ value: e.target.value })}
         />
       );
@@ -1057,7 +1111,7 @@ function Control({
           style={{ ...box, resize: "vertical" }}
           placeholder={block.placeholder ?? ""}
           value={value?.value ?? ""}
-          aria-label={block.title ?? "Answer"}
+          {...native}
           onChange={(e) => onChange({ value: e.target.value })}
         />
       );
@@ -1068,12 +1122,16 @@ function Control({
         block.type === "yes-no"
           ? ["Yes", "No"].filter((o) => !hiddenOptions?.has(o)).map((o) => ({ o, left: null as number | null }))
           : offered;
+      const focusable = options.find((x) => x.o === value?.value)?.o ?? options.find((x) => !(x.left !== null && x.left <= 0))?.o;
       return (
-        <div className="fk-live-choices">
+        <div className="fk-live-choices" role="radiogroup" {...group} onKeyDown={radioKeys}>
           {options.map(({ o, left }) => (
             <button
               key={o}
               type="button"
+              role="radio"
+              aria-checked={value?.value === o}
+              tabIndex={o === focusable ? 0 : -1}
               className="fk-live-choice"
               data-picked={value?.value === o ? "true" : undefined}
               data-full={left !== null && left <= 0 ? "true" : undefined}
@@ -1092,11 +1150,13 @@ function Control({
     case "multi-choice": {
       const picked = value?.values ?? [];
       return (
-        <div className="fk-live-choices">
+        <div className="fk-live-choices" role="group" {...group}>
           {offered.map(({ o, left }) => (
             <button
               key={o}
               type="button"
+              role="checkbox"
+              aria-checked={picked.includes(o)}
               className="fk-live-choice"
               data-picked={picked.includes(o) ? "true" : undefined}
               data-full={left !== null && left <= 0 && !picked.includes(o) ? "true" : undefined}
@@ -1121,7 +1181,7 @@ function Control({
         <select
           style={box}
           value={value?.value ?? ""}
-          aria-label={block.title ?? "Answer"}
+          {...native}
           onChange={(e) => onChange({ value: e.target.value })}
         >
           <option value="">Choose one</option>
@@ -1136,11 +1196,14 @@ function Control({
     case "rating": {
       const max = block.scaleMax ?? 5;
       return (
-        <div className="fk-live-scale">
+        <div className="fk-live-scale" role="radiogroup" {...group} onKeyDown={radioKeys}>
           {Array.from({ length: max }).map((_, i) => (
             <button
               key={i}
               type="button"
+              role="radio"
+              aria-checked={Number(value?.value) === i + 1}
+              tabIndex={(Number(value?.value) || 1) === i + 1 ? 0 : -1}
               aria-label={`${i + 1} out of ${max}`}
               data-picked={Number(value?.value) >= i + 1 ? "true" : undefined}
               onClick={() => onChange({ value: String(i + 1) })}
@@ -1156,13 +1219,17 @@ function Control({
       const from = block.scaleMin ?? 1;
       const to = block.scaleMax ?? 5;
       return (
-        <div className="fk-live-scale">
+        <div className="fk-live-scale" role="radiogroup" {...group} onKeyDown={radioKeys}>
           {Array.from({ length: Math.max(0, to - from + 1) }).map((_, i) => {
             const n = from + i;
+            const chosen = value?.value === String(n);
             return (
               <button
                 key={n}
                 type="button"
+                role="radio"
+                aria-checked={chosen}
+                tabIndex={chosen || (!value?.value && i === 0) ? 0 : -1}
                 data-picked={value?.value === String(n) ? "true" : undefined}
                 onClick={() => onChange({ value: String(n) })}
               >
@@ -1177,6 +1244,7 @@ function Control({
     case "file":
       return (
         <label
+          className="fk-live-file"
           style={{
             ...box,
             display: "flex",
@@ -1194,8 +1262,9 @@ function Control({
           </span>
           <input
             type="file"
+            {...native}
+            className="sr-only"
             accept={block.accept?.length ? block.accept.join(",") : undefined}
-            style={{ display: "none" }}
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) onFile(file);
@@ -1224,7 +1293,7 @@ function Control({
           style={{ ...box, fontSize: "1.3em" }}
           placeholder="Type your full name"
           value={value?.value ?? ""}
-          aria-label={block.title ?? "Signature"}
+          {...native}
           onChange={(e) => onChange({ value: e.target.value })}
         />
       );
@@ -1261,11 +1330,41 @@ function Control({
           }
           placeholder={block.placeholder ?? ""}
           value={value?.value ?? ""}
-          aria-label={block.title ?? "Answer"}
+          {...native}
           onChange={(e) => onChange({ value: e.target.value })}
         />
       );
   }
+}
+
+type A11y = { id: string; labelledBy: string; describedBy?: string; required: boolean; invalid: boolean };
+
+/**
+ * Arrow keys move through a radio group, choosing as they go, the way native
+ * radio buttons behave; Tab enters and leaves the group in one stop.
+ */
+function radioKeys(e: React.KeyboardEvent<HTMLDivElement>) {
+  const step = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
+  if (!step) return;
+  const radios = [...e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]:not(:disabled)')];
+  const at = radios.indexOf(document.activeElement as HTMLButtonElement);
+  if (!radios.length) return;
+  e.preventDefault();
+  const next = radios[(at + step + radios.length) % radios.length]!;
+  next.focus();
+  next.click();
+}
+
+/** Moves focus to a question's control (or its first option) after a problem is found. */
+function focusQuestion(id: string) {
+  window.requestAnimationFrame(() => {
+    const root = document.getElementById(`q-${id}`);
+    root?.scrollIntoView({ block: "center" });
+    const target =
+      root?.querySelector<HTMLElement>(`#q-${id}-input:not([role="radiogroup"]):not([role="group"])`) ??
+      root?.querySelector<HTMLElement>('[role="radio"][tabindex="0"], [role="checkbox"], input, textarea, select, button');
+    target?.focus({ preventScroll: true });
+  });
 }
 
 /** Enough to tell a phone from a laptop, and nothing more. */

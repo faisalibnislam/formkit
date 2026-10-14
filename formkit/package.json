@@ -7,6 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "next typegen && tsc --noEmit -p . && tsc --noEmit -p convex",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "preview": "FK_PREVIEW=1 next dev --port 3001",
     "shots": "node scripts/shots.mjs",
     "drag-check": "node scripts/drag-check.mjs",
@@ -16,6 +19,7 @@
   "dependencies": {
     "@auth/core": "^0.41.3",
     "@convex-dev/auth": "^0.0.95",
+    "@sentry/nextjs": "^11.7.0",
     "convex": "^1.46.0",
     "fflate": "^0.8.3",
     "jspdf": "^4.2.1",
@@ -27,15 +31,18 @@
     "resend": "^6.28.1"
   },
   "devDependencies": {
+    "@edge-runtime/vm": "^5.0.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "convex-test": "^0.0.61",
     "eslint": "^9",
     "eslint-config-next": "16.3.5",
     "playwright": "^1.63.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.7"
   }
 }

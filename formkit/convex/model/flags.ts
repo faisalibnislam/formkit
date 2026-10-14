@@ -42,6 +42,13 @@ export const FLAGS = [
     defaultOn: false,
   },
   {
+    key: "forms.strictAnswers",
+    label: "Check answers on the server",
+    description:
+      "A submission whose answers the form would not allow (a required question left out, a choice that is not offered, a malformed email) is refused. Off, such submissions are stored and recorded for review (publicForm:validationReport).",
+    defaultOn: false,
+  },
+  {
     key: "exports.xlsx",
     label: "Excel export",
     description: "Responses, contacts and analytics download as .xlsx as well as CSV.",

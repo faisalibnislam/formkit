@@ -79,6 +79,8 @@ export default defineSchema({
     staffRole: v.optional(
       v.union(v.literal("owner"), v.literal("admin"), v.literal("support")),
     ),
+    /** When STAFF_EMAILS granted the role; it is granted once, so the console can take it away. */
+    staffBootstrapAt: v.optional(v.number()),
 
     // The plan (see model/plans.ts). Written by the Polar webhook; `planComp`
     // is a plan staff gave by hand, which wins over billing.
@@ -100,7 +102,7 @@ export default defineSchema({
     hideBadge: v.optional(v.boolean()),
     /** When the current paid plan began - for tenure and cohort figures. */
     planSince: v.optional(v.number()),
-    /** Business: AI replies and AI logic checks used this month ("2026-09"). */
+    /** Pro: AI replies and AI logic checks used this month ("2026-09"). */
     aiReplyPeriod: v.optional(v.string()),
     aiReplyUsed: v.optional(v.number()),
     /** Bought replies, which roll over until used. */
@@ -333,7 +335,7 @@ export default defineSchema({
         }),
       ),
     ),
-    /** Business: the form is a quiz or exam, marked as it is sent. See convex/quiz.ts. */
+    /** Pro: the form is a quiz or exam, marked as it is sent. See convex/quiz.ts. */
     quiz: v.optional(
       v.object({
         enabled: v.boolean(),
@@ -357,7 +359,7 @@ export default defineSchema({
       }),
     ),
     /**
-     * Business: a reply written by AI for each person who answers, from the
+     * Pro: a reply written by AI for each person who answers, from the
      * owner's instructions and their answers. See convex/aiReply.ts.
      */
     aiReply: v.optional(
@@ -457,14 +459,14 @@ export default defineSchema({
     /** Pro: how many people can pick each option, in the same order as `options`; 0 is no limit. */
     limits: v.optional(v.array(v.number())),
     /**
-     * Business: a hidden field filled by AI from another answer - "the budget
+     * Pro: a hidden field filled by AI from another answer - "the budget
      * in dollars, as a number" read out of a free-text reply.
      */
     extract: v.optional(v.object({ from: v.id("blocks"), what: v.string() })),
   }).index("by_form_order", ["formId", "order"]),
 
   /**
-   * Business: what the AI said about an answer, kept so the same answer is
+   * Pro: what the AI said about an answer, kept so the same answer is
    * never asked about twice. `key` hashes the condition (or hidden field) with
    * the answer it read. Also counts a form's checks per hour.
    */
@@ -481,7 +483,7 @@ export default defineSchema({
     .index("by_form_at", ["formId", "at"])
     .index("by_at", ["at"]),
 
-  /** Business: a quiz started, so the timer is kept by the server, not the browser. */
+  /** Pro: a quiz started, so the timer is kept by the server, not the browser. */
   quizAttempts: defineTable({
     formId: v.id("forms"),
     startedAt: v.number(),
@@ -566,7 +568,7 @@ export default defineSchema({
     calc: v.optional(v.record(v.string(), v.number())),
     /** Which ending the person saw, when it was not the default. */
     ending: v.optional(v.string()),
-    /** Business: the mark, when the form is a quiz. */
+    /** Pro: the mark, when the form is a quiz. */
     quiz: v.optional(
       v.object({
         score: v.number(),
@@ -607,11 +609,13 @@ export default defineSchema({
         charged: v.optional(v.union(v.literal("monthly"), v.literal("pack"))),
         /** The AI thinks a person should follow this one up. */
         needsHuman: v.optional(v.boolean()),
+        /** Kept back because the AI flagged it: not emailed or shown until the owner sends it. */
+        held: v.optional(v.boolean()),
         /** Changed by the owner after the AI wrote it. */
         edited: v.optional(v.boolean()),
       }),
     ),
-    /** Business: what the AI read in this response, recorded with its reply. */
+    /** Pro: what the AI read in this response, recorded with its reply. */
     insight: v.optional(
       v.object({
         sentiment: v.union(v.literal("positive"), v.literal("neutral"), v.literal("negative")),
@@ -711,6 +715,10 @@ export default defineSchema({
     number: v.number(),
     label: v.string(),
     blocks: v.array(v.any()),
+    /** The form's logic rules, as published. Absent on versions from before snapshots (model/served.ts). */
+    rules: v.optional(v.array(v.any())),
+    /** The content around the questions, as published: model/served.ts CONTENT. */
+    content: v.optional(v.any()),
     publishedAt: v.number(),
     publishedBy: v.optional(v.string()),
   }).index("by_form", ["formId", "number"]),
@@ -856,6 +864,29 @@ export default defineSchema({
    * Platform state the admin console owns. A single settings row plus per-user
    * AI access, so the customer app follows an admin change on the next read.
    */
+  /**
+   * Submissions whose answers the form would not have allowed, recorded while
+   * server checks run in log-only mode (flag forms.strictAnswers off), so they
+   * can be reviewed before checks are enforced. Kept 30 days.
+   */
+  /**
+   * One-time proof that a Cloudflare Turnstile check passed for a form,
+   * issued by an action (mutations cannot call Cloudflare) and spent by the
+   * submission it was issued for. Old ones are swept hourly.
+   */
+  humanPasses: defineTable({
+    formId: v.id("forms"),
+    at: v.number(),
+    used: v.optional(v.boolean()),
+  }).index("by_at", ["at"]),
+
+  validationLog: defineTable({
+    formId: v.id("forms"),
+    at: v.number(),
+    partial: v.boolean(),
+    problems: v.array(v.object({ code: v.string(), blockId: v.optional(v.string()) })),
+  }).index("by_at", ["at"]),
+
   platform: defineTable({
     key: v.string(),
     value: v.any(),

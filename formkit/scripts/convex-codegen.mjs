@@ -35,6 +35,9 @@ function walk(dir) {
     }
     if (!/\.(ts|js|tsx|jsx)$/.test(entry)) continue;
     if (/\.d\.ts$/.test(entry)) continue;
+    // Like the Convex bundler: a name with more than one dot (foo.test.ts,
+    // test.setup.ts) is not a module.
+    if (entry.split(".").length > 2) continue;
     if (SKIP.has(relative(convexDir, full))) continue;
     out.push(relative(convexDir, full).replace(/\\/g, "/"));
   }

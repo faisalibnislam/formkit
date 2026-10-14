@@ -3,6 +3,7 @@ import { action, internalMutation, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { aiAllowed, requireUser } from "./model/identity";
+import { servedForm } from "./model/served";
 import { formFor } from "./model/forms";
 import { hasFeature } from "./model/plans";
 import { canSpend } from "./model/aiMeter";
@@ -14,7 +15,7 @@ import { generate, ModelError, parseJson, voice } from "./model/gemini";
 /**
  * AI in a form's logic.
  *
- * "AI decides" (Business): a condition that asks the AI a yes-or-no question
+ * "AI decides" (Pro): a condition that asks the AI a yes-or-no question
  * about an answer, and hidden fields the AI fills with a fact pulled out of an
  * answer. The form asks when a page is finished. Each answer is asked about
  * once - judgements are kept by a hash of the question and the answer - and
@@ -50,17 +51,14 @@ export const thinkContext = internalQuery({
     if (!form || form.status !== "published" || form.deletedAt) return null;
     const owner = await ctx.db.get(form.ownerId);
     if (!owner || !(await hasFeature(ctx, form, "logic.ai"))) return null;
+    // Paused by staff, or off for this account: the form takes each rule's
+    // fallback path, exactly as when the AI does not answer in time.
+    if (!(await aiAllowed(ctx, owner._id))) return null;
 
-    const rules = (
-      await ctx.db
-        .query("logicRules")
-        .withIndex("by_form", (q) => q.eq("formId", formId))
-        .collect()
-    ).filter((r) => r.enabled);
-    const blocks = await ctx.db
-      .query("blocks")
-      .withIndex("by_form_order", (q) => q.eq("formId", formId))
-      .collect();
+    // The rules and questions as published: what the person is answering.
+    const served = await servedForm(ctx, form);
+    const rules = served.rules.filter((r) => r.enabled);
+    const blocks = served.blocks;
     const titles = new Map(blocks.map((b) => [b._id as string, b.title ?? ""]));
 
     const checks = rules

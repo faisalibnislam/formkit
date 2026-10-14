@@ -317,7 +317,7 @@ export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
               )}
             </div>
 
-            <ClosingRules formId={formId} closing={form.closing} responses={form.responses} zone={zone} />
+            <ClosingRules formId={formId} closing={form.closing} responses={form.completed} zone={zone} />
 
             <div style={{ paddingTop: 6 }}>
               <Field label="Message visitors see when it is closed">

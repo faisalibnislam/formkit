@@ -1,5 +1,6 @@
 "use client";
 
+import { Turnstile, TURNSTILE_SITE_KEY } from "./Turnstile";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { Lock } from "lucide-react";
@@ -69,17 +70,31 @@ export function LiveForm({
     }
   }, [open, recordView]);
 
+  // The spam check: a Turnstile token, traded for a one-time pass as a
+  // finished form is sent. Without one the server asks for the tick box.
+  const verifyHuman = useAction(api.publicForm.verifyHuman);
+  const captcha = useRef<string | null>(null);
+  const resetCaptcha = useRef<() => void>(() => {});
+  const checking = !!open?.rules.spam && !!TURNSTILE_SITE_KEY;
+
   const onSubmit = useCallback(
-    (args: SubmitArgs) =>
-      submit({
+    async (args: SubmitArgs) => {
+      let pass: Id<"humanPasses"> | undefined;
+      if (checking && !args.partial && captcha.current) {
+        pass = (await verifyHuman({ formId: open!.formId, token: captcha.current }).catch(() => null)) ?? undefined;
+        resetCaptcha.current();
+      }
+      return submit({
         formId: open!.formId,
         ...args,
+        ...(pass ? { pass } : {}),
         password,
         resumeToken: resume?.token,
         deviceId: deviceId(),
         source: sourceLabel(),
-      }),
-    [open, password, resume?.token, submit],
+      });
+    },
+    [open, password, resume?.token, submit, verifyHuman, checking],
   );
 
   const upload = useCallback(
@@ -183,16 +198,19 @@ export function LiveForm({
   }
 
   return (
-    <FormRunner
-      data={data as OpenForm}
-      mode="live"
-      resume={resume}
-      onSubmit={onSubmit}
-      onPay={checkout}
-      onThink={(a) => think({ formId: (data as OpenForm).formId, ...a })}
-      onStartQuiz={() => startQuiz({ formId: (data as OpenForm).formId, deviceId: deviceId() })}
-      onStart={() => void recordView({ formId: data.formId, started: true, source: sourceLabel(), deviceId: deviceId() })}
-      upload={upload}
-    />
+    <>
+      <FormRunner
+        data={data as OpenForm}
+        mode="live"
+        resume={resume}
+        onSubmit={onSubmit}
+        onPay={checkout}
+        onThink={(a) => think({ formId: (data as OpenForm).formId, ...a })}
+        onStartQuiz={() => startQuiz({ formId: (data as OpenForm).formId, deviceId: deviceId() })}
+        onStart={() => void recordView({ formId: data.formId, started: true, source: sourceLabel(), deviceId: deviceId() })}
+        upload={upload}
+      />
+      {checking && <Turnstile tokenRef={captcha} resetRef={resetCaptcha} />}
+    </>
   );
 }

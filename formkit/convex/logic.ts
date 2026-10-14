@@ -75,7 +75,7 @@ const action = v.union(
 
 /**
  * What a rule may use on the owner's plan: several endings and hidden options
- * are Pro, AI conditions Business. Refused with the upgrade sheet's error.
+ * are Pro, and so are AI conditions. Refused with the upgrade sheet's error.
  */
 async function checkPlan(
   ctx: Parameters<typeof requireFeature>[0],

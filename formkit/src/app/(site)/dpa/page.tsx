@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { LegalDocument } from "@/components/site/LegalDocument";
 import { JsonLd, breadcrumb } from "@/components/site/JsonLd";
-import { DPA, DPA_FOOT, LEGAL_UPDATED } from "@/content/legal";
+import { DPA, DPA_FOOT, DPA_UPDATED } from "@/content/legal";
 import { SHARE_IMAGE, SITE_URL } from "@/lib/site";
 
 const TITLE = "Data processing agreement";
@@ -36,7 +36,7 @@ export default function DpaPage() {
           ],
         }}
       />
-      <LegalDocument title={TITLE} intro={DESCRIPTION} updated={LEGAL_UPDATED} sections={DPA} foot={DPA_FOOT} />
+      <LegalDocument title={TITLE} intro={DESCRIPTION} updated={DPA_UPDATED} sections={DPA} foot={DPA_FOOT} />
     </>
   );
 }
