@@ -54,10 +54,23 @@ npx convex env set --prod GEMINI_API_KEY  ...                    # Gemini API ke
 npx convex env set --prod GEMINI_MODEL    gemini-3.8-flash       # optional: tried first, before the built-in list
 ```
 
+**Google and Microsoft sign-in** (Business single sign-on) are switched on by
+setting their OAuth apps on the Convex deployment: `AUTH_GOOGLE_ID` /
+`AUTH_GOOGLE_SECRET`, and `AUTH_MICROSOFT_ENTRA_ID_ID` /
+`AUTH_MICROSOFT_ENTRA_ID_SECRET` (optionally `AUTH_MICROSOFT_ENTRA_ID_ISSUER`).
+Formkit only accepts an address the provider has verified, so the Microsoft
+app registration must include the **`xms_edov`** optional claim on the ID token
+(Entra admin centre → App registrations → Token configuration → Add optional
+claim → ID → `xms_edov`). Without it, Microsoft sign-in is refused rather than
+trusting an email any tenant could claim. After enabling either provider on a
+deployment that already has users, run `npx convex run security:oauthLinkAudit`
+once and check that the list is empty.
+
 `STAFF_EMAILS` is how the first staff account comes to exist. The console at
 `/admin` is gated on a staff role, and nothing in the product can grant one, so
 a fresh deployment would otherwise have a console nobody can reach. Addresses
-listed here get the owner role the first time they sign in; after that every
+listed here get the owner role once, when a new account first verifies one of
+them (the emailed code, or a provider-verified sign-in); after that every
 role is changed from inside the console, where the change is audited.
 
 Without `AUTH_RESEND_KEY` nothing is sent and every attempt is written to the

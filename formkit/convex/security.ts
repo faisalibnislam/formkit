@@ -683,3 +683,40 @@ export const purgeDeactivated = internalMutation({
     return users.length - 1;
   },
 });
+
+/**
+ * Accounts where a Google or Microsoft sign-in was linked onto an account
+ * that already existed with a password: the pattern an address-spoofing
+ * sign-in would leave. For staff to review once, after the nOAuth fix:
+ * `npx convex run security:oauthLinkAudit` (add --prod for production).
+ * An empty list means nothing to look into.
+ */
+export const oauthLinkAudit = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const found: { userId: Id<"users">; email: string | null; provider: string; linkedAt: number; passwordSince: number }[] =
+      [];
+    for (const provider of ["microsoft-entra-id", "google"]) {
+      const linked = await ctx.db
+        .query("authAccounts")
+        .withIndex("providerAndAccountId", (q) => q.eq("provider", provider))
+        .collect();
+      for (const acc of linked) {
+        const password = await ctx.db
+          .query("authAccounts")
+          .withIndex("userIdAndProvider", (q) => q.eq("userId", acc.userId).eq("provider", "password"))
+          .first();
+        if (!password || password._creationTime >= acc._creationTime) continue;
+        const user = await ctx.db.get(acc.userId);
+        found.push({
+          userId: acc.userId,
+          email: user?.email ?? null,
+          provider,
+          linkedAt: acc._creationTime,
+          passwordSince: password._creationTime,
+        });
+      }
+    }
+    return found.sort((a, b) => b.linkedAt - a.linkedAt);
+  },
+});

@@ -79,6 +79,8 @@ export default defineSchema({
     staffRole: v.optional(
       v.union(v.literal("owner"), v.literal("admin"), v.literal("support")),
     ),
+    /** When STAFF_EMAILS granted the role; it is granted once, so the console can take it away. */
+    staffBootstrapAt: v.optional(v.number()),
 
     // The plan (see model/plans.ts). Written by the Polar webhook; `planComp`
     // is a plan staff gave by hand, which wins over billing.
