@@ -621,6 +621,13 @@ async function store(
     });
   }
 
+  // Changing a response that was already sent: its integrations hear about
+  // the change, and nothing that greets a new response runs again.
+  if (!args.partial && !preview && existing && !existing.partial) {
+    await ctx.scheduler.runAfter(0, internal.connections.fanout, { responseId, event: "response.updated" });
+    return { responseId, resumeToken: record.resumeToken, pay: payment?.status === "pending" };
+  }
+
   if (!args.partial && !preview) {
     const saved = await ctx.db.get(responseId);
     if (saved && after) await notifyResponse(ctx, after, saved);
@@ -757,6 +764,11 @@ export const submit = mutation({
     if (existing && existing.formId !== form._id) throw new ConvexError("That link belongs to another form.");
     if (existing && !existing.partial && !s.editAfter) {
       throw new ConvexError("This form does not allow changing an answer once it is sent.");
+    }
+    // Leaving the page while changing a sent response saves nothing: what
+    // was sent stays sent, rather than turning back into a partial.
+    if (existing && !existing.partial && args.partial) {
+      return { responseId: existing._id, resumeToken: existing.resumeToken ?? args.resumeToken!, pay: false };
     }
     // A new response, complete or partial, counts against the form's limits;
     // saving more answers into one already started does not.

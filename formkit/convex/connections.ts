@@ -207,7 +207,7 @@ export const ownConnection = internalQuery({
 /* ------------------------------------------------------------------ */
 
 type Payload = {
-  event: "response.created" | "response.paid" | "response.test";
+  event: "response.created" | "response.updated" | "response.paid" | "response.test";
   form: { id: string; title: string };
   response: {
     id: string;
@@ -247,7 +247,7 @@ async function fileLinks(ctx: QueryCtx, rows: Doc<"responses">[]) {
   return links;
 }
 
-const EVENT = v.optional(v.union(v.literal("response.created"), v.literal("response.paid")));
+const EVENT = v.optional(v.union(v.literal("response.created"), v.literal("response.updated"), v.literal("response.paid")));
 
 export const payloadFor = internalQuery({
   args: { responseId: v.id("responses"), event: EVENT },
@@ -378,7 +378,12 @@ function slackText(p: Payload) {
     const money = moneyText(pay.amount, pay.currency);
     return `${who} paid ${money} for *${p.form.title}*`;
   }
-  const head = p.event === "response.test" ? `Test from Formkit: ${p.form.title}` : `New response to *${p.form.title}*`;
+  const head =
+    p.event === "response.test"
+      ? `Test from Formkit: ${p.form.title}`
+      : p.event === "response.updated"
+        ? `Answers changed on *${p.form.title}*`
+        : `New response to *${p.form.title}*`;
   return [head, ...lines].join("\n\n");
 }
 

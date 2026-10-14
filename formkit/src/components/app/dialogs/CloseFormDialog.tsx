@@ -130,7 +130,7 @@ export function CloseFormDialog({
             <ClosingRules
               formId={formId}
               closing={form.closing}
-              responses={form.responses}
+              responses={form.completed}
               zone={zone}
               dateHint="It closes itself the moment this passes"
             />

@@ -87,7 +87,8 @@ export function completionRate(form: Doc<"forms">) {
 export function shouldAutoClose(form: Doc<"forms">, now: number) {
   if (form.status !== "published" || !form.closing) return false;
   if (form.closing.closeAt && form.closing.closeAt <= now) return true;
-  if (form.closing.closeAfter && form.responsesCount >= form.closing.closeAfter) return true;
+  // Only finished responses count: half-answers left behind never close a form.
+  if (form.closing.closeAfter && form.completedCount >= form.closing.closeAfter) return true;
   return false;
 }
 
