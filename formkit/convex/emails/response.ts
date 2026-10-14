@@ -166,11 +166,14 @@ export function renderDigest({
   heading,
   lede,
   rows,
+  notes = [],
   link,
 }: {
   heading: string;
   lede: string;
   rows: { form: string; line: string; count?: number }[];
+  /** Weekly, Pro: what people said, form by form, written by AI from its reading of each response. */
+  notes?: { form: string; text: string }[];
   link: string;
 }) {
   return renderShell({
@@ -183,7 +186,13 @@ export function renderDigest({
         line: r.line,
         figure: r.count !== undefined ? `${r.count.toLocaleString("en-US")} new` : undefined,
       })),
-    )}${button("Open your responses", link)}`,
+    )}${
+      notes.length
+        ? `<div style="margin-top:26px;font-size:13px;font-weight:500;color:${C.muted};">What people said, read by AI</div>${notes
+            .map((n) => quote(n.text, n.form, { top: 10 }))
+            .join("")}`
+        : ""
+    }${button("Open your responses", link)}`,
     reason: "You chose to get this summary in Formkit.",
     links: [{ label: "Notification settings", href: SETTINGS }],
   });
