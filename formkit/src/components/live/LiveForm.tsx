@@ -3,7 +3,7 @@
 import { Turnstile, TURNSTILE_SITE_KEY } from "./Turnstile";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
-import { Lock } from "lucide-react";
+import { Clock, Lock } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { buttonInk, themeOf } from "@/components/app/editor/themes";
@@ -197,6 +197,25 @@ export function LiveForm({
         <p className="fk-live-lede">
           It is not open for answers at the moment. Check with whoever sent you the link.
         </p>
+      </Shell>
+    );
+  }
+
+  if (data.state === "soon") {
+    const when = new Intl.DateTimeFormat(undefined, {
+      dateStyle: "full",
+      timeStyle: "short",
+      ...(data.timezone ? { timeZone: data.timezone, timeZoneName: "short" } : {}),
+    }).format(new Date(data.opensAt));
+    return (
+      <Shell theme={themeOf(data.theme)} brand={data.brand} logos={data.logos}>
+        <div style={{ paddingTop: "8vh", textAlign: "center" }}>
+          <span className="fk-live-lock">
+            <Clock size={30} strokeWidth={1.8} aria-hidden />
+          </span>
+          <h1 style={{ marginTop: 22 }}>{data.title}</h1>
+          <p className="fk-live-lede">Opens {when}. Come back then.</p>
+        </div>
       </Shell>
     );
   }

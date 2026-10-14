@@ -45,6 +45,73 @@ export function closeWhenLabel(closing: Closing, responses: number, zone: string
   return s.charAt(0).toUpperCase() + s.slice(1) + ".";
 }
 
+/** A draft or closed form, opening on its own at a set time. */
+export function OpeningRule({ formId, opensAt, zone }: { formId: Id<"forms">; opensAt: number | null; zone: string }) {
+  const setOpening = useMutation(api.forms.setOpening);
+  const save = (at: number | null) => tracked(setOpening({ formId, opensAt: at }));
+  const wall = opensAt ? epochToZoned(opensAt, zone) : null;
+  return (
+    <>
+      <div className="fk-proprow">
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14 }}>Open on a date and time</div>
+          <div className="fk-proprow-hint">Goes live by itself, as it is then. Until that time its link says when it opens.</div>
+        </div>
+        <Switch
+          checked={opensAt !== null}
+          label="Open on a date and time"
+          onChange={(on) => {
+            if (!on) return void save(null);
+            const tomorrow = epochToZoned(Date.now() + 24 * 60 * 60 * 1000, zone);
+            void save(zonedToEpoch(tomorrow.date, "09:00", zone) ?? Date.now() + 24 * 60 * 60 * 1000);
+          }}
+        />
+      </div>
+      {wall && (
+        <>
+          <div className="fk-closing-when">
+            <label>
+              <span>Date</span>
+              <input
+                type="date"
+                value={wall.date}
+                aria-label="Opening date"
+                onChange={(e) => {
+                  const next = zonedToEpoch(e.target.value, wall.time, zone);
+                  if (next) void save(next);
+                }}
+              />
+            </label>
+            <label>
+              <span>Time</span>
+              <input
+                type="time"
+                value={wall.time}
+                aria-label="Opening time"
+                onChange={(e) => {
+                  const next = zonedToEpoch(wall.date, e.target.value || "09:00", zone);
+                  if (next) void save(next);
+                }}
+              />
+            </label>
+            <div style={{ flex: 1, minWidth: 180 }}>
+              <span>Time zone</span>
+              <div className="fk-closing-zone" title={zone}>
+                <Globe size={15} strokeWidth={1.8} aria-hidden />
+                <span>{zoneLabel(zone)}</span>
+              </div>
+            </div>
+          </div>
+          <div className="fk-closing-countdown">
+            <Clock size={15} strokeWidth={1.8} aria-hidden />
+            <span>{`Opens ${formatIn(opensAt!, zone)}, ${untilLabel(opensAt!)}.`}</span>
+          </div>
+        </>
+      )}
+    </>
+  );
+}
+
 export function ClosingRules({
   formId,
   closing,

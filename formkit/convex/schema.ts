@@ -434,6 +434,12 @@ export default defineSchema({
     notify: v.optional(v.any()),
     /** Who may answer, and how often. See `model/security.ts`. */
     security: v.optional(v.any()),
+    /**
+     * Opens on its own at this time (a draft is published, a closed form
+     * reopened), as the person who set it. Cleared once it has opened.
+     */
+    opensAt: v.optional(v.number()),
+    openingBy: v.optional(v.id("users")),
     closing: v.optional(
       v.object({
         message: v.optional(v.string()),
@@ -479,6 +485,8 @@ export default defineSchema({
     .index("by_owner_status", ["ownerId", "status"])
     .index("by_slug", ["slug"])
     .index("by_status", ["status"])
+    .index("by_opens_at", ["opensAt"])
+    .index("by_close_at", ["closing.closeAt"])
     .index("by_deleted", ["deletedAt"]),
 
   /** Questions and page breaks share one ordered list, as in the builder. */

@@ -331,6 +331,18 @@ export const bySlug = query({
   handler: async (ctx, { slug, handle, password }) => {
     const form = await resolve(ctx, slug, handle);
     if (!form) return null;
+    // Scheduled to open: the link says when, rather than that it is unavailable.
+    if (form.opensAt && form.opensAt > Date.now() && !form.deletedAt && (form.status === "draft" || form.status === "closed")) {
+      return {
+        state: "soon" as const,
+        title: form.title,
+        brand: await brandOf(ctx, form),
+        logos: await themeLogos(ctx, form.theme),
+        theme: form.theme ?? null,
+        opensAt: form.opensAt,
+        timezone: form.closing?.timezone ?? null,
+      };
+    }
     if (form.status === "draft" || form.status === "archived") return { state: "draft" as const };
 
     const closed = form.status === "closed" || shouldAutoClose(form, Date.now());

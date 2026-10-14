@@ -12,7 +12,7 @@ import { useToast } from "@/components/ui/Toast";
 import { fullTime } from "../bits";
 import { CloseFormDialog } from "../dialogs/CloseFormDialog";
 import { localZone, zoneOptions } from "../time";
-import { ClosingRules, closeWhenLabel } from "./ClosingRules";
+import { ClosingRules, OpeningRule, closeWhenLabel } from "./ClosingRules";
 import { ConnectionsSection, PaymentsSection } from "./ConnectionsSection";
 import { AiReplySection } from "./AiReplySection";
 import { QuizSection } from "./QuizSection";
@@ -317,6 +317,7 @@ export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
               )}
             </div>
 
+            {(form.status === "draft" || form.status === "closed") && <OpeningRule formId={formId} opensAt={form.opensAt} zone={zone} />}
             <ClosingRules formId={formId} closing={form.closing} responses={form.completed} zone={zone} />
 
             <div style={{ paddingTop: 6 }}>
