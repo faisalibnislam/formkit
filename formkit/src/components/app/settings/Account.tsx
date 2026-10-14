@@ -681,7 +681,8 @@ function DeleteAccount({ onClose }: { onClose: () => void }) {
           <strong>We keep your data for 30 days</strong>
           <span>
             Sign in any time in the next 30 days and click Reactivate my account to bring it all back. After
-            that it is erased for good.
+            that it is erased for good. Any paid plan you pay for ends now, and the unused part of it is
+            refunded; bringing the account back does not restart it.
           </span>
         </div>
         <Field label="Type delete to confirm" error={error || undefined}>

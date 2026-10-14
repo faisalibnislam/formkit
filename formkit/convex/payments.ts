@@ -7,6 +7,7 @@ import { formFor } from "./model/forms";
 import { requireUser } from "./model/identity";
 import { CURRENCIES, fromMinor, toMinor } from "./model/money";
 import { hasFeature, requireFeature } from "./model/plans";
+import { isSealed, seal, unseal } from "./model/sealed";
 
 /**
  * Payments (Pro): a form can take money after it is sent, through the form
@@ -26,11 +27,12 @@ import { hasFeature, requireFeature } from "./model/plans";
 const SITE = process.env.SITE_URL ?? "https://formkit.app";
 const STRIPE = "https://api.stripe.com/v1";
 
+/** `key` is the stored key, sealed or (from before sealing) plain; it is opened only here. */
 async function stripe(key: string, path: string, init?: { method?: string; form?: Record<string, string> }) {
   const res = await fetch(`${STRIPE}${path}`, {
     method: init?.method ?? "GET",
     headers: {
-      Authorization: `Bearer ${key}`,
+      Authorization: `Bearer ${await unseal(key)}`,
       ...(init?.form ? { "Content-Type": "application/x-www-form-urlencoded" } : {}),
       "Stripe-Version": "2024-06-20",
     },
@@ -77,7 +79,12 @@ export const connect = action({
   returns: v.object({ live: v.boolean(), name: v.union(v.string(), v.null()) }),
   handler: async (ctx, { key }): Promise<{ live: boolean; name: string | null }> => {
     const clean = key.trim();
-    if (!/^(rk|sk)_(live|test)_[A-Za-z0-9]{10,}$/.test(clean)) {
+    if (/^sk_(live|test)_/.test(clean)) {
+      throw new ConvexError(
+        "That is your secret key, which can do anything in your Stripe account. Make a restricted key with Write access to Checkout Sessions, and paste that instead.",
+      );
+    }
+    if (!/^rk_(live|test)_[A-Za-z0-9]{10,}$/.test(clean)) {
       throw new ConvexError("That does not look like a Stripe key. A restricted key starts rk_live_ or rk_test_.");
     }
     await ctx.runQuery(internal.payments.mayConnect, {});
@@ -95,7 +102,7 @@ export const connect = action({
       (acct.ok && (settings?.dashboard?.display_name || (acct.data.business_profile as { name?: string } | undefined)?.name)) ||
       null;
     const live = clean.includes("_live_");
-    await ctx.runMutation(internal.payments.saveAccount, { key: clean, live, name: name ?? undefined });
+    await ctx.runMutation(internal.payments.saveAccount, { key: await seal(clean), live, name: name ?? undefined });
     return { live, name };
   },
 });
@@ -441,5 +448,35 @@ export const recheckPending = internalAction({
       }
     }
     return null;
+  },
+});
+
+/**
+ * One-off, after SECRETS_KEY is set: seals every Stripe key still stored as
+ * plain text. `npx convex run payments:sealStoredKeys` (add --prod).
+ */
+export const plainKeys = internalQuery({
+  args: {},
+  handler: async (ctx) =>
+    (await ctx.db.query("paymentAccounts").collect()).filter((a) => !isSealed(a.key)).map((a) => ({ id: a._id, key: a.key })),
+});
+
+export const storeSealed = internalMutation({
+  args: { id: v.id("paymentAccounts"), key: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { id, key }) => {
+    await ctx.db.patch(id, { key });
+    return null;
+  },
+});
+
+export const sealStoredKeys = internalAction({
+  args: {},
+  returns: v.number(),
+  handler: async (ctx): Promise<number> => {
+    if (!process.env.SECRETS_KEY) throw new Error("Set SECRETS_KEY on the deployment first.");
+    const rows: { id: Id<"paymentAccounts">; key: string }[] = await ctx.runQuery(internal.payments.plainKeys, {});
+    for (const r of rows) await ctx.runMutation(internal.payments.storeSealed, { id: r.id, key: await seal(r.key) });
+    return rows.length;
   },
 });

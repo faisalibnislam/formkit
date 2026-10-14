@@ -19,7 +19,7 @@ import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { currentUser, requireUser } from "./model/identity";
 import { newSecret, otpauthUri, verifyTotp } from "./model/totp";
-import { purgeFormData } from "./model/forms";
+import { eraseUser } from "./model/erase";
 import { normaliseEmail } from "./email";
 import { send } from "./notifications";
 import { renderAuthCodeEmail } from "./emails/authCode";
@@ -585,6 +585,9 @@ export const deleteAccount = mutation({
     }
     await ctx.db.patch(user._id, { deactivatedAt: now, selfDeletedAt: now });
     await endSessions(ctx, user._id, []);
+    // Paid plans end now, with the unused part refunded: nobody is charged
+    // for an account they deleted, even inside the 30 days it can come back.
+    await ctx.scheduler.runAfter(0, internal.billing.endForDeletion, { userId: user._id, why: "deleted their account" });
     return { purgeAt: now + RESTORE_DAYS * DAY };
   },
 });
@@ -636,50 +639,7 @@ export const purgeDeactivated = internalMutation({
     // One account per run keeps each transaction small; the cron comes back.
     const user = users[0];
     if (!user) return 0;
-    const forms = await ctx.db
-      .query("forms")
-      .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
-      .collect();
-    for (const f of forms) await purgeFormData(ctx, f);
-    for (const table of ["companies", "templates"] as const) {
-      const rows = await ctx.db
-        .query(table)
-        .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
-        .collect();
-      for (const row of rows) {
-        if (table === "companies" && "logoId" in row && row.logoId) await ctx.storage.delete(row.logoId).catch(() => undefined);
-        if (table === "companies" && "markId" in row && row.markId) await ctx.storage.delete(row.markId).catch(() => undefined);
-        await ctx.db.delete(row._id);
-      }
-    }
-    const handles = await ctx.db
-      .query("handles")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .collect();
-    for (const h of handles) await ctx.db.delete(h._id);
-    const logs = await ctx.db
-      .query("emailLog")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .collect();
-    for (const row of logs) await ctx.db.delete(row._id);
-    const exports = await ctx.db
-      .query("exports")
-      .withIndex("by_user_at", (q) => q.eq("userId", user._id))
-      .collect();
-    for (const row of exports) await ctx.db.delete(row._id);
-    const infos = await ctx.db
-      .query("sessionInfo")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .collect();
-    for (const row of infos) await ctx.db.delete(row._id);
-    await endSessions(ctx, user._id, []);
-    const accounts = await ctx.db
-      .query("authAccounts")
-      .withIndex("userIdAndProvider", (q) => q.eq("userId", user._id))
-      .collect();
-    for (const a of accounts) await ctx.db.delete(a._id);
-    if (user.avatarId) await ctx.storage.delete(user.avatarId).catch(() => undefined);
-    await ctx.db.delete(user._id);
+    await eraseUser(ctx, user);
     return users.length - 1;
   },
 });

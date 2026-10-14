@@ -109,13 +109,13 @@ function apiBase() {
   return process.env.POLAR_SERVER === "sandbox" ? "https://sandbox-api.polar.sh" : "https://api.polar.sh";
 }
 
-async function polar<T>(path: string, body?: unknown, method: "GET" | "POST" | "PATCH" = "POST"): Promise<T> {
+async function polar<T>(path: string, body?: unknown, method: "GET" | "POST" | "PATCH" | "DELETE" = "POST"): Promise<T> {
   const token = process.env.POLAR_ACCESS_TOKEN;
   if (!token) throw new ConvexError("Billing is not set up yet. Try again soon.");
   const res = await fetch(`${apiBase()}${path}`, {
     method,
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", Accept: "application/json" },
-    ...(method === "GET" ? {} : { body: JSON.stringify(body ?? {}) }),
+    ...(method === "GET" || method === "DELETE" ? {} : { body: JSON.stringify(body ?? {}) }),
   });
   const text = await res.text();
   if (!res.ok) {
@@ -590,6 +590,7 @@ async function verified(req: Request, body: string): Promise<string | null> {
 type PolarSubscription = {
   id: string;
   status: string;
+  current_period_start?: string | null;
   product_id?: string;
   product?: { id: string };
   customer_id?: string;
@@ -646,6 +647,7 @@ type PolarOrder = {
   net_amount?: number;
   subtotal_amount?: number;
   total_amount?: number;
+  refunded_amount?: number | null;
   tax_amount?: number;
   currency?: string;
   created_at?: string;
@@ -1093,6 +1095,115 @@ export const compPlan = mutation({
     const space = personalSpace(userId);
     if (plan) await giveComp(ctx, staff, space, { plan, endsAt: null });
     else await endComp(ctx, staff, space);
+    return null;
+  },
+});
+
+/* ------------------------------------------------------------------ */
+/* Ending billing when an account is deleted                           */
+/* ------------------------------------------------------------------ */
+
+/** The subscriptions a person pays for: their own, and each company billed to them. */
+export async function subscriptionsPaidBy(
+  ctx: { db: import("./_generated/server").QueryCtx["db"] },
+  userId: Id<"users">,
+) {
+  const out: { subscriptionId: string; space: string }[] = [];
+  const user = await ctx.db.get(userId);
+  if (user?.polarSubscriptionId) out.push({ subscriptionId: user.polarSubscriptionId, space: `me:${userId}` });
+  const owned = await ctx.db
+    .query("companies")
+    .withIndex("by_owner", (q) => q.eq("ownerId", userId))
+    .collect();
+  for (const c of owned) {
+    if (c.polarSubscriptionId && (c.billedTo ?? c.ownerId) === userId) {
+      out.push({ subscriptionId: c.polarSubscriptionId, space: c._id });
+    }
+  }
+  return out;
+}
+
+export const paidBy = internalQuery({
+  args: { userId: v.id("users") },
+  handler: (ctx, { userId }) => subscriptionsPaidBy(ctx, userId),
+});
+
+/**
+ * The unused share of a period, in cents: what a subscription ended `now`
+ * owes back on the order that paid for that period. Nothing under 50 cents,
+ * which costs more to send than it is worth.
+ */
+export function proratedRefund(
+  order: { total_amount: number; refunded_amount?: number | null },
+  periodStart: number,
+  periodEnd: number,
+  now: number,
+) {
+  const paid = Math.max(0, order.total_amount - (order.refunded_amount ?? 0));
+  const length = periodEnd - periodStart;
+  if (!paid || length <= 0 || now >= periodEnd) return 0;
+  const unused = Math.min(1, Math.max(0, (periodEnd - now) / length));
+  const cents = Math.floor(paid * unused);
+  return cents >= 50 ? cents : 0;
+}
+
+/**
+ * Account deleted (by its owner or by staff): every plan they pay for ends
+ * now and the unused part of the period is refunded. Each subscription is
+ * handled on its own, and a failure is logged for staff rather than
+ * stopping the deletion.
+ */
+export const endForDeletion = internalAction({
+  args: {
+    userId: v.id("users"),
+    why: v.string(),
+    /** Passed when the account is erased in the same breath, so cannot be read afterwards. */
+    subscriptions: v.optional(v.array(v.object({ subscriptionId: v.string(), space: v.string() }))),
+  },
+  returns: v.null(),
+  handler: async (ctx, { userId, why, subscriptions }) => {
+    if (!process.env.POLAR_ACCESS_TOKEN) return null;
+    const subs: { subscriptionId: string; space: string }[] =
+      subscriptions ?? (await ctx.runQuery(internal.billing.paidBy, { userId }));
+    for (const { subscriptionId, space } of subs) {
+      try {
+        const sub = await polar<PolarSubscription>(`/v1/subscriptions/${subscriptionId}`, undefined, "GET");
+        if (!["active", "trialing", "past_due"].includes(sub.status)) continue;
+        const revoked = await polar<PolarSubscription>(`/v1/subscriptions/${subscriptionId}`, undefined, "DELETE");
+        await applyPolar(ctx, `revoked: ${why}`, revoked, space);
+
+        let note = `Ended because the payer ${why}.`;
+        const start = sub.current_period_start ? Date.parse(sub.current_period_start) : NaN;
+        const end = sub.current_period_end ? Date.parse(sub.current_period_end) : NaN;
+        const orders = await polar<{ items: PolarOrder[] }>(
+          `/v1/orders/?subscription_id=${encodeURIComponent(subscriptionId)}&limit=1&sorting=-created_at`,
+          undefined,
+          "GET",
+        );
+        const last = orders.items?.[0];
+        const cents =
+          last && Number.isFinite(start) && Number.isFinite(end)
+            ? proratedRefund({ total_amount: last.total_amount ?? 0, refunded_amount: last.refunded_amount }, start, end, Date.now())
+            : 0;
+        if (last && cents > 0) {
+          await polar(`/v1/refunds/`, {
+            order_id: last.id,
+            reason: "customer_request",
+            amount: cents,
+            comment: `Unused part of the period, refunded because the payer ${why}.`,
+          });
+          note += ` Refunded ${(cents / 100).toFixed(2)} of order ${last.id}.`;
+        }
+        await ctx.runMutation(internal.billing.logEvent, { type: "subscription.revoked", ok: true, note });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        await ctx.runMutation(internal.billing.logEvent, {
+          type: "subscription.revoked",
+          ok: false,
+          note: `Could not end ${subscriptionId} after the payer ${why}: ${msg}. End it in Polar by hand.`,
+        });
+      }
+    }
     return null;
   },
 });
