@@ -14,44 +14,6 @@ import { conditionsOf } from "./model/logicEval";
  * "is greater than", because "18 or older" must include 18 - the original set
  * only had "is greater than" and quietly excluded it.
  */
-export const OPERATORS: Record<string, { value: string; label: string }[]> = {
-  choice: [
-    { value: "is", label: "is" },
-    { value: "is-not", label: "is not" },
-    { value: "is-empty", label: "is empty" },
-    { value: "is-not-empty", label: "is not empty" },
-  ],
-  number: [
-    { value: "at-least", label: "is at least" },
-    { value: "at-most", label: "is at most" },
-    { value: "greater", label: "is greater than" },
-    { value: "less", label: "is less than" },
-    { value: "is-empty", label: "is empty" },
-  ],
-  text: [
-    { value: "contains", label: "contains" },
-    { value: "is", label: "is" },
-    { value: "is-empty", label: "is empty" },
-    { value: "is-not-empty", label: "is not empty" },
-  ],
-};
-
-/**
- * Which operator set a question gets. A short-text question whose wording
- * implies a number ("How old are you?", "How many…") is read as numeric, with
- * a note saying so.
- */
-export function operatorGroup(type: string | undefined, title: string | undefined) {
-  if (!type) return "text";
-  if (["single-choice", "multi-choice", "dropdown", "yes-no", "rating", "scale"].includes(type)) {
-    return "choice";
-  }
-  if (type === "number") return "number";
-  if (type === "short-text" && title && /\b(how old|how many|how much|age|number of)\b/i.test(title)) {
-    return "number";
-  }
-  return "text";
-}
 
 const condition = v.object({
   id: v.optional(v.string()),
