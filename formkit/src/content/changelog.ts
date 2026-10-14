@@ -16,6 +16,27 @@ export type ChangelogEntry = {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: "2026-10-14",
+    title: "Forms in twelve languages, a form check, and your team in the inbox",
+    tag: "New",
+    body: "Forms can now speak the language of the people answering, a check before publishing catches what costs answers, and the inbox works for a team.",
+    points: [
+      "Write a form in any of twelve languages; on Pro, offer it in more, translated by AI, with people getting their own.",
+      "A form check in the publish dialog, with an AI read of your wording.",
+      "Give responses to teammates, comment under them with @mentions, and save the filters you use.",
+      "Pro: search responses by meaning, and ask one question across several forms.",
+      "Matrix and ranking questions, and signatures drawn with a finger, mouse or pen.",
+      "Open a form on a date and time; on Pro, remind people who stopped partway.",
+      "Webhooks pick their events and can be sent again; Discord and Microsoft Teams join Slack.",
+      "Every respondent can keep a receipt of what they sent, to print or save as a PDF.",
+      "Keyboard shortcuts in the builder: press ? for the list.",
+    ],
+    links: [
+      { label: "Forms in other languages", href: "/help/languages" },
+      { label: "Read your responses", href: "/help/read-responses" },
+    ],
+  },
+  {
+    date: "2026-10-14",
     title: "Formkit in your AI assistant, imports, and AI that reads every answer",
     tag: "New",
     body: "Ask Claude, ChatGPT or Cursor to build a form, publish it, or tell you what people said. Bring a form over from another tool in a minute. And on Pro, AI now reads every response, asks one follow-up question when an answer is vague, and writes out voice recordings.",

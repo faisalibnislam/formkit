@@ -448,6 +448,10 @@ export default defineSchema({
      */
     opensAt: v.optional(v.number()),
     openingBy: v.optional(v.id("users")),
+    /** The language the form is written in (model/langs.ts); English when unset. */
+    language: v.optional(v.string()),
+    /** Pro: the other languages it is offered in, each with its translation (formTranslations). */
+    languages: v.optional(v.array(v.string())),
     /** Pro: responses are indexed for search by meaning (semantic.ts). */
     semantic: v.optional(v.boolean()),
     /** Pro: one reminder, this many hours on, to someone who left an email and stopped partway. */
@@ -1295,6 +1299,37 @@ export default defineSchema({
     .index("by_response", ["responseId"])
     .index("by_form", ["formId"])
     .vectorIndex("by_embedding", { vectorField: "embedding", dimensions: 768, filterFields: ["formId", "ownerId"] }),
+
+  /**
+   * Pro: a form's words in another language: each question's wording, help,
+   * placeholder, options and rows, and its screens. Options are shown in
+   * the language picked but answers keep the form's own option, so results,
+   * logic and exports stay in one language.
+   */
+  formTranslations: defineTable({
+    formId: v.id("forms"),
+    lang: v.string(),
+    blocks: v.array(
+      v.object({
+        blockId: v.id("blocks"),
+        title: v.optional(v.string()),
+        help: v.optional(v.string()),
+        placeholder: v.optional(v.string()),
+        options: v.optional(v.array(v.string())),
+        rows: v.optional(v.array(v.string())),
+        pageName: v.optional(v.string()),
+      }),
+    ),
+    screens: v.object({
+      welcomeTitle: v.optional(v.string()),
+      welcomeMessage: v.optional(v.string()),
+      welcomeButton: v.optional(v.string()),
+      thanksTitle: v.optional(v.string()),
+      thanksMessage: v.optional(v.string()),
+      closedMessage: v.optional(v.string()),
+    }),
+    updatedAt: v.number(),
+  }).index("by_form_lang", ["formId", "lang"]),
 
   /** A person's own named filters for the responses inbox. */
   savedViews: defineTable({

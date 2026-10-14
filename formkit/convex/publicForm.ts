@@ -1,4 +1,5 @@
 import { hasLimits, placesLeft, placesTaken, startPlaceCounts } from "./model/places";
+import { liveLanguages } from "./translations";
 import { isAudio, voiceLength } from "./model/voice";
 import { owed, takesPayment } from "./payments";
 import { ConvexError, v } from "convex/values";
@@ -211,6 +212,8 @@ async function payload(ctx: QueryCtx, live: Doc<"forms">, opts: { draft?: boolea
     payment: await takesPayment(ctx, form),
     uploadCapMb: PLANS[await planOfId(ctx, form)].uploadMb,
     custom: await customLook(ctx, form),
+    /** The form's language, and (Pro) every other language it is offered in. */
+    ...(await liveLanguages(ctx, form, await hasFeature(ctx, form, "forms.languages"))),
     rules: {
       spam: s.spam,
       requireEmail: s.requireEmail,
@@ -343,6 +346,7 @@ export const bySlug = query({
         theme: form.theme ?? null,
         opensAt: form.opensAt,
         timezone: form.closing?.timezone ?? null,
+        language: form.language ?? "en",
       };
     }
     if (form.status === "draft" || form.status === "archived") return { state: "draft" as const };
@@ -356,6 +360,7 @@ export const bySlug = query({
         logos: await themeLogos(ctx, form.theme),
         theme: form.theme ?? null,
         message: form.closing?.message || CLOSED_NOTE,
+        language: form.language ?? "en",
       };
     }
 
@@ -367,6 +372,7 @@ export const bySlug = query({
         logos: await themeLogos(ctx, form.theme),
         theme: form.theme ?? null,
         wrong: !!password,
+        language: form.language ?? "en",
       };
     }
 

@@ -7323,3 +7323,25 @@ html.fk-own-bar::-webkit-scrollbar {
     color: #000 !important;
   }
 }
+
+/* The language switcher on a form offered in several */
+.fk-live-lang {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 20;
+}
+[dir="rtl"] .fk-live-lang {
+  right: auto;
+  left: 14px;
+}
+.fk-live-lang select {
+  font: inherit;
+  font-size: 14px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  color: #21282e;
+}

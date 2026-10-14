@@ -3,6 +3,7 @@
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { useRef } from "react";
 import { cell } from "../../../convex/model/grid";
+import { useT } from "./i18n";
 
 /**
  * Matrix and ranking questions on a live form.
@@ -17,6 +18,9 @@ import { cell } from "../../../convex/model/grid";
 type Props = {
   rows: string[];
   columns: string[];
+  /** In another language: what to show for each row and column. */
+  rowLabels?: string[];
+  columnLabels?: string[];
   multi: boolean;
   values: string[];
   radius: number;
@@ -25,7 +29,9 @@ type Props = {
   onChange: (values: string[]) => void;
 };
 
-export function MatrixControl({ rows, columns, multi, values, radius, label, group, onChange }: Props) {
+export function MatrixControl({ rows, columns, rowLabels, columnLabels, multi, values, radius, label, group, onChange }: Props) {
+  const rowLabel = (r: string) => rowLabels?.[rows.indexOf(r)] ?? r;
+  const colLabel = (c: string) => columnLabels?.[columns.indexOf(c)] ?? c;
   const picked = new Set(values);
   const toggle = (row: string, column: string) => {
     const v = cell(row, column);
@@ -38,12 +44,12 @@ export function MatrixControl({ rows, columns, multi, values, radius, label, gro
         <span aria-hidden />
         {columns.map((c) => (
           <span key={c} className="fk-live-matrix-head" aria-hidden>
-            {c}
+            {colLabel(c)}
           </span>
         ))}
         {rows.map((r) => (
-          <div key={r} role={multi ? "group" : "radiogroup"} aria-label={`${label}: ${r}`} style={{ display: "contents" }}>
-            <span className="fk-live-matrix-row">{r}</span>
+          <div key={r} role={multi ? "group" : "radiogroup"} aria-label={`${label}: ${rowLabel(r)}`} style={{ display: "contents" }}>
+            <span className="fk-live-matrix-row">{rowLabel(r)}</span>
             {columns.map((c, j) => {
               const on = picked.has(cell(r, c));
               const firstInRow = !values.some((x) => x.startsWith(`${r}: `)) && j === 0;
@@ -53,7 +59,7 @@ export function MatrixControl({ rows, columns, multi, values, radius, label, gro
                   type="button"
                   role={multi ? "checkbox" : "radio"}
                   aria-checked={on}
-                  aria-label={c}
+                  aria-label={colLabel(c)}
                   tabIndex={multi || on || firstInRow ? 0 : -1}
                   className="fk-live-matrix-cell"
                   data-picked={on ? "true" : undefined}
@@ -80,6 +86,7 @@ export function MatrixControl({ rows, columns, multi, values, radius, label, gro
 
 export function RankingControl({
   options,
+  labels,
   values,
   radius,
   label,
@@ -87,12 +94,16 @@ export function RankingControl({
   onChange,
 }: {
   options: string[];
+  /** In another language: what to show for each option. */
+  labels?: string[];
   values: string[];
   radius: number;
   label: string;
   group: Record<string, unknown>;
   onChange: (values: string[]) => void;
 }) {
+  const tx = useT();
+  const show = (o: string) => labels?.[options.indexOf(o)] ?? o;
   const order = values.length === options.length && values.every((v) => options.includes(v)) ? values : options;
   const answered = order === values;
   const dragging = useRef<number | null>(null);
@@ -121,11 +132,11 @@ export function RankingControl({
             }}
           >
             <span className="fk-live-rank-n">{i + 1}</span>
-            <span style={{ flex: 1, minWidth: 0 }}>{o}</span>
-            <button type="button" aria-label={`Move ${o} up`} disabled={i === 0} onClick={() => move(i, i - 1)}>
+            <span style={{ flex: 1, minWidth: 0 }}>{show(o)}</span>
+            <button type="button" aria-label={tx("moveUp", { item: show(o) })} disabled={i === 0} onClick={() => move(i, i - 1)}>
               <ArrowUp size={16} strokeWidth={1.8} aria-hidden />
             </button>
-            <button type="button" aria-label={`Move ${o} down`} disabled={i === order.length - 1} onClick={() => move(i, i + 1)}>
+            <button type="button" aria-label={tx("moveDown", { item: show(o) })} disabled={i === order.length - 1} onClick={() => move(i, i + 1)}>
               <ArrowDown size={16} strokeWidth={1.8} aria-hidden />
             </button>
           </li>
@@ -133,7 +144,7 @@ export function RankingControl({
       </ol>
       {!answered && (
         <button type="button" className="fk-live-rank-keep" onClick={() => onChange([...order])}>
-          This order is right
+          {tx("orderRight")}
         </button>
       )}
     </div>

@@ -59,6 +59,13 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "updated": "2026-09-28"
       },
       {
+        "id": "languages",
+        "title": "Forms in other languages",
+        "summary": "Your form in Spanish, Arabic, Japanese and nine more, with people getting their own.",
+        "body": "Settings → General → Languages. Written in sets the form's own language: its buttons, messages and errors follow it, on every plan. Twelve are offered: English, Spanish, French, German, Portuguese, Italian, Dutch, Arabic (read right to left), Hindi, Bengali, Japanese and Chinese.\n## Offering more than one (Pro)\nAdd a language and Formkit translates your questions, options and screens with AI, using one AI edit. Edit shows the translation beside your own words to change anything. People get their browser's language when the form has it, can switch with the menu at the top, and a link ending ?lang=es opens it in Spanish.\n## Answers\nWhatever language someone answers in, a choice is saved as your own option, so results, logic, exports and connections stay in one language. Written answers stay in the words people typed.",
+        "updated": "2026-10-14"
+      },
+      {
         "id": "version-history",
         "title": "Version history",
         "summary": "Every publish is a snapshot you can read and restore.",

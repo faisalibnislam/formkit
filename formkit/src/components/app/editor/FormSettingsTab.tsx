@@ -13,6 +13,7 @@ import { fullTime } from "../bits";
 import { CloseFormDialog } from "../dialogs/CloseFormDialog";
 import { localZone, zoneOptions } from "../time";
 import { ClosingRules, OpeningRule, closeWhenLabel } from "./ClosingRules";
+import { LanguagesSection } from "./LanguagesSection";
 import { ConnectionsSection, PaymentsSection } from "./ConnectionsSection";
 import { AiReplySection } from "./AiReplySection";
 import { QuizSection } from "./QuizSection";
@@ -223,9 +224,6 @@ export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
                 onCommit={(description) => tracked(update({ formId, patch: { description } }))}
               />
             </Field>
-            <Row label="Language" hint="English (US) for now">
-              <span className="fk-static-pill">English (US)</span>
-            </Row>
             <Row label="Time zone" hint="Used for closing dates and timestamps">
               <div style={{ width: 250 }}>
                 <Select
@@ -242,6 +240,8 @@ export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
           </div>
         </Card>
       )}
+
+      {section === "general" && <LanguagesSection formId={formId} features={form.ownerPlan?.features} />}
 
       {section === "responses" && (
         <>

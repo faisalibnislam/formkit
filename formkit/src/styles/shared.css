@@ -389,3 +389,32 @@
 .fk-ghost-matrix-row {
   color: var(--color-text-secondary);
 }
+
+/* Settings → Languages: a translation beside the form's own words */
+.fk-translate {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+}
+.fk-translate-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 12px;
+  align-items: start;
+}
+@media (max-width: 640px) {
+  .fk-translate-row {
+    grid-template-columns: 1fr;
+  }
+}
+.fk-translate-src {
+  font-size: 13.5px;
+  color: var(--color-text-secondary);
+  padding-top: 8px;
+}
+.fk-translate-label {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+}

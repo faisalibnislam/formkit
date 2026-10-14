@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useT } from "./i18n";
 
 /**
  * A signature: drawn with a finger, mouse or pen, and the signer's typed
@@ -34,6 +35,7 @@ export function SignaturePad({
   const drawing = useRef(false);
   const last = useRef<{ x: number; y: number } | null>(null);
   const [inked, setInked] = useState(false);
+  const tx = useT();
 
   // Sharp on high-density screens: the bitmap matches the drawn size.
   useEffect(() => {
@@ -101,10 +103,10 @@ export function SignaturePad({
           onPointerUp={finish}
           onPointerCancel={finish}
         />
-        {!inked && !drawn && <span className="fk-sign-hint">Sign here</span>}
+        {!inked && !drawn && <span className="fk-sign-hint">{tx("signHere")}</span>}
         {(inked || drawn) && (
           <button type="button" className="fk-sign-clear" onClick={clear} style={{ color: accent }}>
-            Clear
+            {tx("clear")}
           </button>
         )}
       </div>
@@ -113,7 +115,7 @@ export function SignaturePad({
         {...inputProps}
         className="fk-sign-name"
         autoComplete="name"
-        placeholder="Type your full name as well"
+        placeholder={tx("typeName")}
         value={name}
         onChange={(e) => onName(e.target.value)}
       />

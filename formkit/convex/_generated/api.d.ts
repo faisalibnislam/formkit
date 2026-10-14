@@ -71,6 +71,7 @@ import type * as model_handles from "../model/handles.js";
 import type * as model_identity from "../model/identity.js";
 import type * as model_importParse from "../model/importParse.js";
 import type * as model_inbox from "../model/inbox.js";
+import type * as model_langs from "../model/langs.js";
 import type * as model_logicCopy from "../model/logicCopy.js";
 import type * as model_logicEval from "../model/logicEval.js";
 import type * as model_logicOps from "../model/logicOps.js";
@@ -117,6 +118,7 @@ import type * as support from "../support.js";
 import type * as team from "../team.js";
 import type * as templates from "../templates.js";
 import type * as transcribe from "../transcribe.js";
+import type * as translations from "../translations.js";
 import type * as users from "../users.js";
 
 /**
@@ -191,6 +193,7 @@ declare const fullApi: ApiFromModules<{
   "model/identity": typeof model_identity,
   "model/importParse": typeof model_importParse,
   "model/inbox": typeof model_inbox,
+  "model/langs": typeof model_langs,
   "model/logicCopy": typeof model_logicCopy,
   "model/logicEval": typeof model_logicEval,
   "model/logicOps": typeof model_logicOps,
@@ -237,6 +240,7 @@ declare const fullApi: ApiFromModules<{
   "team": typeof team,
   "templates": typeof templates,
   "transcribe": typeof transcribe,
+  "translations": typeof translations,
   "users": typeof users,
 }>;
 export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "public">>;
