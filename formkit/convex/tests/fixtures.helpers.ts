@@ -74,3 +74,23 @@ export async function response(t: Backend, formId: Id<"forms">, ownerId: Id<"use
     } as never),
   );
 }
+
+/** A member of an owner's personal company (no companyId) with a team role. */
+export async function member(
+  t: Backend,
+  ownerId: Id<"users">,
+  user: { userId: Id<"users"> },
+  role: "admin" | "editor" | "viewer",
+) {
+  await t.run(async (ctx) => {
+    const u = await ctx.db.get(user.userId);
+    await ctx.db.insert("teamMembers", {
+      ownerId,
+      userId: user.userId,
+      email: u!.email!,
+      role,
+      status: "active",
+      invitedAt: Date.now(),
+    } as never);
+  });
+}

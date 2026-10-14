@@ -155,7 +155,8 @@ type Report = {
 export const reportContext = internalQuery({
   args: { formId: v.id("forms") },
   handler: async (ctx, { formId }) => {
-    const form = await formFor(ctx, formId, "read");
+    // A report spends the company's allowance, so reading the form is not enough.
+    const form = await formFor(ctx, formId, "write");
     if (!(await hasFeature(ctx, form, "ai.insights"))) throw new ConvexError("AI insights are part of Pro.");
     if (!(await canSpend(ctx, spaceOfForm(form), "reports"))) {
       throw new ConvexError(

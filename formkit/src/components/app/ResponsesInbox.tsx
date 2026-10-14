@@ -238,6 +238,8 @@ function Responses({
   const setStatus = useMutation(api.responses.setStatus);
   const remove = useMutation(api.responses.remove);
   const readFor = useMutation(api.inbox.readFor);
+  // Viewers and Commenters read responses; only those who can edit change them.
+  const manage = useQuery(api.responses.canManage, formId ? { formId } : {}) ?? false;
 
   // Looking at the responses counts as reading their notices.
   const readForRef = useRef(readFor);
@@ -435,6 +437,7 @@ function Responses({
                 {selected.length} {selected.length === 1 ? "response" : "responses"} selected
               </span>
               <span className="fk-section-spacer" />
+              {manage && (
               <button
                 type="button"
                 className="fk-bulk-btn"
@@ -448,6 +451,7 @@ function Responses({
               >
                 Mark as read
               </button>
+              )}
               <button
                 type="button"
                 className="fk-bulk-btn"
@@ -462,9 +466,11 @@ function Responses({
               >
                 Export selection
               </button>
-              <button type="button" className="fk-bulk-btn" data-tone="danger" onClick={() => setConfirm(selected)}>
-                Delete
-              </button>
+              {manage && (
+                <button type="button" className="fk-bulk-btn" data-tone="danger" onClick={() => setConfirm(selected)}>
+                  Delete
+                </button>
+              )}
               <button type="button" className="fk-bulk-btn" data-tone="quiet" onClick={() => setPicked(new Set())}>
                 Clear
               </button>
@@ -623,6 +629,7 @@ function Responses({
         <ResponseDrawer
           key={current._id}
           response={current}
+          manage={manage}
           onClose={() => setOpen(null)}
           onDelete={() => setConfirm([current._id])}
         />
@@ -680,10 +687,13 @@ function duration(ms: number | null) {
 
 function ResponseDrawer({
   response,
+  manage,
   onClose,
   onDelete,
 }: {
   response: Row;
+  /** Whether this person may change the response (status, tags, note, delete). */
+  manage: boolean;
   onClose: () => void;
   onDelete: () => void;
 }) {
@@ -828,7 +838,7 @@ function ResponseDrawer({
             Export
           </Button>
           <span className="fk-section-spacer" />
-          {response.status === "reviewed" ? (
+          {!manage ? null : response.status === "reviewed" ? (
             <Button variant="secondary" onClick={() => setStatus({ ids: [response._id], status: "read" })}>
               Undo reviewed
             </Button>
@@ -891,7 +901,7 @@ function ResponseDrawer({
         </div>
       )}
 
-      <TagEditor responseId={response._id} tags={response.tags} />
+      <TagEditor responseId={response._id} tags={response.tags} manage={manage} />
 
       <QuizMarks
         responseId={response._id}
@@ -947,18 +957,21 @@ function ResponseDrawer({
         </div>
       )}
 
-      <div style={{ marginTop: 20 }}>
-        <Textarea
-          rows={2}
-          value={note}
-          aria-label="A note for yourself"
-          placeholder="A note for yourself. Nobody else sees this."
-          onChange={(e) => setNote(e.target.value)}
-          onBlur={() => {
-            if (note !== (response.note ?? "")) void addNote({ responseId: response._id, note });
-          }}
-        />
-      </div>
+      {(manage || note) && (
+        <div style={{ marginTop: 20 }}>
+          <Textarea
+            rows={2}
+            value={note}
+            readOnly={!manage}
+            aria-label="Team note"
+            placeholder="A note for your team. Everyone who can see this response sees it."
+            onChange={(e) => setNote(e.target.value)}
+            onBlur={() => {
+              if (manage && note !== (response.note ?? "")) void addNote({ responseId: response._id, note });
+            }}
+          />
+        </div>
+      )}
 
       <div className="fk-resp-actions">
         <Button
@@ -987,20 +1000,22 @@ function ResponseDrawer({
             </Button>
           </a>
         )}
-        <Button
-          variant="ghost"
-          size="sm"
-          iconLeft={<Trash2 size={15} strokeWidth={1.8} aria-hidden />}
-          onClick={onDelete}
-        >
-          Delete response
-        </Button>
+        {manage && (
+          <Button
+            variant="ghost"
+            size="sm"
+            iconLeft={<Trash2 size={15} strokeWidth={1.8} aria-hidden />}
+            onClick={onDelete}
+          >
+            Delete response
+          </Button>
+        )}
       </div>
     </Drawer>
   );
 }
 
-function TagEditor({ responseId, tags }: { responseId: Id<"responses">; tags: string[] }) {
+function TagEditor({ responseId, tags, manage }: { responseId: Id<"responses">; tags: string[]; manage: boolean }) {
   const setTags = useMutation(api.responses.setTags);
   const inUse = useQuery(api.responses.tagsInUse, {});
   const [draft, setDraft] = useState("");
@@ -1024,16 +1039,20 @@ function TagEditor({ responseId, tags }: { responseId: Id<"responses">; tags: st
         {tags.map((t) => (
           <span key={t} className="fk-resp-tag">
             {t}
-            <button
-              type="button"
-              aria-label={`Remove the tag ${t}`}
-              onClick={() => void setTags({ responseId, tags: tags.filter((x) => x !== t) })}
-            >
-              <X size={12} strokeWidth={2} aria-hidden />
-            </button>
+            {manage && (
+              <button
+                type="button"
+                aria-label={`Remove the tag ${t}`}
+                onClick={() => void setTags({ responseId, tags: tags.filter((x) => x !== t) })}
+              >
+                <X size={12} strokeWidth={2} aria-hidden />
+              </button>
+            )}
           </span>
         ))}
-        {adding ? (
+        {!manage ? (
+          tags.length === 0 && <span className="fk-proprow-hint" style={{ margin: 0 }}>No tags</span>
+        ) : adding ? (
           <input
             className="fk-resp-taginput"
             autoFocus

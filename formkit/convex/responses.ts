@@ -6,7 +6,8 @@ import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { requireUser } from "./model/identity";
 import { formFor, ownersOf } from "./model/forms";
-import { currentSpace, spaceForms } from "./model/spaces";
+import { currentSpace, roleIn, spaceForms } from "./model/spaces";
+import { accessOf } from "./model/access";
 import { searchTextOf } from "./model/responseSearch";
 import { countChange } from "./model/responseCounts";
 import { contactKeyOf, contactOf, notePerson, type Contact } from "./model/contacts";
@@ -451,6 +452,26 @@ export const contacts = query({
   handler: (ctx, args) => listContacts(ctx, args),
 });
 
+/**
+ * Whether the signed-in person may change responses here: tag, note, status
+ * and delete. Owners, Editors and company admins and editors may; Commenters
+ * and Viewers only read. The inbox hides what this says no to, and every
+ * mutation below checks the same thing on its own.
+ */
+export const canManage = query({
+  args: { formId: v.optional(v.id("forms")) },
+  returns: v.boolean(),
+  handler: async (ctx, { formId }) => {
+    if (formId) {
+      const { role } = await accessOf(ctx, formId);
+      return role === "owner" || role === "editor";
+    }
+    const user = await requireUser(ctx);
+    const role = await roleIn(ctx, await currentSpace(ctx, user), user._id);
+    return role === "owner" || role === "admin" || role === "editor";
+  },
+});
+
 export const setStatus = mutation({
   args: {
     ids: v.array(v.id("responses")),
@@ -461,7 +482,10 @@ export const setStatus = mutation({
     for (const id of ids) {
       const r = await ctx.db.get(id);
       if (!r) continue;
-      await formFor(ctx, r.formId, "read");
+      // Anyone who can read a response may mark a new one as read (opening it
+      // does); every other change of status is an edit.
+      const seen = status === "read" && r.status === "new";
+      await formFor(ctx, r.formId, seen ? "read" : "write");
       await ctx.db.patch(id, { status });
     }
     return null;
@@ -474,7 +498,7 @@ export const addNote = mutation({
   handler: async (ctx, { responseId, note }) => {
     const r = await ctx.db.get(responseId);
     if (!r) throw new Error("That response no longer exists.");
-    await formFor(ctx, r.formId, "read");
+    await formFor(ctx, r.formId, "write");
     await ctx.db.patch(responseId, { note: note.trim() || undefined });
     return null;
   },
@@ -487,7 +511,7 @@ export const setTags = mutation({
   handler: async (ctx, { responseId, tags }) => {
     const r = await ctx.db.get(responseId);
     if (!r) throw new Error("That response no longer exists.");
-    await formFor(ctx, r.formId, "read");
+    await formFor(ctx, r.formId, "write");
     const clean: string[] = [];
     for (const t of tags) {
       const tag = t.trim().replace(/\s+/g, " ").slice(0, 32);
@@ -527,7 +551,7 @@ export const remove = mutation({
     for (const id of ids) {
       const r = await ctx.db.get(id);
       if (!r) continue;
-      await formFor(ctx, r.formId, "read");
+      await formFor(ctx, r.formId, "write");
       await ctx.db.delete(id);
       await countChange(ctx, r.formId, r, null);
     }
