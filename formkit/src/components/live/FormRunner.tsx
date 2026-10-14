@@ -184,6 +184,7 @@ export function FormRunner({
   closed = false,
   resume,
   onSubmit,
+  onSaveForLater,
   onPay,
   onStart,
   onThink,
@@ -198,6 +199,8 @@ export function FormRunner({
   /** Answers already given - a partial being finished, or a response being changed. */
   resume?: { token: string; answers: Record<string, Answer>; editing: boolean };
   onSubmit: (args: SubmitArgs) => Promise<Submitted>;
+  /** "Save and finish later": emails the person their link back. The live form only. */
+  onSaveForLater?: (email: string, resumeToken: string) => Promise<void>;
   /** Opens the payment page for a response that owes one; the live form only. */
   onPay?: (r: { responseId: Id<"responses">; resumeToken: string }) => Promise<{ url: string } | { paid: true } | null>;
   onStart?: () => void;
@@ -233,6 +236,12 @@ export function FormRunner({
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
   const [prove, setProve] = useState(false);
+  // "Save and finish later": the panel, the address, and how sending it went.
+  const [later, setLater] = useState<{ open: boolean; email: string; state: "idle" | "sending" | "sent"; error?: string }>({
+    open: false,
+    email: "",
+    state: "idle",
+  });
   const [human, setHuman] = useState(false);
   const [trap, setTrap] = useState("");
   const openedAt = useRef(0);
@@ -816,6 +825,68 @@ export function FormRunner({
     </div>
   );
 
+  /* ---------- save and finish later ---------- */
+  async function saveForLater() {
+    if (!onSaveForLater) return;
+    setLater((l) => ({ ...l, state: "sending", error: undefined }));
+    try {
+      const r = await onSubmit({
+        partial: true,
+        device: describeDevice(),
+        durationMs: since(openedAt.current),
+        answers: Object.entries(kept)
+          .filter(([id]) => fields.some((f) => f._id === id) || hiddenFields.some((f) => f._id === id))
+          .map(([blockId, a]) => ({ blockId: blockId as Id<"blocks">, ...a })),
+      });
+      await onSaveForLater(later.email, r.resumeToken);
+      setLater((l) => ({ ...l, state: "sent" }));
+    } catch (e) {
+      const d = (e as { data?: unknown }).data;
+      setLater((l) => ({ ...l, state: "idle", error: typeof d === "string" ? d : "That did not send. Try again in a moment." }));
+    }
+  }
+  const emailAnswer = fields.find((b) => b.type === "email" && kept[b._id]?.value)?._id;
+  const laterBox =
+    onSaveForLater && mode === "live" && !resume?.editing && answeredCount > 0 && !quiz ? (
+      <div className="fk-live-later">
+        {later.state === "sent" ? (
+          <p role="status">We have emailed you a link. Your answers are saved; carry on whenever you like.</p>
+        ) : !later.open ? (
+          <button
+            type="button"
+            className="fk-live-later-open"
+            onClick={() => setLater((l) => ({ ...l, open: true, email: l.email || (emailAnswer ? (kept[emailAnswer]?.value ?? "") : "") }))}
+          >
+            Save and finish later
+          </button>
+        ) : (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void saveForLater();
+            }}
+          >
+            <label htmlFor="fk-later-email">We will email you a link back to your answers.</label>
+            <div className="fk-live-later-row">
+              <input
+                id="fk-later-email"
+                type="email"
+                required
+                autoComplete="email"
+                placeholder="you@example.com"
+                value={later.email}
+                onChange={(e) => setLater((l) => ({ ...l, email: e.target.value }))}
+              />
+              <button type="submit" style={button(false)} disabled={later.state === "sending"}>
+                {later.state === "sending" ? "Sending…" : "Email me the link"}
+              </button>
+            </div>
+            {later.error && <p role="alert" className="fk-live-err">{later.error}</p>}
+          </form>
+        )}
+      </div>
+    ) : null;
+
   const failure = failed && <div className="fk-live-err" role="alert" style={{ marginTop: 18 }}>{failed}</div>;
 
   const question = (b: Block, big = false) => {
@@ -957,6 +1028,7 @@ export function FormRunner({
             )}
           </div>
         </form>
+        {laterBox}
         {credit}
       </Shell>
     );
@@ -1010,6 +1082,7 @@ export function FormRunner({
           </span>
         </div>
       </form>
+      {laterBox}
       {credit}
     </Shell>
   );

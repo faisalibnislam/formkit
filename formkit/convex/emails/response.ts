@@ -230,3 +230,19 @@ export function renderTeamInvite({
     reason: `${inviter} added this address to ${company} on Formkit.`,
   });
 }
+
+/** A respondent's own link back to a form they started, sent when they ask for it. */
+export function renderResumeLink({ title, link, brand }: { title: string; link: string; brand: Partial<Brand> & { name: string } }) {
+  const b: Brand = { name: brand.name, logoUrl: brand.logoUrl ?? null, color: safeColor(brand.color), badge: brand.badge !== false };
+  return renderShell({
+    brand: b,
+    eyebrow: "Your answers are saved",
+    heading: `Finish ${title} when you are ready`,
+    lede: "Everything you answered so far is kept. Open the link to carry on where you left off.",
+    body: `${button("Carry on", link, b.color ?? undefined)}${paragraph(
+      "Anyone with this link can see and change your answers, so keep it to yourself.",
+      { muted: true, top: 22 },
+    )}`,
+    reason: `Sent because you asked ${b.name} to save your place.`,
+  });
+}

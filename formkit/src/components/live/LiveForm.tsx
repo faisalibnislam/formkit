@@ -116,6 +116,24 @@ export function LiveForm({
     };
   }, [open]);
 
+  // The token a partial save comes back with is kept for this visit, so the
+  // final send (or a later partial) updates that record, not a second one.
+  const tokenKey = open ? `fk_partial_${open.formId}` : "";
+  const keptToken = () => {
+    try {
+      return tokenKey ? (window.sessionStorage.getItem(tokenKey) ?? undefined) : undefined;
+    } catch {
+      return undefined;
+    }
+  };
+  const emailResume = useMutation(api.publicForm.emailResumeLink);
+  const saveForLater = useCallback(
+    async (email: string, token: string) => {
+      await emailResume({ formId: open!.formId, resumeToken: token, email });
+    },
+    [open, emailResume],
+  );
+
   const onSubmit = useCallback(
     async (args: SubmitArgs) => {
       let pass: Id<"humanPasses"> | undefined;
@@ -128,16 +146,25 @@ export function LiveForm({
         ...args,
         ...(pass ? { pass } : {}),
         password,
-        resumeToken: resume?.token,
+        resumeToken: resume?.token ?? keptToken(),
         deviceId: deviceId(),
         source: sourceLabel(),
       });
+      try {
+        if (sent && tokenKey) {
+          if (args.partial) window.sessionStorage.setItem(tokenKey, sent.resumeToken);
+          else window.sessionStorage.removeItem(tokenKey);
+        }
+      } catch {
+        /* storage blocked: a second record is the worst of it */
+      }
       if (sent && !args.partial && window.parent !== window) {
         window.parent.postMessage({ type: "formkit:submit", responseId: sent.responseId, formId: open!.formId }, "*");
       }
       return sent;
     },
-    [open, password, resume?.token, submit, verifyHuman, checking],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keptToken reads storage at call time
+    [open, password, resume?.token, submit, verifyHuman, checking, tokenKey],
   );
 
   const upload = useCallback(
@@ -247,6 +274,7 @@ export function LiveForm({
         mode="live"
         resume={resume}
         onSubmit={onSubmit}
+        onSaveForLater={(data as OpenForm).rules.partials === false ? undefined : saveForLater}
         onPay={checkout}
         onThink={(a) => think({ formId: (data as OpenForm).formId, ...a })}
         onStartQuiz={() => startQuiz({ formId: (data as OpenForm).formId, deviceId: deviceId() })}

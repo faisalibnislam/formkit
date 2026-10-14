@@ -632,6 +632,8 @@ export default defineSchema({
         emailedAt: v.optional(v.number()),
       }),
     ),
+    /** When the person last asked for their link back to finish later (once every two minutes). */
+    resumeEmailedAt: v.optional(v.number()),
     /** Business: the AI-written reply to this response, and where it went. */
     aiReply: v.optional(
       v.object({

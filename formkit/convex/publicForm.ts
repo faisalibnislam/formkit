@@ -2,7 +2,9 @@ import { hasLimits, placesLeft, placesTaken } from "./model/places";
 import { isAudio, voiceLength } from "./model/voice";
 import { owed, takesPayment } from "./payments";
 import { ConvexError, v } from "convex/values";
-import { action, internalMutation, internalQuery, mutation, query, type MutationCtx } from "./_generated/server";
+import { action, internalAction, internalMutation, internalQuery, mutation, query, type MutationCtx } from "./_generated/server";
+import { send } from "./notifications";
+import { renderResumeLink } from "./emails/response";
 import { validateAnswers } from "./model/validate";
 import { servedForm } from "./model/served";
 import type { Rule } from "./model/logicEval";
@@ -542,7 +544,8 @@ async function store(
     totalCount: blocks.filter((b) => b.type !== "hidden").length,
     answers,
     respondentName: named?.value,
-    respondentEmail: mailed?.value?.trim().toLowerCase(),
+    // An address given to "save and finish later" stays when no email question was answered.
+    respondentEmail: mailed?.value?.trim().toLowerCase() || existing?.respondentEmail,
     respondentPhone: phoned?.value?.trim(),
     respondentCompany: firm?.value?.trim(),
     device: args.device,
@@ -930,5 +933,61 @@ export const submitPreview = mutation({
   handler: async (ctx, args) => {
     const { form } = await accessOf(ctx, args.formId);
     return store(ctx, form, { ...args, partial: false }, null, true);
+  },
+});
+
+/**
+ * "Save and finish later": the person leaves an email address on a form
+ * they started, and gets their own link back to it. The response must be
+ * a partial they hold the token for; once every two minutes at most.
+ */
+export const emailResumeLink = mutation({
+  args: { formId: v.id("forms"), resumeToken: v.string(), email: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { formId, resumeToken, email }) => {
+    const to = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(to) || to.length > 254) {
+      throw new ConvexError("That does not look like an email address.");
+    }
+    const r = await ctx.db
+      .query("responses")
+      .withIndex("by_resume", (q) => q.eq("resumeToken", resumeToken))
+      .first();
+    if (!r || r.formId !== formId || !r.partial) throw new ConvexError("Those answers are not saved any more.");
+    if (r.resumeEmailedAt && Date.now() - r.resumeEmailedAt < 2 * 60_000) {
+      throw new ConvexError("We have just sent it. Give it a minute, then check your spam folder.");
+    }
+    await ctx.db.patch(r._id, { resumeEmailedAt: Date.now(), ...(r.respondentEmail ? {} : { respondentEmail: to }) });
+    await ctx.scheduler.runAfter(0, internal.publicForm.mailResumeLink, { responseId: r._id, to });
+    return null;
+  },
+});
+
+export const resumeMail = internalQuery({
+  args: { responseId: v.id("responses") },
+  handler: async (ctx, { responseId }) => {
+    const r = await ctx.db.get(responseId);
+    const form = r && (await ctx.db.get(r.formId));
+    if (!r?.resumeToken || !form) return null;
+    return { title: form.title, token: r.resumeToken, brand: await brandOf(ctx, form) };
+  },
+});
+
+export const mailResumeLink = internalAction({
+  args: { responseId: v.id("responses"), to: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { responseId, to }) => {
+    const m: { title: string; token: string; brand: { name: string; logoUrl: string | null; color: string | null; badge: boolean } } | null =
+      await ctx.runQuery(internal.publicForm.resumeMail, { responseId });
+    if (!m) return null;
+    const site = (process.env.SITE_URL ?? "https://formkit.app").replace(/\/$/, "");
+    const link = `${site}/r/${m.token}`;
+    await send({
+      to: [to],
+      subject: `Finish ${m.title} when you are ready`,
+      html: renderResumeLink({ title: m.title, link, brand: m.brand }),
+      text: `Everything you answered so far on ${m.title} is saved. Carry on here: ${link}\n\nAnyone with this link can see and change your answers, so keep it to yourself.`,
+    });
+    return null;
   },
 });

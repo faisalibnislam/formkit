@@ -2993,6 +2993,43 @@ button.fk-chip {
   height: 1px;
   opacity: 0;
 }
+/* "Save and finish later" under a live form. */
+.fk-live-later {
+  margin-top: 22px;
+  font-size: 0.9em;
+}
+.fk-live-later-open {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 550;
+  opacity: 0.85;
+  cursor: pointer;
+}
+.fk-live-later-open:hover {
+  opacity: 1;
+}
+.fk-live-later label {
+  display: block;
+  margin-bottom: 8px;
+}
+.fk-live-later-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.fk-live-later-row input {
+  flex: 1;
+  min-width: 200px;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 12px;
+  font: inherit;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
 /* Content between questions on a live form. */
 .fk-live-content-text {
   margin: 8px 0 0;

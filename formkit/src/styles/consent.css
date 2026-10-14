@@ -24,8 +24,7 @@
 }
 .fk-consent a {
   color: var(--color-text-primary);
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  font-weight: 550;
 }
 .fk-consent-actions {
   display: grid;
