@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
 /**
@@ -5,9 +6,10 @@ import { defineConfig } from "vitest/config";
  * edge-runtime environment matches Convex's own), so no deployment is needed.
  */
 export default defineConfig({
+  resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
   test: {
     environment: "edge-runtime",
     server: { deps: { inline: ["convex-test"] } },
-    include: ["convex/**/*.test.ts", "src/**/*.test.ts"],
+    include: ["convex/**/*.test.ts", "src/**/*.test.ts", "src/**/*.test.tsx"],
   },
 });

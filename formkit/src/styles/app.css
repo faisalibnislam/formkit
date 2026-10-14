@@ -2993,6 +2993,17 @@ button.fk-chip {
   height: 1px;
   opacity: 0;
 }
+/* Keyboard focus on a live form: always visible, in the form's own accent.
+   !important because controls set outline:none inline for mouse users. */
+.fk-live :is(input, textarea, select, button, a, [role="radio"], [role="checkbox"]):focus-visible {
+  outline: 2px solid var(--fk-live-accent, #2e78bb) !important;
+  outline-offset: 2px;
+}
+.fk-live .fk-live-file:focus-within {
+  outline: 2px solid var(--fk-live-accent, #2e78bb);
+  outline-offset: 2px;
+}
+
 /* Cloudflare Turnstile: shown only when Cloudflare asks for an interaction. */
 .fk-live-turnstile {
   display: flex;
