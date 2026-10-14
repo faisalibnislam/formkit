@@ -74,6 +74,7 @@ import type * as model_moreTemplates from "../model/moreTemplates.js";
 import type * as model_oauthProfile from "../model/oauthProfile.js";
 import type * as model_places from "../model/places.js";
 import type * as model_plans from "../model/plans.js";
+import type * as model_questionTypes from "../model/questionTypes.js";
 import type * as model_quiz from "../model/quiz.js";
 import type * as model_rateLimit from "../model/rateLimit.js";
 import type * as model_responseCounts from "../model/responseCounts.js";
@@ -93,6 +94,7 @@ import type * as model_validate from "../model/validate.js";
 import type * as model_video from "../model/video.js";
 import type * as model_voice from "../model/voice.js";
 import type * as notifications from "../notifications.js";
+import type * as oauth from "../oauth.js";
 import type * as payments from "../payments.js";
 import type * as presence from "../presence.js";
 import type * as publicForm from "../publicForm.js";
@@ -185,6 +187,7 @@ declare const fullApi: ApiFromModules<{
   "model/oauthProfile": typeof model_oauthProfile,
   "model/places": typeof model_places,
   "model/plans": typeof model_plans,
+  "model/questionTypes": typeof model_questionTypes,
   "model/quiz": typeof model_quiz,
   "model/rateLimit": typeof model_rateLimit,
   "model/responseCounts": typeof model_responseCounts,
@@ -204,6 +207,7 @@ declare const fullApi: ApiFromModules<{
   "model/video": typeof model_video,
   "model/voice": typeof model_voice,
   "notifications": typeof notifications,
+  "oauth": typeof oauth,
   "payments": typeof payments,
   "presence": typeof presence,
   "publicForm": typeof publicForm,

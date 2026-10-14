@@ -51,9 +51,9 @@ const LADDERS: Record<string, { free: string[]; pro: (FeatureKey | string)[]; bu
     business: [],
   },
   integrations: {
-    free: ["CSV export"],
-    pro: ["connect.webhooks", "connect.slack", "connect.sheets", "exports.xlsx", "exports.copy"],
-    business: ["api"],
+    free: ["CSV export", "The API", "AI assistants: Claude, ChatGPT and Cursor"],
+    pro: ["connect.webhooks", "connect.slack", "connect.sheets", "exports.xlsx", "exports.copy", "Summaries and AI insights through the API"],
+    business: [],
   },
   builder: {
     free: ["Every question type, voice recording included", "Pages and page breaks", "Drag, duplicate and undo", `${free.uploadMb} MB uploads`, `${free.collaborators} guests on each form`],
@@ -63,7 +63,7 @@ const LADDERS: Record<string, { free: string[]; pro: (FeatureKey | string)[]; bu
   versions: {
     free: [`${free.historyDays} days of version history`, "Restore any version", "CSV export"],
     pro: ["A year of version history", "exports.xlsx", "exports.copy"],
-    business: ["All of your version history", "api"],
+    business: ["All of your version history"],
   },
   "custom-domains": {
     free: [],

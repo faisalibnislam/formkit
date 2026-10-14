@@ -9,29 +9,8 @@ import { voice } from "./gemini";
  * not have written. Pure functions, so they can be exercised on their own.
  */
 
-export const QUESTION_TYPES = [
-  "short-text",
-  "long-text",
-  "email",
-  "phone",
-  "url",
-  "name",
-  "company",
-  "address",
-  "number",
-  "single-choice",
-  "multi-choice",
-  "dropdown",
-  "yes-no",
-  "date",
-  "time",
-  "rating",
-  "scale",
-  "file",
-  "signature",
-  "voice",
-] as const;
-export type QuestionType = (typeof QUESTION_TYPES)[number];
+import { QUESTION_TYPES, type QuestionType } from "./questionTypes";
+export { QUESTION_TYPES, type QuestionType };
 
 export const CHOICE_TYPES = new Set(["single-choice", "multi-choice", "dropdown"]);
 /** Answers that identify a person. They stay out of anything sent to the model. */

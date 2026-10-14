@@ -14,7 +14,7 @@ export const SITE_DATES = {
   useCases: "2026-09-30",
   changelog: "2026-10-01",
   contact: "2026-09-29",
-  apiDocs: "2026-10-01",
+  apiDocs: "2026-10-14",
   legal: "2026-09-21",
   privacy: "2026-10-14",
   dpa: "2026-10-14",

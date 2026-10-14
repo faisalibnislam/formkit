@@ -5,17 +5,17 @@ import type { Doc, Id } from "./_generated/dataModel";
 import type { QueryCtx } from "./_generated/server";
 import { sha256Hex } from "./model/apiKeys";
 import { formUrl } from "./model/handles";
-import { hasFeature } from "./model/plans";
 
 /**
- * Business: a small, read-only REST API.
+ * The first, read-only REST API, kept for the keys already using it. New
+ * code uses API v2 (apiV2.ts).
  *
  *   GET /api/v1/forms
  *   GET /api/v1/forms/{id}
  *   GET /api/v1/forms/{id}/responses?after=<ms>&limit=<1-100>
  *   GET /api/v1/responses/{id}
  *
- * Authorization: Bearer fk_live_… - a key made in Settings → Controls. Keys
+ * Authorization: Bearer fk_live_… - a key made in Settings → Developers. Keys
  * belong to one account and read only that account's forms.
  */
 
@@ -41,8 +41,8 @@ export const keyOwner = internalQuery({
       .withIndex("by_hash", (q) => q.eq("hash", hash))
       .first();
     if (!key) return null;
-    const allowed = await hasFeature(ctx, key.ownerId, "api");
-    return { keyId: key._id, ownerId: key.ownerId, allowed, lastUsedAt: key.lastUsedAt ?? 0 };
+    // Every plan, since the API (v2) and its AI assistants came to all of them.
+    return { keyId: key._id, ownerId: key.ownerId, allowed: true, lastUsedAt: key.lastUsedAt ?? 0 };
   },
 });
 
@@ -210,7 +210,6 @@ export const handle = httpAction(async (ctx, req) => {
   const key: { keyId: Id<"apiKeys">; ownerId: Id<"users">; allowed: boolean; lastUsedAt: number } | null =
     await ctx.runQuery(internal.restApi.keyOwner, { hash: await sha256Hex(token) });
   if (!key) return fail(401, "That API key is not valid. It may have been revoked.");
-  if (!key.allowed) return fail(403, "The API is part of the Business plan.");
   if (Date.now() - key.lastUsedAt > 60_000) await ctx.runMutation(internal.restApi.touchKey, { keyId: key.keyId });
 
   const url = new URL(req.url);

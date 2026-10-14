@@ -20,7 +20,7 @@ import { isOwnHost } from "@/lib/site";
  * the admin route itself, since only Convex knows the staff role - here we only
  * keep signed-out visitors away from anything authenticated.
  */
-const isSignedInOnly = createRouteMatcher(["/app(.*)", "/admin(.*)", "/onboarding(.*)"]);
+const isSignedInOnly = createRouteMatcher(["/app(.*)", "/admin(.*)", "/onboarding(.*)", "/connect(.*)"]);
 const isAuthPage = createRouteMatcher(["/signin", "/signup"]);
 
 /**
