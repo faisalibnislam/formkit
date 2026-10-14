@@ -240,6 +240,8 @@ async function payload(ctx: QueryCtx, live: Doc<"forms">, opts: { draft?: boolea
       /** Places left per option; null where an option has no limit. */
       left: advanced ? placesLeft(b, taken) : null,
       extract: smart.ai && b.extract ? { from: b.extract.from } : null,
+      /** Pro: the AI may ask one follow-up to this answer (what to dig into stays with the owner). */
+      followUp: smart.ai && b.followUp?.on ? true : null,
       /** Quiz: what the question is worth, when it counts. */
       marks: quiz && marked(b) ? (b.marks ?? 1) : null,
       scaleLabels: b.scaleLabels ?? null,
@@ -501,6 +503,7 @@ const answerArg = v.object({
   values: v.optional(v.array(v.string())),
   fileId: v.optional(v.id("_storage")),
   fileName: v.optional(v.string()),
+  followUp: v.optional(v.object({ question: v.string(), answer: v.string() })),
 });
 
 type AnswerIn = {
@@ -509,6 +512,7 @@ type AnswerIn = {
   values?: string[];
   fileId?: Id<"_storage">;
   fileName?: string;
+  followUp?: { question: string; answer: string };
 };
 
 /** Build and store the record; shared by the public link and the preview. */
@@ -550,7 +554,15 @@ async function store(
 
   const answers = args.answers
     .filter((a) => byId.has(a.blockId))
-    .map((a) => ({ ...a, question: byId.get(a.blockId)!.title ?? "Question" }));
+    .map((a) => ({
+      ...a,
+      question: byId.get(a.blockId)!.title ?? "Question",
+      // An AI follow-up only on a question that asks one, kept short.
+      followUp:
+        a.followUp && byId.get(a.blockId)!.followUp?.on
+          ? { question: a.followUp.question.slice(0, 300), answer: a.followUp.answer.slice(0, 4000) }
+          : undefined,
+    }));
 
   // The respondent's name and email come from whichever fields collect them.
   const typed = (t: string) => answers.find((a) => byId.get(a.blockId)!.type === t && a.value);

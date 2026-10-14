@@ -165,7 +165,12 @@ const WITHHELD = new Set(["email", "phone", "address", "signature"]);
 export function rowsOf(response: Pick<Doc<"responses">, "answers">, withheld: Set<string> = new Set()): Row[] {
   return response.answers
     .filter((a) => !withheld.has(a.blockId))
-    .map((a) => ({ question: a.question, answer: a.fileName ?? (a.values ? a.values.join(", ") : (a.value ?? "")) }))
+    .map((a) => ({
+      question: a.question,
+      answer:
+        (a.fileName ?? (a.values ? a.values.join(", ") : (a.value ?? ""))) +
+        (a.followUp?.answer.trim() ? ` (asked "${a.followUp.question}": ${a.followUp.answer.trim()})` : ""),
+    }))
     .filter((r) => r.answer.trim());
 }
 

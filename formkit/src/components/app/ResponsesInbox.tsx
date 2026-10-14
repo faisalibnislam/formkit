@@ -777,6 +777,8 @@ function ResponseDrawer({
     let g: (typeof out)[number] = { title: "Answers", rows: [] };
     const used = new Set<string>();
     for (const b of form?.blocks ?? []) {
+      // Content (text, pictures, video) is shown on the form, never answered.
+      if (b.kind === "content") continue;
       if (b.kind === "pagebreak") {
         if (g.rows.length) out.push(g);
         g = { title: b.pageName || "Next page", rows: [] };

@@ -2993,6 +2993,31 @@ button.fk-chip {
   height: 1px;
   opacity: 0;
 }
+/* The AI's follow-up question under a written answer. */
+.fk-live-followup {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.035);
+}
+.fk-live-followup label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-weight: 550;
+}
+.fk-live-followup textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  font: inherit;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+  resize: vertical;
+}
+
 /* "Save and finish later" under a live form. */
 .fk-live-later {
   margin-top: 22px;

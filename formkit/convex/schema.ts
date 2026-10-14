@@ -69,6 +69,11 @@ export const blockExtras = {
   /** Single and multiple choice, and dropdowns: an "Other" option with its own words. */
   allowOther: v.optional(v.boolean()),
   validation: v.optional(validationRules),
+  /**
+   * Pro: after a written answer, the AI may ask one short follow-up question
+   * when the answer is vague; `instruction` says what to dig into.
+   */
+  followUp: v.optional(v.object({ on: v.boolean(), instruction: v.optional(v.string()) })),
   /** Content blocks: an uploaded image and its description, or a video link. */
   imageId: v.optional(v.id("_storage")),
   alt: v.optional(v.string()),
@@ -587,6 +592,8 @@ export default defineSchema({
         values: v.optional(v.array(v.string())),
         fileId: v.optional(v.id("_storage")),
         fileName: v.optional(v.string()),
+        /** The AI's follow-up question to this answer, and what they said to it. */
+        followUp: v.optional(v.object({ question: v.string(), answer: v.string() })),
       }),
     ),
     /**

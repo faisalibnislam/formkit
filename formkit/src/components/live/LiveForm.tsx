@@ -58,6 +58,7 @@ export function LiveForm({
   const submit = useMutation(api.publicForm.submit);
   const checkout = useAction(api.payments.checkout);
   const think = useAction(api.aiLogic.think);
+  const followUp = useAction(api.aiLogic.followUp);
   const startQuiz = useMutation(api.publicForm.startQuiz);
   const viewed = useRef(false);
 
@@ -275,6 +276,7 @@ export function LiveForm({
         mode="live"
         resume={resume}
         onSubmit={onSubmit}
+        onFollowUp={(blockId, answer) => followUp({ formId: (data as OpenForm).formId, blockId, answer })}
         onSaveForLater={(data as OpenForm).rules.partials === false ? undefined : saveForLater}
         onPay={checkout}
         onThink={(a) => think({ formId: (data as OpenForm).formId, ...a })}

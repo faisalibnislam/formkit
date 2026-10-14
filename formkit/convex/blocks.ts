@@ -158,6 +158,13 @@ export const update = mutation({
       }
       patch = { ...patch, validation: { ...patch.validation, pattern: patch.validation.pattern.slice(0, 200) } };
     }
+    if (patch.followUp?.on) {
+      await requireFeature(ctx, form, "logic.ai");
+      if (!["short-text", "long-text"].includes((patch.type ?? block.type) ?? "")) {
+        throw new ConvexError("A follow-up question can follow a written answer.");
+      }
+      patch = { ...patch, followUp: { on: true, instruction: patch.followUp.instruction?.trim().slice(0, 300) || undefined } };
+    }
     if (patch.extract) {
       await requireFeature(ctx, form, "logic.ai");
       if ((patch.type ?? block.type) !== "hidden") throw new ConvexError("Only a hidden field can be filled in by AI.");

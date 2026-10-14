@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { VoiceRecorder } from "./VoiceRecorder";
 import { voiceLength } from "../../../convex/model/voice";
-import { ArrowLeft, Check, Clock3, CornerDownLeft, CreditCard, Lock, Paperclip } from "lucide-react";
+import { ArrowLeft, Check, Clock3, CornerDownLeft, CreditCard, Lock, Paperclip, Sparkles } from "lucide-react";
 import type { Id } from "../../../convex/_generated/dataModel";
 import {
   cleanCss,
@@ -69,6 +69,8 @@ export type Block = {
   allowOther?: boolean;
   /** Limits the answer is held to (model/validate.ts says the same on the server). */
   validation?: Validation | null;
+  /** Pro: the AI may ask one follow-up question to this written answer. */
+  followUp?: boolean | null;
   /** Content blocks: a picture (and its description) or a video link. */
   imageUrl?: string | null;
   alt?: string | null;
@@ -101,7 +103,14 @@ export type Ending = {
   redirect?: string;
 };
 
-export type Answer = { value?: string; values?: string[]; fileId?: Id<"_storage">; fileName?: string };
+export type Answer = {
+  value?: string;
+  values?: string[];
+  fileId?: Id<"_storage">;
+  fileName?: string;
+  /** The AI's follow-up to this answer, and what the person said to it. */
+  followUp?: { question: string; answer: string };
+};
 
 /** Pro: the quiz settings the form itself needs. */
 export type QuizSettings = {
@@ -184,6 +193,7 @@ export function FormRunner({
   closed = false,
   resume,
   onSubmit,
+  onFollowUp,
   onSaveForLater,
   onPay,
   onStart,
@@ -199,6 +209,8 @@ export function FormRunner({
   /** Answers already given - a partial being finished, or a response being changed. */
   resume?: { token: string; answers: Record<string, Answer>; editing: boolean };
   onSubmit: (args: SubmitArgs) => Promise<Submitted>;
+  /** Pro: the follow-up question to a written answer, or null. The live form only. */
+  onFollowUp?: (blockId: string, answer: string) => Promise<string | null>;
   /** "Save and finish later": emails the person their link back. The live form only. */
   onSaveForLater?: (email: string, resumeToken: string) => Promise<void>;
   /** Opens the payment page for a response that owes one; the live form only. */
@@ -268,6 +280,9 @@ export function FormRunner({
   // Pro: what the AI said about answers, by condition id, once asked.
   const [judged, setJudged] = useState<Record<string, boolean>>({});
   const [thinking, setThinking] = useState(false);
+  // Follow-ups: each written answer is looked at once, and at most two are asked.
+  const followUpsAsked = useRef(new Set<string>());
+  const followUpsShown = useRef(0);
   // The answer each AI condition or hidden field was last asked about.
   const askedWith = useRef<Record<string, string>>({});
 
@@ -494,6 +509,30 @@ export function FormRunner({
    * again with what it said. Never holds anyone up for long: after a few
    * seconds, or on any failure, the form goes on with the fallbacks.
    */
+  /**
+   * Before moving on: may the AI ask one follow-up to a written answer here?
+   * Shows it under that answer and stays put; the person can answer it or
+   * just carry on, since it is never required.
+   */
+  async function askFollowUp(list: Block[]) {
+    if (!onFollowUp || mode !== "live" || followUpsShown.current >= 2) return false;
+    for (const b of list) {
+      if (!b.followUp || hidden.has(b._id) || followUpsAsked.current.has(b._id)) continue;
+      const text = kept[b._id]?.value?.trim();
+      if (!text) continue;
+      followUpsAsked.current.add(b._id);
+      setThinking(true);
+      const question = await onFollowUp(b._id, text).catch(() => null);
+      setThinking(false);
+      if (!question) continue;
+      followUpsShown.current += 1;
+      setAnswers((prev) => ({ ...prev, [b._id]: { ...prev[b._id], followUp: { question, answer: "" } } }));
+      window.setTimeout(() => document.getElementById(`q-${b._id}-followup`)?.focus(), 50);
+      return true;
+    }
+    return false;
+  }
+
   async function think(list: Block[]) {
     const same = { answers: kept, judged, outcome };
     if (!onThink || mode !== "live" || !data.smart?.ai) return same;
@@ -553,6 +592,7 @@ export function FormRunner({
     }
     setProblem(null);
     if (stopsOnRule(current?.fields ?? [])) return;
+    if (await askFollowUp(current?.fields ?? [])) return;
     const now = await think(current?.fields ?? []);
     if (!lastPage) {
       // A matching "jump to" rule skips straight to the page that holds its
@@ -576,6 +616,7 @@ export function FormRunner({
     }
     setProblem(null);
     if (stopsOnRule([cur])) return;
+    if (await askFollowUp([cur])) return;
     const now = await think([cur]);
     if (!lastStep) {
       const to = now.outcome.jumpTo;
@@ -941,6 +982,26 @@ export function FormRunner({
       {err && (
         <div className="fk-live-err" id={`q-${b._id}-err`} role="alert">
           {err}
+        </div>
+      )}
+      {kept[b._id]?.followUp && (
+        <div className="fk-live-followup">
+          <label htmlFor={`q-${b._id}-followup`}>
+            <Sparkles size={14} strokeWidth={1.8} aria-hidden /> {kept[b._id]!.followUp!.question}
+          </label>
+          <textarea
+            id={`q-${b._id}-followup`}
+            rows={2}
+            placeholder="Optional"
+            value={kept[b._id]!.followUp!.answer}
+            maxLength={2000}
+            onChange={(e) =>
+              setAnswers((prev) => ({
+                ...prev,
+                [b._id]: { ...prev[b._id], followUp: { question: prev[b._id]!.followUp!.question, answer: e.target.value } },
+              }))
+            }
+          />
         </div>
       )}
     </div>

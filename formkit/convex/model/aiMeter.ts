@@ -181,5 +181,5 @@ export async function refundResponse(ctx: MutationCtx, form: Doc<"forms">, respo
 export async function usesAiLogic(ctx: QueryCtx | MutationCtx, form: Doc<"forms">) {
   const { rules, blocks } = await servedForm(ctx, form);
   if (rules.some((r) => r.enabled && conditionsOf(r).some((c) => c.source === "ai"))) return true;
-  return blocks.some((b) => b.type === "hidden" && !!b.extract?.what.trim());
+  return blocks.some((b) => (b.type === "hidden" && !!b.extract?.what.trim()) || !!b.followUp?.on);
 }

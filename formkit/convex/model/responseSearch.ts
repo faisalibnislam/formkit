@@ -19,7 +19,7 @@ export function searchTextOf(r: Searchable) {
     r.respondentCompany,
     r.respondentPhone,
     ...(r.tags ?? []),
-    ...r.answers.flatMap((a) => [a.value, ...(a.values ?? []), a.fileName]),
+    ...r.answers.flatMap((a) => [a.value, ...(a.values ?? []), a.fileName, a.followUp?.answer]),
   ];
   return parts
     .filter((p): p is string => typeof p === "string" && p.trim() !== "")

@@ -29,7 +29,14 @@ const DAY = 24 * 60 * 60 * 1000;
 const MAX_TAGS = 12;
 
 function answerText(a: Doc<"responses">["answers"][number]) {
-  return a.value ?? (a.values ? a.values.join(", ") : null);
+  const base = a.value ?? (a.values ? a.values.join(", ") : null);
+  return withFollowUp(base, a.followUp);
+}
+
+/** An answer, with the AI's follow-up question and its answer after it, when there was one. */
+export function withFollowUp(text: string | null, f?: { question: string; answer: string }) {
+  if (!f?.answer.trim()) return text;
+  return `${text ?? ""}\n\n↳ ${f.question}\n${f.answer.trim()}`;
 }
 
 async function shape(ctx: QueryCtx, r: Doc<"responses">, formTitle: string) {
@@ -674,7 +681,7 @@ export const exportPage = query({
           ? a.values.join("; ")
           : a.fileId
             ? ((await ctx.storage.getUrl(a.fileId)) ?? a.fileName ?? "")
-            : (a.fileName ?? a.value ?? "");
+            : (withFollowUp(a.fileName ?? a.value ?? "", a.followUp) ?? "");
         answers.push({ q: a.question, text });
       }
       records.push({

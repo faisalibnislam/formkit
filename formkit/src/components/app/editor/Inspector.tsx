@@ -555,6 +555,8 @@ export function FieldSettings({
         </PropertyRow>
       )}
 
+      {(block.type === "short-text" || block.type === "long-text") && <FollowUpSetting block={block} patch={patch} />}
+
       <AnswerRules block={block} patch={patch} />
 
       {block.type !== "hidden" && <QuizKey block={block} />}
@@ -998,5 +1000,51 @@ export function ContentSettings({ block, imageUrl }: { block: Doc<"blocks">; ima
         )}
       </div>
     </section>
+  );
+}
+
+/**
+ * Pro: one AI follow-up question after a vague written answer. The owner can
+ * say what to dig into; the person can always skip it.
+ */
+function FollowUpSetting({
+  block,
+  patch,
+}: {
+  block: Doc<"blocks">;
+  patch: (p: Partial<Doc<"blocks">>) => void;
+}) {
+  const gate = useGate("logic.ai");
+  const on = !!block.followUp?.on;
+  return (
+    <>
+      <div className="fk-proprow">
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>
+            AI follow-up question
+            {gate.locked && <ProChip plan="pro" onClick={() => openUpgrade({ feature: "logic.ai" })} />}
+          </div>
+          <div className="fk-proprow-hint">
+            When an answer is vague, the AI asks one short question about it before they move on. They can skip it.
+          </div>
+        </div>
+        <Switch
+          checked={on}
+          label="AI follow-up question"
+          onChange={gate.guard((next: boolean) => patch({ followUp: { on: next, instruction: block.followUp?.instruction } }))}
+        />
+      </div>
+      {on && (
+        <div style={{ paddingBottom: 12 }}>
+          <Field label="What to dig into (optional)" help="For example: the budget, the timeline, or what they tried before.">
+            <DraftPill
+              value={block.followUp?.instruction ?? ""}
+              maxLength={300}
+              onCommit={(v) => patch({ followUp: { on: true, instruction: v.trim() || undefined } })}
+            />
+          </Field>
+        </div>
+      )}
+    </>
   );
 }
