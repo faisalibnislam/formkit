@@ -787,6 +787,13 @@ export const purge = mutation({
   },
 });
 
+/**
+ * A copy of a form, as a draft: its questions and pages, logic (pointing at
+ * the copies), calculations, endings, design, quiz, payment, AI reply,
+ * security and notification settings. Not copied: responses, closing rules,
+ * versions or who it is shared with. A member of the form's company gets the
+ * copy in that company; a guest on the form gets it in their own name.
+ */
 export const duplicate = mutation({
   args: { formId: v.id("forms") },
   returns: v.id("forms"),
@@ -795,17 +802,25 @@ export const duplicate = mutation({
     const user = await requireUser(ctx);
     const now = Date.now();
     const title = `${form.title} copy`;
+    const inCompany = !!(await roleIn(ctx, spaceOfForm(form), user._id));
 
     const copyId = await ctx.db.insert("forms", {
-      ownerId: user._id,
-      brand: form.brand,
+      ownerId: inCompany ? form.ownerId : user._id,
+      brand: inCompany ? form.brand : "me",
+      createdBy: user._id,
       title,
       slug: await uniqueSlug(ctx, title),
       description: form.description,
       status: "draft",
       welcome: form.welcome,
       thanks: form.thanks,
+      endings: form.endings,
       theme: form.theme,
+      calc: form.calc,
+      quiz: form.quiz,
+      payment: form.payment,
+      aiReply: form.aiReply,
+      security: form.security,
       notify: form.notify,
       responsesCount: 0,
       completedCount: 0,
@@ -815,13 +830,34 @@ export const duplicate = mutation({
       updatedAt: now,
     });
 
-    const blocks = await ctx.db
-      .query("blocks")
-      .withIndex("by_form_order", (q) => q.eq("formId", formId))
-      .collect();
+    const blocks = (
+      await ctx.db
+        .query("blocks")
+        .withIndex("by_form_order", (q) => q.eq("formId", formId))
+        .collect()
+    ).sort((a, b) => a.order - b.order);
+    const moved = new Map<string, string>();
     for (const block of blocks) {
       const { _id, _creationTime, formId: _f, ...rest } = block;
-      await ctx.db.insert("blocks", { ...rest, formId: copyId });
+      moved.set(_id, await ctx.db.insert("blocks", { ...rest, formId: copyId }));
+    }
+    // Every reference to a question now points at its copy.
+    const remap = <T>(value: T): T => {
+      let text = JSON.stringify(value);
+      for (const [from, to] of moved) text = text.split(from).join(to);
+      return JSON.parse(text) as T;
+    };
+    for (const id of moved.values()) {
+      const b = await ctx.db.get(id as Id<"blocks">);
+      if (b?.extract) await ctx.db.patch(b._id, { extract: remap(b.extract) });
+    }
+    const rules = await ctx.db
+      .query("logicRules")
+      .withIndex("by_form", (q) => q.eq("formId", formId))
+      .collect();
+    for (const r of rules) {
+      const { _id, _creationTime, formId: _f, ...rest } = remap(r);
+      await ctx.db.insert("logicRules", { ...rest, formId: copyId });
     }
     await recount(ctx, copyId);
     return copyId;

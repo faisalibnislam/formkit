@@ -244,7 +244,9 @@ export const duplicate = mutation({
     for (let i = order + 1; i < blocks.length; i++) {
       await ctx.db.patch(blocks[i]!._id, { order: i + 1 });
     }
-    const id = await ctx.db.insert("blocks", { ...rest, order: order + 1 });
+    // A key names one question: the copy gets the next free one (budget_2).
+    const key = rest.key ? await freeKey(ctx, block.formId, rest.key) : undefined;
+    const id = await ctx.db.insert("blocks", { ...rest, ...(key ? { key } : {}), order: order + 1 });
     await ctx.db.patch(block.formId, { updatedAt: Date.now() });
     await recount(ctx, block.formId);
     return id;
@@ -345,8 +347,10 @@ export const duplicatePage = mutation({
     let first: Id<"blocks"> | null = null;
     for (const [k, b] of run.entries()) {
       const { _id, _creationTime, order, ...rest } = b;
+      const key = rest.key ? await freeKey(ctx, block.formId, rest.key) : undefined;
       const id = await ctx.db.insert("blocks", {
         ...rest,
+        ...(key ? { key } : {}),
         ...(k === 0 ? { pageName: `${b.pageName ?? "Page"} copy` } : {}),
         order: end + k,
       });
