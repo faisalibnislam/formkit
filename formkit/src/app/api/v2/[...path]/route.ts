@@ -37,4 +37,5 @@ async function pass(request: Request, { params }: { params: Promise<{ path: stri
 export const GET = pass;
 export const POST = pass;
 export const PATCH = pass;
+export const DELETE = pass;
 export const OPTIONS = pass;

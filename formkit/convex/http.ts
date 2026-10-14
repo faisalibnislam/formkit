@@ -19,7 +19,7 @@ http.route({ pathPrefix: "/sheets/", method: "GET", handler: sheetFeed });
 http.route({ pathPrefix: "/api/v1/", method: "GET", handler: restApi });
 http.route({ pathPrefix: "/api/v1/", method: "OPTIONS", handler: restApi });
 // Every plan: the API scripts, Zapier and AI assistants (through /api/mcp) use.
-for (const method of ["GET", "POST", "PATCH", "OPTIONS"] as const) {
+for (const method of ["GET", "POST", "PATCH", "DELETE", "OPTIONS"] as const) {
   http.route({ pathPrefix: "/api/v2/", method, handler: apiV2 });
 }
 // OAuth for apps that connect to the MCP server (convex/oauth.ts).

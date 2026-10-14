@@ -1,0 +1,16 @@
+{
+  "name": "formkit-zapier",
+  "version": "1.0.0",
+  "description": "Formkit for Zapier: a trigger for new responses and a search to find one.",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "test": "node --test test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "zapier-platform-core": "15.19.0"
+  }
+}

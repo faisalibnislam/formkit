@@ -68,7 +68,7 @@ function randomHex(bytes: number) {
 }
 
 /** Only public https addresses: no local or private network targets. */
-function publicHttps(raw: string) {
+export function publicHttps(raw: string) {
   let u: URL;
   try {
     u = new URL(raw.trim());

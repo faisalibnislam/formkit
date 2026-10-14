@@ -1370,6 +1370,8 @@ export default defineSchema({
     url: v.optional(v.string()),
     /** Which events it is sent (model of `EVENTS`); every one when unset. */
     events: v.optional(v.array(v.string())),
+    /** Made through the API (a Zapier or Make subscription), which may also remove it. */
+    viaApi: v.optional(v.boolean()),
     /** Signs each webhook delivery; shown once, when the webhook is made. */
     secret: v.optional(v.string()),
     /** The private part of a Sheets link. */
