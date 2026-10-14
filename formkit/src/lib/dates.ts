@@ -12,7 +12,7 @@ export const SITE_DATES = {
   help: "2026-10-01",
   features: "2026-10-01",
   useCases: "2026-09-30",
-  changelog: "2026-10-01",
+  changelog: "2026-10-14",
   contact: "2026-09-29",
   apiDocs: "2026-10-14",
   legal: "2026-09-21",

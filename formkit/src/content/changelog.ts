@@ -15,6 +15,28 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: "2026-10-14",
+    title: "Formkit in your AI assistant, imports, and AI that reads every answer",
+    tag: "New",
+    body: "Ask Claude, ChatGPT or Cursor to build a form, publish it, or tell you what people said. Bring a form over from another tool in a minute. And on Pro, AI now reads every response, asks one follow-up question when an answer is vague, and writes out voice recordings.",
+    points: [
+      "Connect an AI assistant to Formkit on any plan. It does only what you allow, never deletes anything, and its new forms stay drafts until you publish.",
+      "The API is on every plan now, and can build, edit and publish forms as well as read and tag responses.",
+      "Import from Google Forms, Typeform, Tally or Jotform by pasting the form's link.",
+      "Each question's answers summed up on the Analytics page: choices counted, ratings averaged, NPS worked out.",
+      "Pro: AI reads every response for sentiment, topics and urgency, without writing replies.",
+      "Pro: an AI follow-up question after a vague written answer, which people can always skip.",
+      "Pro: voice recordings written out, so you can search them, export them and skim them.",
+      "Pro: the weekly report says what people said, form by form.",
+      "Text, picture and video blocks between questions, NPS and labelled scales, \"Other\" answers, and answer rules (lengths, ranges, patterns).",
+      "Save and finish later: people can email themselves a link back to their answers.",
+    ],
+    links: [
+      { label: "The API and AI assistants", href: "/api-docs" },
+      { label: "AI insights", href: "/features/insights" },
+    ],
+  },
+  {
     date: "2026-10-01",
     title: "Voice recordings",
     tag: "New",
