@@ -12,10 +12,12 @@ type LinkState = {
   title: string | null;
   name: string | null;
   icon: string | null;
+  color?: string | null;
+  about?: string | null;
 };
 
 /** One lookup per request, shared by the page and its metadata. */
-const linkState = cache(async (slug: string, handle?: string): Promise<LinkState | null> => {
+export const linkState = cache(async (slug: string, handle?: string): Promise<LinkState | null> => {
   try {
     return await fetchQuery(api.publicForm.linkState, { slug, handle });
   } catch {
@@ -45,10 +47,15 @@ export async function formMetadata(slug: string, handle?: string): Promise<Metad
   // Customers' forms are theirs, not Formkit's content: kept out of search results.
   const robots = { index: false, follow: false };
   if (!state?.live || !state.title) return { robots };
+  const description = state.about ?? (state.name ? `A form from ${state.name}.` : undefined);
   return {
     robots,
     // The owner's name, not Formkit's: the form is theirs.
     title: { absolute: state.name ? `${state.title} · ${state.name}` : state.title },
+    description,
+    // A shared link shows the form's own card (its opengraph-image route).
+    openGraph: { title: state.title, description, siteName: state.name ?? undefined, type: "website" },
+    twitter: { card: "summary_large_image", title: state.title, description },
     ...(state.icon ? { icons: { icon: state.icon, apple: state.icon } } : {}),
   };
 }

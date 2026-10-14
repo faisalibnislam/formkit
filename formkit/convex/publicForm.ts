@@ -288,9 +288,19 @@ export const linkState = query({
   handler: async (ctx, { slug, handle }) => {
     const form = await resolve(ctx, slug, handle);
     if (form && (form.status === "published" || form.status === "closed")) {
-      // The browser tab: the form's title, and its owner's square logo.
+      // The browser tab and a shared link's card: the form's title as
+      // published, its welcome line, and its owner's name, logo and colour.
       const brand = await brandOf(ctx, form);
-      return { live: true as const, home: null, title: form.title, name: brand.name, icon: brand.markUrl };
+      const shown = (await servedForm(ctx, form)).form;
+      return {
+        live: true as const,
+        home: null,
+        title: shown.title,
+        name: brand.name,
+        icon: brand.markUrl,
+        color: brand.color ?? null,
+        about: shown.welcome?.message?.trim().slice(0, 200) || null,
+      };
     }
     let owner: { ownerId: Id<"users">; brand: "me" | Id<"companies"> } | null = form
       ? { ownerId: form.ownerId, brand: form.brand }
@@ -308,6 +318,8 @@ export const linkState = query({
       title: null,
       name: null,
       icon: null,
+      color: null,
+      about: null,
     };
   },
 });
