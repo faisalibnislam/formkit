@@ -6,6 +6,7 @@ import { formFor, recount } from "./model/forms";
 import { requireFeature } from "./model/plans";
 import { validKey } from "./model/calc";
 import { voiceLength } from "./model/voice";
+import { videoEmbed } from "./model/video";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 
@@ -36,6 +37,12 @@ const blockFields = {
   extract: v.optional(v.union(v.object({ from: v.id("blocks"), what: v.string() }), v.null())),
   ...blockExtras,
 };
+
+function checkedVideo(url: string) {
+  if (!url.trim()) return undefined;
+  if (!videoEmbed(url)) throw new ConvexError("Paste a YouTube or Vimeo link.");
+  return url.trim().slice(0, 500);
+}
 
 /** A key not already used on this form: "source", then "source_2" and on. */
 async function freeKey(ctx: MutationCtx, formId: Id<"forms">, want: string) {
@@ -84,7 +91,17 @@ export const add = mutation({
       kind,
       ...(kind === "pagebreak"
         ? { pageName: fields.pageName ?? "New page" }
-        : {
+        : kind === "content"
+          ? {
+              // A statement, a picture or a video: shown, never answered.
+              type: fields.type === "image" || fields.type === "video" ? fields.type : "statement",
+              title: fields.title ?? "",
+              help: fields.help,
+              imageId: fields.imageId,
+              alt: fields.alt,
+              videoUrl: fields.videoUrl === undefined ? undefined : checkedVideo(fields.videoUrl),
+            }
+          : {
             type: fields.type ?? "short-text",
             title: fields.title ?? "Untitled question",
             help: fields.help,
@@ -98,6 +115,10 @@ export const add = mutation({
             ...(fields.type === "hidden"
               ? { key: await freeKey(ctx, formId, fields.key ?? "source"), defaultValue: fields.defaultValue }
               : {}),
+            nps: fields.nps,
+            scaleLabels: fields.scaleLabels,
+            allowOther: fields.allowOther,
+            validation: fields.validation,
           }),
     });
 
@@ -127,6 +148,16 @@ export const update = mutation({
       };
     }
     if (patch.maxSeconds !== undefined) patch = { ...patch, maxSeconds: voiceLength(patch.maxSeconds) };
+    if (patch.videoUrl !== undefined) patch = { ...patch, videoUrl: checkedVideo(patch.videoUrl) ?? "" };
+    if (patch.alt !== undefined) patch = { ...patch, alt: patch.alt.trim().slice(0, 300) };
+    if (patch.validation?.pattern) {
+      try {
+        new RegExp(patch.validation.pattern);
+      } catch {
+        throw new ConvexError("That pattern is not a valid regular expression.");
+      }
+      patch = { ...patch, validation: { ...patch.validation, pattern: patch.validation.pattern.slice(0, 200) } };
+    }
     if (patch.extract) {
       await requireFeature(ctx, form, "logic.ai");
       if ((patch.type ?? block.type) !== "hidden") throw new ConvexError("Only a hidden field can be filled in by AI.");

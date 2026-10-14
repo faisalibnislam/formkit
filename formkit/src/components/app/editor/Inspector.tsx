@@ -38,6 +38,7 @@ import { VALUELESS, firstValue, opLabel } from "./operators";
 import { tracked } from "./saveStatus";
 import { openUpgrade, upgradeOnPlanError, useGate, usePlan } from "@/components/plan/usePlan";
 import { ProChip } from "@/components/plan/UpgradeSheet";
+import { ImageUpload } from "../ImageUpload";
 import { suggestKey } from "../../../../convex/model/calc";
 
 type Block = Doc<"blocks">;
@@ -934,4 +935,68 @@ function AnswerRules({
     default:
       return null;
   }
+}
+
+/**
+ * Settings for content between questions: a statement's words, a picture
+ * and its description, or a video link (YouTube or Vimeo).
+ */
+export function ContentSettings({ block, imageUrl }: { block: Doc<"blocks">; imageUrl: string | null }) {
+  const update = useMutation(api.blocks.update);
+  const toast = useToast();
+  const patch = (p: Parameters<typeof update>[0]["patch"]) =>
+    tracked(update({ blockId: block._id, patch: p })).catch((e) => toast(errorText(e, "That did not save."), { tone: "error" }));
+  return (
+    <section className="fk-panel" data-pad="tight">
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+        <h3 style={{ flex: 1, margin: 0 }}>Content settings</h3>
+        <Badge>{block.type === "image" ? "Image" : block.type === "video" ? "Video" : "Text"}</Badge>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {block.type === "statement" && (
+          <>
+            <Field label="Heading">
+              <DraftPill value={block.title ?? ""} maxLength={200} onCommit={(v) => patch({ title: v })} />
+            </Field>
+            <Field label="Text">
+              <DraftArea value={block.help ?? ""} rows={5} maxLength={2000} onCommit={(v) => patch({ help: v })} />
+            </Field>
+          </>
+        )}
+        {block.type === "image" && (
+          <>
+            <ImageUpload
+              label="Picture"
+              help="PNG, JPEG, WebP or SVG, up to 5 MB."
+              hasImage={!!imageUrl}
+              preview={
+                <span className="fk-logo-plate" data-shape="wide">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- a stored upload */}
+                  {imageUrl ? <img src={imageUrl} alt="" /> : null}
+                </span>
+              }
+              onUploaded={(imageId) => patch({ imageId })}
+              onCleared={() => patch({ imageId: undefined })}
+            />
+            <Field label="Describe the picture" help="Read out to people who cannot see it. Required for the picture to show.">
+              <DraftArea value={block.alt ?? ""} rows={2} maxLength={300} onCommit={(v) => patch({ alt: v })} />
+            </Field>
+            <Field label="Caption (optional)">
+              <DraftPill value={block.title ?? ""} maxLength={200} onCommit={(v) => patch({ title: v })} />
+            </Field>
+          </>
+        )}
+        {block.type === "video" && (
+          <>
+            <Field label="YouTube or Vimeo link">
+              <DraftPill value={block.videoUrl ?? ""} placeholder="https://youtu.be/…" maxLength={500} onCommit={(v) => patch({ videoUrl: v })} />
+            </Field>
+            <Field label="Title (optional)" help="Shown above the video, and read out as its name.">
+              <DraftPill value={block.title ?? ""} maxLength={200} onCommit={(v) => patch({ title: v })} />
+            </Field>
+          </>
+        )}
+      </div>
+    </section>
+  );
 }

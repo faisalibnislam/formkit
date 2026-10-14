@@ -19,6 +19,7 @@ import { LiveReply } from "./LiveReply";
 import { QuizResult } from "./QuizResult";
 import { applyLogic, conditionsOf, type Rule as LogicRule } from "../../../convex/model/logicEval";
 import { ruleProblem } from "../../../convex/model/validate";
+import { videoEmbed } from "../../../convex/model/video";
 import { LogoLockup } from "./LogoLockup";
 import { Logo } from "@/components/brand/Logo";
 
@@ -343,11 +344,13 @@ export function FormRunner({
   const lastPage = page >= live.length - 1;
   const cur = fields[Math.min(step, Math.max(0, fields.length - 1))];
   const lastStep = step >= fields.length - 1;
-  const answeredCount = fields.filter((b) => filled(kept[b._id])).length;
+  // Content blocks are shown, not answered: they never count as questions.
+  const questions = fields.filter((b) => b.kind !== "content");
+  const answeredCount = questions.filter((b) => filled(kept[b._id])).length;
 
   function isRequired(b: Block) {
     // A hidden question is never required, or the form cannot be finished.
-    if (hidden.has(b._id)) return false;
+    if (hidden.has(b._id) || b.kind === "content") return false;
     if (b.required || forced.has(b._id)) return true;
     return data.rules.requireEmail && b.type === "email";
   }
@@ -357,7 +360,7 @@ export function FormRunner({
   const [ruleErrors, setRuleErrors] = useState<Record<string, string>>({});
   function stopsOnRule(list: Block[]) {
     for (const b of list) {
-      if (hidden.has(b._id)) continue;
+      if (hidden.has(b._id) || b.kind === "content") continue;
       const message = ruleProblem(b as never, kept[b._id]);
       if (message) {
         setRuleErrors({ [b._id]: message });
@@ -780,7 +783,7 @@ export function FormRunner({
             {data.welcome?.button || "Start"}
           </button>
           <span style={{ fontSize: 13.5, opacity: 0.75 }}>
-            {fields.length} {fields.length === 1 ? "question" : "questions"}
+            {questions.length} {questions.length === 1 ? "question" : "questions"}
           </span>
         </div>
         {credit}
@@ -816,6 +819,7 @@ export function FormRunner({
   const failure = failed && <div className="fk-live-err" role="alert" style={{ marginTop: 18 }}>{failed}</div>;
 
   const question = (b: Block, big = false) => {
+    if (b.kind === "content") return <ContentBlock key={b._id} block={b} say={say} big={big} />;
     const err =
       fileProblem[b._id] ?? (problem === b._id ? "This one is needed before you can go on." : (ruleErrors[b._id] ?? null));
     const a11y: A11y = {
@@ -1002,7 +1006,7 @@ export function FormRunner({
             {thinking ? "One moment…" : busy ? "Sending…" : lastPage ? (resume?.editing ? "Save changes" : "Submit") : "Next"}
           </button>
           <span style={{ fontSize: 13.5, opacity: 0.75 }}>
-            {answeredCount} of {fields.length} answered
+            {answeredCount} of {questions.length} answered
           </span>
         </div>
       </form>
@@ -1487,6 +1491,46 @@ function Control({
         />
       );
   }
+}
+
+/**
+ * Content between questions: words, a picture (shown only with its
+ * description) or a YouTube or Vimeo video, embedded without tracking cookies.
+ */
+function ContentBlock({ block, say, big }: { block: Block; say: (t: string | null | undefined) => string; big: boolean }) {
+  const embed = block.type === "video" && block.videoUrl ? videoEmbed(block.videoUrl) : null;
+  return (
+    <div className="fk-live-q fk-live-content" id={`q-${block._id}`} data-big={big ? "true" : undefined}>
+      {block.type === "statement" && (
+        <>
+          {block.title && <h2 className="fk-live-q-title">{say(block.title)}</h2>}
+          {block.help && <p className="fk-live-content-text">{say(block.help)}</p>}
+        </>
+      )}
+      {block.type === "image" && block.imageUrl && block.alt && (
+        <figure style={{ margin: 0 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- the owner's own upload, at its own size */}
+          <img src={block.imageUrl} alt={block.alt} className="fk-live-content-image" loading="lazy" />
+          {block.title && <figcaption className="fk-live-q-help">{say(block.title)}</figcaption>}
+        </figure>
+      )}
+      {embed && (
+        <>
+          {block.title && <div className="fk-live-q-title">{say(block.title)}</div>}
+          <div className="fk-live-video">
+            <iframe
+              src={embed}
+              title={block.title || "Video"}
+              loading="lazy"
+              allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allowFullScreen
+            />
+          </div>
+        </>
+      )}
+    </div>
+  );
 }
 
 type A11y = { id: string; labelledBy: string; describedBy?: string; required: boolean; invalid: boolean };

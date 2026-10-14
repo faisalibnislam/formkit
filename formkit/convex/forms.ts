@@ -274,6 +274,12 @@ export const get = query({
       closing: form.closing ?? null,
       blocks: blocks.sort((a, b) => a.order - b.order),
       rules: rules.sort((a, b) => a.order - b.order),
+      /** Content blocks' pictures, by block id. */
+      images: Object.fromEntries(
+        await Promise.all(
+          blocks.filter((b) => b.kind === "content" && b.imageId).map(async (b) => [b._id, await ctx.storage.getUrl(b.imageId!)] as const),
+        ),
+      ) as Record<string, string | null>,
     };
   },
 });
