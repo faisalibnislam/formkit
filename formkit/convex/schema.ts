@@ -420,6 +420,9 @@ export default defineSchema({
       }),
     ),
 
+    /** Pro: AI reads every response for sentiment, topics, intent and urgency, without writing a reply. */
+    aiClassify: v.optional(v.boolean()),
+
     theme: v.optional(v.any()),
     notify: v.optional(v.any()),
     /** Who may answer, and how often. See `model/security.ts`. */

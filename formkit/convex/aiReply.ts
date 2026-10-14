@@ -30,7 +30,7 @@ import { generate as askModel, ModelError, parseJson, voice, type Meter } from "
  * The answers are treated as data from the public, never as instructions.
  */
 
-const INSIGHT_SCHEMA = {
+export const INSIGHT_SCHEMA = {
   type: "OBJECT",
   properties: {
     sentiment: { type: "STRING", enum: ["positive", "neutral", "negative"] },
@@ -110,7 +110,7 @@ export function tidyReply(text: string, allowed: string) {
     .slice(0, 3000);
 }
 
-function cleanInsight(raw: Partial<Insight> & { score?: number } | undefined): Insight | undefined {
+export function cleanInsight(raw: Partial<Insight> & { score?: number } | undefined): Insight | undefined {
   if (!raw) return undefined;
   const sentiment = (["positive", "neutral", "negative"] as const).find((x) => x === raw.sentiment) ?? "neutral";
   const urgency = (["low", "medium", "high"] as const).find((x) => x === raw.urgency);
@@ -162,7 +162,7 @@ const firstName = (name?: string | null) => (name ?? "").trim().split(/\s+/)[0]?
  */
 const WITHHELD = new Set(["email", "phone", "address", "signature"]);
 
-function rowsOf(response: Pick<Doc<"responses">, "answers">, withheld: Set<string> = new Set()): Row[] {
+export function rowsOf(response: Pick<Doc<"responses">, "answers">, withheld: Set<string> = new Set()): Row[] {
   return response.answers
     .filter((a) => !withheld.has(a.blockId))
     .map((a) => ({ question: a.question, answer: a.fileName ?? (a.values ? a.values.join(", ") : (a.value ?? "")) }))
@@ -172,7 +172,7 @@ function rowsOf(response: Pick<Doc<"responses">, "answers">, withheld: Set<strin
 /* ------------------------------------------------------------------ */
 /* Writing and sending a response's reply                              */
 
-async function withheldBlocks(ctx: QueryCtx, formId: Id<"forms">) {
+export async function withheldBlocks(ctx: QueryCtx, formId: Id<"forms">) {
   const blocks = await ctx.db
     .query("blocks")
     .withIndex("by_form_order", (q) => q.eq("formId", formId))

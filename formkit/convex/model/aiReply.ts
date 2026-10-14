@@ -55,3 +55,16 @@ export async function queueReply(ctx: MutationCtx, form: Doc<"forms">, responseI
 export function emailsReply(form: Pick<Doc<"forms">, "aiReply">) {
   return !!form.aiReply?.enabled && form.aiReply.delivery !== "form";
 }
+
+/**
+ * Pro: a form that reads every response (aiClassify) without writing replies
+ * queues just the reading. A form with AI reply on gets it from the reply.
+ * Counted once against the company's AI, like every per-response AI feature.
+ */
+export async function queueClassify(ctx: MutationCtx, form: Doc<"forms">, responseId: Id<"responses">) {
+  if (!form.aiClassify || form.aiReply?.enabled) return;
+  if (!(await hasFeature(ctx, form, "ai.insights"))) return;
+  if (!(await aiAllowed(ctx, form.ownerId))) return;
+  if (!(await chargeResponse(ctx, form, responseId))) return;
+  await ctx.scheduler.runAfter(0, internal.insights.classify, { responseId });
+}

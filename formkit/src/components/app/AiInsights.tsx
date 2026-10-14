@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useAction, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { AlertTriangle, Flame, Gauge, MailCheck, Smile, Sparkles, ThumbsUp } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import { Button } from "@/components/ui";
+import { Button, Switch } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
-import { LockedNote } from "@/components/plan/UpgradeSheet";
+import { LockedNote, ProChip } from "@/components/plan/UpgradeSheet";
 import { upgradeOnPlanError } from "@/components/plan/usePlan";
 import { BarChart, StatCard, TickBars } from "./ds";
 import { errorText } from "./settings/bits";
@@ -37,6 +37,8 @@ export function AiInsights({ formId, from, to }: { formId: Id<"forms">; from: nu
   const canWrite = useQuery(api.responses.canManage, { formId }) ?? false;
   const [writing, setWriting] = useState(false);
 
+  // Off, and nothing read yet: say what it does and offer the switch.
+  if (data === null) return <ReadEvery formId={formId} />;
   if (!data) return null;
   if (data.locked) {
     return (
@@ -96,9 +98,11 @@ export function AiInsights({ formId, from, to }: { formId: Id<"forms">; from: nu
             AI insights
           </h2>
           <p className="fk-panel-lede" style={{ margin: "6px 0 0" }}>
-            Read by AI from {n.toLocaleString("en-US")} of {data.total.toLocaleString("en-US")} responses in this range, as
-            it wrote each reply.
+            Read by AI from {n.toLocaleString("en-US")} of {data.total.toLocaleString("en-US")} responses in this range.
           </p>
+          <div style={{ marginTop: 12 }}>
+            <ReadEvery formId={formId} compact />
+          </div>
         </div>
       </div>
 
@@ -335,5 +339,50 @@ function PeopleRows({ formId, people, empty, flag }: { formId: Id<"forms">; peop
         </Link>
       ))}
     </div>
+  );
+}
+
+/**
+ * The switch for reading every response with AI (sentiment, topics, intent,
+ * urgency) on a form without AI replies, which already read them.
+ */
+function ReadEvery({ formId, compact = false }: { formId: Id<"forms">; compact?: boolean }) {
+  const setting = useQuery(api.insights.classifySetting, { formId });
+  const set = useMutation(api.insights.setClassify);
+  const canWrite = useQuery(api.responses.canManage, { formId }) ?? false;
+  const toast = useToast();
+  if (!setting || setting.byReply) return null;
+  const body = (
+    <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 14 }}>Read every response with AI</div>
+        <div className="fk-proprow-hint">
+          How people feel, what they want, the topics they raise and what is urgent, for every new response. Each one
+          counts once against your AI responses. Contact details are never sent.
+        </div>
+      </div>
+      {!canWrite ? (
+        <span className="fk-proprow-hint" style={{ margin: 0 }}>{setting.on ? "On" : "Off"}</span>
+      ) : setting.available ? (
+        <Switch
+          checked={setting.on}
+          label="Read every response with AI"
+          onChange={(on) =>
+            void set({ formId, on }).catch((e) => {
+              if (!upgradeOnPlanError(e)) toast(errorText(e, "That did not save."));
+            })
+          }
+        />
+      ) : (
+        <ProChip />
+      )}
+    </div>
+  );
+  if (compact) return body;
+  return (
+    <section className="fk-panel">
+      <h3>AI insights</h3>
+      {body}
+    </section>
   );
 }

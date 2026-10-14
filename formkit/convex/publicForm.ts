@@ -10,7 +10,7 @@ import { servedForm } from "./model/served";
 import type { Rule } from "./model/logicEval";
 import { internal } from "./_generated/api";
 import { closedReason, notifyResponse, tellFormTeam } from "./model/inbox";
-import { queueReply } from "./model/aiReply";
+import { queueClassify, queueReply } from "./model/aiReply";
 import { chargeResponse, usesAiLogic } from "./model/aiMeter";
 import { markAll, marked } from "./model/quiz";
 import { Doc, Id } from "./_generated/dataModel";
@@ -671,6 +671,8 @@ async function store(
     if (await usesAiLogic(ctx, form)) await chargeResponse(ctx, form, responseId);
     // The AI reply is queued first, so the confirmation knows to wait for it.
     if (!existing?.aiReply) await queueReply(ctx, form, responseId);
+    // Pro: reading every response without a reply (sentiment, topics, urgency).
+    if (!existing?.insight) await queueClassify(ctx, form, responseId);
     // Instant quiz results go out by email as soon as the mark is in.
     if (quizOn?.results === "instant" && quizOn.emailResults && "quiz" in full && !full.quiz.pending) {
       await ctx.scheduler.runAfter(0, internal.quiz.emailResult, { responseId });
