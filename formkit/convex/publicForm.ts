@@ -1029,6 +1029,47 @@ export const emailResumeLink = mutation({
   },
 });
 
+/**
+ * Hourly: one reminder to each person who left an email on a form with
+ * reminders on, stopped partway, and has not come back in the hours set.
+ * Never more than one per response, and a bounded number per form per hour.
+ */
+export const remindPartials = internalMutation({
+  args: {},
+  returns: v.number(),
+  handler: async (ctx) => {
+    const now = Date.now();
+    let sent = 0;
+    const forms = await ctx.db
+      .query("forms")
+      .withIndex("by_remind", (q) => q.gt("remind.hours", 0))
+      .take(500);
+    for (const form of forms) {
+      if (form.deletedAt || form.status !== "published" || !form.remind) continue;
+      if (!(await hasFeature(ctx, form, "forms.reminders"))) continue;
+      const due = now - form.remind.hours * 3_600_000;
+      // Partials last saved in the three days before they became due; older ones are left alone.
+      const rows = await ctx.db
+        .query("responses")
+        .withIndex("by_form_preview_submitted", (q) =>
+          q.eq("formId", form._id).eq("preview", undefined).gte("submittedAt", due - 72 * 3_600_000).lte("submittedAt", due),
+        )
+        .take(400);
+      let here = 0;
+      for (const r of rows) {
+        if (here >= 50) break;
+        if (!r.partial || r.remindedAt || !r.resumeToken || !r.respondentEmail) continue;
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(r.respondentEmail)) continue;
+        await ctx.db.patch(r._id, { remindedAt: now });
+        await ctx.scheduler.runAfter(0, internal.publicForm.mailResumeLink, { responseId: r._id, to: r.respondentEmail, reminder: true });
+        here++;
+      }
+      sent += here;
+    }
+    return sent;
+  },
+});
+
 export const resumeMail = internalQuery({
   args: { responseId: v.id("responses") },
   handler: async (ctx, { responseId }) => {
@@ -1040,9 +1081,9 @@ export const resumeMail = internalQuery({
 });
 
 export const mailResumeLink = internalAction({
-  args: { responseId: v.id("responses"), to: v.string() },
+  args: { responseId: v.id("responses"), to: v.string(), reminder: v.optional(v.boolean()) },
   returns: v.null(),
-  handler: async (ctx, { responseId, to }) => {
+  handler: async (ctx, { responseId, to, reminder }) => {
     const m: { title: string; token: string; brand: { name: string; logoUrl: string | null; color: string | null; badge: boolean } } | null =
       await ctx.runQuery(internal.publicForm.resumeMail, { responseId });
     if (!m) return null;
@@ -1050,8 +1091,8 @@ export const mailResumeLink = internalAction({
     const link = `${site}/r/${m.token}`;
     await send({
       to: [to],
-      subject: `Finish ${m.title} when you are ready`,
-      html: renderResumeLink({ title: m.title, link, brand: m.brand }),
+      subject: reminder ? `You started ${m.title}` : `Finish ${m.title} when you are ready`,
+      html: renderResumeLink({ title: m.title, link, brand: m.brand, reminder }),
       text: `Everything you answered so far on ${m.title} is saved. Carry on here: ${link}\n\nAnyone with this link can see and change your answers, so keep it to yourself.`,
     });
     return null;

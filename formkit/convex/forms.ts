@@ -68,6 +68,7 @@ async function decorate(ctx: Parameters<typeof formUrl>[0], form: Doc<"forms">) 
     liveVersion: form.liveVersion ?? null,
     closesAt: form.closing?.closeAt ?? null,
     opensAt: form.opensAt ?? null,
+    remindHours: form.remind?.hours ?? null,
     closesAfter: form.closing?.closeAfter ?? null,
     deletedAt: form.deletedAt ?? null,
     /** Days left before the bin empties, for the red chip on a deleted row. */
@@ -734,6 +735,26 @@ export async function setOpen(
     actorId: user._id,
   });
 }
+
+/** The hours a reminder can wait, from the last answer saved. */
+export const REMIND_HOURS = [3, 6, 12, 24, 48, 72];
+
+/** Pro: one reminder to people who left an email and stopped partway, or none (null). */
+export const setReminder = mutation({
+  args: { formId: v.id("forms"), hours: v.union(v.number(), v.null()) },
+  returns: v.null(),
+  handler: async (ctx, { formId, hours }) => {
+    const form = await formFor(ctx, formId);
+    if (hours === null) {
+      await ctx.db.patch(formId, { remind: undefined });
+      return null;
+    }
+    await requireFeature(ctx, form, "forms.reminders");
+    if (!REMIND_HOURS.includes(hours)) throw new ConvexError("Pick one of the waits offered.");
+    await ctx.db.patch(formId, { remind: { hours } });
+    return null;
+  },
+});
 
 /**
  * Opens a draft or closed form on its own at a set time, or stops that (null).

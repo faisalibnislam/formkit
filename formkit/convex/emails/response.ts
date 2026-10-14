@@ -241,17 +241,32 @@ export function renderTeamInvite({
 }
 
 /** A respondent's own link back to a form they started, sent when they ask for it. */
-export function renderResumeLink({ title, link, brand }: { title: string; link: string; brand: Partial<Brand> & { name: string } }) {
+export function renderResumeLink({
+  title,
+  link,
+  brand,
+  reminder,
+}: {
+  title: string;
+  link: string;
+  brand: Partial<Brand> & { name: string };
+  /** The one reminder a form can send to someone who stopped partway. */
+  reminder?: boolean;
+}) {
   const b: Brand = { name: brand.name, logoUrl: brand.logoUrl ?? null, color: safeColor(brand.color), badge: brand.badge !== false };
   return renderShell({
     brand: b,
-    eyebrow: "Your answers are saved",
-    heading: `Finish ${title} when you are ready`,
-    lede: "Everything you answered so far is kept. Open the link to carry on where you left off.",
+    eyebrow: reminder ? "A reminder" : "Your answers are saved",
+    heading: reminder ? `You started ${title}` : `Finish ${title} when you are ready`,
+    lede: reminder
+      ? "You did not get to the end. Everything you answered is kept, so it only takes the rest."
+      : "Everything you answered so far is kept. Open the link to carry on where you left off.",
     body: `${button("Carry on", link, b.color ?? undefined)}${paragraph(
       "Anyone with this link can see and change your answers, so keep it to yourself.",
       { muted: true, top: 22 },
     )}`,
-    reason: `Sent because you asked ${b.name} to save your place.`,
+    reason: reminder
+      ? `Sent once by ${b.name}, because you started this form with this address. There will not be another.`
+      : `Sent because you asked ${b.name} to save your place.`,
   });
 }

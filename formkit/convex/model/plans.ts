@@ -105,6 +105,7 @@ export const FEATURES = {
   "logic.hidden": { plan: "pro", label: "Hidden fields and pre-filled answers", group: "Smarter forms" },
   "logic.piping": { plan: "pro", label: "Earlier answers in later questions", group: "Smarter forms" },
   "forms.redirect": { plan: "pro", label: "Send people to your page after", group: "Smarter forms" },
+  "forms.reminders": { plan: "pro", label: "A reminder to people who stopped partway", group: "Smarter forms" },
   "logic.advanced": { plan: "pro", label: "Several endings, hidden options and limited places", group: "Smarter forms" },
   // Pro - people
   collaborators: { plan: "pro", label: "Unlimited guests on every form", group: "Teams" },

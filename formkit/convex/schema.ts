@@ -440,6 +440,8 @@ export default defineSchema({
      */
     opensAt: v.optional(v.number()),
     openingBy: v.optional(v.id("users")),
+    /** Pro: one reminder, this many hours on, to someone who left an email and stopped partway. */
+    remind: v.optional(v.object({ hours: v.number() })),
     closing: v.optional(
       v.object({
         message: v.optional(v.string()),
@@ -486,6 +488,7 @@ export default defineSchema({
     .index("by_slug", ["slug"])
     .index("by_status", ["status"])
     .index("by_opens_at", ["opensAt"])
+    .index("by_remind", ["remind.hours"])
     .index("by_close_at", ["closing.closeAt"])
     .index("by_deleted", ["deletedAt"]),
 
@@ -672,6 +675,8 @@ export default defineSchema({
     ),
     /** When the person last asked for their link back to finish later (once every two minutes). */
     resumeEmailedAt: v.optional(v.number()),
+    /** When the one reminder to finish went out (forms.remind). */
+    remindedAt: v.optional(v.number()),
     /** Business: the AI-written reply to this response, and where it went. */
     aiReply: v.optional(
       v.object({
