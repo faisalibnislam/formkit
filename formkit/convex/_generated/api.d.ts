@@ -17,6 +17,7 @@ import type * as aiLogic from "../aiLogic.js";
 import type * as aiReply from "../aiReply.js";
 import type * as aiUsage from "../aiUsage.js";
 import type * as analytics from "../analytics.js";
+import type * as apiV2 from "../apiV2.js";
 import type * as approvals from "../approvals.js";
 import type * as auth from "../auth.js";
 import type * as billing from "../billing.js";
@@ -50,10 +51,12 @@ import type * as model_aiIntent from "../model/aiIntent.js";
 import type * as model_aiMeter from "../model/aiMeter.js";
 import type * as model_aiPrices from "../model/aiPrices.js";
 import type * as model_aiReply from "../model/aiReply.js";
+import type * as model_apiAuth from "../model/apiAuth.js";
 import type * as model_apiKeys from "../model/apiKeys.js";
 import type * as model_builtinTemplates from "../model/builtinTemplates.js";
 import type * as model_calc from "../model/calc.js";
 import type * as model_contacts from "../model/contacts.js";
+import type * as model_draftForm from "../model/draftForm.js";
 import type * as model_erase from "../model/erase.js";
 import type * as model_exportSheet from "../model/exportSheet.js";
 import type * as model_flags from "../model/flags.js";
@@ -125,6 +128,7 @@ declare const fullApi: ApiFromModules<{
   "aiReply": typeof aiReply,
   "aiUsage": typeof aiUsage,
   "analytics": typeof analytics,
+  "apiV2": typeof apiV2,
   "approvals": typeof approvals,
   "auth": typeof auth,
   "billing": typeof billing,
@@ -158,10 +162,12 @@ declare const fullApi: ApiFromModules<{
   "model/aiMeter": typeof model_aiMeter,
   "model/aiPrices": typeof model_aiPrices,
   "model/aiReply": typeof model_aiReply,
+  "model/apiAuth": typeof model_apiAuth,
   "model/apiKeys": typeof model_apiKeys,
   "model/builtinTemplates": typeof model_builtinTemplates,
   "model/calc": typeof model_calc,
   "model/contacts": typeof model_contacts,
+  "model/draftForm": typeof model_draftForm,
   "model/erase": typeof model_erase,
   "model/exportSheet": typeof model_exportSheet,
   "model/flags": typeof model_flags,

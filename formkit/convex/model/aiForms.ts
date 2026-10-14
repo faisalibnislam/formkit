@@ -143,8 +143,14 @@ export type Draft = {
 
 /* ---------- checking what the model sends back ---------- */
 
-export function clean(s: unknown, max = 300) {
-  return typeof s === "string" ? voice(s.replace(/\s+/g, " ").trim()).slice(0, max) : "";
+/**
+ * Tidied text. The model's words get the house voice; a person's own (a spec
+ * sent through the API, an imported form) are kept as they wrote them.
+ */
+export function clean(s: unknown, max = 300, verbatim = false) {
+  if (typeof s !== "string") return "";
+  const t = s.replace(/\s+/g, " ").trim();
+  return (verbatim ? t : voice(t)).slice(0, max);
 }
 
 export function coerceType(t: unknown): QuestionType {
@@ -153,18 +159,18 @@ export function coerceType(t: unknown): QuestionType {
 
 export type RawItem = { kind?: string; type?: string; title?: string; help?: string; required?: boolean; options?: unknown };
 
-export function toItem(raw: RawItem): DraftItem | null {
-  const title = clean(raw.title, 240);
+export function toItem(raw: RawItem, verbatim = false): DraftItem | null {
+  const title = clean(raw.title, 240, verbatim);
   if (!title) return null;
   if (raw.kind === "page") return { kind: "pagebreak", pageName: title.slice(0, 60) };
   const type = coerceType(raw.type);
   const item: DraftItem = { kind: "field", type, title, required: raw.required === true };
-  const help = clean(raw.help, 200);
+  const help = clean(raw.help, 200, verbatim);
   if (help) item.help = help;
   if (CHOICE_TYPES.has(type)) {
     const options = [
-      ...new Set((Array.isArray(raw.options) ? raw.options : []).map((o) => clean(o, 80)).filter(Boolean)),
-    ].slice(0, 10);
+      ...new Set((Array.isArray(raw.options) ? raw.options : []).map((o) => clean(o, 80, verbatim)).filter(Boolean)),
+    ].slice(0, verbatim ? 50 : 10);
     // A choice question without real options is a text question.
     if (options.length >= 2) item.options = options;
     else item.type = "short-text";
@@ -255,12 +261,12 @@ export type RawDraft = {
   note?: string;
 };
 
-export function toDraft(raw: RawDraft | null): { draft: Draft; note: string } | null {
+export function toDraft(raw: RawDraft | null, { verbatim = false }: { verbatim?: boolean } = {}): { draft: Draft; note: string } | null {
   if (!raw || !Array.isArray(raw.items)) return null;
   const items = raw.items
-    .map(toItem)
+    .map((i) => toItem(i, verbatim))
     .filter((i): i is DraftItem => i !== null)
-    .slice(0, 40);
+    .slice(0, verbatim ? 200 : 40);
   // No page break at the very start or end, and never two in a row.
   const tidy = items.filter(
     (it, i, all) =>
@@ -269,21 +275,22 @@ export function toDraft(raw: RawDraft | null): { draft: Draft; note: string } | 
   if (!tidy.some((i) => i.kind === "field")) return null;
 
   const fields = fieldsOf(tidy);
-  const title = clean(raw.title, 120) || "Untitled form";
+  const c = (s: unknown, max: number) => clean(s, max, verbatim);
+  const title = c(raw.title, 120) || "Untitled form";
   return {
     draft: {
       title,
-      description: clean(raw.description, 300),
-      welcome: { title: clean(raw.welcomeTitle, 120) || title, message: clean(raw.welcomeMessage, 400) },
-      thanks: { title: clean(raw.thanksTitle, 120) || "Thank you", message: clean(raw.thanksMessage, 400) },
+      description: c(raw.description, 300),
+      welcome: { title: c(raw.welcomeTitle, 120) || title, message: c(raw.welcomeMessage, 400) },
+      thanks: { title: c(raw.thanksTitle, 120) || "Thank you", message: c(raw.thanksMessage, 400) },
       items: tidy,
       rules: (Array.isArray(raw.rules) ? raw.rules : [])
         .map((r) => checkRule(r, fields))
         .filter((r): r is DraftRule => r !== null)
-        .slice(0, 8),
+        .slice(0, verbatim ? 50 : 8),
       theme: THEME_PRESETS.some((t) => t.id === raw.theme) ? raw.theme : undefined,
     },
-    note: clean(raw.note, 300),
+    note: c(raw.note, 300),
   };
 }
 

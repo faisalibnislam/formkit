@@ -1,6 +1,6 @@
 import { fromPortable, type PortableRule } from "./model/logicCopy";
 import { ConvexError, v } from "convex/values";
-import { internalMutation, mutation, query, type MutationCtx } from "./_generated/server";
+import { internalMutation, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { requireUser } from "./model/identity";
 import { approvalView, audit, needsApproval, teamTemplate } from "./model/team";
@@ -652,61 +652,8 @@ export const setClosing = mutation({
     for (const k of Object.keys(merged)) if (merged[k] === null) delete merged[k];
     const next = merged as NonNullable<Doc<"forms">["closing"]>;
 
-    if (closeNow) {
-      await ctx.db.patch(formId, {
-        status: "closed",
-        closing: { ...next, closedBy: "you", closedAt: now },
-        updatedAt: now,
-      });
-      await ctx.db.insert("activity", {
-        formId,
-        userId: user._id,
-        what: "closed the form",
-        at: now,
-      });
-      await tellFormTeam(ctx, form, {
-        kind: "closed",
-        title: `${nameOf(user)} closed ${form.title}`,
-        body: "It has stopped taking answers. Everything collected is kept.",
-        href: `/app/forms/${formId}`,
-        action: "Open the form",
-        icon: "lock",
-        actorId: user._id,
-      });
-      return null;
-    }
-
-    if (reopen) {
-      // A rule that has already elapsed is switched off, or the form would
-      // close again the moment it reopened.
-      const elapsed = next.closeAt !== undefined && next.closeAt <= now;
-      const full = next.closeAfter !== undefined && form.responsesCount >= next.closeAfter;
-      await ctx.db.patch(formId, {
-        status: "published",
-        closing: {
-          ...next,
-          closeAt: elapsed ? undefined : next.closeAt,
-          closeAfter: full ? undefined : next.closeAfter,
-          closedBy: undefined,
-          closedAt: undefined,
-        },
-        updatedAt: now,
-      });
-      await ctx.db.insert("activity", {
-        formId,
-        userId: user._id,
-        what: "reopened the form",
-        at: now,
-      });
-      await tellFormTeam(ctx, form, {
-        kind: "published",
-        title: `${nameOf(user)} reopened ${form.title}`,
-        body: "It is taking answers again at the same link.",
-        href: `/app/forms/${formId}`,
-        action: "Open the form",
-        icon: "lock-open",
-        actorId: user._id,
-      });
+    if (closeNow || reopen) {
+      await setOpen(ctx, form, user, !!reopen, next);
       return null;
     }
 
@@ -714,6 +661,76 @@ export const setClosing = mutation({
     return null;
   },
 });
+
+
+/**
+ * Closes a form now, or reopens it, keeping its closing rules (one already
+ * past is switched off on reopening). The Share panel and the API both use it.
+ */
+export async function setOpen(
+  ctx: MutationCtx,
+  form: Doc<"forms">,
+  user: Doc<"users">,
+  open: boolean,
+  next: NonNullable<Doc<"forms">["closing"]> = form.closing ?? {},
+) {
+  const formId = form._id;
+  const now = Date.now();
+  if (!open) {
+    await ctx.db.patch(formId, {
+      status: "closed",
+      closing: { ...next, closedBy: "you", closedAt: now },
+      updatedAt: now,
+    });
+    await ctx.db.insert("activity", {
+      formId,
+      userId: user._id,
+      what: "closed the form",
+      at: now,
+    });
+    await tellFormTeam(ctx, form, {
+      kind: "closed",
+      title: `${nameOf(user)} closed ${form.title}`,
+      body: "It has stopped taking answers. Everything collected is kept.",
+      href: `/app/forms/${formId}`,
+      action: "Open the form",
+      icon: "lock",
+      actorId: user._id,
+    });
+    return;
+  }
+
+  // A rule that has already elapsed is switched off, or the form would
+  // close again the moment it reopened.
+  const elapsed = next.closeAt !== undefined && next.closeAt <= now;
+  const full = next.closeAfter !== undefined && form.responsesCount >= next.closeAfter;
+  await ctx.db.patch(formId, {
+    status: "published",
+    closing: {
+      ...next,
+      closeAt: elapsed ? undefined : next.closeAt,
+      closeAfter: full ? undefined : next.closeAfter,
+      closedBy: undefined,
+      closedAt: undefined,
+    },
+    updatedAt: now,
+  });
+  await ctx.db.insert("activity", {
+    formId,
+    userId: user._id,
+    what: "reopened the form",
+    at: now,
+  });
+  await tellFormTeam(ctx, form, {
+    kind: "published",
+    title: `${nameOf(user)} reopened ${form.title}`,
+    body: "It is taking answers again at the same link.",
+    href: `/app/forms/${formId}`,
+    action: "Open the form",
+    icon: "lock-open",
+    actorId: user._id,
+  });
+}
 
 /** Put a form away, or bring it back as a draft. Everything in it is kept. */
 export const archive = mutation({
@@ -970,42 +987,54 @@ export const snapshotLiveForms = internalMutation({
 export const unpublishedChanges = query({
   args: { formId: v.id("forms") },
   returns: v.number(),
-  handler: async (ctx, { formId }) => {
-    const form = await formFor(ctx, formId, "read");
-    if (!form.liveVersion) return 0;
-    const live = await ctx.db
-      .query("versions")
-      .withIndex("by_form", (q) => q.eq("formId", formId).eq("number", form.liveVersion!))
-      .unique();
-    if (!live) return 0;
-    const draft = await snapshotOf(ctx, form);
-
-    const strip = <T extends object>(row: T) => {
-      const { _creationTime, formId: _f, order: _o, ...rest } = row as T & { _creationTime?: number; formId?: string; order?: number };
-      void _creationTime;
-      void _f;
-      void _o;
-      return JSON.stringify(rest, Object.keys(rest).sort());
-    };
-    const before = (live.blocks as Doc<"blocks">[]).slice().sort((a, b) => a.order - b.order);
-    const after = draft.blocks;
-    const pool = before.map(strip);
-    let changed = 0;
-    for (const s of after.map(strip)) {
-      const i = pool.indexOf(s);
-      if (i >= 0) pool.splice(i, 1);
-      else changed++;
-    }
-    // What is left in the pool was removed or replaced; a replacement is
-    // already counted above.
-    let total = Math.max(changed, pool.length);
-    // The same questions in a new order is a change too.
-    if (!total && before.map((b) => b._id).join() !== after.map((b) => b._id).join()) total = 1;
-    if (live.rules && JSON.stringify((live.rules as Doc<"logicRules">[]).map(strip)) !== JSON.stringify(draft.rules.map(strip))) total++;
-    if (live.content && JSON.stringify(live.content) !== JSON.stringify(draft.content)) total++;
-    return total;
-  },
+  handler: async (ctx, { formId }) => draftChanges(ctx, await formFor(ctx, formId, "read")),
 });
+
+/** How many changes the draft has that are not live yet: 0 when it matches, or was never published. */
+export async function draftChanges(ctx: QueryCtx, form: Doc<"forms">) {
+  const formId = form._id;
+  if (!form.liveVersion) return 0;
+  const live = await ctx.db
+    .query("versions")
+    .withIndex("by_form", (q) => q.eq("formId", formId).eq("number", form.liveVersion!))
+    .unique();
+  if (!live) return 0;
+  const draft = await snapshotOf(ctx, form);
+
+  const strip = <T extends object>(row: T) => {
+    const { _creationTime, formId: _f, order: _o, ...rest } = row as T & { _creationTime?: number; formId?: string; order?: number };
+    void _creationTime;
+    void _f;
+    void _o;
+    return canonical(rest);
+  };
+  const before = (live.blocks as Doc<"blocks">[]).slice().sort((a, b) => a.order - b.order);
+  const after = draft.blocks;
+  const pool = before.map(strip);
+  let changed = 0;
+  for (const s of after.map(strip)) {
+    const i = pool.indexOf(s);
+    if (i >= 0) pool.splice(i, 1);
+    else changed++;
+  }
+  // What is left in the pool was removed or replaced; a replacement is
+  // already counted above.
+  let total = Math.max(changed, pool.length);
+  // The same questions in a new order is a change too.
+  if (!total && before.map((b) => b._id).join() !== after.map((b) => b._id).join()) total = 1;
+  if (live.rules && JSON.stringify((live.rules as Doc<"logicRules">[]).map(strip)) !== JSON.stringify(draft.rules.map(strip))) total++;
+  if (live.content && canonical(live.content) !== canonical(draft.content)) total++;
+  return total;
+}
+
+/** JSON with every object's keys in order, at any depth: stored rows do not keep the order they were written in. */
+function canonical(value: unknown): string {
+  return JSON.stringify(value, (_k, v: unknown) =>
+    v && typeof v === "object" && !Array.isArray(v)
+      ? Object.fromEntries(Object.entries(v as Record<string, unknown>).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)))
+      : v,
+  );
+}
 
 /** Auto-closing runs where the owner reads their forms, not on a timer. */
 export const sweepClosing = mutation({

@@ -1226,9 +1226,62 @@ export default defineSchema({
     createdAt: v.number(),
     createdBy: v.optional(v.id("users")),
     lastUsedAt: v.optional(v.number()),
+    /** What it may do (model/apiAuth.ts). Keys made before scopes read only. */
+    scopes: v.optional(v.array(v.string())),
   })
     .index("by_owner", ["ownerId"])
     .index("by_hash", ["hash"]),
+
+  /**
+   * Apps that connect to Formkit with OAuth (Claude, ChatGPT and other MCP
+   * clients). A client is known by its metadata document's address, or was
+   * registered by the app itself.
+   */
+  oauthClients: defineTable({
+    clientId: v.string(),
+    kind: v.union(v.literal("document"), v.literal("registered")),
+    name: v.string(),
+    redirectUris: v.array(v.string()),
+    logoUri: v.optional(v.string()),
+    clientUri: v.optional(v.string()),
+    createdAt: v.number(),
+    /** When a metadata document was last read. */
+    fetchedAt: v.optional(v.number()),
+  }).index("by_client", ["clientId"]),
+
+  /** One-time codes from the consent screen, swapped for tokens within minutes. */
+  oauthCodes: defineTable({
+    codeHash: v.string(),
+    clientId: v.string(),
+    userId: v.id("users"),
+    scopes: v.array(v.string()),
+    redirectUri: v.string(),
+    challenge: v.string(),
+    resource: v.string(),
+    expiresAt: v.number(),
+    usedAt: v.optional(v.number()),
+  })
+    .index("by_code", ["codeHash"])
+    .index("by_expiry", ["expiresAt"]),
+
+  /** What a connected app holds: a short-lived access token and a refresh token that turns over on use. Hashes only. */
+  oauthTokens: defineTable({
+    userId: v.id("users"),
+    clientId: v.string(),
+    clientName: v.string(),
+    scopes: v.array(v.string()),
+    resource: v.string(),
+    accessHash: v.string(),
+    accessExpiresAt: v.number(),
+    refreshHash: v.string(),
+    refreshExpiresAt: v.number(),
+    createdAt: v.number(),
+    lastUsedAt: v.optional(v.number()),
+    revokedAt: v.optional(v.number()),
+  })
+    .index("by_access", ["accessHash"])
+    .index("by_refresh", ["refreshHash"])
+    .index("by_user", ["userId"]),
 
   /**
    * Pro: where a form's new responses go - a signed webhook (Zapier and

@@ -5,6 +5,7 @@ import { requireUser } from "./model/identity";
 import { hasFeature, requireFeature } from "./model/plans";
 import { audit, managesAccount } from "./model/team";
 import { sha256Hex } from "./model/apiKeys";
+import { LEGACY_SCOPES, SCOPES, scopesOf } from "./model/apiAuth";
 import { countChange } from "./model/responseCounts";
 
 /**
@@ -143,16 +144,28 @@ export const apiKeys = query({
       .collect();
     return rows
       .sort((a, b) => b.createdAt - a.createdAt)
-      .map((k) => ({ _id: k._id, name: k.name, prefix: k.prefix, createdAt: k.createdAt, lastUsedAt: k.lastUsedAt ?? null }));
+      .map((k) => ({
+        _id: k._id,
+        name: k.name,
+        prefix: k.prefix,
+        scopes: scopesOf(k.scopes),
+        createdAt: k.createdAt,
+        lastUsedAt: k.lastUsedAt ?? null,
+      }));
   },
 });
 
+/**
+ * Every plan: a key for the API and AI assistants, with only the permissions
+ * picked. The first API (v1) still reads on Business only.
+ */
 export const createApiKey = mutation({
-  args: { name: v.string() },
+  args: { name: v.string(), scopes: v.optional(v.array(v.string())) },
   returns: v.string(),
-  handler: async (ctx, { name }) => {
+  handler: async (ctx, { name, scopes }) => {
     const me = await requireUser(ctx);
-    await requireFeature(ctx, me._id, "api");
+    const picked = scopes ? SCOPES.filter((s) => scopes.includes(s)) : LEGACY_SCOPES;
+    if (!picked.length) throw new ConvexError("Pick at least one thing the key may do.");
     const existing = await ctx.db
       .query("apiKeys")
       .withIndex("by_owner", (q) => q.eq("ownerId", me._id))
@@ -168,6 +181,7 @@ export const createApiKey = mutation({
       hash: await sha256Hex(secret),
       createdAt: Date.now(),
       createdBy: me._id,
+      scopes: picked,
     });
     await audit(ctx, me._id, me, "Created an API key", name.trim() || "API key");
     return secret;
