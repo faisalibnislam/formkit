@@ -8,7 +8,7 @@ import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { buttonInk, themeOf } from "@/components/app/editor/themes";
 import { FormRunner, Shell, type Answer, type OpenForm, type SubmitArgs } from "./FormRunner";
-import { sourceLabel } from "./source";
+import { sourceLabel, utmOf } from "./source";
 
 /**
  * The public link. It fetches the form, asks for its password when it has one,
@@ -149,6 +149,7 @@ export function LiveForm({
         resumeToken: resume?.token ?? keptToken(),
         deviceId: deviceId(),
         source: sourceLabel(),
+        utm: utmOf(),
       });
       try {
         if (sent && tokenKey) {

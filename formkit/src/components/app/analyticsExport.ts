@@ -75,6 +75,15 @@ export async function downloadAnalytics(data: AnalyticsData, title: string, form
         s.completion === null ? "" : `${s.completion}%`,
       ]),
     },
+    ...(data.campaigns.length
+      ? [
+          {
+            name: "Campaigns",
+            columns: ["utm_campaign", "Responses", "Finished"],
+            rows: data.campaigns.map((c) => [c.name, String(c.responses), String(c.completed)]),
+          },
+        ]
+      : []),
     ...(data.devices.length
       ? [
           {

@@ -685,6 +685,9 @@ export const exportPage = query({
         phone: r.respondentPhone ?? "",
         company: r.respondentCompany ?? "",
         source: r.source ?? "",
+        utm: r.utm
+          ? [r.utm.source ?? "", r.utm.medium ?? "", r.utm.campaign ?? "", r.utm.term ?? "", r.utm.content ?? ""]
+          : null,
         device: r.device ?? "",
         tags: (r.tags ?? []).join(", "),
         note: r.note ?? "",

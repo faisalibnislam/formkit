@@ -223,6 +223,17 @@ export const overview = query({
       if (!r.partial) s.completed++;
     }
 
+    // Campaigns: responses by utm_campaign, and how many of them finished.
+    const byCampaign = new Map<string, { responses: number; completed: number }>();
+    for (const r of recent) {
+      const name = r.utm?.campaign;
+      if (!name) continue;
+      const c = byCampaign.get(name) ?? { responses: 0, completed: 0 };
+      c.responses++;
+      if (!r.partial) c.completed++;
+      byCampaign.set(name, c);
+    }
+
     const byDevice = new Map<string, number>();
     for (const r of recent) {
       const d = (r.device ?? "Unknown").split(" · ")[0]!;
@@ -252,6 +263,10 @@ export const overview = query({
         }))
         .sort((a, b) => b.views - a.views || b.responses - a.responses),
       devices: (full ? [...byDevice.entries()] : []).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
+      campaigns: (full ? [...byCampaign.entries()] : [])
+        .map(([name, c]) => ({ name, ...c }))
+        .sort((a, b) => b.responses - a.responses)
+        .slice(0, 50),
       /** Lifetime counters, which the dashboard and form list still show. */
       lifetime: {
         views: forms.reduce((n, f) => n + (f.views ?? 0), 0),

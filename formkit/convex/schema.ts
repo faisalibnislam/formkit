@@ -632,6 +632,16 @@ export default defineSchema({
         emailedAt: v.optional(v.number()),
       }),
     ),
+    /** The link's utm_ tags, as they came. */
+    utm: v.optional(
+      v.object({
+        source: v.optional(v.string()),
+        medium: v.optional(v.string()),
+        campaign: v.optional(v.string()),
+        term: v.optional(v.string()),
+        content: v.optional(v.string()),
+      }),
+    ),
     /** When the person last asked for their link back to finish later (once every two minutes). */
     resumeEmailedAt: v.optional(v.number()),
     /** Business: the AI-written reply to this response, and where it went. */

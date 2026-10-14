@@ -19,6 +19,8 @@ export type ExportRecord = {
   phone: string;
   company: string;
   source: string;
+  /** utm_ source, medium, campaign, term, content; absent when the link had none. */
+  utm?: [string, string, string, string, string] | null;
   device: string;
   tags: string;
   note: string;
@@ -103,6 +105,7 @@ export function responsesSheet(pages: ExportPage[]): SheetData {
   const paid = records.some((r) => r.payment !== null);
   const quizzed = records.some((r) => r.quiz !== null);
   const replied = records.some((r) => r.insight !== null);
+  const tagged = records.some((r) => !!r.utm);
   const many = first?.many ?? true;
 
   const columns = [
@@ -115,6 +118,7 @@ export function responsesSheet(pages: ExportPage[]): SheetData {
     "Phone",
     "Company",
     "Source",
+    ...(tagged ? ["UTM source", "UTM medium", "UTM campaign", "UTM term", "UTM content"] : []),
     "Device",
     "Tags",
     "Note",
@@ -136,6 +140,7 @@ export function responsesSheet(pages: ExportPage[]): SheetData {
       r.phone,
       r.company,
       r.source,
+      ...(tagged ? (r.utm ?? ["", "", "", "", ""]) : []),
       r.device,
       r.tags,
       r.note,

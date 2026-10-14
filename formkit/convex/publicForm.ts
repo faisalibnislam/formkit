@@ -500,6 +500,17 @@ type AnswerIn = {
 };
 
 /** Build and store the record; shared by the public link and the preview. */
+/** utm_ tags, trimmed, or nothing when none were given. */
+function cleanUtm(utm?: { source?: string; medium?: string; campaign?: string; term?: string; content?: string }) {
+  if (!utm) return undefined;
+  const out: Record<string, string> = {};
+  for (const k of ["source", "medium", "campaign", "term", "content"] as const) {
+    const v = utm[k]?.trim();
+    if (v) out[k] = v.slice(0, 80);
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
 async function store(
   ctx: MutationCtx,
   live: Doc<"forms">,
@@ -513,6 +524,7 @@ async function store(
     attemptId?: Id<"quizAttempts">;
     timedOut?: boolean;
     answers: AnswerIn[];
+    utm?: { source?: string; medium?: string; campaign?: string; term?: string; content?: string };
   },
   existing: Doc<"responses"> | null,
   preview: boolean,
@@ -550,6 +562,7 @@ async function store(
     respondentCompany: firm?.value?.trim(),
     device: args.device,
     source: preview ? "Preview" : args.source,
+    utm: preview ? undefined : cleanUtm(args.utm),
     durationMs: args.durationMs,
     status: "new" as const,
     resumeToken: existing?.resumeToken ?? crypto.randomUUID(),
@@ -799,6 +812,16 @@ export const submit = mutation({
     human: v.optional(v.boolean()),
     /** A Turnstile check that passed (verifyHuman), spent by this submission. */
     pass: v.optional(v.id("humanPasses")),
+    /** The link's utm_ tags. */
+    utm: v.optional(
+      v.object({
+        source: v.optional(v.string()),
+        medium: v.optional(v.string()),
+        campaign: v.optional(v.string()),
+        term: v.optional(v.string()),
+        content: v.optional(v.string()),
+      }),
+    ),
     /** The ending the person's answers led to, when it was not the default. */
     ending: v.optional(v.string()),
     /** Quiz: the attempt started when the timer began, and whether it ran out. */

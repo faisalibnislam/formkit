@@ -869,6 +869,7 @@ export const QUERIES: Record<string, unknown> = {
       inRange: Math.round((f.responses as number) / 4),
       owner: ownerOf(f._id as string),
     })),
+    campaigns: [{ name: "spring-launch", responses: 64, completed: 51 }, { name: "newsletter-sept", responses: 22, completed: 19 }],
   },
   "collaborators:list": {
     myRole: "owner",
