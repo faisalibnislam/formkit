@@ -10,6 +10,10 @@ import {
   CircleDot,
   Clock,
   FileText,
+  Gauge,
+  Image as ImageIcon,
+  Pilcrow,
+  Video,
   Hash,
   Link as LinkIcon,
   ListChecks,
@@ -58,6 +62,10 @@ const ICONS: Record<string, ComponentType<{ size?: number; strokeWidth?: number 
   user: User,
   "building-2": Building2,
   "map-pin": MapPin,
+  gauge: Gauge,
+  pilcrow: Pilcrow,
+  image: ImageIcon,
+  video: Video,
 };
 
 export function FieldIcon({ name, size = 15 }: { name: string; size?: number }) {

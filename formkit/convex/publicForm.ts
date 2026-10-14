@@ -218,7 +218,7 @@ async function payload(ctx: QueryCtx, live: Doc<"forms">, opts: { draft?: boolea
       partials: await partialsOn(ctx, form.ownerId),
     },
     // A hidden field without the plan is left out entirely.
-    blocks: blocks.filter((b) => b.type !== "hidden" || smart.hidden).map((b) => ({
+    blocks: await Promise.all(blocks.filter((b) => b.type !== "hidden" || smart.hidden).map(async (b) => ({
       _id: b._id,
       kind: b.kind,
       type: b.type ?? null,
@@ -240,7 +240,14 @@ async function payload(ctx: QueryCtx, live: Doc<"forms">, opts: { draft?: boolea
       extract: smart.ai && b.extract ? { from: b.extract.from } : null,
       /** Quiz: what the question is worth, when it counts. */
       marks: quiz && marked(b) ? (b.marks ?? 1) : null,
-    })),
+      scaleLabels: b.scaleLabels ?? null,
+      allowOther: !!b.allowOther,
+      validation: b.validation ?? null,
+      /** Content blocks: a picture (with its description) or a video link. */
+      imageUrl: b.kind === "content" && b.imageId ? await ctx.storage.getUrl(b.imageId) : null,
+      alt: b.alt ?? null,
+      videoUrl: b.kind === "content" ? (b.videoUrl ?? null) : null,
+    }))),
     /** Business: the quiz's settings the form itself needs - never the answers. */
     quiz: quizPublic,
     /** Business: an AI-written reply follows, and where it goes. */

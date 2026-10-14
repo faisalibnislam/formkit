@@ -32,6 +32,69 @@ const PHONE = /^[+()\-.\s\d]{5,32}$/;
 const filled = (a?: AnswerIn) => !!(a?.value?.trim() || a?.values?.length || a?.fileId);
 const label = (b: Doc<"blocks">) => (b.title?.trim() ? `“${b.title.trim().slice(0, 60)}”` : "A question");
 
+/** The words a choice question accepts: its options, plus anything typed into "Other". */
+const takes = (b: Pick<Doc<"blocks">, "type" | "options" | "allowOther">, v: string) =>
+  !!b.allowOther || (b.type === "yes-no" ? ["Yes", "No"] : (b.options ?? [])).includes(v);
+
+/**
+ * What a question's own rules say about an answer (Pro and Free alike): a
+ * number's range, a text's length or pattern, a date's window, how many
+ * choices. Null when it passes. Shared with the live form, which shows the
+ * same words before sending.
+ */
+export function ruleProblem(
+  b: Pick<Doc<"blocks">, "type" | "validation">,
+  a: { value?: string; values?: string[] } | undefined,
+): string | null {
+  const r = b.validation;
+  if (!r || !a) return null;
+  const v = a.value?.trim() ?? "";
+  switch (b.type) {
+    case "number": {
+      if (!v) return null;
+      const n = Number(v.replace(/,/g, ""));
+      if (!Number.isFinite(n)) return null;
+      if (r.min !== undefined && n < r.min) return `Use a number of at least ${r.min}.`;
+      if (r.max !== undefined && n > r.max) return `Use a number no higher than ${r.max}.`;
+      return null;
+    }
+    case "short-text":
+    case "long-text":
+    case "name":
+    case "company":
+    case "address": {
+      if (!v) return null;
+      if (r.minLength !== undefined && v.length < r.minLength) return `Write at least ${r.minLength} characters.`;
+      if (r.maxLength !== undefined && v.length > r.maxLength) return `Keep it to ${r.maxLength} characters.`;
+      if (r.pattern) {
+        try {
+          // Anchored, and only on a sensible length, so a pattern cannot run away.
+          if (v.length <= 2000 && !new RegExp(`^(?:${r.pattern})$`).test(v)) {
+            return r.patternMessage?.trim() || "That is not in the form this question asks for.";
+          }
+        } catch {
+          return null;
+        }
+      }
+      return null;
+    }
+    case "date": {
+      if (!v) return null;
+      if (r.minDate && v < r.minDate) return `Pick a date on or after ${r.minDate}.`;
+      if (r.maxDate && v > r.maxDate) return `Pick a date on or before ${r.maxDate}.`;
+      return null;
+    }
+    case "multi-choice": {
+      const n = a.values?.length ?? 0;
+      if (!n) return null;
+      if (r.minPicks !== undefined && n < r.minPicks) return `Pick at least ${r.minPicks}.`;
+      if (r.maxPicks !== undefined && n > r.maxPicks) return `Pick no more than ${r.maxPicks}.`;
+      return null;
+    }
+  }
+  return null;
+}
+
 export function validateAnswers(
   form: Pick<Doc<"forms">, "endings">,
   blocks: Doc<"blocks">[],
@@ -82,12 +145,12 @@ export function validateAnswers(
       case "dropdown":
       case "yes-no": {
         const options = b.type === "yes-no" ? ["Yes", "No"] : (b.options ?? []);
-        if (v && options.length && !options.includes(v)) bad("option", "that is not one of the choices.");
+        if (v && options.length && !takes(b, v)) bad("option", "that is not one of the choices.");
         break;
       }
       case "multi-choice": {
         const options = b.options ?? [];
-        if (options.length && (a.values ?? []).some((x) => !options.includes(x))) bad("option", "that is not one of the choices.");
+        if (options.length && (a.values ?? []).some((x) => !takes(b, x))) bad("option", "that is not one of the choices.");
         break;
       }
       case "rating": {
@@ -110,6 +173,12 @@ export function validateAnswers(
         break;
       }
     }
+  }
+
+  for (const [id, a] of given) {
+    const b = byId.get(id)!;
+    const message = ruleProblem(b, a);
+    if (message) problems.push({ blockId: id, code: "rule", message: `${label(b)}: ${message}` });
   }
 
   if (opts.ending && !(form.endings ?? []).some((e) => e.id === opts.ending)) {

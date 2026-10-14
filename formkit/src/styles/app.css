@@ -2993,6 +2993,16 @@ button.fk-chip {
   height: 1px;
   opacity: 0;
 }
+/* Words under either end of an opinion scale. */
+.fk-live-scale-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 8px;
+  font-size: 0.82em;
+  opacity: 0.75;
+}
+
 /* Keyboard focus on a live form: always visible, in the form's own accent.
    !important because controls set outline:none inline for mouse users. */
 .fk-live :is(input, textarea, select, button, a, [role="radio"], [role="checkbox"]):focus-visible {

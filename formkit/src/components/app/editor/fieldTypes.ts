@@ -69,6 +69,8 @@ export const FIELD_TYPES: FieldType[] = [
   { type: "yes-no", label: "Yes / No", group: "Choice", icon: "toggle-left", preview: "yesno" },
   { type: "rating", label: "Rating", group: "Rating", icon: "star", preview: "rating" },
   { type: "scale", label: "Opinion scale", group: "Rating", icon: "sliders-horizontal", preview: "scale" },
+  // Not a type of its own: an opinion scale from 0 to 10, read as NPS (see Builder.add).
+  { type: "nps", label: "Net Promoter Score", group: "Rating", icon: "gauge", preview: "scale" },
   { type: "file", label: "File upload", group: "Upload", icon: "paperclip", preview: "file" },
   { type: "signature", label: "Signature", group: "Upload", icon: "pen-line", preview: "signature" },
   { type: "voice", label: "Voice recording", group: "Upload", icon: "mic", preview: "voice" },
@@ -88,6 +90,9 @@ export function fieldType(type: string | null | undefined) {
 export function hasOptions(type: string | null | undefined) {
   return ["single-choice", "multi-choice", "dropdown"].includes(type ?? "");
 }
+
+/** Library entries that are content (kind "content"), not questions. */
+export const CONTENT_TYPES = new Set(["statement", "image", "video"]);
 
 export function hasScale(type: string | null | undefined) {
   return ["scale", "rating"].includes(type ?? "");
@@ -119,6 +124,7 @@ export function matchFieldTypes(term: string) {
 export function defaultTitle(type: string) {
   const t = fieldType(type);
   if (t.type === "hidden") return "Where they came from";
+  if (t.type === "nps") return "How likely are you to recommend us to a friend?";
   return t.type === "short-text" ? "Untitled question" : `${t.label} question`;
 }
 

@@ -18,6 +18,7 @@ import { computeAll, pipe, pipeValues } from "../../../convex/model/calc";
 import { LiveReply } from "./LiveReply";
 import { QuizResult } from "./QuizResult";
 import { applyLogic, conditionsOf, type Rule as LogicRule } from "../../../convex/model/logicEval";
+import { ruleProblem } from "../../../convex/model/validate";
 import { LogoLockup } from "./LogoLockup";
 import { Logo } from "@/components/brand/Logo";
 
@@ -38,7 +39,7 @@ import { Logo } from "@/components/brand/Logo";
 
 export type Block = {
   _id: Id<"blocks">;
-  kind: "field" | "pagebreak";
+  kind: "field" | "pagebreak" | "content";
   type: string | null;
   title: string | null;
   help: string | null;
@@ -61,6 +62,29 @@ export type Block = {
   extract?: { from: Id<"blocks"> } | null;
   /** Quiz: what the question is worth, when it counts. */
   marks?: number | null;
+  /** Words at either end of a scale. */
+  scaleLabels?: { start?: string; end?: string } | null;
+  /** Choices: an "Other" option with its own words. */
+  allowOther?: boolean;
+  /** Limits the answer is held to (model/validate.ts says the same on the server). */
+  validation?: Validation | null;
+  /** Content blocks: a picture (and its description) or a video link. */
+  imageUrl?: string | null;
+  alt?: string | null;
+  videoUrl?: string | null;
+};
+
+export type Validation = {
+  min?: number;
+  max?: number;
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+  patternMessage?: string;
+  minDate?: string;
+  maxDate?: string;
+  minPicks?: number;
+  maxPicks?: number;
 };
 
 type Rule = LogicRule;
@@ -328,6 +352,22 @@ export function FormRunner({
     return data.rules.requireEmail && b.type === "email";
   }
   const firstMissing = (list: Block[]) => list.find((b) => isRequired(b) && !filled(kept[b._id]));
+  // A question's own rules (range, length, pattern, dates, picks): the same
+  // check the server makes (model/validate.ts).
+  const [ruleErrors, setRuleErrors] = useState<Record<string, string>>({});
+  function stopsOnRule(list: Block[]) {
+    for (const b of list) {
+      if (hidden.has(b._id)) continue;
+      const message = ruleProblem(b as never, kept[b._id]);
+      if (message) {
+        setRuleErrors({ [b._id]: message });
+        focusQuestion(b._id);
+        return b;
+      }
+    }
+    setRuleErrors({});
+    return null;
+  }
 
   // Leaving keeps what was answered.
   useEffect(() => {
@@ -500,6 +540,7 @@ export function FormRunner({
       return;
     }
     setProblem(null);
+    if (stopsOnRule(current?.fields ?? [])) return;
     const now = await think(current?.fields ?? []);
     if (!lastPage) {
       // A matching "jump to" rule skips straight to the page that holds its
@@ -522,6 +563,7 @@ export function FormRunner({
       return;
     }
     setProblem(null);
+    if (stopsOnRule([cur])) return;
     const now = await think([cur]);
     if (!lastStep) {
       const to = now.outcome.jumpTo;
@@ -535,6 +577,11 @@ export function FormRunner({
       setStep(fields.indexOf(missing));
       setProblem(missing._id);
       focusQuestion(missing._id);
+      return;
+    }
+    const broken = stopsOnRule(fields);
+    if (broken) {
+      setStep(fields.indexOf(broken));
       return;
     }
     void send(human, { answers: now.answers, ending: now.outcome.ending });
@@ -769,7 +816,8 @@ export function FormRunner({
   const failure = failed && <div className="fk-live-err" role="alert" style={{ marginTop: 18 }}>{failed}</div>;
 
   const question = (b: Block, big = false) => {
-    const err = fileProblem[b._id] ?? (problem === b._id ? "This one is needed before you can go on." : null);
+    const err =
+      fileProblem[b._id] ?? (problem === b._id ? "This one is needed before you can go on." : (ruleErrors[b._id] ?? null));
     const a11y: A11y = {
       id: `q-${b._id}-input`,
       labelledBy: `q-${b._id}-title`,
@@ -806,6 +854,7 @@ export function FormRunner({
           onChange={(a) => {
             setAnswers((prev) => ({ ...prev, [b._id]: a }));
             if (problem === b._id) setProblem(null);
+            if (ruleErrors[b._id]) setRuleErrors({});
           }}
           onFile={(file) => attach(b, file)}
           capMb={data.uploadCapMb}
@@ -1054,6 +1103,8 @@ function Control({
   shuffle?: number;
 }) {
   const radius = Math.min(theme.radius, 24);
+  // "Other" was picked but nothing typed yet (an empty answer is no answer).
+  const [otherOpen, setOtherOpen] = useState(false);
   // What every native control carries: its name (the question), its help and
   // error text, and whether it is required or wrong.
   const native = {
@@ -1063,6 +1114,15 @@ function Control({
     "aria-required": a11y.required || undefined,
     "aria-invalid": a11y.invalid || undefined,
   };
+  // The question's own limits, given to the browser too, so the right
+  // keyboard and pickers show; the form still checks them in words.
+  const r = block.validation ?? {};
+  const limits =
+    block.type === "number"
+      ? { min: r.min, max: r.max }
+      : block.type === "date"
+        ? { min: r.minDate, max: r.maxDate }
+        : { maxLength: r.maxLength, minLength: r.minLength };
   const group = {
     id: a11y.id,
     "aria-labelledby": a11y.labelledBy,
@@ -1111,6 +1171,7 @@ function Control({
           style={{ ...box, resize: "vertical" }}
           placeholder={block.placeholder ?? ""}
           value={value?.value ?? ""}
+          maxLength={r.maxLength}
           {...native}
           onChange={(e) => onChange({ value: e.target.value })}
         />
@@ -1122,8 +1183,15 @@ function Control({
         block.type === "yes-no"
           ? ["Yes", "No"].filter((o) => !hiddenOptions?.has(o)).map((o) => ({ o, left: null as number | null }))
           : offered;
-      const focusable = options.find((x) => x.o === value?.value)?.o ?? options.find((x) => !(x.left !== null && x.left <= 0))?.o;
+      const labels = options.map((x) => x.o);
+      const other = block.type !== "yes-no" && !!block.allowOther;
+      const typed = other && value?.value && !labels.includes(value.value) ? value.value : null;
+      const otherOn = other && (otherOpen || typed !== null);
+      const focusable = otherOn
+        ? "__other"
+        : (options.find((x) => x.o === value?.value)?.o ?? options.find((x) => !(x.left !== null && x.left <= 0))?.o);
       return (
+        <>
         <div className="fk-live-choices" role="radiogroup" {...group} onKeyDown={radioKeys}>
           {options.map(({ o, left }) => (
             <button
@@ -1137,19 +1205,57 @@ function Control({
               data-full={left !== null && left <= 0 ? "true" : undefined}
               disabled={left !== null && left <= 0}
               style={{ borderRadius: radius }}
-              onClick={() => onChange({ value: o })}
+              onClick={() => {
+                setOtherOpen(false);
+                onChange({ value: o });
+              }}
             >
               {o}
               {placeNote(left) && <span className="fk-live-places">{placeNote(left)}</span>}
             </button>
           ))}
+          {other && (
+            <button
+              type="button"
+              role="radio"
+              aria-checked={otherOn}
+              tabIndex={focusable === "__other" ? 0 : -1}
+              className="fk-live-choice"
+              data-picked={otherOn ? "true" : undefined}
+              style={{ borderRadius: radius }}
+              onClick={() => {
+                setOtherOpen(true);
+                onChange({ value: typed ?? "" });
+              }}
+            >
+              Other
+            </button>
+          )}
         </div>
+        {otherOn && (
+          <input
+            style={{ ...box, marginTop: 10 }}
+            autoFocus
+            aria-label="Other, please say"
+            placeholder="Please say"
+            value={typed ?? ""}
+            maxLength={200}
+            onChange={(e) => onChange({ value: e.target.value })}
+          />
+        )}
+        </>
       );
     }
 
     case "multi-choice": {
-      const picked = value?.values ?? [];
+      const labels = offered.map((x) => x.o);
+      const all = value?.values ?? [];
+      const picked = block.allowOther ? all.filter((v) => labels.includes(v)) : all;
+      const typed = block.allowOther ? (all.find((v) => !labels.includes(v)) ?? "") : "";
+      const otherOn = !!block.allowOther && (otherOpen || !!typed);
+      const withOther = (list: string[]) => (otherOn && typed ? [...list, typed] : list);
       return (
+        <>
         <div className="fk-live-choices" role="group" {...group}>
           {offered.map(({ o, left }) => (
             <button
@@ -1164,7 +1270,7 @@ function Control({
               style={{ borderRadius: radius }}
               onClick={() =>
                 onChange({
-                  values: picked.includes(o) ? picked.filter((p) => p !== o) : [...picked, o],
+                  values: withOther(picked.includes(o) ? picked.filter((p) => p !== o) : [...picked, o]),
                 })
               }
             >
@@ -1172,7 +1278,37 @@ function Control({
               {placeNote(left) && <span className="fk-live-places">{placeNote(left)}</span>}
             </button>
           ))}
+          {block.allowOther && (
+            <button
+              type="button"
+              role="checkbox"
+              aria-checked={otherOn}
+              className="fk-live-choice"
+              data-picked={otherOn ? "true" : undefined}
+              style={{ borderRadius: radius }}
+              onClick={() => {
+                if (otherOn) {
+                  setOtherOpen(false);
+                  onChange({ values: picked });
+                } else setOtherOpen(true);
+              }}
+            >
+              Other
+            </button>
+          )}
         </div>
+        {otherOn && (
+          <input
+            style={{ ...box, marginTop: 10 }}
+            autoFocus
+            aria-label="Other, please say"
+            placeholder="Please say"
+            value={typed}
+            maxLength={200}
+            onChange={(e) => onChange({ values: e.target.value ? [...picked, e.target.value] : picked })}
+          />
+        )}
+        </>
       );
     }
 
@@ -1219,7 +1355,8 @@ function Control({
       const from = block.scaleMin ?? 1;
       const to = block.scaleMax ?? 5;
       return (
-        <div className="fk-live-scale" role="radiogroup" {...group} onKeyDown={radioKeys}>
+        <div>
+          <div className="fk-live-scale" role="radiogroup" {...group} onKeyDown={radioKeys}>
           {Array.from({ length: Math.max(0, to - from + 1) }).map((_, i) => {
             const n = from + i;
             const chosen = value?.value === String(n);
@@ -1229,6 +1366,13 @@ function Control({
                 type="button"
                 role="radio"
                 aria-checked={chosen}
+                aria-label={[
+                  String(n),
+                  n === from ? block.scaleLabels?.start : undefined,
+                  n === to ? block.scaleLabels?.end : undefined,
+                ]
+                  .filter(Boolean)
+                  .join(", ")}
                 tabIndex={chosen || (!value?.value && i === 0) ? 0 : -1}
                 data-picked={value?.value === String(n) ? "true" : undefined}
                 onClick={() => onChange({ value: String(n) })}
@@ -1237,6 +1381,13 @@ function Control({
               </button>
             );
           })}
+        </div>
+          {(block.scaleLabels?.start || block.scaleLabels?.end) && (
+            <div className="fk-live-scale-labels" aria-hidden>
+              <span>{block.scaleLabels?.start}</span>
+              <span>{block.scaleLabels?.end}</span>
+            </div>
+          )}
         </div>
       );
     }
@@ -1331,6 +1482,7 @@ function Control({
           placeholder={block.placeholder ?? ""}
           value={value?.value ?? ""}
           {...native}
+          {...limits}
           onChange={(e) => onChange({ value: e.target.value })}
         />
       );

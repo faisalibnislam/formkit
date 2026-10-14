@@ -241,10 +241,15 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
         formId,
         kind: "field",
         at: at ?? insertIndex(),
-        type: type as Block["type"],
+        // NPS is an opinion scale from 0 to 10 with its usual words at each end.
+        type: (type === "nps" ? "scale" : type) as Block["type"],
         title: defaultTitle(type),
         options: meta.defaultOptions,
-        ...(meta.preview === "scale" ? { scaleMin: 1, scaleMax: 5 } : {}),
+        ...(type === "nps"
+          ? { scaleMin: 0, scaleMax: 10, nps: true, scaleLabels: { start: "Not likely", end: "Very likely" } }
+          : meta.preview === "scale"
+            ? { scaleMin: 1, scaleMax: 5 }
+            : {}),
         ...(meta.preview === "rating" ? { scaleMax: 5 } : {}),
         ...(type === "hidden" ? { key: "source" } : {}),
       }),
