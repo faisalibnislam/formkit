@@ -1,7 +1,7 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
-import { BadgeCheck, EyeOff, History, Rocket, Undo2 } from "lucide-react";
+import { useAction, useMutation, useQuery } from "convex/react";
+import { BadgeCheck, EyeOff, History, Rocket, Sparkles, Undo2 } from "lucide-react";
 import { useState } from "react";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
@@ -11,6 +11,9 @@ import Link from "next/link";
 import { StatDot } from "../ds";
 import { FormLinks, OwnerSummary } from "../editor/PublishedUnder";
 import { tracked } from "../editor/saveStatus";
+import { logicChecks } from "../editor/LogicMap";
+import { formChecks, type CheckBlock } from "../editor/formCheck";
+import { errorText } from "../settings/bits";
 
 /**
  * Publishing, with a quick check first. A live form retitles the dialog, says
@@ -45,6 +48,11 @@ export function PublishDialog({
   const decline = useMutation(api.approvals.decline);
   const [note, setNote] = useState("");
   const [confirming, setConfirming] = useState(false);
+  const rules = useQuery(api.logic.list, { formId });
+  const reviewWording = useAction(api.formCheck.wording);
+  const updateBlock = useMutation(api.blocks.update);
+  const [wording, setWording] = useState<{ blockId: Id<"blocks">; question: string; problem: string; suggestion: string }[] | null>(null);
+  const [reading, setReading] = useState(false);
 
   if (!form) return null;
   const live = form.status !== "draft";
@@ -96,6 +104,12 @@ export function PublishDialog({
         ]
       : []),
   ];
+
+  // The form check: not errors, but things that cost answers. Warnings first.
+  const findings = [
+    ...formChecks(form.blocks as unknown as CheckBlock[]),
+    ...(rules ? logicChecks(form, rules).map((c) => ({ level: c.level, text: c.text })) : []),
+  ].sort((a, b) => (a.level === b.level ? 0 : a.level === "warn" ? -1 : 1));
 
   const changesNote =
     pending === 1
@@ -309,6 +323,64 @@ export function PublishDialog({
             </span>
           </div>
         ))}
+        <div className="fk-formcheck">
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <span style={{ flex: 1, fontSize: 15, fontWeight: 500 }}>Form check</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={reading}
+              iconLeft={<Sparkles size={15} strokeWidth={1.8} aria-hidden />}
+              onClick={async () => {
+                setReading(true);
+                try {
+                  setWording((await reviewWording({ formId })).notes);
+                } catch (e) {
+                  toast(errorText(e, "The wording could not be checked."));
+                } finally {
+                  setReading(false);
+                }
+              }}
+            >
+              {reading ? "Reading…" : "Check the wording with AI"}
+            </Button>
+          </div>
+          {findings.length === 0 && !wording?.length ? (
+            <p className="fk-proprow-hint" style={{ margin: "6px 0 0" }}>
+              {wording ? "Nothing stands out, wording included." : "Nothing stands out."}
+            </p>
+          ) : (
+            <ul className="fk-formcheck-list">
+              {findings.map((f, i) => (
+                <li key={i} data-level={f.level}>
+                  {f.text}
+                </li>
+              ))}
+              {wording?.map((w) => (
+                <li key={w.blockId} data-level="info">
+                  <strong style={{ fontWeight: 500 }}>“{w.question}”</strong>: {w.problem}
+                  <span style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 4 }}>
+                    <span style={{ color: "var(--color-text-secondary)" }}>Try: “{w.suggestion}”</span>
+                    <button
+                      type="button"
+                      className="fk-linkbtn"
+                      onClick={async () => {
+                        await tracked(updateBlock({ blockId: w.blockId, patch: { title: w.suggestion } }));
+                        setWording((all) => all?.filter((x) => x.blockId !== w.blockId) ?? null);
+                        toast("Question reworded");
+                      }}
+                    >
+                      Use it
+                    </button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="fk-proprow-hint" style={{ margin: "8px 0 0", fontSize: 12.5 }}>
+            None of this stops you publishing. Checking the wording uses one AI edit.
+          </p>
+        </div>
       </div>
       )}
     </Modal>

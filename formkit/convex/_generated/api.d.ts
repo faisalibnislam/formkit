@@ -38,6 +38,7 @@ import type * as emails_kit from "../emails/kit.js";
 import type * as emails_response from "../emails/response.js";
 import type * as exports from "../exports.js";
 import type * as flags from "../flags.js";
+import type * as formCheck from "../formCheck.js";
 import type * as forms from "../forms.js";
 import type * as handles from "../handles.js";
 import type * as helpSignals from "../helpSignals.js";
@@ -153,6 +154,7 @@ declare const fullApi: ApiFromModules<{
   "emails/response": typeof emails_response,
   "exports": typeof exports,
   "flags": typeof flags,
+  "formCheck": typeof formCheck,
   "forms": typeof forms,
   "handles": typeof handles,
   "helpSignals": typeof helpSignals,
