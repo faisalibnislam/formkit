@@ -3,15 +3,17 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
-import { ArrowRight, Check, Search } from "lucide-react";
+import { ArrowRight, Check, Download, Search } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import { Button, Field, Input, Modal } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 import { TEMPLATE_TOPICS } from "./dialogs/SaveTemplateDialog";
 import { TemplateIcon } from "./TemplateIcon";
+import { ImportFormDialog } from "./ImportFormDialog";
 
 /**
- * Creating a form: a name, and blank or a template to start from. Which
+ * Creating a form: a name, and blank or a template to start from, or one
+ * imported from another tool (ImportFormDialog). Which
  * identity it publishes under follows the account's defaults and is changed
  * later under Design → Branding - it is not asked for here.
  */
@@ -32,6 +34,7 @@ export function CreateFormDialog({
   const [query, setQuery] = useState("");
   const [cat, setCat] = useState("All");
   const [busy, setBusy] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   const all = templates ?? [];
   const mine = all.filter((t) => t.mine);
@@ -76,6 +79,8 @@ export function CreateFormDialog({
 
   const cats = ["All", ...(mine.length ? ["Your templates"] : []), ...TEMPLATE_TOPICS];
 
+  if (importing) return <ImportFormDialog onClose={onClose} onBack={() => setImporting(false)} />;
+
   return (
     <Modal
       title="Create a form"
@@ -89,6 +94,14 @@ export function CreateFormDialog({
           </Button>
           <Button onClick={go} disabled={busy} iconRight={<ArrowRight size={16} strokeWidth={1.8} aria-hidden />}>
             {busy ? "Creating…" : pick === "blank" ? "Create blank form" : "Use this template"}
+          </Button>
+          <Button
+            variant="ghost"
+            iconLeft={<Download size={16} strokeWidth={1.8} aria-hidden />}
+            onClick={() => setImporting(true)}
+            style={{ marginLeft: "auto" }}
+          >
+            Import from another tool
           </Button>
         </>
       }

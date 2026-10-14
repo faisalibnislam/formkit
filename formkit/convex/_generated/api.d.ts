@@ -42,6 +42,7 @@ import type * as forms from "../forms.js";
 import type * as handles from "../handles.js";
 import type * as helpSignals from "../helpSignals.js";
 import type * as http from "../http.js";
+import type * as importForm from "../importForm.js";
 import type * as inbox from "../inbox.js";
 import type * as insights from "../insights.js";
 import type * as logic from "../logic.js";
@@ -65,6 +66,7 @@ import type * as model_gemini from "../model/gemini.js";
 import type * as model_grants from "../model/grants.js";
 import type * as model_handles from "../model/handles.js";
 import type * as model_identity from "../model/identity.js";
+import type * as model_importParse from "../model/importParse.js";
 import type * as model_inbox from "../model/inbox.js";
 import type * as model_logicCopy from "../model/logicCopy.js";
 import type * as model_logicEval from "../model/logicEval.js";
@@ -155,6 +157,7 @@ declare const fullApi: ApiFromModules<{
   "handles": typeof handles,
   "helpSignals": typeof helpSignals,
   "http": typeof http,
+  "importForm": typeof importForm,
   "inbox": typeof inbox,
   "insights": typeof insights,
   "logic": typeof logic,
@@ -178,6 +181,7 @@ declare const fullApi: ApiFromModules<{
   "model/grants": typeof model_grants,
   "model/handles": typeof model_handles,
   "model/identity": typeof model_identity,
+  "model/importParse": typeof model_importParse,
   "model/inbox": typeof model_inbox,
   "model/logicCopy": typeof model_logicCopy,
   "model/logicEval": typeof model_logicEval,
