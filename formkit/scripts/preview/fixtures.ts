@@ -808,6 +808,17 @@ export const QUERIES: Record<string, unknown> = {
   "collaborators:sharedWithMe": [
     { _id: "sw1", formId: "f9", title: "Northstar Partner Intake", owner: "Ben Carter", role: "editor", status: "active" },
   ],
+  "analytics:summary": {
+    total: 248,
+    capped: false,
+    questions: [
+      { blockId: "b1", title: "What should we call you?", type: "name", answered: 248, kind: "count" },
+      { blockId: "b3", title: "What kind of project is it?", type: "single-choice", answered: 240, kind: "choice", multi: false, options: [{ label: "Brand identity", count: 96 }, { label: "Website", count: 88 }, { label: "Campaign", count: 41 }, { label: "Something else", count: 15 }] },
+      { blockId: "b9", title: "How likely are you to recommend us?", type: "scale", answered: 212, kind: "scale", from: 0, to: 10, counts: [2, 1, 3, 4, 6, 9, 12, 21, 38, 52, 64], average: 8.1, nps: { score: 41, promoters: 116, passives: 59, detractors: 37 } },
+      { blockId: "b10", title: "Budget", type: "number", answered: 198, kind: "number", min: 1500, max: 60000, average: 12850, median: 9000 },
+      { blockId: "b4", title: "What are we making?", type: "long-text", answered: 231, kind: "text", latest: ["A rebrand for our coffee roastery, packaging included.", "Landing page and a short launch film.", "Annual report design, 40 pages."] },
+    ],
+  },
   "analytics:overview": {
     from: now - 30 * DAY,
     to: now,

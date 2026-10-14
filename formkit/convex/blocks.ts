@@ -1,7 +1,7 @@
 import { conditionsOf } from "./model/logicEval";
 import { ConvexError, v } from "convex/values";
 import { mutation } from "./_generated/server";
-import { questionType } from "./schema";
+import { blockExtras, questionType } from "./schema";
 import { formFor, recount } from "./model/forms";
 import { requireFeature } from "./model/plans";
 import { validKey } from "./model/calc";
@@ -34,6 +34,7 @@ const blockFields = {
   answerKey: v.optional(v.array(v.string())),
   marks: v.optional(v.number()),
   extract: v.optional(v.union(v.object({ from: v.id("blocks"), what: v.string() }), v.null())),
+  ...blockExtras,
 };
 
 /** A key not already used on this form: "source", then "source_2" and on. */
@@ -54,7 +55,7 @@ async function freeKey(ctx: MutationCtx, formId: Id<"forms">, want: string) {
 export const add = mutation({
   args: {
     formId: v.id("forms"),
-    kind: v.union(v.literal("field"), v.literal("pagebreak")),
+    kind: v.union(v.literal("field"), v.literal("pagebreak"), v.literal("content")),
     /** Insert position. Omitted appends to the end. */
     at: v.optional(v.number()),
     ...blockFields,

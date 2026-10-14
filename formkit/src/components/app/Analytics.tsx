@@ -2,6 +2,7 @@
 
 import { useSeedClock, useSeededQuery } from "@/lib/seed";
 import { AiInsights } from "./AiInsights";
+import { QuestionSummary } from "./QuestionSummary";
 import { useState } from "react";
 import Link from "next/link";
 import { useMutation } from "convex/react";
@@ -497,6 +498,7 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
               )}
             </div>
 
+            {scope && <QuestionSummary formId={scope} from={span.from} to={span.to} />}
             {scope && <AiInsights formId={scope} from={span.from} to={span.to} />}
           </>
         )

@@ -131,7 +131,10 @@ async function snapshot(ctx: QueryCtx, form: Doc<"forms">): Promise<Snapshot> {
     id: form._id,
     title: form.title,
     brandColor: company?.brandColor ?? null,
-    blocks: blocks.map((b) => ({
+    // Content (statements, pictures, videos) is not part of what the AI edits.
+    blocks: blocks
+      .filter((b): b is typeof b & { kind: "field" | "pagebreak" } => b.kind !== "content")
+      .map((b) => ({
       id: b._id,
       kind: b.kind,
       type: b.type,

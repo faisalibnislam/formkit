@@ -36,7 +36,44 @@ export const questionType = v.union(
   v.literal("voice"),
   /** Pro: never shown; filled from the link, or its default. */
   v.literal("hidden"),
+  /** Content, not questions (kind "content"): text, a picture or a video between questions. */
+  v.literal("statement"),
+  v.literal("image"),
+  v.literal("video"),
 );
+
+/**
+ * What a question can be held to beyond being answered: a number's range, a
+ * text's length or pattern, a date's window, how many choices to pick. Checked
+ * in the form and again on the server (model/validate.ts).
+ */
+export const validationRules = v.object({
+  min: v.optional(v.number()),
+  max: v.optional(v.number()),
+  minLength: v.optional(v.number()),
+  maxLength: v.optional(v.number()),
+  pattern: v.optional(v.string()),
+  patternMessage: v.optional(v.string()),
+  minDate: v.optional(v.string()),
+  maxDate: v.optional(v.string()),
+  minPicks: v.optional(v.number()),
+  maxPicks: v.optional(v.number()),
+});
+
+/** The newer settings a block can carry, shared with blocks.ts so the builder can save them. */
+export const blockExtras = {
+  /** A 0-10 scale read as Net Promoter Score in the summary. */
+  nps: v.optional(v.boolean()),
+  /** Words at either end of a scale: "Not likely" … "Very likely". */
+  scaleLabels: v.optional(v.object({ start: v.optional(v.string()), end: v.optional(v.string()) })),
+  /** Single and multiple choice, and dropdowns: an "Other" option with its own words. */
+  allowOther: v.optional(v.boolean()),
+  validation: v.optional(validationRules),
+  /** Content blocks: an uploaded image and its description, or a video link. */
+  imageId: v.optional(v.id("_storage")),
+  alt: v.optional(v.string()),
+  videoUrl: v.optional(v.string()),
+};
 
 /** One condition of a logic rule; see model/logicEval.ts for what each part means. */
 const condition = v.object({
@@ -432,7 +469,8 @@ export default defineSchema({
   blocks: defineTable({
     formId: v.id("forms"),
     order: v.number(),
-    kind: v.union(v.literal("field"), v.literal("pagebreak")),
+    kind: v.union(v.literal("field"), v.literal("pagebreak"), v.literal("content")),
+    ...blockExtras,
     type: v.optional(questionType),
     title: v.optional(v.string()),
     help: v.optional(v.string()),
