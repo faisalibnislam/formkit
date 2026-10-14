@@ -229,6 +229,8 @@ async function payload(ctx: QueryCtx, live: Doc<"forms">, opts: { draft?: boolea
       placeholder: b.placeholder ?? null,
       required: b.required ?? false,
       options: b.options ?? null,
+      rows: b.type === "matrix" ? (b.rows ?? []) : null,
+      matrixMulti: b.type === "matrix" ? !!b.matrixMulti : null,
       accept: b.accept ?? null,
       scaleMin: b.scaleMin ?? null,
       scaleMax: b.scaleMax ?? null,

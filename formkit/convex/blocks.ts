@@ -150,6 +150,9 @@ export const update = mutation({
     if (patch.maxSeconds !== undefined) patch = { ...patch, maxSeconds: voiceLength(patch.maxSeconds) };
     if (patch.videoUrl !== undefined) patch = { ...patch, videoUrl: checkedVideo(patch.videoUrl) ?? "" };
     if (patch.alt !== undefined) patch = { ...patch, alt: patch.alt.trim().slice(0, 300) };
+    if (patch.rows !== undefined) {
+      patch = { ...patch, rows: [...new Set(patch.rows.map((r) => r.trim().slice(0, 120)).filter(Boolean))].slice(0, 20) };
+    }
     if (patch.validation?.pattern) {
       try {
         new RegExp(patch.validation.pattern);

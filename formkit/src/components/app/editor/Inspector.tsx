@@ -30,6 +30,7 @@ import {
   FIELD_TYPES,
   fieldType,
   hasOptions,
+  scoresOptions,
   hasPlaceholder,
   hasScale,
   parseAccept,
@@ -305,7 +306,28 @@ export function FieldSettings({
 
       {block.type === "hidden" && <FillWithAi block={block} fields={fields} />}
 
-      {(hasOptions(block.type) || block.type === "yes-no") && (
+      {block.type === "matrix" && (
+        <>
+          <div className="fk-proprow" data-stack="true">
+            <Field label="Rows" help="One statement per line. People answer each one with a column below.">
+              <DraftArea
+                rows={4}
+                value={(block.rows ?? []).join("\n")}
+                onCommit={(text) =>
+                  patch({
+                    rows: [...new Set(text.split("\n").map((r) => r.trim()).filter(Boolean))].slice(0, 20),
+                  })
+                }
+              />
+            </Field>
+          </div>
+          <PropertyRow label="Several per row" hint="People may tick more than one column in a row">
+            <Switch checked={!!block.matrixMulti} label="Several per row" onChange={(on) => patch({ matrixMulti: on })} />
+          </PropertyRow>
+        </>
+      )}
+
+      {(scoresOptions(block.type) || block.type === "yes-no") && (
         <div className="fk-proprow" data-stack="true">
           <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, marginBottom: 7 }}>
             Points
@@ -454,7 +476,7 @@ export function FieldSettings({
 
       {hasOptions(block.type) && (
         <div style={{ padding: "14px 0 6px" }}>
-          <div style={{ fontSize: 14, marginBottom: 10 }}>Options</div>
+          <div style={{ fontSize: 14, marginBottom: 10 }}>{block.type === "matrix" ? "Columns" : "Options"}</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {options.map((o, i) => (
               <div

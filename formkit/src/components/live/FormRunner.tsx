@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { SignaturePad } from "./SignaturePad";
+import { MatrixControl, RankingControl } from "./GridControls";
 import { VoiceRecorder } from "./VoiceRecorder";
 import { voiceLength } from "../../../convex/model/voice";
 import { ArrowLeft, Check, Clock3, CornerDownLeft, CreditCard, Lock, Paperclip, Sparkles } from "lucide-react";
@@ -48,6 +49,10 @@ export type Block = {
   placeholder: string | null;
   required: boolean;
   options: string[] | null;
+  /** A matrix's rows; its options are the columns. */
+  rows?: string[] | null;
+  /** A matrix where a row can take several columns. */
+  matrixMulti?: boolean | null;
   accept: string[] | null;
   scaleMin: number | null;
   scaleMax: number | null;
@@ -386,7 +391,12 @@ export function FormRunner({
   function stopsOnRule(list: Block[]) {
     for (const b of list) {
       if (hidden.has(b._id) || b.kind === "content") continue;
-      const message = ruleProblem(b as never, kept[b._id]);
+      // A required matrix wants every row, as the server does.
+      const rowsLeft =
+        b.type === "matrix" && isRequired(b) && kept[b._id]?.values?.length
+          ? (b.rows ?? []).filter((r) => !kept[b._id]!.values!.some((v) => v.startsWith(`${r}: `))).length
+          : 0;
+      const message = rowsLeft ? `Answer every row: ${rowsLeft} still ${rowsLeft === 1 ? "needs" : "need"} an answer.` : ruleProblem(b as never, kept[b._id]);
       if (message) {
         setRuleErrors({ [b._id]: message });
         focusQuestion(b._id);
@@ -1455,6 +1465,32 @@ function Control({
       );
     }
 
+    case "matrix":
+      return (
+        <MatrixControl
+          rows={block.rows ?? []}
+          columns={block.options ?? []}
+          multi={!!block.matrixMulti}
+          values={value?.values ?? []}
+          radius={radius}
+          label={block.title ?? "This question"}
+          group={group}
+          onChange={(values) => onChange(values.length ? { values } : {})}
+        />
+      );
+
+    case "ranking":
+      return (
+        <RankingControl
+          options={block.options ?? []}
+          values={value?.values ?? []}
+          radius={radius}
+          label={block.title ?? "This question"}
+          group={group}
+          onChange={(values) => onChange({ values })}
+        />
+      );
+
     case "dropdown":
       return (
         <select
@@ -1743,7 +1779,7 @@ function prefilled(blocks: Block[], allowed: boolean): Record<string, Answer> {
     } else if (["single-choice", "dropdown", "yes-no"].includes(b.type ?? "")) {
       const v = match(raw);
       if (v) out[b._id] = { value: v };
-    } else if (b.type !== "file" && b.type !== "signature" && b.type !== "voice") {
+    } else if (!["file", "signature", "voice", "matrix", "ranking"].includes(b.type ?? "")) {
       out[b._id] = { value: raw.slice(0, 2000) };
     }
   }

@@ -33,6 +33,7 @@ const range = (from: number, to: number) =>
  */
 export function valueControl(q: Q): ValueControl {
   const type = q?.type ?? "";
+  if (type === "matrix" || type === "ranking") return { kind: "none", note: "answered or not" };
   if (q?.options?.length) {
     return {
       kind: "select",

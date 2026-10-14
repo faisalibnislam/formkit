@@ -36,6 +36,10 @@ export const questionType = v.union(
   v.literal("voice"),
   /** Pro: never shown; filled from the link, or its default. */
   v.literal("hidden"),
+  /** A grid: each of `rows` answered with one of the options (columns), or several with `matrixMulti`. */
+  v.literal("matrix"),
+  /** The options, put in order. */
+  v.literal("ranking"),
   /** Content, not questions (kind "content"): text, a picture or a video between questions. */
   v.literal("statement"),
   v.literal("image"),
@@ -76,6 +80,10 @@ export const blockExtras = {
   followUp: v.optional(v.object({ on: v.boolean(), instruction: v.optional(v.string()) })),
   /** Pro, voice questions: the AI writes out each recording once it is sent. */
   transcribe: v.optional(v.boolean()),
+  /** Matrix questions: the statements down the side; the options are the columns. */
+  rows: v.optional(v.array(v.string())),
+  /** Matrix questions: several columns may be ticked in a row. */
+  matrixMulti: v.optional(v.boolean()),
   /** Content blocks: an uploaded image and its description, or a video link. */
   imageId: v.optional(v.id("_storage")),
   alt: v.optional(v.string()),

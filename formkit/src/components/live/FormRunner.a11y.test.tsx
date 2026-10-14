@@ -26,6 +26,8 @@ const form = {
     { _id: "d", kind: "field", type: "dropdown", title: "Country", options: ["UK", "US"] },
     { _id: "f", kind: "field", type: "file", title: "CV", accept: [".pdf"] },
     { _id: "g", kind: "field", type: "signature", title: "Sign the agreement", required: true },
+    { _id: "x", kind: "field", type: "matrix", title: "Rate us", rows: ["Speed", "Price"], options: ["Poor", "Good"] },
+    { _id: "k", kind: "field", type: "ranking", title: "Order these", options: ["A", "B"] },
   ],
 } as unknown as OpenForm;
 
@@ -77,5 +79,13 @@ describe("the live form, for assistive technology", () => {
     const name = tag(/<input[^>]*id="q-g-input"[^>]*>/);
     expect(name).toContain('aria-labelledby="q-g-title"');
     expect(name.toLowerCase()).toContain('autocomplete="name"');
+  });
+
+  test("a matrix is a radio group per row, each with one tab stop; a ranking moves with buttons", () => {
+    const grid = html.slice(html.indexOf('id="q-x-input"'), html.indexOf('id="q-k-input"'));
+    expect(grid.match(/role="radiogroup"/g)?.length).toBe(2);
+    expect(grid).toContain('aria-label="Rate us: Speed"');
+    expect(grid.match(/tabindex="0"/g)?.length).toBe(2);
+    expect(html).toContain('aria-label="Move B up"');
   });
 });

@@ -1,3 +1,4 @@
+import { cellOf } from "./grid";
 import type { Doc } from "../_generated/dataModel";
 
 /**
@@ -24,14 +25,24 @@ export type QuestionSummary =
   | { blockId: string; title: string; type: string; answered: number; kind: "number"; min: number | null; max: number | null; average: number | null; median: number | null }
   | { blockId: string; title: string; type: string; answered: number; kind: "date"; earliest: string | null; latest: string | null }
   | { blockId: string; title: string; type: string; answered: number; kind: "text"; latest: string[] }
-  | { blockId: string; title: string; type: string; answered: number; kind: "count" };
+  | { blockId: string; title: string; type: string; answered: number; kind: "count" }
+  | {
+      blockId: string;
+      title: string;
+      type: string;
+      answered: number;
+      kind: "matrix";
+      columns: string[];
+      rows: { label: string; counts: number[] }[];
+    }
+  | { blockId: string; title: string; type: string; answered: number; kind: "ranking"; options: { label: string; average: number | null }[] };
 
 /** Answers that are someone's contact details: counted, never shown in a summary. */
 const PRIVATE = new Set(["email", "phone", "address", "name", "signature", "url"]);
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
 export function summarize(
-  blocks: Pick<Doc<"blocks">, "_id" | "kind" | "type" | "title" | "options" | "scaleMin" | "scaleMax" | "nps">[],
+  blocks: Pick<Doc<"blocks">, "_id" | "kind" | "type" | "title" | "options" | "scaleMin" | "scaleMax" | "nps" | "rows">[],
   responses: Pick<Doc<"responses">, "answers">[],
 ): QuestionSummary[] {
   const byBlock = new Map<string, Doc<"responses">["answers"]>();
@@ -115,6 +126,43 @@ export function summarize(
       case "date": {
         const dates = answers.map((a) => a.value ?? "").filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
         out.push({ ...base, answered: dates.length, kind: "date", earliest: dates[0] ?? null, latest: dates[dates.length - 1] ?? null });
+        break;
+      }
+      case "matrix": {
+        const rows = b.rows ?? [];
+        const columns = b.options ?? [];
+        const grid = rows.map((label) => ({ label, counts: columns.map(() => 0) }));
+        for (const a of answers) {
+          for (const v of a.values ?? []) {
+            const c = cellOf(v, rows, columns);
+            if (c) grid[rows.indexOf(c.row)]!.counts[columns.indexOf(c.column)]!++;
+          }
+        }
+        out.push({ ...base, kind: "matrix", columns, rows: grid });
+        break;
+      }
+      case "ranking": {
+        const options = b.options ?? [];
+        const totals = new Map(options.map((o) => [o, { sum: 0, n: 0 }]));
+        for (const a of answers) {
+          (a.values ?? []).forEach((v, i) => {
+            const t = totals.get(v);
+            if (t) {
+              t.sum += i + 1;
+              t.n++;
+            }
+          });
+        }
+        out.push({
+          ...base,
+          kind: "ranking",
+          options: options
+            .map((label) => {
+              const t = totals.get(label)!;
+              return { label, average: t.n ? round1(t.sum / t.n) : null };
+            })
+            .sort((x, y) => (x.average ?? 99) - (y.average ?? 99)),
+        });
         break;
       }
       case "short-text":

@@ -27,7 +27,9 @@ export type FieldType = {
     | "hidden"
     | "statement"
     | "image"
-    | "video";
+    | "video"
+    | "matrix"
+    | "ranking";
   defaultOptions?: string[];
 };
 
@@ -70,8 +72,24 @@ export const FIELD_TYPES: FieldType[] = [
     defaultOptions: OPTIONS,
   },
   { type: "yes-no", label: "Yes / No", group: "Choice", icon: "toggle-left", preview: "yesno" },
+  {
+    type: "ranking",
+    label: "Ranking",
+    group: "Choice",
+    icon: "list-ordered",
+    preview: "ranking",
+    defaultOptions: ["First thing", "Second thing", "Third thing"],
+  },
   { type: "rating", label: "Rating", group: "Rating", icon: "star", preview: "rating" },
   { type: "scale", label: "Opinion scale", group: "Rating", icon: "sliders-horizontal", preview: "scale" },
+  {
+    type: "matrix",
+    label: "Matrix",
+    group: "Rating",
+    icon: "grid",
+    preview: "matrix",
+    defaultOptions: ["Poor", "Fair", "Good", "Great"],
+  },
   // Not a type of its own: an opinion scale from 0 to 10, read as NPS (see Builder.add).
   { type: "nps", label: "Net Promoter Score", group: "Rating", icon: "gauge", preview: "scale" },
   { type: "file", label: "File upload", group: "Upload", icon: "paperclip", preview: "file" },
@@ -95,8 +113,16 @@ export function fieldType(type: string | null | undefined) {
 
 /** Whether a type keeps a list of options the person writes. */
 export function hasOptions(type: string | null | undefined) {
+  return ["single-choice", "multi-choice", "dropdown", "matrix", "ranking"].includes(type ?? "");
+}
+
+/** Choice questions whose options can carry points and quiz answers; not a matrix's columns or a ranking. */
+export function scoresOptions(type: string | null | undefined) {
   return ["single-choice", "multi-choice", "dropdown"].includes(type ?? "");
 }
+
+/** A new matrix's rows. */
+export const DEFAULT_ROWS = ["Speed", "Price", "Support"];
 
 /** Library entries that are content (kind "content"), not questions. */
 export const CONTENT_TYPES = new Set(["statement", "image", "video"]);

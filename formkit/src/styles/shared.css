@@ -351,3 +351,41 @@
 .fk-formcheck-list li[data-level="warn"]::marker {
   color: var(--amber-600, #b7791f);
 }
+
+/* A matrix question's answers on Analytics: rows by columns, shaded by share. */
+.fk-summary-matrix {
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  overflow-x: auto;
+}
+.fk-summary-matrix [role="row"] {
+  display: grid;
+  gap: 4px;
+  align-items: center;
+}
+.fk-summary-matrix [role="cell"] {
+  text-align: center;
+  padding: 6px 4px;
+  border-radius: 6px;
+}
+.fk-summary-matrix-head [role="columnheader"] {
+  text-align: center;
+  color: var(--color-text-tertiary);
+}
+
+/* A matrix question, drawn on the builder canvas */
+.fk-ghost-matrix {
+  display: grid;
+  gap: 8px 10px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+}
+.fk-ghost-matrix-head {
+  text-align: center;
+  font-size: 12px;
+}
+.fk-ghost-matrix-row {
+  color: var(--color-text-secondary);
+}

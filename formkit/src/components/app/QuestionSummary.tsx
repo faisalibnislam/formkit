@@ -123,6 +123,44 @@ function Body({ q }: { q: Question }) {
           ))}
         </ul>
       ) : null;
+    case "matrix": {
+      const cols = { gridTemplateColumns: `minmax(120px, 1.6fr) repeat(${q.columns.length}, minmax(56px, 1fr))` };
+      return (
+        <div className="fk-summary-matrix" role="table" aria-label={`Answers to ${q.title}, row by row`}>
+          <div role="row" className="fk-summary-matrix-head" style={cols}>
+            <span role="columnheader" />
+            {q.columns.map((c) => (
+              <span key={c} role="columnheader">
+                {c}
+              </span>
+            ))}
+          </div>
+          {q.rows.map((r) => {
+            const total = r.counts.reduce((a, b) => a + b, 0);
+            return (
+              <div key={r.label} role="row" style={cols}>
+                <span role="rowheader">{r.label}</span>
+                {r.counts.map((n, i) => (
+                  <span key={i} role="cell" style={{ background: `rgba(46, 120, 187, ${total ? (n / total) * 0.55 : 0})` }}>
+                    {total ? `${pct(n, total)}%` : "-"}
+                  </span>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+    case "ranking":
+      return (
+        <ol className="fk-summary-latest">
+          {q.options.map((o) => (
+            <li key={o.label}>
+              {o.label} <span className="fk-quiet">{o.average === null ? "" : `· average place ${o.average}`}</span>
+            </li>
+          ))}
+        </ol>
+      );
     default:
       return null;
   }

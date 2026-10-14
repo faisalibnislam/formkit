@@ -28,7 +28,7 @@ import { FieldIcon } from "./FieldIcon";
 import { FieldPicker } from "./FieldPicker";
 import { ContentSettings, FieldSettings, NothingSelected, PageSettings } from "./Inspector";
 import { QuestionPreview } from "./QuestionPreview";
-import { CONTENT_TYPES, FIELD_GROUPS, PAID_TYPES, defaultTitle, fieldType, matchFieldTypes } from "./fieldTypes";
+import { CONTENT_TYPES, DEFAULT_ROWS, FIELD_GROUPS, PAID_TYPES, defaultTitle, fieldType, matchFieldTypes } from "./fieldTypes";
 import { ProChip } from "@/components/plan/UpgradeSheet";
 import { openUpgrade, usePlan } from "@/components/plan/usePlan";
 import { openComments, setCurrentBlock, usePresence } from "./collab";
@@ -280,6 +280,7 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
             ? { scaleMin: 1, scaleMax: 5 }
             : {}),
         ...(meta.preview === "rating" ? { scaleMax: 5 } : {}),
+        ...(type === "matrix" ? { rows: DEFAULT_ROWS } : {}),
         ...(type === "hidden" ? { key: "source" } : {}),
       }),
     );
@@ -820,6 +821,7 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
                     <QuestionPreview
                       type={b.type ?? null}
                       options={b.options}
+                      rows={b.rows}
                       scaleMin={b.scaleMin}
                       scaleMax={b.scaleMax}
                       maxSeconds={b.maxSeconds}
