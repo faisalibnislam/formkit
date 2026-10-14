@@ -137,7 +137,7 @@ const FAQS = [
   },
   {
     q: "Who is Business for?",
-    a: "Teams and agencies. It has everything in Pro with bigger AI allowances, plus approval before publishing, templates shared across the company, an audit log, retention rules, API access and company sign-in.",
+    a: "Teams and agencies. It has everything in Pro with bigger AI allowances, plus approval before publishing, templates shared across the company, an audit log, retention rules and company sign-in.",
   },
   {
     q: "How do the AI allowances work?",
