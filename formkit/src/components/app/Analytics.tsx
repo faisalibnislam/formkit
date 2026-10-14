@@ -3,6 +3,7 @@
 import { useSeedClock, useSeededQuery } from "@/lib/seed";
 import { AiInsights } from "./AiInsights";
 import { QuestionSummary } from "./QuestionSummary";
+import { AskAcross } from "./AskAcross";
 import { useState } from "react";
 import Link from "next/link";
 import { useMutation } from "convex/react";
@@ -540,6 +541,7 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
               )}
             </div>
 
+            {!formId && forms && <AskAcross forms={forms.filter((f) => f.responses > 0).map((f) => ({ _id: f._id, title: f.title }))} />}
             {scope && <QuestionSummary formId={scope} from={span.from} to={span.to} />}
             {scope && <AiInsights formId={scope} from={span.from} to={span.to} />}
           </>
