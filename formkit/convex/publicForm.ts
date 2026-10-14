@@ -1,4 +1,4 @@
-import { hasLimits, placesLeft, placesTaken } from "./model/places";
+import { hasLimits, placesLeft, placesTaken, startPlaceCounts } from "./model/places";
 import { isAudio, voiceLength } from "./model/voice";
 import { owed, takesPayment } from "./payments";
 import { ConvexError, v } from "convex/values";
@@ -144,14 +144,14 @@ async function answeredBefore(
     const mine = await ctx.db
       .query("responses")
       .withIndex("by_form_device", (q) => q.eq("formId", formId).eq("deviceId", deviceId))
-      .collect();
+      .take(50);
     if (sent(mine)) return true;
   }
   if (email) {
     const mine = await ctx.db
       .query("responses")
       .withIndex("by_form_email", (q) => q.eq("formId", formId).eq("respondentEmail", email))
-      .collect();
+      .take(50);
     if (sent(mine)) return true;
   }
   return false;
@@ -395,7 +395,7 @@ export const startQuiz = mutation({
       const done = await ctx.db
         .query("responses")
         .withIndex("by_form_device", (q) => q.eq("formId", formId).eq("deviceId", deviceId))
-        .collect();
+        .take(50);
       if (done.some((r) => !r.partial && !r.preview)) throw new ConvexError("You’ve already taken this quiz. It allows one attempt.");
     }
     const startedAt = Date.now();
@@ -917,7 +917,7 @@ export const submit = mutation({
         const recent = await ctx.db
           .query("responses")
           .withIndex("by_form_device", (q) => q.eq("formId", form._id).eq("deviceId", args.deviceId))
-          .collect();
+          .take(50);
         if (recent.some((r) => !r.partial && Date.now() - r.submittedAt < RATE_MS)) {
           throw new ConvexError("One submission a minute from each device. Try again in a moment.");
         }
@@ -932,7 +932,8 @@ export const submit = mutation({
 
       // Limited places: a place is only taken if it is still free when sent.
       if (blocks.some(hasLimits) && (await hasFeature(ctx, form, "logic.advanced"))) {
-        const taken = await placesTaken(ctx, form._id, blocks, existing?._id);
+        await startPlaceCounts(ctx, form._id, blocks);
+        const taken = await placesTaken(ctx, form._id, blocks, existing);
         for (const a of args.answers) {
           const b = blocks.find((x) => x._id === a.blockId);
           if (!b || !hasLimits(b)) continue;

@@ -32,7 +32,9 @@ export const overview = query({
       await ctx.db
         .query("responses")
         .withIndex("by_form_submitted", (q) => q.eq("formId", formId).gte("submittedAt", from).lt("submittedAt", to))
-        .collect()
+        .order("desc")
+        // The latest 5,000 in the period are plenty to read a trend from.
+        .take(5000)
     ).filter((r) => !r.preview && !r.partial);
     const read = rows.filter((r) => r.insight);
     // Only forms with AI replies have anything to show.

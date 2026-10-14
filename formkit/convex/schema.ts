@@ -1249,6 +1249,17 @@ export default defineSchema({
     fetchedAt: v.optional(v.number()),
   }).index("by_client", ["clientId"]),
 
+  /**
+   * Limited places (Pro): how many complete responses picked each option of
+   * a question with limits, kept as responses arrive, change and go
+   * (model/places.ts), so no one counts every response to check a place.
+   */
+  placeCounts: defineTable({
+    formId: v.id("forms"),
+    blockId: v.id("blocks"),
+    picks: v.array(v.object({ option: v.string(), n: v.number() })),
+  }).index("by_form_block", ["formId", "blockId"]),
+
   /** One-time codes from the consent screen, swapped for tokens within minutes. */
   oauthCodes: defineTable({
     codeHash: v.string(),

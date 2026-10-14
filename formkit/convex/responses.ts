@@ -863,7 +863,8 @@ export const unreadCount = query({
     const rows = await ctx.db
       .query("responses")
       .withIndex("by_owner_status", (q) => q.eq("ownerId", space.ownerId).eq("status", "new"))
-      .collect();
+      // Past 999 the badge says 999+; counting further reads for nothing.
+      .take(1000);
     return rows.filter((r) => !r.partial && !r.preview && forms.has(r.formId)).length;
   },
 });

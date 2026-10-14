@@ -1,3 +1,4 @@
+import { internal } from "./_generated/api";
 import { fromPortable, type PortableRule } from "./model/logicCopy";
 import { ConvexError, v } from "convex/values";
 import { internalMutation, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
@@ -17,6 +18,7 @@ import {
   storedBlock,
   uniqueSlug,
   purgeFormData,
+  purgeStep,
   countBlocks,
   recount,
   ownersOf,
@@ -1115,6 +1117,16 @@ export const sweepAllClosing = internalMutation({
 });
 
 const BIN_DAYS = 60;
+
+/** What an erased form owned, a step at a time until nothing is left. */
+export const purgeRest = internalMutation({
+  args: { formId: v.id("forms") },
+  returns: v.null(),
+  handler: async (ctx, { formId }) => {
+    if (!(await purgeStep(ctx, formId))) await ctx.scheduler.runAfter(0, internal.forms.purgeRest, { formId });
+    return null;
+  },
+});
 
 /** Daily: forms in Deleted for 60 days are erased, a few at a time. */
 export const purgeExpired = internalMutation({

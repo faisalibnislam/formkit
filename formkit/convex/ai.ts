@@ -192,10 +192,12 @@ export const responsesFor = internalQuery({
       .query("blocks")
       .withIndex("by_form_order", (q) => q.eq("formId", formId))
       .collect();
-    const all = (await ctx.db.query("responses").withIndex("by_form", (q) => q.eq("formId", formId)).collect())
-      .filter((r) => !r.preview)
-      .sort((a, b) => b.submittedAt - a.submittedAt);
-    const rows = all.slice(0, 400);
+    // The newest 400, read newest first rather than every response sorted.
+    const rows = await ctx.db
+      .query("responses")
+      .withIndex("by_form_preview_submitted", (q) => q.eq("formId", formId).eq("preview", undefined))
+      .order("desc")
+      .take(400);
 
     const complete = rows.filter((r) => !r.partial);
     const durations = complete
@@ -242,11 +244,12 @@ export const responsesFor = internalQuery({
 
     return {
       title: form.title,
-      total: all.length,
+      total: form.responsesCount,
       read: rows.length,
       complete: complete.length,
       partial: rows.length - complete.length,
-      unread: all.filter((r) => r.status === "new").length,
+      // Among the newest 400.
+      unread: rows.filter((r) => r.status === "new").length,
       views: form.views ?? 0,
       medianMs: median,
       stops: [...stops.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3),

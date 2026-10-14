@@ -23,6 +23,13 @@ const MAX_DAYS = 366;
 
 type Window = { from: number; to: number };
 
+/**
+ * The most rows one analytics read takes. Reads go newest first, so past it
+ * the current period is whole and the one compared against is cut short
+ * (`capped` says so).
+ */
+const WINDOW_CAP = 8000;
+
 async function eventsIn(
   ctx: QueryCtx,
   userId: Id<"users">,
@@ -33,11 +40,13 @@ async function eventsIn(
     ? ctx.db
         .query("formEvents")
         .withIndex("by_form_at", (q) => q.eq("formId", formId).gte("at", w.from).lt("at", w.to))
-        .collect()
+        .order("desc")
+        .take(WINDOW_CAP)
     : ctx.db
         .query("formEvents")
         .withIndex("by_owner_at", (q) => q.eq("ownerId", userId).gte("at", w.from).lt("at", w.to))
-        .collect();
+        .order("desc")
+        .take(WINDOW_CAP);
 }
 
 function median(values: number[]) {
@@ -111,22 +120,27 @@ export const overview = query({
             .withIndex("by_form_submitted", (q) =>
               q.eq("formId", args.formId!).gte("submittedAt", previous.from).lt("submittedAt", current.to),
             )
-            .collect()
+            .order("desc")
+            .take(WINDOW_CAP)
         : await ctx.db
             .query("responses")
             .withIndex("by_owner_submitted", (q) =>
               q.eq("ownerId", ownerId).gte("submittedAt", previous.from).lt("submittedAt", current.to),
             )
-            .collect()
-    ).filter((r) => ids.has(r.formId) && !r.preview);
+            .order("desc")
+            .take(WINDOW_CAP)
+    );
+    const kept = inWindows.filter((r) => ids.has(r.formId) && !r.preview);
 
-    const within = (w: Window) => inWindows.filter((r) => r.submittedAt >= w.from && r.submittedAt < w.to);
+    const within = (w: Window) => kept.filter((r) => r.submittedAt >= w.from && r.submittedAt < w.to);
     const recent = within(current);
     const before = within(previous);
     const [eventsNow, eventsBefore] = await Promise.all([
       eventsIn(ctx, ownerId, args.formId, current),
       eventsIn(ctx, ownerId, args.formId, previous),
     ]);
+    // More than one read takes: the earlier period's figures are cut short.
+    const capped = inWindows.length >= WINDOW_CAP || eventsNow.length >= WINDOW_CAP || eventsBefore.length >= WINDOW_CAP;
 
     const now_ = summarise(eventsNow, recent, ids);
     const was = summarise(eventsBefore, before, ids);
@@ -247,6 +261,7 @@ export const overview = query({
       from,
       to,
       days,
+      capped,
       /** False when the plan leaves out sources, devices and drop-off. */
       full,
       ...now_,

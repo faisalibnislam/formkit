@@ -1,5 +1,6 @@
+import { internal } from "../_generated/api";
 import { teamRoleOf } from "./team";
-import { Doc, Id } from "../_generated/dataModel";
+import { Doc, Id, TableNames } from "../_generated/dataModel";
 import { MutationCtx, QueryCtx } from "../_generated/server";
 import { requireUser } from "./identity";
 import { hasFeature } from "./plans";
@@ -246,72 +247,61 @@ export async function ownersOf(ctx: QueryCtx, forms: Pick<Doc<"forms">, "_id" | 
   return out;
 }
 
+/** Rows one purge step deletes before handing the rest to the next. */
+const PURGE_STEP = 1000;
+
 /**
  * Everything a form owns, gone: its questions, rules, responses and the files
  * people uploaded to them, versions, comments, people, links, activity and
  * view counts. Used by the bin, the 60-day sweep, and account deletion.
+ *
+ * The form itself goes at once, so it disappears everywhere; what it owned
+ * is deleted a step at a time (forms.purgeRest), so a form with a great many
+ * responses never needs one enormous write.
  */
 export async function purgeFormData(ctx: MutationCtx, form: Doc<"forms">) {
+  await ctx.db.delete(form._id);
+  if (!(await purgeStep(ctx, form._id))) await ctx.scheduler.runAfter(0, internal.forms.purgeRest, { formId: form._id });
+}
+
+/** Deletes up to PURGE_STEP of what a deleted form owned. True once nothing is left. */
+export async function purgeStep(ctx: MutationCtx, formId: Id<"forms">): Promise<boolean> {
+  let left = PURGE_STEP;
+  const gone = async <T extends { _id: Id<TableNames> }>(rows: T[], each?: (row: T) => Promise<void>) => {
+    for (const row of rows) {
+      if (each) await each(row);
+      await ctx.db.delete(row._id);
+    }
+    left -= rows.length;
+    return left > 0;
+  };
+
   // `blocks` is indexed by form *and* order, so it is swept on its own.
-  const blocks = await ctx.db
-    .query("blocks")
-    .withIndex("by_form_order", (q) => q.eq("formId", form._id))
-    .collect();
-  for (const row of blocks) {
-    if (row.imageId) await ctx.storage.delete(row.imageId).catch(() => undefined);
-    await ctx.db.delete(row._id);
-  }
+  const blocks = await ctx.db.query("blocks").withIndex("by_form_order", (q) => q.eq("formId", formId)).take(left);
+  if (!(await gone(blocks, async (b) => void (b.imageId && (await ctx.storage.delete(b.imageId).catch(() => undefined)))))) return false;
 
-  const responses = await ctx.db
-    .query("responses")
-    .withIndex("by_form", (q) => q.eq("formId", form._id))
-    .collect();
-  for (const r of responses) {
+  const responses = await ctx.db.query("responses").withIndex("by_form", (q) => q.eq("formId", formId)).take(left);
+  const files = async (r: Doc<"responses">) => {
     for (const a of r.answers) if (a.fileId) await ctx.storage.delete(a.fileId).catch(() => undefined);
-    await ctx.db.delete(r._id);
-  }
+  };
+  if (!(await gone(responses, files))) return false;
 
-  for (const table of [
-    "logicRules",
-    "versions",
-    "comments",
-    "collaborators",
-    "presence",
-    "joinLinks",
-    "activity",
-  ] as const) {
-    const rows = await ctx.db
-      .query(table)
-      .withIndex("by_form", (q) => q.eq("formId", form._id))
-      .collect();
-    for (const row of rows) await ctx.db.delete(row._id);
+  for (const table of ["logicRules", "versions", "comments", "collaborators", "presence", "joinLinks", "activity", "aiReports", "quizAttempts"] as const) {
+    const rows = await ctx.db.query(table).withIndex("by_form", (q) => q.eq("formId", formId)).take(left);
+    if (!(await gone(rows))) return false;
   }
-  const events = await ctx.db
-    .query("formEvents")
-    .withIndex("by_form_at", (q) => q.eq("formId", form._id))
-    .collect();
-  for (const row of events) await ctx.db.delete(row._id);
-  // Connections (and what they delivered), AI judgements and reports, quiz attempts.
-  const connections = await ctx.db
-    .query("connections")
-    .withIndex("by_form", (q) => q.eq("formId", form._id))
-    .collect();
-  for (const c of connections) {
-    const sent = await ctx.db
-      .query("deliveries")
-      .withIndex("by_connection", (q) => q.eq("connectionId", c._id))
-      .collect();
-    for (const d of sent) await ctx.db.delete(d._id);
+  for (const table of ["formEvents", "aiJudgements"] as const) {
+    const rows = await ctx.db.query(table).withIndex("by_form_at", (q) => q.eq("formId", formId)).take(left);
+    if (!(await gone(rows))) return false;
+  }
+  if (!(await gone(await ctx.db.query("placeCounts").withIndex("by_form_block", (q) => q.eq("formId", formId)).take(left)))) return false;
+
+  // Connections, and what they delivered.
+  for (const c of await ctx.db.query("connections").withIndex("by_form", (q) => q.eq("formId", formId)).take(50)) {
+    const sent = await ctx.db.query("deliveries").withIndex("by_connection", (q) => q.eq("connectionId", c._id)).take(left);
+    if (!(await gone(sent))) return false;
     await ctx.db.delete(c._id);
   }
-  for (const row of await ctx.db.query("aiJudgements").withIndex("by_form_at", (q) => q.eq("formId", form._id)).collect()) {
-    await ctx.db.delete(row._id);
-  }
-  for (const row of await ctx.db.query("aiReports").withIndex("by_form", (q) => q.eq("formId", form._id)).collect()) {
-    await ctx.db.delete(row._id);
-  }
-  for (const row of await ctx.db.query("quizAttempts").withIndex("by_form", (q) => q.eq("formId", form._id)).collect()) {
-    await ctx.db.delete(row._id);
-  }
-  await ctx.db.delete(form._id);
+  const more = await ctx.db.query("connections").withIndex("by_form", (q) => q.eq("formId", formId)).first();
+  return !more;
 }

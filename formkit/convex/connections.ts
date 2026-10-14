@@ -463,6 +463,9 @@ export const recordDelivery = internalMutation({
 /* Google Sheets: the private link                                     */
 /* ------------------------------------------------------------------ */
 
+/** The most rows the Google Sheets feed carries. */
+const SHEET_ROWS = 3000;
+
 export const sheetRows = internalQuery({
   args: { token: v.string() },
   handler: async (ctx, { token }) => {
@@ -474,15 +477,18 @@ export const sheetRows = internalQuery({
     const form = await ctx.db.get(c.formId);
     if (!form || form.deletedAt || !(await hasFeature(ctx, form, "connect.sheets"))) return null;
     const blocks = await blocksOf(ctx, form._id);
-    const responses = (
-      await ctx.db
-        .query("responses")
-        .withIndex("by_form", (q) => q.eq("formId", form._id))
-        .collect()
-    )
-      .filter((r) => !r.partial && !r.preview)
-      .sort((a, b) => a.submittedAt - b.submittedAt)
-      .slice(-10_000);
+    // The latest 3,000 complete responses, oldest of them first: as much as
+    // one read can carry with long answers. Exports have everything.
+    const latest: Doc<"responses">[] = [];
+    for await (const r of ctx.db
+      .query("responses")
+      .withIndex("by_form_preview_submitted", (q) => q.eq("formId", form._id).eq("preview", undefined))
+      .order("desc")) {
+      if (r.partial) continue;
+      latest.push(r);
+      if (latest.length === SHEET_ROWS) break;
+    }
+    const responses = latest.reverse();
     const calcNames = (form.calc ?? []).map((x) => x.name);
     const links = await fileLinks(ctx, responses);
     const columns = ["Submitted", "Name", "Email", ...blocks.map((b) => b.title ?? "Question"), ...calcNames, "Payment"];
