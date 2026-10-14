@@ -604,6 +604,8 @@ async function store(
     durationMs: args.durationMs,
     status: "new" as const,
     resumeToken: existing?.resumeToken ?? crypto.randomUUID(),
+    // The respondent's own copy, once it is sent.
+    receiptToken: existing?.receiptToken ?? (args.partial || preview ? undefined : crypto.randomUUID()),
     versionNumber: form.liveVersion,
     deviceId: args.deviceId,
     preview: preview || undefined,
@@ -1098,5 +1100,49 @@ export const mailResumeLink = internalAction({
       text: `Everything you answered so far on ${m.title} is saved. Carry on here: ${link}\n\nAnyone with this link can see and change your answers, so keep it to yourself.`,
     });
     return null;
+  },
+});
+
+/**
+ * A respondent's receipt, from the link in their confirmation: what they
+ * sent, when, and a reference, in the form's own look. Nothing is shown that
+ * they did not type or pick themselves (hidden fields stay hidden).
+ */
+export const receipt = query({
+  args: { token: v.string() },
+  handler: async (ctx, { token }) => {
+    if (!/^[0-9a-f-]{36}$/.test(token)) return null;
+    const r = await ctx.db
+      .query("responses")
+      .withIndex("by_receipt", (q) => q.eq("receiptToken", token))
+      .first();
+    if (!r || r.partial || r.preview) return null;
+    const form = await ctx.db.get(r.formId);
+    if (!form || form.deletedAt) return null;
+    const hidden = new Set(
+      (
+        await ctx.db
+          .query("blocks")
+          .withIndex("by_form_order", (q) => q.eq("formId", form._id))
+          .collect()
+      )
+        .filter((b) => b.type === "hidden")
+        .map((b) => b._id as string),
+    );
+    return {
+      title: form.title,
+      brand: await brandOf(ctx, form),
+      logos: await themeLogos(ctx, form.theme),
+      theme: form.theme ?? null,
+      submittedAt: r.submittedAt,
+      reference: r._id.slice(-8).toUpperCase(),
+      answers: r.answers
+        .filter((a) => !hidden.has(a.blockId))
+        .map((a) => ({
+          question: a.question,
+          answer: a.values?.length ? a.values.join(", ") : a.fileName ? `${a.value ? `${a.value} · ` : ""}${a.fileName}` : (a.value ?? ""),
+        }))
+        .filter((a) => a.answer.trim()),
+    };
   },
 });

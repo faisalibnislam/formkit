@@ -687,6 +687,8 @@ export default defineSchema({
     remindedAt: v.optional(v.number()),
     /** Who on the team is looking after it. */
     assigneeId: v.optional(v.id("users")),
+    /** The private part of the respondent's receipt link, made when it is sent. */
+    receiptToken: v.optional(v.string()),
     /** Business: the AI-written reply to this response, and where it went. */
     aiReply: v.optional(
       v.object({
@@ -752,6 +754,7 @@ export default defineSchema({
     .index("by_owner_contact", ["ownerId", "contactKey"])
     // The admin overview's day counts (adminTally.ts).
     .index("by_preview_submitted", ["preview", "submittedAt"])
+    .index("by_receipt", ["receiptToken"])
     .index("by_resume", ["resumeToken"])
     .index("by_payment", ["payment.status", "submittedAt"])
     .searchIndex("search", { searchField: "searchText", filterFields: ["ownerId", "formId"] }),

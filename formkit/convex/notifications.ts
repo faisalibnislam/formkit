@@ -14,6 +14,7 @@ import { brandOf, formFor } from "./model/forms";
 import { emailsReply } from "./model/aiReply";
 import { senderFor } from "./emailDomains";
 import { hasFeature } from "./model/plans";
+import { securityOf } from "./model/security";
 import {
   fill,
   renderConfirmation,
@@ -180,6 +181,8 @@ export const forResponse = internalQuery({
             message: fill(settings.confirmBody, vars),
             replyTo: settings.replyTo,
             rows: settings.confirmAttach ? rows : [],
+            receipt: response.receiptToken ? `${SITE}/receipt/${response.receiptToken}` : null,
+            edit: securityOf(form.security).editAfter && response.resumeToken ? `${SITE}/r/${response.resumeToken}` : null,
           }
         : null,
     };
@@ -294,6 +297,8 @@ export const onResponse = internalAction({
           rows: job.confirmation.rows,
           brandName: job.brandName,
           brand: job.brand,
+          receipt: job.confirmation.receipt,
+          edit: job.confirmation.edit,
         }),
       });
       await ctx.runMutation(internal.notifications.record, {

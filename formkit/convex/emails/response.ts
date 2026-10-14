@@ -1,4 +1,4 @@
-import { answers, button, C, EMAIL_SITE, facts, list, paragraph, quote, renderShell, safeColor, type Brand } from "./kit";
+import { answers, button, C, EMAIL_SITE, facts, linkLine, list, paragraph, quote, renderShell, safeColor, type Brand } from "./kit";
 
 /**
  * Every email apart from the sign-in codes: a response's notification and
@@ -60,12 +60,18 @@ export function renderConfirmation({
   rows,
   brandName,
   brand,
+  receipt,
+  edit,
 }: {
   subject: string;
   message: string;
   rows: { question: string; value: string }[];
   brandName: string;
   brand?: Partial<Brand>;
+  /** Their own copy, to keep, print or save as a PDF. */
+  receipt?: string | null;
+  /** Where to change their answers, when the form allows it. */
+  edit?: string | null;
 }) {
   const b: Brand = {
     name: brand?.name ?? brandName,
@@ -78,9 +84,13 @@ export function renderConfirmation({
     eyebrow: "Received",
     heading: subject,
     lede: message,
-    body: rows.length
-      ? `<div style="font-size:13px;font-weight:500;color:${C.muted};margin:4px 0 10px;">A copy of what you sent</div>${answers(rows)}`
-      : paragraph("Nothing else to do. This is just to say it arrived.", { muted: true }),
+    body: `${
+      rows.length
+        ? `<div style="font-size:13px;font-weight:500;color:${C.muted};margin:4px 0 10px;">A copy of what you sent</div>${answers(rows)}`
+        : paragraph("Nothing else to do. This is just to say it arrived.", { muted: true })
+    }${receipt ? button("Keep a copy", receipt, b.color ?? undefined) : ""}${
+      edit ? linkLine("Need to change something?", "Change your answers", edit, { top: 16 }) : ""
+    }`,
     reason: `Sent by ${b.name}. Reply to this email to reach them.`,
   });
 }
