@@ -774,9 +774,10 @@ function ResponseDrawer({
       a ? (a.fileName ?? (a.value || "-")) : "-";
     // Voice recordings play in place, under their question.
     const sound = new Map(response.files.filter((f) => f.audio && f.url).map((f) => [f.blockId as string, f.url!]));
+    const drawn = new Map(response.files.filter((f) => f.image && f.url).map((f) => [f.blockId as string, f.url!]));
     const out: {
       title: string;
-      rows: { q: string; a: string; empty: boolean; file: boolean; audio?: string; transcript?: string | null }[];
+      rows: { q: string; a: string; empty: boolean; file: boolean; audio?: string; transcript?: string | null; signature?: string }[];
     }[] = [];
     let g: (typeof out)[number] = { title: "Answers", rows: [] };
     const used = new Set<string>();
@@ -792,11 +793,13 @@ function ResponseDrawer({
       used.add(b._id);
       g.rows.push({
         q: b.title ?? a?.question ?? "Question",
-        a: answerOf(a),
+        // A signature's typed name, rather than its image's file name.
+        a: b.type === "signature" && a?.value ? a.value : answerOf(a),
         empty: !a || (!a.value && !a.fileName),
         file: !!a?.fileName,
         audio: sound.get(b._id),
         transcript: a?.transcript,
+        signature: b.type === "signature" ? drawn.get(b._id) : undefined,
       });
     }
     if (g.rows.length) out.push(g);
@@ -1006,6 +1009,12 @@ function ResponseDrawer({
                 <div className="fk-answer-a">
                   {r.empty ? (
                     <span style={{ color: "var(--color-text-tertiary)" }}>Not answered</span>
+                  ) : r.signature ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element -- a signature someone drew, from storage */}
+                      <img src={r.signature} alt={`Signature for ${r.q}`} style={{ display: "block", maxWidth: 320, width: "100%", height: "auto", borderRadius: 8, background: "var(--neutral-50, #fafafa)" }} />
+                      {r.a && r.a !== "signature.png" && r.a !== "-" && <div style={{ marginTop: 6 }}>{r.a}</div>}
+                    </>
                   ) : r.audio ? (
                     <>
                       <audio controls preload="none" src={r.audio} style={{ width: "100%", maxWidth: 360, height: 36 }} aria-label={`Recording for ${r.q}`} />

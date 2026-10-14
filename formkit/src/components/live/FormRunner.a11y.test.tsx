@@ -25,6 +25,7 @@ const form = {
     { _id: "s", kind: "field", type: "scale", title: "Likely", scaleMin: 0, scaleMax: 10 },
     { _id: "d", kind: "field", type: "dropdown", title: "Country", options: ["UK", "US"] },
     { _id: "f", kind: "field", type: "file", title: "CV", accept: [".pdf"] },
+    { _id: "g", kind: "field", type: "signature", title: "Sign the agreement", required: true },
   ],
 } as unknown as OpenForm;
 
@@ -69,5 +70,12 @@ describe("the live form, for assistive technology", () => {
 
   test("progress is announced, not hidden", () => {
     expect(html).not.toMatch(/fk-live-progress"[^>]*aria-hidden/);
+  });
+
+  test("a signature is a drawing pad with a name, and the typed name carries the question's label", () => {
+    expect(html).toContain('aria-label="Sign here with a finger, mouse or pen, for Sign the agreement"');
+    const name = tag(/<input[^>]*id="q-g-input"[^>]*>/);
+    expect(name).toContain('aria-labelledby="q-g-title"');
+    expect(name.toLowerCase()).toContain('autocomplete="name"');
   });
 });

@@ -52,6 +52,8 @@ async function shape(ctx: QueryCtx, r: Doc<"responses">, formTitle: string) {
           url: await ctx.storage.getUrl(a.fileId!),
           /** A voice recording, played in place rather than only downloaded. */
           audio: isAudio(meta?.contentType),
+          /** A drawn signature, shown in place. */
+          image: !!meta?.contentType?.startsWith("image/"),
         };
       }),
   );

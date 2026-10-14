@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { SignaturePad } from "./SignaturePad";
 import { VoiceRecorder } from "./VoiceRecorder";
 import { voiceLength } from "../../../convex/model/voice";
 import { ArrowLeft, Check, Clock3, CornerDownLeft, CreditCard, Lock, Paperclip, Sparkles } from "lucide-react";
@@ -661,7 +662,11 @@ export function FormRunner({
     });
     try {
       const fileId = await upload(file);
-      setAnswers((a) => ({ ...a, [block._id]: { fileId, fileName: file.name } }));
+      // A signature keeps the name typed beside it.
+      setAnswers((a) => ({
+        ...a,
+        [block._id]: { ...(block.type === "signature" ? { value: a[block._id]?.value } : {}), fileId, fileName: file.name },
+      }));
     } catch {
       setFileProblem((p) => ({ ...p, [block._id]: "That upload did not finish. Try again." }));
     }
@@ -1578,12 +1583,17 @@ function Control({
 
     case "signature":
       return (
-        <input
-          style={{ ...box, fontSize: "1.3em" }}
-          placeholder="Type your full name"
-          value={value?.value ?? ""}
-          {...native}
-          onChange={(e) => onChange({ value: e.target.value })}
+        <SignaturePad
+          name={value?.value ?? ""}
+          drawn={!!value?.fileId}
+          failed={fileFailed}
+          accent={theme.primary}
+          radius={radius}
+          label={block.title ?? "this question"}
+          inputProps={{ ...native, style: { ...box, marginTop: 10 } }}
+          onName={(name) => onChange({ ...value, value: name })}
+          onDrawing={onFile}
+          onClear={() => onChange({ value: value?.value })}
         />
       );
 
