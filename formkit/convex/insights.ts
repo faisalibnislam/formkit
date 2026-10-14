@@ -3,6 +3,7 @@ import { action, internalMutation, internalQuery, query } from "./_generated/ser
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { formFor } from "./model/forms";
+import { aiAllowed } from "./model/identity";
 import { CREDIT_COST, hasFeature } from "./model/plans";
 import { canSpend } from "./model/aiMeter";
 import { spaceOfForm } from "./model/spaces";
@@ -158,6 +159,7 @@ export const reportContext = internalQuery({
     // A report spends the company's allowance, so reading the form is not enough.
     const form = await formFor(ctx, formId, "write");
     if (!(await hasFeature(ctx, form, "ai.insights"))) throw new ConvexError("AI insights are part of Pro.");
+    if (!(await aiAllowed(ctx, form.ownerId))) throw new ConvexError("AI is turned off for this account right now.");
     if (!(await canSpend(ctx, spaceOfForm(form), "reports"))) {
       throw new ConvexError(
         `This month’s insights reports are used up. Each extra report is ${CREDIT_COST.reports} AI credits, under Settings → Plan.`,

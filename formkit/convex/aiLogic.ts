@@ -50,6 +50,9 @@ export const thinkContext = internalQuery({
     if (!form || form.status !== "published" || form.deletedAt) return null;
     const owner = await ctx.db.get(form.ownerId);
     if (!owner || !(await hasFeature(ctx, form, "logic.ai"))) return null;
+    // Paused by staff, or off for this account: the form takes each rule's
+    // fallback path, exactly as when the AI does not answer in time.
+    if (!(await aiAllowed(ctx, owner._id))) return null;
 
     const rules = (
       await ctx.db

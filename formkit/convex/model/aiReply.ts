@@ -4,6 +4,7 @@ import { internal } from "../_generated/api";
 import { CREDIT_PACKS, hasFeature } from "./plans";
 import { chargeResponse } from "./aiMeter";
 import { notify } from "./inbox";
+import { aiAllowed } from "./identity";
 
 /**
  * AI replies. Each response a reply is written for counts once against the
@@ -22,6 +23,11 @@ export async function queueReply(ctx: MutationCtx, form: Doc<"forms">, responseI
   if (!form.aiReply?.enabled || !form.aiReply.prompt.trim()) return;
   const owner = await ctx.db.get(form.ownerId);
   if (!owner || !(await hasFeature(ctx, form, "ai.reply"))) return;
+  // Staff paused AI for everyone, or turned it off for this account.
+  if (!(await aiAllowed(ctx, owner._id))) {
+    await ctx.db.patch(responseId, { aiReply: { status: "skipped", reason: "off", at: Date.now() } });
+    return;
+  }
 
   const charged = await chargeResponse(ctx, form, responseId);
   if (!charged) {

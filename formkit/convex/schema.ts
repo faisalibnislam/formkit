@@ -609,6 +609,8 @@ export default defineSchema({
         charged: v.optional(v.union(v.literal("monthly"), v.literal("pack"))),
         /** The AI thinks a person should follow this one up. */
         needsHuman: v.optional(v.boolean()),
+        /** Kept back because the AI flagged it: not emailed or shown until the owner sends it. */
+        held: v.optional(v.boolean()),
         /** Changed by the owner after the AI wrote it. */
         edited: v.optional(v.boolean()),
       }),

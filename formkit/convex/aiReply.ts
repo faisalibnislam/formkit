@@ -7,6 +7,7 @@ import { brandOf, formFor } from "./model/forms";
 import { CREDIT_PACKS, hasFeature, requireFeature } from "./model/plans";
 import { aiStatus, chargeResponse, refundResponse, usesAiLogic } from "./model/aiMeter";
 import { currentSpace } from "./model/spaces";
+import { notify } from "./model/inbox";
 import { senderFor } from "./emailDomains";
 import { FROM, notifyDefaults, send } from "./notifications";
 import { paragraph, renderShell, safeColor, type Brand } from "./emails/kit";
@@ -175,6 +176,7 @@ export const context = internalQuery({
     const brand = await brandOf(ctx, form);
     const notify = notifyDefaults(form.notify, owner.email ?? "", owner.emailPrefs);
     return {
+      allowed: await aiAllowed(ctx, owner._id),
       settings: form.aiReply,
       title: form.title,
       brand,
@@ -197,6 +199,7 @@ export const settle = internalMutation({
     subject: v.optional(v.string()),
     text: v.optional(v.string()),
     needsHuman: v.optional(v.boolean()),
+    held: v.optional(v.boolean()),
     reason: v.optional(v.string()),
     insight: v.optional(v.any()),
   },
@@ -221,6 +224,7 @@ export const settle = internalMutation({
         subject: a.subject,
         text: a.text,
         needsHuman: a.needsHuman || undefined,
+        held: a.held || undefined,
         at: Date.now(),
       },
       ...(a.insight ? { insight: a.insight as Insight } : {}),
@@ -236,7 +240,12 @@ export const recordEmail = internalMutation({
     const r = await ctx.db.get(responseId);
     if (!r?.aiReply) return null;
     await ctx.db.patch(responseId, {
-      aiReply: { ...r.aiReply, emailState: state, ...(state === "sent" ? { emailedAt: Date.now() } : {}) },
+      aiReply: {
+        ...r.aiReply,
+        emailState: state,
+        // The owner sending a held reply is the review it was waiting for.
+        ...(state === "sent" ? { emailedAt: Date.now(), held: undefined } : {}),
+      },
     });
     return null;
   },
@@ -244,6 +253,8 @@ export const recordEmail = internalMutation({
 
 /** What `context` returns, named so the actions can hold it without a type cycle. */
 type Ctx = {
+  /** AI is on for the owner: not paused by staff, not turned off for the account. */
+  allowed: boolean;
   settings: Settings;
   title: string;
   brand: { name: string; logoUrl: string | null; color: string | null; badge: boolean };
@@ -293,6 +304,32 @@ const subjectFor = (c: Ctx, written: string) =>
     .replace(/\{\{\s*form_name\s*\}\}/g, c.title)
     .slice(0, 150);
 
+/**
+ * A reply the AI flagged as needing a person: it is kept back. The person who
+ * answered gets the form's usual confirmation, and the owner is asked to
+ * check the reply and send it themselves.
+ */
+export const holdNotice = internalMutation({
+  args: { responseId: v.id("responses") },
+  returns: v.null(),
+  handler: async (ctx, { responseId }) => {
+    const r = await ctx.db.get(responseId);
+    const form = r && (await ctx.db.get(r.formId));
+    if (!r || !form) return null;
+    const who = r.respondentName?.trim() || r.respondentEmail || "Someone";
+    await notify(ctx, form.ownerId, {
+      kind: "ai",
+      title: `An AI reply is waiting for you on ${form.title}`,
+      body: `${who}'s answers need a person, so the AI's reply was not sent. Check it, change it if you like, and send it.`,
+      href: `/app/forms/${form._id}?tab=responses&open=${responseId}`,
+      action: "Review the reply",
+      icon: "sparkles",
+      formId: form._id,
+    });
+    return null;
+  },
+});
+
 /** Scheduled when a response is stored: writes the reply, then emails it if asked. */
 export const generate = internalAction({
   args: { responseId: v.id("responses") },
@@ -301,6 +338,12 @@ export const generate = internalAction({
     const c: Ctx | null = await ctx.runQuery(internal.aiReply.context, { responseId });
     if (!c || c.reply?.status !== "pending") return null;
     const emails = c.settings.delivery !== "form";
+    if (!c.allowed) {
+      // Paused between the response arriving and this running: no AI call.
+      await ctx.runMutation(internal.aiReply.settle, { responseId, ok: false, reason: "AI is turned off for now." });
+      if (emails) await ctx.runAction(internal.notifications.confirmOnly, { responseId });
+      return null;
+    }
     try {
       const out = await write({ ctx, userId: c.ownerId, feature: "reply" }, c.settings, { brand: c.brand.name, title: c.title, firstName: firstName(c.name), rows: c.rows });
       const subject = subjectFor(c, out.subject);
@@ -310,8 +353,17 @@ export const generate = internalAction({
         subject,
         text: out.reply,
         needsHuman: out.needsHuman,
+        held: out.needsHuman,
         insight: out.insight,
       });
+      if (out.needsHuman) {
+        if (emails) {
+          await ctx.runMutation(internal.aiReply.recordEmail, { responseId, state: "held" });
+          await ctx.runAction(internal.notifications.confirmOnly, { responseId });
+        }
+        await ctx.runMutation(internal.aiReply.holdNotice, { responseId });
+        return null;
+      }
       if (emails) {
         const sent = await email(c, subject, out.reply);
         await ctx.runMutation(internal.aiReply.recordEmail, { responseId, state: sent.state });
@@ -347,10 +399,12 @@ export const forRespondent = query({
     if (!r || r.resumeToken !== token || !r.aiReply) return null;
     const form = await ctx.db.get(r.formId);
     const delivery = form?.aiReply?.delivery ?? "form";
-    const shows = delivery !== "email";
+    const held = !!r.aiReply.held;
+    const shows = delivery !== "email" && !held;
     return {
       status: r.aiReply.status,
       delivery,
+      held,
       text: shows && r.aiReply.status === "ready" ? (r.aiReply.text ?? null) : null,
       signature: shows && r.aiReply.status === "ready" ? (form?.aiReply?.signature ?? null) : null,
       emailed: !!r.aiReply.emailedAt,
