@@ -7,6 +7,7 @@ import { approvalView, audit, needsApproval, teamTemplate } from "./model/team";
 import { PLANS, planOfId, requireFeature } from "./model/plans";
 import { currentSpace, personalSpace, resolveSpace, roleIn, spaceForms, spaceOfForm, spacePlan } from "./model/spaces";
 import { validKey } from "./model/calc";
+import { applyToDraft, isSnapshotted, snapshotOf } from "./model/served";
 import {
   completionRate,
   formFor,
@@ -557,17 +558,14 @@ export async function publishNow(ctx: MutationCtx, form: Doc<"forms">, user: Doc
   {
     const now = Date.now();
 
-    const blocks = await ctx.db
-      .query("blocks")
-      .withIndex("by_form_order", (q) => q.eq("formId", formId))
-      .collect();
-
+    // The whole form as it stands is what goes live (model/served.ts).
+    const snap = await snapshotOf(ctx, form);
     const number = await nextVersion(ctx, formId);
     await ctx.db.insert("versions", {
       formId,
       number,
       label: number === 1 ? "First published" : "Published changes",
-      blocks: blocks.sort((a, b) => a.order - b.order),
+      ...snap,
       publishedAt: now,
       publishedBy: user.name ?? user.email ?? "You",
     });
@@ -851,7 +849,12 @@ export const versions = query({
   },
 });
 
-/** Restoring puts old questions back - and snapshots the current set first. */
+/**
+ * Restoring puts a version back into the draft - questions, rules and
+ * content - after snapshotting the current draft, so it can be undone. It
+ * does not publish: respondents keep the live version until the owner
+ * publishes again.
+ */
 export const restoreVersion = mutation({
   args: { versionId: v.id("versions") },
   returns: v.null(),
@@ -865,74 +868,100 @@ export const restoreVersion = mutation({
       throw new Error(`That version is older than your plan's ${days} days of history.`);
     }
 
-    const current = await ctx.db
-      .query("blocks")
-      .withIndex("by_form_order", (q) => q.eq("formId", form._id))
-      .collect();
-
     const user = await requireUser(ctx);
     await ctx.db.insert("versions", {
       formId: form._id,
       number: await nextVersion(ctx, form._id),
       label: `Before restoring version ${version.number}`,
-      blocks: current.sort((a, b) => a.order - b.order),
+      ...(await snapshotOf(ctx, form)),
       publishedAt: now,
       publishedBy: user.name ?? user.email ?? "You",
     });
-
-    for (const block of current) await ctx.db.delete(block._id);
-    for (const [i, block] of (version.blocks as unknown[]).entries()) {
-      await ctx.db.insert("blocks", { ...storedBlock(block), formId: form._id, order: i });
-    }
-
+    await applyToDraft(ctx, form, { blocks: version.blocks, rules: version.rules ?? null, content: version.content });
     await ctx.db.patch(form._id, { updatedAt: now });
-    await recount(ctx, form._id);
     return null;
   },
 });
 
-/** How many questions changed since the live version - drives the amber note. */
+/**
+ * Freezes what each published form shows right now as a full snapshot, for
+ * forms published before snapshots existed. Respondents see no change; from
+ * then on the builder's edits wait for Publish. Runs from a cron until no
+ * form is left, a few at a time.
+ */
+export const snapshotLiveForms = internalMutation({
+  args: {},
+  returns: v.number(),
+  handler: async (ctx) => {
+    let done = 0;
+    for (const status of ["published", "closed"] as const) {
+      const forms = await ctx.db
+        .query("forms")
+        .withIndex("by_status", (q) => q.eq("status", status))
+        .collect();
+      for (const form of forms) {
+        if (done >= 25) return done;
+        if (form.deletedAt || (await isSnapshotted(ctx, form))) continue;
+        const number = await nextVersion(ctx, form._id);
+        await ctx.db.insert("versions", {
+          formId: form._id,
+          number,
+          label: "Live when publishing began to freeze versions",
+          ...(await snapshotOf(ctx, form)),
+          publishedAt: Date.now(),
+          publishedBy: "Formkit",
+        });
+        await ctx.db.patch(form._id, { liveVersion: number });
+        done++;
+      }
+    }
+    return done;
+  },
+});
+
+/**
+ * How many changes the draft has that respondents do not see yet - drives
+ * the amber note. A question counts once whether it was added, edited or
+ * removed; changed logic counts once, and so does changed content (the
+ * welcome, thank-you screen, endings, design and the like).
+ */
 export const unpublishedChanges = query({
   args: { formId: v.id("forms") },
   returns: v.number(),
   handler: async (ctx, { formId }) => {
     const form = await formFor(ctx, formId, "read");
     if (!form.liveVersion) return 0;
-
-    const versions = await ctx.db
+    const live = await ctx.db
       .query("versions")
-      .withIndex("by_form", (q) => q.eq("formId", formId))
-      .collect();
-    const live = versions.find((x) => x.number === form.liveVersion);
+      .withIndex("by_form", (q) => q.eq("formId", formId).eq("number", form.liveVersion!))
+      .unique();
     if (!live) return 0;
+    const draft = await snapshotOf(ctx, form);
 
-    const current = await ctx.db
-      .query("blocks")
-      .withIndex("by_form_order", (q) => q.eq("formId", formId))
-      .collect();
-
-    // A question counts once whether it was added, edited or removed.
-    const shape = (b: {
-      kind?: string;
-      title?: string;
-      pageName?: string;
-      type?: string;
-      required?: boolean;
-      options?: string[];
-    }) =>
-      [b.kind, b.type ?? "", b.title ?? b.pageName ?? "", b.required ? 1 : 0, (b.options ?? []).join("|")].join("¦");
-    const before = (live.blocks as typeof current).map(shape);
-    const after = current.sort((a, b) => a.order - b.order).map(shape);
-    const pool = [...before];
+    const strip = <T extends object>(row: T) => {
+      const { _creationTime, formId: _f, order: _o, ...rest } = row as T & { _creationTime?: number; formId?: string; order?: number };
+      void _creationTime;
+      void _f;
+      void _o;
+      return JSON.stringify(rest, Object.keys(rest).sort());
+    };
+    const before = (live.blocks as Doc<"blocks">[]).slice().sort((a, b) => a.order - b.order);
+    const after = draft.blocks;
+    const pool = before.map(strip);
     let changed = 0;
-    for (const s of after) {
+    for (const s of after.map(strip)) {
       const i = pool.indexOf(s);
       if (i >= 0) pool.splice(i, 1);
       else changed++;
     }
     // What is left in the pool was removed or replaced; a replacement is
     // already counted above.
-    return Math.max(changed, pool.length);
+    let total = Math.max(changed, pool.length);
+    // The same questions in a new order is a change too.
+    if (!total && before.map((b) => b._id).join() !== after.map((b) => b._id).join()) total = 1;
+    if (live.rules && JSON.stringify((live.rules as Doc<"logicRules">[]).map(strip)) !== JSON.stringify(draft.rules.map(strip))) total++;
+    if (live.content && JSON.stringify(live.content) !== JSON.stringify(draft.content)) total++;
+    return total;
   },
 });
 

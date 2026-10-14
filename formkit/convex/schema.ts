@@ -715,6 +715,10 @@ export default defineSchema({
     number: v.number(),
     label: v.string(),
     blocks: v.array(v.any()),
+    /** The form's logic rules, as published. Absent on versions from before snapshots (model/served.ts). */
+    rules: v.optional(v.array(v.any())),
+    /** The content around the questions, as published: model/served.ts CONTENT. */
+    content: v.optional(v.any()),
     publishedAt: v.number(),
     publishedBy: v.optional(v.string()),
   }).index("by_form", ["formId", "number"]),

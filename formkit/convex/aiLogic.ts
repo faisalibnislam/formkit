@@ -3,6 +3,7 @@ import { action, internalMutation, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { aiAllowed, requireUser } from "./model/identity";
+import { servedForm } from "./model/served";
 import { formFor } from "./model/forms";
 import { hasFeature } from "./model/plans";
 import { canSpend } from "./model/aiMeter";
@@ -54,16 +55,10 @@ export const thinkContext = internalQuery({
     // fallback path, exactly as when the AI does not answer in time.
     if (!(await aiAllowed(ctx, owner._id))) return null;
 
-    const rules = (
-      await ctx.db
-        .query("logicRules")
-        .withIndex("by_form", (q) => q.eq("formId", formId))
-        .collect()
-    ).filter((r) => r.enabled);
-    const blocks = await ctx.db
-      .query("blocks")
-      .withIndex("by_form_order", (q) => q.eq("formId", formId))
-      .collect();
+    // The rules and questions as published: what the person is answering.
+    const served = await servedForm(ctx, form);
+    const rules = served.rules.filter((r) => r.enabled);
+    const blocks = served.blocks;
     const titles = new Map(blocks.map((b) => [b._id as string, b.title ?? ""]));
 
     const checks = rules

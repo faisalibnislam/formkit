@@ -1,5 +1,6 @@
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { servedForm } from "./served";
 import { conditionsOf } from "./logicEval";
 import { platformValue } from "./identity";
 import { CREDIT_COST, CREDIT_LIFE_MS, PLANS, planOfSpace, type AiKind, type SpaceRef } from "./plans";
@@ -176,16 +177,9 @@ export async function refundResponse(ctx: MutationCtx, form: Doc<"forms">, respo
   await ctx.db.patch(responseId, { aiCharge: undefined });
 }
 
-/** Whether a form reads answers with AI: an AI condition in a rule, or a fact pulled from an answer. */
+/** Whether a form reads answers with AI: an AI condition in a rule, or a fact pulled from an answer. As published. */
 export async function usesAiLogic(ctx: QueryCtx | MutationCtx, form: Doc<"forms">) {
-  const rules = await ctx.db
-    .query("logicRules")
-    .withIndex("by_form", (q) => q.eq("formId", form._id))
-    .collect();
+  const { rules, blocks } = await servedForm(ctx, form);
   if (rules.some((r) => r.enabled && conditionsOf(r).some((c) => c.source === "ai"))) return true;
-  const blocks = await ctx.db
-    .query("blocks")
-    .withIndex("by_form_order", (q) => q.eq("formId", form._id))
-    .collect();
   return blocks.some((b) => b.type === "hidden" && !!b.extract?.what.trim());
 }

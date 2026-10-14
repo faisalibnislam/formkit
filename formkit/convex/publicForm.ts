@@ -4,6 +4,7 @@ import { owed, takesPayment } from "./payments";
 import { ConvexError, v } from "convex/values";
 import { internalMutation, internalQuery, mutation, query, type MutationCtx } from "./_generated/server";
 import { validateAnswers } from "./model/validate";
+import { servedForm } from "./model/served";
 import type { Rule } from "./model/logicEval";
 import { internal } from "./_generated/api";
 import { closedReason, notifyResponse, tellFormTeam } from "./model/inbox";
@@ -165,22 +166,12 @@ function publicCondition<C extends { source?: string; value?: string }>(c: C): C
 }
 
 /** Everything the runner needs to show the questions. */
-async function payload(ctx: QueryCtx, form: Doc<"forms">) {
-  const blocks = (
-    await ctx.db
-      .query("blocks")
-      .withIndex("by_form_order", (q) => q.eq("formId", form._id))
-      .collect()
-  ).sort((a, b) => a.order - b.order);
-
-  const rules = (
-    await ctx.db
-      .query("logicRules")
-      .withIndex("by_form", (q) => q.eq("formId", form._id))
-      .collect()
-  )
-    .filter((r) => r.enabled)
-    .sort((a, b) => a.order - b.order);
+async function payload(ctx: QueryCtx, live: Doc<"forms">, opts: { draft?: boolean } = {}) {
+  // The published version for respondents; the draft for the builder's preview.
+  const served = await servedForm(ctx, live, opts);
+  const form = served.form;
+  const blocks = served.blocks;
+  const rules = served.rules.filter((r) => r.enabled);
 
   const s = securityOf(form.security);
   const smart = await smartOf(ctx, form);
@@ -355,7 +346,7 @@ export const preview = query({
   handler: async (ctx, { formId }) => {
     const { form } = await accessOf(ctx, formId);
     return {
-      ...(await payload(ctx, form)),
+      ...(await payload(ctx, form, { draft: true })),
       status: form.status,
       url: await formUrl(ctx, form),
     };
@@ -433,10 +424,7 @@ export const uploadUrl = mutation({
     const form = await ctx.db.get(formId);
     if (!form || form.deletedAt) throw new ConvexError("That form is not here any more.");
     if (form.status !== "published") await formFor(ctx, formId, "read");
-    const blocks = await ctx.db
-      .query("blocks")
-      .withIndex("by_form_order", (q) => q.eq("formId", formId))
-      .collect();
+    const { blocks } = await servedForm(ctx, form, { draft: form.status !== "published" });
     if (!blocks.some((b) => b.type === "file" || b.type === "voice")) {
       throw new ConvexError("This form does not take uploads.");
     }
@@ -505,7 +493,7 @@ type AnswerIn = {
 /** Build and store the record; shared by the public link and the preview. */
 async function store(
   ctx: MutationCtx,
-  form: Doc<"forms">,
+  live: Doc<"forms">,
   args: {
     partial: boolean;
     device?: string;
@@ -520,12 +508,11 @@ async function store(
   existing: Doc<"responses"> | null,
   preview: boolean,
 ) {
-  const blocks = (
-    await ctx.db
-      .query("blocks")
-      .withIndex("by_form_order", (q) => q.eq("formId", form._id))
-      .collect()
-  ).filter((b) => b.kind === "field");
+  // Everything the response is checked and marked against is the version
+  // the person was shown: published, or the draft for a preview.
+  const served = await servedForm(ctx, live, { draft: preview });
+  const form = served.form;
+  const blocks = served.blocks.filter((b) => b.kind === "field");
   const byId = new Map(blocks.map((b) => [b._id as string, b]));
 
   const answers = args.answers
@@ -662,20 +649,12 @@ async function checkAnswers(
   form: Doc<"forms">,
   args: { partial: boolean; ending?: string; answers: AnswerIn[] },
 ) {
-  const blocks = await ctx.db
-    .query("blocks")
-    .withIndex("by_form_order", (q) => q.eq("formId", form._id))
-    .collect();
+  const served = await servedForm(ctx, form);
   const advanced = await hasFeature(ctx, form, "logic.advanced");
-  const rules = (
-    await ctx.db
-      .query("logicRules")
-      .withIndex("by_form", (q) => q.eq("formId", form._id))
-      .collect()
-  )
-    .filter((r) => r.enabled && (advanced || (r.action !== "hide-options" && r.action !== "ending")))
-    .sort((a, b) => a.order - b.order);
-  const problems = validateAnswers(form, blocks, rules as unknown as Rule[], args.answers, {
+  const rules = served.rules.filter(
+    (r) => r.enabled && (advanced || (r.action !== "hide-options" && r.action !== "ending")),
+  );
+  const problems = validateAnswers(served.form, served.blocks, rules as unknown as Rule[], args.answers, {
     partial: args.partial,
     ending: args.ending,
   });
@@ -807,10 +786,7 @@ export const submit = mutation({
         }
       }
 
-      const blocks = await ctx.db
-        .query("blocks")
-        .withIndex("by_form_order", (q) => q.eq("formId", form._id))
-        .collect();
+      const { blocks } = await servedForm(ctx, form);
       const emailIds = new Set(blocks.filter((b) => b.type === "email").map((b) => b._id as string));
       const email = args.answers
         .find((a) => emailIds.has(a.blockId) && a.value?.trim())
