@@ -65,6 +65,7 @@ import type * as model_flags from "../model/flags.js";
 import type * as model_forms from "../model/forms.js";
 import type * as model_gemini from "../model/gemini.js";
 import type * as model_grants from "../model/grants.js";
+import type * as model_grid from "../model/grid.js";
 import type * as model_handles from "../model/handles.js";
 import type * as model_identity from "../model/identity.js";
 import type * as model_importParse from "../model/importParse.js";
@@ -107,6 +108,7 @@ import type * as responses from "../responses.js";
 import type * as restApi from "../restApi.js";
 import type * as revenue from "../revenue.js";
 import type * as security from "../security.js";
+import type * as semantic from "../semantic.js";
 import type * as spaces from "../spaces.js";
 import type * as sso from "../sso.js";
 import type * as support from "../support.js";
@@ -181,6 +183,7 @@ declare const fullApi: ApiFromModules<{
   "model/forms": typeof model_forms,
   "model/gemini": typeof model_gemini,
   "model/grants": typeof model_grants,
+  "model/grid": typeof model_grid,
   "model/handles": typeof model_handles,
   "model/identity": typeof model_identity,
   "model/importParse": typeof model_importParse,
@@ -223,6 +226,7 @@ declare const fullApi: ApiFromModules<{
   "restApi": typeof restApi,
   "revenue": typeof revenue,
   "security": typeof security,
+  "semantic": typeof semantic,
   "spaces": typeof spaces,
   "sso": typeof sso,
   "support": typeof support,

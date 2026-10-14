@@ -531,6 +531,29 @@ export const setStatus = mutation({
   },
 });
 
+/** Responses by id, in the order given, that the person may read: search by meaning's results. */
+export const byIds = query({
+  args: { ids: v.array(v.id("responses")) },
+  handler: async (ctx, { ids }) => {
+    const out = [];
+    const titles = new Map<string, string>();
+    for (const id of ids.slice(0, 50)) {
+      const r = await ctx.db.get(id);
+      if (!r || r.preview) continue;
+      if (!titles.has(r.formId)) {
+        try {
+          titles.set(r.formId, (await formFor(ctx, r.formId, "read")).title);
+        } catch {
+          titles.set(r.formId, "");
+        }
+      }
+      const title = titles.get(r.formId)!;
+      if (title) out.push(await shape(ctx, r, title));
+    }
+    return out;
+  },
+});
+
 /** Everyone who can be given a response on this form: its owner, guests and the company's members. */
 async function assignable(ctx: QueryCtx, form: Doc<"forms">) {
   const ids = new Set<string>([form.ownerId]);
@@ -711,6 +734,9 @@ export const remove = mutation({
       await tellDeleted(ctx, r);
       for (const c of await ctx.db.query("comments").withIndex("by_response", (q) => q.eq("responseId", id)).take(200)) {
         await ctx.db.delete(c._id);
+      }
+      for (const e of await ctx.db.query("responseEmbeddings").withIndex("by_response", (q) => q.eq("responseId", id)).take(5)) {
+        await ctx.db.delete(e._id);
       }
     }
     return null;

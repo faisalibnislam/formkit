@@ -448,6 +448,8 @@ export default defineSchema({
      */
     opensAt: v.optional(v.number()),
     openingBy: v.optional(v.id("users")),
+    /** Pro: responses are indexed for search by meaning (semantic.ts). */
+    semantic: v.optional(v.boolean()),
     /** Pro: one reminder, this many hours on, to someone who left an email and stopped partway. */
     remind: v.optional(v.object({ hours: v.number() })),
     closing: v.optional(
@@ -1278,6 +1280,21 @@ export default defineSchema({
     /** When a metadata document was last read. */
     fetchedAt: v.optional(v.number()),
   }).index("by_client", ["clientId"]),
+
+  /**
+   * Pro, per form: each response's meaning as a vector (Gemini embeddings),
+   * from its answers without names, emails or other contact details, so the
+   * inbox can find "money back" when asked for "refunds".
+   */
+  responseEmbeddings: defineTable({
+    responseId: v.id("responses"),
+    formId: v.id("forms"),
+    ownerId: v.id("users"),
+    embedding: v.array(v.float64()),
+  })
+    .index("by_response", ["responseId"])
+    .index("by_form", ["formId"])
+    .vectorIndex("by_embedding", { vectorField: "embedding", dimensions: 768, filterFields: ["formId", "ownerId"] }),
 
   /** A person's own named filters for the responses inbox. */
   savedViews: defineTable({

@@ -295,6 +295,7 @@ export async function purgeStep(ctx: MutationCtx, formId: Id<"forms">): Promise<
     if (!(await gone(rows))) return false;
   }
   if (!(await gone(await ctx.db.query("placeCounts").withIndex("by_form_block", (q) => q.eq("formId", formId)).take(left)))) return false;
+  if (!(await gone(await ctx.db.query("responseEmbeddings").withIndex("by_form", (q) => q.eq("formId", formId)).take(left)))) return false;
 
   // Connections, and what they delivered.
   for (const c of await ctx.db.query("connections").withIndex("by_form", (q) => q.eq("formId", formId)).take(50)) {

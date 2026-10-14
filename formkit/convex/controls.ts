@@ -123,6 +123,9 @@ export const applyRetention = internalMutation({
         for (const c of await ctx.db.query("comments").withIndex("by_response", (q) => q.eq("responseId", r._id)).take(200)) {
           await ctx.db.delete(c._id);
         }
+        for (const e of await ctx.db.query("responseEmbeddings").withIndex("by_response", (q) => q.eq("responseId", r._id)).take(5)) {
+          await ctx.db.delete(e._id);
+        }
         // The form's totals drop by this one response; no recount of the rest.
         await countChange(ctx, r.formId, r, null);
       }

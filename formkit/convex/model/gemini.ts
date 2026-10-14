@@ -31,7 +31,8 @@ export type AiFeature =
   | "logic.check"
   | "logic.write"
   | "insights"
-  | "transcribe";
+  | "transcribe"
+  | "search";
 
 /** Who a call is for and why, so its cost lands on the right account. */
 export type Meter = {
@@ -219,4 +220,52 @@ async function charge(
   } catch (e) {
     console.error("AI cost not recorded", e);
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* Embeddings, for search by meaning                                    */
+
+export const EMBED_MODEL = "gemini-embedding-001";
+export const EMBED_DIMS = 768;
+
+/**
+ * Vectors for up to 100 texts in one call: "document" for what is stored,
+ * "query" for what someone searches. Costed like any call, from the length
+ * of the text (the API does not count it back).
+ */
+export async function embed(texts: string[], task: "document" | "query", meter: Meter): Promise<number[][]> {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) throw new ModelError("Search by meaning has no model key yet.", "no-key");
+  if (!texts.length) return [];
+  const res = await fetch(`${ENDPOINT}/${EMBED_MODEL}:batchEmbedContents`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-goog-api-key": key },
+    body: JSON.stringify({
+      requests: texts.map((text) => ({
+        model: `models/${EMBED_MODEL}`,
+        content: { parts: [{ text: text.slice(0, 8000) }] },
+        taskType: task === "document" ? "RETRIEVAL_DOCUMENT" : "RETRIEVAL_QUERY",
+        outputDimensionality: EMBED_DIMS,
+      })),
+    }),
+    signal: AbortSignal.timeout(30_000),
+  });
+  if (!res.ok) throw new ModelError("Search by meaning is busy. Try again in a minute.", res.status === 429 ? "busy" : "refused");
+  const data = (await res.json()) as { embeddings?: { values?: number[] }[] };
+  const vectors = (data.embeddings ?? []).map((e) => e.values ?? []);
+  if (vectors.length !== texts.length || vectors.some((v) => v.length !== EMBED_DIMS)) throw new ModelError("The search index answered oddly.", "empty");
+  const input = Math.ceil(texts.reduce((n, t) => n + Math.min(t.length, 8000), 0) / 4);
+  try {
+    await meter.ctx.runMutation(internal.aiUsage.record, {
+      who: meter.userId ?? "-",
+      feature: meter.feature,
+      model: EMBED_MODEL,
+      input,
+      output: 0,
+      usd: costOf(EMBED_MODEL, input, 0, Date.now()),
+    });
+  } catch {
+    /* never fail the call it measures */
+  }
+  return vectors;
 }

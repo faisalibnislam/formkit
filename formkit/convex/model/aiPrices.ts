@@ -23,6 +23,8 @@ const PRICES: Record<string, Price | ((at: number) => Price)> = {
   "gemini-3.5-flash-lite": { input: 0.3, output: 2.5 },
   "gemini-3.1-flash-lite": { input: 0.25, output: 1.5 },
   "gemini-2.5-flash-lite": { input: 0.1, output: 0.4 },
+  // Embeddings, for search by meaning: input only.
+  "gemini-embedding-001": { input: 0.15, output: 0 },
 };
 
 /** A model not in the table is priced as the dearest Flash, so costs are never understated. */

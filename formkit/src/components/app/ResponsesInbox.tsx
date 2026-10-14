@@ -8,7 +8,8 @@ import { useFirstLoad, useLastDefined } from "./useFirstLoad";
 import { INBOX_PAGE } from "@/lib/inbox";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ResponseComments } from "./ResponseComments";
-import { useMutation, useQuery } from "convex/react";
+import { errorText } from "./settings/bits";
+import { useAction, useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import {
   ArrowDown,
@@ -293,8 +294,30 @@ function Responses({
     void readForRef.current({ formId, kinds: ["response"] }).catch(() => {});
   }, [formId]);
 
-  const rows = useMemo(() => data?.rows ?? [], [data]);
-  const more = data?.more ?? false;
+  // Search by meaning: the AI finds the nearest responses; the rows are those, best first.
+  const [meaning, setMeaning] = useState(false);
+  const searchMeaning = useAction(api.semantic.search);
+  const [meaningIds, setMeaningIds] = useState<Id<"responses">[] | null>(null);
+  const meaningForm = formId ?? (pickedForm !== "all" ? (pickedForm as Id<"forms">) : undefined);
+  useEffect(() => {
+    // Off, or nothing typed: the usual rows show, and the last results wait unused.
+    if (!meaning || !search) return;
+    let live = true;
+    searchMeaning({ query: search, ...(meaningForm ? { formId: meaningForm } : {}) })
+      .then((r) => live && setMeaningIds(r.ids))
+      .catch((e) => {
+        if (!live) return;
+        setMeaning(false);
+        toast(errorText(e, "Search by meaning did not work."));
+      });
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meaning, search, meaningForm]);
+  const meaningRows = useQuery(api.responses.byIds, meaningIds ? { ids: meaningIds } : "skip");
+  const rows = useMemo(() => (meaning && search ? (meaningRows ?? []) : (data?.rows ?? [])), [data, meaning, search, meaningRows]);
+  const more = meaning && search ? false : (data?.more ?? false);
   const shownIds = new Set(rows.map((r) => r._id as string));
   const selected = [...picked].filter((id) => shownIds.has(id)) as Id<"responses">[];
   // A response opened from a link may not be among the rows loaded yet.
@@ -392,11 +415,23 @@ function Responses({
             setTerm(e.target.value);
             refilter();
           }}
-          placeholder="Search responses"
+          placeholder={meaning ? "Describe what you are after" : "Search responses"}
           aria-label="Search responses"
           icon={<Search size={17} strokeWidth={1.8} aria-hidden />}
           wrapStyle={{ width: 260, maxWidth: "100%" }}
         />
+        <button
+          type="button"
+          className="fk-filter"
+          aria-pressed={meaning}
+          title="Find responses that mean the same, in other words. Pro, for forms with it on."
+          onClick={() => {
+            setMeaning((m) => !m);
+            refilter();
+          }}
+        >
+          By meaning
+        </button>
         {multi && (
           <Select
             size="sm"

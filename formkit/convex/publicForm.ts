@@ -688,6 +688,7 @@ async function store(
   // the change, and nothing that greets a new response runs again.
   if (!args.partial && !preview && existing && !existing.partial) {
     await ctx.scheduler.runAfter(0, internal.connections.fanout, { responseId, event: "response.updated" });
+    if (form.semantic) await ctx.scheduler.runAfter(0, internal.semantic.index, { responseIds: [responseId] });
     return { responseId, resumeToken: record.resumeToken, pay: payment?.status === "pending" };
   }
 
@@ -705,6 +706,8 @@ async function store(
     // Pro: reading every response without a reply (sentiment, topics, urgency).
     const classify = !existing?.insight && (await queueClassify(ctx, form, responseId, { hold }));
     if (hold) await ctx.scheduler.runAfter(0, internal.transcribe.run, { responseId, reply, classify });
+    // Pro: searchable by meaning (it checks the plan and AI switches itself).
+    if (form.semantic) await ctx.scheduler.runAfter(hold ? 90_000 : 0, internal.semantic.index, { responseIds: [responseId] });
     // Instant quiz results go out by email as soon as the mark is in.
     if (quizOn?.results === "instant" && quizOn.emailResults && "quiz" in full && !full.quiz.pending) {
       await ctx.scheduler.runAfter(0, internal.quiz.emailResult, { responseId });
