@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useFirstLoad, useLastDefined } from "./useFirstLoad";
 import { INBOX_PAGE } from "@/lib/inbox";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { ResponseComments } from "./ResponseComments";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import {
@@ -1059,6 +1060,8 @@ function ResponseDrawer({
           />
         </div>
       )}
+
+      {!response.preview && <ResponseComments responseId={response._id} formId={response.formId} />}
 
       <div className="fk-resp-actions">
         <Button

@@ -5,8 +5,9 @@ import { accessOf, canComment, colourFor, logActivity } from "./model/access";
 import { nameOf, notify, peopleOn } from "./model/inbox";
 
 /**
- * Comments on a form, or on one question of it. A thread is a top-level
- * comment and its replies; resolving hides a thread without losing it.
+ * Comments on a form, on one question of it, or on one response (in the
+ * response's drawer). A thread is a top-level comment and its replies;
+ * resolving hides a thread without losing it.
  *
  * The owner, Editors and Commenters may write; a Viewer reads. Only the
  * author, or the form's owner, may delete a comment.
@@ -21,7 +22,10 @@ export const list = query({
         .query("comments")
         .withIndex("by_form", (q) => q.eq("formId", formId))
         .collect()
-    ).sort((a, b) => a.createdAt - b.createdAt);
+    )
+      // Comments on responses live in each response's drawer.
+      .filter((r) => !r.responseId)
+      .sort((a, b) => a.createdAt - b.createdAt);
 
     const people = new Map<string, { name: string; image: string | null }>();
     for (const r of rows) {
@@ -57,6 +61,38 @@ export const list = query({
   },
 });
 
+/** The comments on one response, oldest first, for its drawer. */
+export const forResponse = query({
+  args: { responseId: v.id("responses") },
+  handler: async (ctx, { responseId }) => {
+    const r = await ctx.db.get(responseId);
+    if (!r) return null;
+    const { form, user, role } = await accessOf(ctx, r.formId);
+    const rows = (
+      await ctx.db
+        .query("comments")
+        .withIndex("by_response", (q) => q.eq("responseId", responseId))
+        .take(200)
+    ).sort((a, b) => a.createdAt - b.createdAt);
+    const out = [];
+    for (const c of rows) {
+      const p = await ctx.db.get(c.authorId);
+      const mentioned = [];
+      for (const id of c.mentions ?? []) mentioned.push((await ctx.db.get(id))?.name ?? "");
+      out.push({
+        _id: c._id,
+        author: c.authorId === user._id ? "You" : (p?.name ?? p?.email ?? "Someone"),
+        color: colourFor(c.authorId),
+        body: c.body,
+        createdAt: c.createdAt,
+        mentions: mentioned.filter(Boolean),
+        canDelete: c.authorId === user._id || form.ownerId === user._id,
+      });
+    }
+    return { canComment: canComment(role), comments: out };
+  },
+});
+
 /** Everyone who can read this form's comments, for the @ picker. */
 export const mentionable = query({
   args: { formId: v.id("forms") },
@@ -89,7 +125,7 @@ export const counts = query({
       .collect();
     const out: Record<string, number> = {};
     for (const r of rows) {
-      if (r.parentId || r.resolved || !r.blockId) continue;
+      if (r.parentId || r.resolved || !r.blockId || r.responseId) continue;
       out[r.blockId] = (out[r.blockId] ?? 0) + 1;
     }
     return out;
@@ -101,11 +137,12 @@ export const add = mutation({
     formId: v.id("forms"),
     body: v.string(),
     blockId: v.optional(v.id("blocks")),
+    responseId: v.optional(v.id("responses")),
     parentId: v.optional(v.id("comments")),
     mentions: v.optional(v.array(v.id("users"))),
   },
   returns: v.id("comments"),
-  handler: async (ctx, { formId, body, blockId, parentId, mentions = [] }) => {
+  handler: async (ctx, { formId, body, blockId, responseId, parentId, mentions = [] }) => {
     const { form, user, role } = await accessOf(ctx, formId);
     if (!canComment(role)) throw new Error("Viewers can read comments but not write them.");
     const text = body.trim();
@@ -125,6 +162,12 @@ export const add = mutation({
       const b = await ctx.db.get(block);
       if (!b || b.formId !== formId) throw new Error("That question is gone.");
     }
+    const onResponse = responseId ?? parent?.responseId;
+    if (onResponse) {
+      const r = await ctx.db.get(onResponse);
+      if (!r || r.formId !== formId) throw new Error("That response is gone.");
+      block = undefined;
+    }
 
     // Only people who can read this form can be mentioned on it.
     const { ids: onForm } = await peopleOn(ctx, form, user._id);
@@ -133,6 +176,7 @@ export const add = mutation({
     const id = await ctx.db.insert("comments", {
       formId,
       blockId: block,
+      responseId: onResponse,
       parentId,
       authorId: user._id,
       body: text,
@@ -145,8 +189,12 @@ export const add = mutation({
     /* Who hears about it. A mention wins over everything else, so nobody gets
        two notices for one comment. Replies reach everyone already in the
        thread; a new thread reaches the form's owner. */
-    const where = block ? `“${(await ctx.db.get(block))?.title ?? "a question"}” in ${form.title}` : form.title;
-    const href = `/app/forms/${formId}?open=comments`;
+    const where = onResponse
+      ? `a response to ${form.title}`
+      : block
+        ? `“${(await ctx.db.get(block))?.title ?? "a question"}” in ${form.title}`
+        : form.title;
+    const href = onResponse ? `/app/responses?open=${onResponse}` : `/app/forms/${formId}?open=comments`;
     const told = new Set<string>([user._id]);
     const quote = text.length > 140 ? `${text.slice(0, 137)}…` : text;
     for (const m of mentioned) {

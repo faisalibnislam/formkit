@@ -397,7 +397,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "id": "comments-activity",
         "title": "Comments and activity",
         "summary": "Discussing a question in place, and seeing what changed.",
-        "body": "## Comments\nLeave a comment on any question card and it stays attached to that question. Open comments show a count in the builder header, so a review pass is visible without hunting. Resolve a comment when it has been dealt with.\n## Activity\nThe Activity tab records what happened to the form and when: published, unpublished, questions added or removed, collaborators invited, theme changed. It is per form and cannot be edited.",
+        "body": "## Comments\nLeave a comment on any question card and it stays attached to that question. Open comments show a count in the builder header, so a review pass is visible without hunting. Resolve a comment when it has been dealt with.\n## Comments on a response\nOpen a response and comment under it to talk it over with your team. Type @ to mention someone who can see the form; they are told, with a link straight to the response. Comments go when the response is deleted. The team note above them is one shared note that anyone who can edit may change.\n## Activity\nThe Activity tab records what happened to the form and when: published, unpublished, questions added or removed, collaborators invited, theme changed. It is per form and cannot be edited.",
         "updated": "2026-09-22"
       },
       {

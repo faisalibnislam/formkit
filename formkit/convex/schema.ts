@@ -847,6 +847,8 @@ export default defineSchema({
   comments: defineTable({
     formId: v.id("forms"),
     blockId: v.optional(v.id("blocks")),
+    /** A comment on one response, in its drawer, rather than on the form. */
+    responseId: v.optional(v.id("responses")),
     parentId: v.optional(v.id("comments")),
     authorId: v.id("users"),
     body: v.string(),
@@ -854,7 +856,9 @@ export default defineSchema({
     createdAt: v.number(),
     /** People @mentioned in the body. */
     mentions: v.optional(v.array(v.id("users"))),
-  }).index("by_form", ["formId"]),
+  })
+    .index("by_form", ["formId"])
+    .index("by_response", ["responseId"]),
 
   /**
    * The bell: one row per thing a person should know about. Responses to the

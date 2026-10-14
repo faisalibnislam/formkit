@@ -218,7 +218,7 @@ async function responseRow(ctx: QueryCtx, r: Doc<"responses">, keys: Map<string,
     insight: r.insight ?? null,
     source: r.source ?? null,
     utm: r.utm ?? null,
-    viewUrl: `${SITE}/app/responses?r=${r._id}`,
+    viewUrl: `${SITE}/app/responses?open=${r._id}`,
   };
 }
 

@@ -581,6 +581,9 @@ export const remove = mutation({
       await ctx.db.delete(id);
       await countChange(ctx, r.formId, r, null);
       await tellDeleted(ctx, r);
+      for (const c of await ctx.db.query("comments").withIndex("by_response", (q) => q.eq("responseId", id)).take(200)) {
+        await ctx.db.delete(c._id);
+      }
     }
     return null;
   },
