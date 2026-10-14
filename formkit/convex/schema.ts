@@ -36,7 +36,51 @@ export const questionType = v.union(
   v.literal("voice"),
   /** Pro: never shown; filled from the link, or its default. */
   v.literal("hidden"),
+  /** Content, not questions (kind "content"): text, a picture or a video between questions. */
+  v.literal("statement"),
+  v.literal("image"),
+  v.literal("video"),
 );
+
+/**
+ * What a question can be held to beyond being answered: a number's range, a
+ * text's length or pattern, a date's window, how many choices to pick. Checked
+ * in the form and again on the server (model/validate.ts).
+ */
+export const validationRules = v.object({
+  min: v.optional(v.number()),
+  max: v.optional(v.number()),
+  minLength: v.optional(v.number()),
+  maxLength: v.optional(v.number()),
+  pattern: v.optional(v.string()),
+  patternMessage: v.optional(v.string()),
+  minDate: v.optional(v.string()),
+  maxDate: v.optional(v.string()),
+  minPicks: v.optional(v.number()),
+  maxPicks: v.optional(v.number()),
+});
+
+/** The newer settings a block can carry, shared with blocks.ts so the builder can save them. */
+export const blockExtras = {
+  /** A 0-10 scale read as Net Promoter Score in the summary. */
+  nps: v.optional(v.boolean()),
+  /** Words at either end of a scale: "Not likely" … "Very likely". */
+  scaleLabels: v.optional(v.object({ start: v.optional(v.string()), end: v.optional(v.string()) })),
+  /** Single and multiple choice, and dropdowns: an "Other" option with its own words. */
+  allowOther: v.optional(v.boolean()),
+  validation: v.optional(validationRules),
+  /**
+   * Pro: after a written answer, the AI may ask one short follow-up question
+   * when the answer is vague; `instruction` says what to dig into.
+   */
+  followUp: v.optional(v.object({ on: v.boolean(), instruction: v.optional(v.string()) })),
+  /** Pro, voice questions: the AI writes out each recording once it is sent. */
+  transcribe: v.optional(v.boolean()),
+  /** Content blocks: an uploaded image and its description, or a video link. */
+  imageId: v.optional(v.id("_storage")),
+  alt: v.optional(v.string()),
+  videoUrl: v.optional(v.string()),
+};
 
 /** One condition of a logic rule; see model/logicEval.ts for what each part means. */
 const condition = v.object({
@@ -374,8 +418,17 @@ export default defineSchema({
         subject: v.optional(v.string()),
         /** Background the reply may draw on: services, prices, FAQs. */
         knowledge: v.optional(v.string()),
+        /**
+         * Before a reply goes out: "auto" sends it, "unsure" (the default)
+         * holds the ones the AI flags for a person, "always" holds every one
+         * for the owner to check and send.
+         */
+        review: v.optional(v.union(v.literal("auto"), v.literal("unsure"), v.literal("always"))),
       }),
     ),
+
+    /** Pro: AI reads every response for sentiment, topics, intent and urgency, without writing a reply. */
+    aiClassify: v.optional(v.boolean()),
 
     theme: v.optional(v.any()),
     notify: v.optional(v.any()),
@@ -432,7 +485,8 @@ export default defineSchema({
   blocks: defineTable({
     formId: v.id("forms"),
     order: v.number(),
-    kind: v.union(v.literal("field"), v.literal("pagebreak")),
+    kind: v.union(v.literal("field"), v.literal("pagebreak"), v.literal("content")),
+    ...blockExtras,
     type: v.optional(questionType),
     title: v.optional(v.string()),
     help: v.optional(v.string()),
@@ -540,6 +594,10 @@ export default defineSchema({
         values: v.optional(v.array(v.string())),
         fileId: v.optional(v.id("_storage")),
         fileName: v.optional(v.string()),
+        /** The AI's follow-up question to this answer, and what they said to it. */
+        followUp: v.optional(v.object({ question: v.string(), answer: v.string() })),
+        /** A voice recording, written out by the AI (Pro, when the question asks for it). */
+        transcript: v.optional(v.string()),
       }),
     ),
     /**
@@ -594,6 +652,18 @@ export default defineSchema({
         emailedAt: v.optional(v.number()),
       }),
     ),
+    /** The link's utm_ tags, as they came. */
+    utm: v.optional(
+      v.object({
+        source: v.optional(v.string()),
+        medium: v.optional(v.string()),
+        campaign: v.optional(v.string()),
+        term: v.optional(v.string()),
+        content: v.optional(v.string()),
+      }),
+    ),
+    /** When the person last asked for their link back to finish later (once every two minutes). */
+    resumeEmailedAt: v.optional(v.number()),
     /** Business: the AI-written reply to this response, and where it went. */
     aiReply: v.optional(
       v.object({
@@ -1156,9 +1226,62 @@ export default defineSchema({
     createdAt: v.number(),
     createdBy: v.optional(v.id("users")),
     lastUsedAt: v.optional(v.number()),
+    /** What it may do (model/apiAuth.ts). Keys made before scopes read only. */
+    scopes: v.optional(v.array(v.string())),
   })
     .index("by_owner", ["ownerId"])
     .index("by_hash", ["hash"]),
+
+  /**
+   * Apps that connect to Formkit with OAuth (Claude, ChatGPT and other MCP
+   * clients). A client is known by its metadata document's address, or was
+   * registered by the app itself.
+   */
+  oauthClients: defineTable({
+    clientId: v.string(),
+    kind: v.union(v.literal("document"), v.literal("registered")),
+    name: v.string(),
+    redirectUris: v.array(v.string()),
+    logoUri: v.optional(v.string()),
+    clientUri: v.optional(v.string()),
+    createdAt: v.number(),
+    /** When a metadata document was last read. */
+    fetchedAt: v.optional(v.number()),
+  }).index("by_client", ["clientId"]),
+
+  /** One-time codes from the consent screen, swapped for tokens within minutes. */
+  oauthCodes: defineTable({
+    codeHash: v.string(),
+    clientId: v.string(),
+    userId: v.id("users"),
+    scopes: v.array(v.string()),
+    redirectUri: v.string(),
+    challenge: v.string(),
+    resource: v.string(),
+    expiresAt: v.number(),
+    usedAt: v.optional(v.number()),
+  })
+    .index("by_code", ["codeHash"])
+    .index("by_expiry", ["expiresAt"]),
+
+  /** What a connected app holds: a short-lived access token and a refresh token that turns over on use. Hashes only. */
+  oauthTokens: defineTable({
+    userId: v.id("users"),
+    clientId: v.string(),
+    clientName: v.string(),
+    scopes: v.array(v.string()),
+    resource: v.string(),
+    accessHash: v.string(),
+    accessExpiresAt: v.number(),
+    refreshHash: v.string(),
+    refreshExpiresAt: v.number(),
+    createdAt: v.number(),
+    lastUsedAt: v.optional(v.number()),
+    revokedAt: v.optional(v.number()),
+  })
+    .index("by_access", ["accessHash"])
+    .index("by_refresh", ["refreshHash"])
+    .index("by_user", ["userId"]),
 
   /**
    * Pro: where a form's new responses go - a signed webhook (Zapier and

@@ -231,8 +231,8 @@ async function blocksOf(ctx: QueryCtx, formId: Id<"forms">) {
     .sort((a, b) => a.order - b.order);
 }
 
-function answerText(a: { value?: string; values?: string[]; fileName?: string }) {
-  return a.values?.length ? a.values.join(", ") : (a.fileName ?? a.value ?? "");
+function answerText(a: { value?: string; values?: string[]; fileName?: string; transcript?: string }) {
+  return a.values?.length ? a.values.join(", ") : (a.transcript ?? a.fileName ?? a.value ?? "");
 }
 
 /** Where to download each uploaded file and voice recording on these responses. */

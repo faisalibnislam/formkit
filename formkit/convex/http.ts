@@ -3,6 +3,8 @@ import { auth } from "./auth";
 import { polarWebhook } from "./billing";
 import { sheetFeed } from "./connections";
 import { handle as restApi } from "./restApi";
+import { handle as apiV2 } from "./apiV2";
+import { registerClient, revoke, token } from "./oauth";
 
 const http = httpRouter();
 
@@ -16,5 +18,15 @@ http.route({ pathPrefix: "/sheets/", method: "GET", handler: sheetFeed });
 // Business: the read-only REST API.
 http.route({ pathPrefix: "/api/v1/", method: "GET", handler: restApi });
 http.route({ pathPrefix: "/api/v1/", method: "OPTIONS", handler: restApi });
+// Every plan: the API scripts, Zapier and AI assistants (through /api/mcp) use.
+for (const method of ["GET", "POST", "PATCH", "OPTIONS"] as const) {
+  http.route({ pathPrefix: "/api/v2/", method, handler: apiV2 });
+}
+// OAuth for apps that connect to the MCP server (convex/oauth.ts).
+for (const method of ["POST", "OPTIONS"] as const) {
+  http.route({ path: "/oauth/token", method, handler: token });
+  http.route({ path: "/oauth/register", method, handler: registerClient });
+  http.route({ path: "/oauth/revoke", method, handler: revoke });
+}
 
 export default http;

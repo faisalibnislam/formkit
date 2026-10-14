@@ -50,3 +50,17 @@ export function sourceLabel(): string | undefined {
   for (const [pattern, name] of KNOWN) if (pattern.test(host)) return name;
   return host;
 }
+
+export type Utm = { source?: string; medium?: string; campaign?: string; term?: string; content?: string };
+
+/** The link's utm_ tags, as they are, for campaign reports and exports. */
+export function utmOf(): Utm | undefined {
+  if (typeof window === "undefined") return undefined;
+  const params = new URLSearchParams(window.location.search);
+  const out: Utm = {};
+  for (const k of ["source", "medium", "campaign", "term", "content"] as const) {
+    const v = params.get(`utm_${k}`)?.trim();
+    if (v) out[k] = v.slice(0, 80);
+  }
+  return Object.keys(out).length ? out : undefined;
+}

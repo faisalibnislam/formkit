@@ -455,6 +455,7 @@ function AppFrame({ children }: { children: ReactNode }) {
       exports: { label: "Responses:", value: formsList ? formsList.responses.toLocaleString("en-US") : "" },
       team: { label: "Seats:", value: viewer ? String(viewer.plan.seats ?? 1) : "" },
       controls: { label: "Sign-in:", value: viewer ? (viewer.plan.features?.sso ? "Your rules" : "Business") : "" },
+      developers: { label: "API and MCP:", value: "Every plan" },
     }[t.value],
   }));
 

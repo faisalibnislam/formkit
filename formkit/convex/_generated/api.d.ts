@@ -17,6 +17,7 @@ import type * as aiLogic from "../aiLogic.js";
 import type * as aiReply from "../aiReply.js";
 import type * as aiUsage from "../aiUsage.js";
 import type * as analytics from "../analytics.js";
+import type * as apiV2 from "../apiV2.js";
 import type * as approvals from "../approvals.js";
 import type * as auth from "../auth.js";
 import type * as billing from "../billing.js";
@@ -41,6 +42,7 @@ import type * as forms from "../forms.js";
 import type * as handles from "../handles.js";
 import type * as helpSignals from "../helpSignals.js";
 import type * as http from "../http.js";
+import type * as importForm from "../importForm.js";
 import type * as inbox from "../inbox.js";
 import type * as insights from "../insights.js";
 import type * as logic from "../logic.js";
@@ -50,10 +52,13 @@ import type * as model_aiIntent from "../model/aiIntent.js";
 import type * as model_aiMeter from "../model/aiMeter.js";
 import type * as model_aiPrices from "../model/aiPrices.js";
 import type * as model_aiReply from "../model/aiReply.js";
+import type * as model_apiAuth from "../model/apiAuth.js";
 import type * as model_apiKeys from "../model/apiKeys.js";
 import type * as model_builtinTemplates from "../model/builtinTemplates.js";
 import type * as model_calc from "../model/calc.js";
 import type * as model_contacts from "../model/contacts.js";
+import type * as model_draftForm from "../model/draftForm.js";
+import type * as model_erase from "../model/erase.js";
 import type * as model_exportSheet from "../model/exportSheet.js";
 import type * as model_flags from "../model/flags.js";
 import type * as model_forms from "../model/forms.js";
@@ -61,28 +66,37 @@ import type * as model_gemini from "../model/gemini.js";
 import type * as model_grants from "../model/grants.js";
 import type * as model_handles from "../model/handles.js";
 import type * as model_identity from "../model/identity.js";
+import type * as model_importParse from "../model/importParse.js";
 import type * as model_inbox from "../model/inbox.js";
 import type * as model_logicCopy from "../model/logicCopy.js";
 import type * as model_logicEval from "../model/logicEval.js";
 import type * as model_logicOps from "../model/logicOps.js";
 import type * as model_money from "../model/money.js";
 import type * as model_moreTemplates from "../model/moreTemplates.js";
+import type * as model_oauthProfile from "../model/oauthProfile.js";
 import type * as model_places from "../model/places.js";
 import type * as model_plans from "../model/plans.js";
+import type * as model_questionTypes from "../model/questionTypes.js";
 import type * as model_quiz from "../model/quiz.js";
 import type * as model_rateLimit from "../model/rateLimit.js";
 import type * as model_responseCounts from "../model/responseCounts.js";
 import type * as model_responseSearch from "../model/responseSearch.js";
 import type * as model_scan from "../model/scan.js";
+import type * as model_sealed from "../model/sealed.js";
 import type * as model_security from "../model/security.js";
+import type * as model_served from "../model/served.js";
 import type * as model_sheet from "../model/sheet.js";
 import type * as model_spaces from "../model/spaces.js";
 import type * as model_standing from "../model/standing.js";
+import type * as model_summary from "../model/summary.js";
 import type * as model_team from "../model/team.js";
 import type * as model_themePresets from "../model/themePresets.js";
 import type * as model_totp from "../model/totp.js";
+import type * as model_validate from "../model/validate.js";
+import type * as model_video from "../model/video.js";
 import type * as model_voice from "../model/voice.js";
 import type * as notifications from "../notifications.js";
+import type * as oauth from "../oauth.js";
 import type * as payments from "../payments.js";
 import type * as presence from "../presence.js";
 import type * as publicForm from "../publicForm.js";
@@ -97,6 +111,7 @@ import type * as sso from "../sso.js";
 import type * as support from "../support.js";
 import type * as team from "../team.js";
 import type * as templates from "../templates.js";
+import type * as transcribe from "../transcribe.js";
 import type * as users from "../users.js";
 
 /**
@@ -117,6 +132,7 @@ declare const fullApi: ApiFromModules<{
   "aiReply": typeof aiReply,
   "aiUsage": typeof aiUsage,
   "analytics": typeof analytics,
+  "apiV2": typeof apiV2,
   "approvals": typeof approvals,
   "auth": typeof auth,
   "billing": typeof billing,
@@ -141,6 +157,7 @@ declare const fullApi: ApiFromModules<{
   "handles": typeof handles,
   "helpSignals": typeof helpSignals,
   "http": typeof http,
+  "importForm": typeof importForm,
   "inbox": typeof inbox,
   "insights": typeof insights,
   "logic": typeof logic,
@@ -150,10 +167,13 @@ declare const fullApi: ApiFromModules<{
   "model/aiMeter": typeof model_aiMeter,
   "model/aiPrices": typeof model_aiPrices,
   "model/aiReply": typeof model_aiReply,
+  "model/apiAuth": typeof model_apiAuth,
   "model/apiKeys": typeof model_apiKeys,
   "model/builtinTemplates": typeof model_builtinTemplates,
   "model/calc": typeof model_calc,
   "model/contacts": typeof model_contacts,
+  "model/draftForm": typeof model_draftForm,
+  "model/erase": typeof model_erase,
   "model/exportSheet": typeof model_exportSheet,
   "model/flags": typeof model_flags,
   "model/forms": typeof model_forms,
@@ -161,28 +181,37 @@ declare const fullApi: ApiFromModules<{
   "model/grants": typeof model_grants,
   "model/handles": typeof model_handles,
   "model/identity": typeof model_identity,
+  "model/importParse": typeof model_importParse,
   "model/inbox": typeof model_inbox,
   "model/logicCopy": typeof model_logicCopy,
   "model/logicEval": typeof model_logicEval,
   "model/logicOps": typeof model_logicOps,
   "model/money": typeof model_money,
   "model/moreTemplates": typeof model_moreTemplates,
+  "model/oauthProfile": typeof model_oauthProfile,
   "model/places": typeof model_places,
   "model/plans": typeof model_plans,
+  "model/questionTypes": typeof model_questionTypes,
   "model/quiz": typeof model_quiz,
   "model/rateLimit": typeof model_rateLimit,
   "model/responseCounts": typeof model_responseCounts,
   "model/responseSearch": typeof model_responseSearch,
   "model/scan": typeof model_scan,
+  "model/sealed": typeof model_sealed,
   "model/security": typeof model_security,
+  "model/served": typeof model_served,
   "model/sheet": typeof model_sheet,
   "model/spaces": typeof model_spaces,
   "model/standing": typeof model_standing,
+  "model/summary": typeof model_summary,
   "model/team": typeof model_team,
   "model/themePresets": typeof model_themePresets,
   "model/totp": typeof model_totp,
+  "model/validate": typeof model_validate,
+  "model/video": typeof model_video,
   "model/voice": typeof model_voice,
   "notifications": typeof notifications,
+  "oauth": typeof oauth,
   "payments": typeof payments,
   "presence": typeof presence,
   "publicForm": typeof publicForm,
@@ -197,6 +226,7 @@ declare const fullApi: ApiFromModules<{
   "support": typeof support,
   "team": typeof team,
   "templates": typeof templates,
+  "transcribe": typeof transcribe,
   "users": typeof users,
 }>;
 export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "public">>;

@@ -431,7 +431,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
     "id": "business",
     "name": "Teams and controls",
     "icon": "building-2",
-    "desc": "On Business: approvals, the audit log, retention, the API and single sign-on.",
+    "desc": "On Business: approvals, the audit log, retention and single sign-on.",
     "articles": [
       {
         "id": "approvals",
@@ -445,13 +445,6 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "title": "Audit log and data retention",
         "summary": "Who did what, and responses that erase themselves when they are old enough.",
         "body": "## Audit log\nSettings → Controls lists publishing, approvals, team changes, API keys, sign-in rules and retention: who did what, and when. Entries are kept for a year.\n## Data retention\nChoose how long responses are kept: 30 days to two years, or until you delete them. Older responses, and the files uploaded with them, are erased every hour. It cannot be undone, so export first if you need a copy.",
-        "updated": "2026-09-28"
-      },
-      {
-        "id": "api",
-        "title": "The Formkit API",
-        "summary": "Read your forms and responses from your own code.",
-        "body": "Make a key in Settings → Controls → API keys; it is shown once. Send it as Authorization: Bearer fk_live_… to https://formkit.app/api/v1.\nThe API is read-only: list forms, get a form's questions, page through its responses and fetch one response. The full reference, with examples, is at formkit.app/api-docs.",
         "updated": "2026-09-28"
       },
       {
@@ -481,7 +474,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "id": "plans-overview",
         "title": "Free, Pro and Business",
         "summary": "What each plan includes, what a seat is, and how a form decides which features it has.",
-        "body": "Formkit has three plans. Free is the whole form builder, with no time limit; Pro and Business add to it. Plans belong to a company, and paid plans are per seat.\n## Free: $0\nUnlimited forms, responses and members, every question type, pages and logic, themes, your own formkit.app link, embedding, notifications and confirmation emails, partial responses, drop-off by question, CSV export, three guests on each form, 20 MB uploads, 30 days of version history, and AI for 3 new forms and 10 edits a month.\n## Pro: $6 a seat a month, or $60 a year\nEverything in Free, plus your own domain, no “Made with Formkit”, emails from your own domain, custom fonts and CSS, where people come from and their devices, calculations, hidden fields, answer piping and redirects, several endings, hidden options and limited places, quizzes and exams, webhooks, Zapier, Make, Slack and Google Sheets, payments with your own Stripe, Excel export, unlimited guests, AI replies, AI logic and AI insights, 150 MB uploads and a year of version history. Each seat adds 50 AI form builds, 25 AI edits, 20 responses AI works on and 3 insights reports a month.\n## Business: $19 a seat a month, or $190 a year\nEverything in Pro, plus shared templates, approval before publishing, an audit log, data retention rules, API access, sign-in with your company’s Google or Microsoft, priority support, 250 MB uploads and all of your version history. Each seat adds 200 AI form builds, 50 AI edits, 50 responses AI works on and 10 insights reports a month.\n## Seats\nEvery member of a company is a seat, the owner included. A company of three on Pro pays $18 a month. Add a member and the next bill adds a seat; remove one and it drops. Guests invited to a single form are free and never a seat. On Free, members are free and unlimited.\n## Whose plan counts\nA form uses its company’s plan. Everyone working in a Pro company works with Pro features, whatever plan their own companies are on.\n> Features that are not on your company’s plan still show in the app, with a small Pro or Business label. Select it to see what it does and upgrade.",
+        "body": "Formkit has three plans. Free is the whole form builder, with no time limit; Pro and Business add to it. Plans belong to a company, and paid plans are per seat.\n## Free: $0\nUnlimited forms, responses and members, every question type, pages and logic, themes, your own formkit.app link, embedding, the API and AI assistants, notifications and confirmation emails, partial responses, drop-off by question, CSV export, three guests on each form, 20 MB uploads, 30 days of version history, and AI for 3 new forms and 10 edits a month.\n## Pro: $6 a seat a month, or $60 a year\nEverything in Free, plus your own domain, no “Made with Formkit”, emails from your own domain, custom fonts and CSS, where people come from and their devices, calculations, hidden fields, answer piping and redirects, several endings, hidden options and limited places, quizzes and exams, webhooks, Zapier, Make, Slack and Google Sheets, payments with your own Stripe, Excel export, unlimited guests, AI replies, AI logic and AI insights, 150 MB uploads and a year of version history. Each seat adds 50 AI form builds, 25 AI edits, 20 responses AI works on and 3 insights reports a month.\n## Business: $19 a seat a month, or $190 a year\nEverything in Pro, plus shared templates, approval before publishing, an audit log, data retention rules, sign-in with your company’s Google or Microsoft, priority support, 250 MB uploads and all of your version history. Each seat adds 200 AI form builds, 50 AI edits, 50 responses AI works on and 10 insights reports a month.\n## Seats\nEvery member of a company is a seat, the owner included. A company of three on Pro pays $18 a month. Add a member and the next bill adds a seat; remove one and it drops. Guests invited to a single form are free and never a seat. On Free, members are free and unlimited.\n## Whose plan counts\nA form uses its company’s plan. Everyone working in a Pro company works with Pro features, whatever plan their own companies are on.\n> Features that are not on your company’s plan still show in the app, with a small Pro or Business label. Select it to see what it does and upgrade.",
         "updated": "2026-09-29",
         "related": [
           "seats",
@@ -645,6 +638,13 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "summary": "Every new response, as JSON, to an address of yours. Each one is signed so you know it came from Formkit.",
         "body": "Open a form's Settings → Connections and choose Webhook. Paste the address that should receive each response. Zapier's “Catch Hook” trigger and Make's “Custom webhook” module both give you one.\n## What arrives\nA POST with the form, the respondent, every answer with its question and key, the calculations and any payment. A file upload or voice recording also carries a fileUrl to download it from. The Formkit-Event header says response.created, response.updated (the person changed a response they had sent), response.paid or response.test.\n## Checking the signature\nWhen you add a webhook you are shown its secret once. Each delivery carries Formkit-Signature: t=…,v1=…, an HMAC-SHA256 of the timestamp and the body. The API page has code for checking it.\n## When a delivery fails\nFormkit tries again after a minute, then after ten. Recent deliveries, and what the other end answered, are listed under the connection. Send a test to set things up before real answers arrive.\n> Connections are part of Pro.",
         "updated": "2026-10-01"
+      },
+      {
+        "id": "api",
+        "title": "The API and AI assistants",
+        "summary": "Build, publish and read forms from your own code, or from Claude, ChatGPT or Cursor.",
+        "body": "Every plan has the API. Make a key in Settings → Developers, tick only what it may do, and copy it: it is shown once. Send it as Authorization: Bearer fk_live_… to https://formkit.app/api/v2.\n## What it does\nList and read forms, make new ones from a spec, change drafts, publish, close and reopen them, and read, search, mark and tag responses. On Pro, per-question summaries and AI insight reports too. Nothing can be deleted through it, and edits stay in the draft until it is published.\n## AI assistants\nIn Claude or ChatGPT, add a custom connector with the address https://formkit.app/api/mcp. You sign in to Formkit and choose what it may do. Claude Code and Cursor can use a key instead; Settings → Developers has the lines to copy. Disconnect an app there at any time.\n## Limits\n60 requests a minute on Free, 600 on Pro and Business. The full reference, with examples, is at formkit.app/api-docs.",
+        "updated": "2026-10-14"
       },
       {
         "id": "slack",

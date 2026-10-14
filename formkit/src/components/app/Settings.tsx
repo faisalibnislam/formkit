@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Bell, CircleUser, CreditCard, Download, ShieldCheck, SlidersHorizontal, Store, UsersRound, Users } from "lucide-react";
+import { Bell, CircleUser, Code, CreditCard, Download, ShieldCheck, SlidersHorizontal, Store, UsersRound, Users } from "lucide-react";
 import { PillTabs } from "@/components/ui";
 import { Scroller } from "./Scroller";
 import { AccountSection } from "./settings/Account";
@@ -14,6 +14,7 @@ import { ExportsSection } from "./settings/Exports";
 import { PlanSection } from "./settings/Plan";
 import { TeamSection } from "./settings/Team";
 import { ControlsSection } from "./settings/Controls";
+import { DevelopersSection } from "./settings/Developers";
 
 /**
  * Account settings.
@@ -36,7 +37,8 @@ export type SettingsTab =
   | "members"
   | "notifications"
   | "exports"
-  | "controls";
+  | "controls"
+  | "developers";
 
 /** Older links and the account menu use these names. */
 const ALIAS: Record<string, SettingsTab> = {
@@ -47,7 +49,9 @@ const ALIAS: Record<string, SettingsTab> = {
   billing: "plan",
   security: "controls",
   audit: "controls",
-  api: "controls",
+  api: "developers",
+  mcp: "developers",
+  apps: "developers",
 };
 
 export const SETTINGS_TABS: { value: SettingsTab; label: string; meta: string; icon: typeof CircleUser }[] = [
@@ -59,7 +63,8 @@ export const SETTINGS_TABS: { value: SettingsTab; label: string; meta: string; i
   { value: "members", label: "Guests", meta: "People on single forms", icon: Users },
   { value: "notifications", label: "Notifications", meta: "Email and alerts", icon: Bell },
   { value: "exports", label: "Exports", meta: "Excel, CSV and email", icon: Download },
-  { value: "controls", label: "Controls", meta: "Audit, retention, API, sign-in", icon: ShieldCheck },
+  { value: "developers", label: "Developers", meta: "API keys, AI assistants, connected apps", icon: Code },
+  { value: "controls", label: "Controls", meta: "Audit, retention, sign-in", icon: ShieldCheck },
 ];
 
 export function settingsTabOf(raw: string | null): SettingsTab {
@@ -112,6 +117,7 @@ export function Settings() {
       {tab === "exports" && <ExportsSection />}
       {tab === "team" && <TeamSection />}
       {tab === "controls" && <ControlsSection />}
+      {tab === "developers" && <DevelopersSection />}
     </div>
   );
 }

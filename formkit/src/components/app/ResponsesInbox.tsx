@@ -197,6 +197,11 @@ function Responses({
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState<string | null>(openId);
   const [asc, setAsc] = useState(false);
+  // Narrowing beyond complete/partial: a status, a tag, a window of time.
+  const [status, setStatusFilter] = useState<"any" | "new" | "read" | "reviewed" | "held">("any");
+  const [tag, setTag] = useState("any");
+  const [when, setWhen] = useState<"any" | "today" | "7" | "30" | "90">("any");
+  const tagsInUse = useQuery(api.responses.tagsInUse, {});
   const [confirm, setConfirm] = useState<string[] | null>(null);
   const search = useDebounced(term.trim(), SEARCH_DELAY_MS);
 
@@ -225,12 +230,24 @@ function Responses({
   const previews = s?.previews ?? 0;
   // Previews with nothing left in them fall back to everything.
   const kind: Kind = chosenKind === "preview" && previews === 0 ? "all" : chosenKind;
+  // The window starts at midnight (today) or that many days back; it is
+  // worked out once per choice so the query's arguments stay stable.
+  const since = useMemo(() => {
+    if (when === "any") return undefined;
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    if (when !== "today") d.setDate(d.getDate() - (Number(when) - 1));
+    return d.getTime();
+  }, [when]);
   const listArgs = {
     ...scope,
     kind,
     order: asc ? ("asc" as const) : ("desc" as const),
     limit,
     ...(search ? { search } : {}),
+    ...(status === "held" ? { held: true } : status !== "any" ? { status } : {}),
+    ...(tag !== "any" ? { tag } : {}),
+    ...(since !== undefined ? { since } : {}),
   };
   // A new filter keeps the last rows on screen until its own arrive.
   const data = useLastDefined(useSeededQuery(api.responses.rows, listArgs));
@@ -393,6 +410,50 @@ function Responses({
             { value: "complete", label: "Complete" },
             { value: "partial", label: "Partial" },
             ...(previews ? [{ value: "preview" as const, label: `Previews · ${plus(previews, s?.more.previews)}` }] : []),
+          ]}
+        />
+        <Select
+          size="sm"
+          value={status}
+          onChange={(next) => {
+            setStatusFilter(next as typeof status);
+            refilter();
+          }}
+          ariaLabel="Status"
+          options={[
+            { value: "any", label: "Any status" },
+            { value: "new", label: "Unread" },
+            { value: "read", label: "Read" },
+            { value: "reviewed", label: "Reviewed" },
+            { value: "held", label: "AI reply waiting for you" },
+          ]}
+        />
+        {(tagsInUse?.length ?? 0) > 0 && (
+          <Select
+            size="sm"
+            value={tag}
+            onChange={(next) => {
+              setTag(next);
+              refilter();
+            }}
+            ariaLabel="Tag"
+            options={[{ value: "any", label: "Any tag" }, ...(tagsInUse ?? []).slice(0, 50).map((t) => ({ value: t, label: t }))]}
+          />
+        )}
+        <Select
+          size="sm"
+          value={when}
+          onChange={(next) => {
+            setWhen(next as typeof when);
+            refilter();
+          }}
+          ariaLabel="When"
+          options={[
+            { value: "any", label: "Any time" },
+            { value: "today", label: "Today" },
+            { value: "7", label: "Last 7 days" },
+            { value: "30", label: "Last 30 days" },
+            { value: "90", label: "Last 90 days" },
           ]}
         />
         <span className="fk-section-spacer" />
@@ -712,10 +773,15 @@ function ResponseDrawer({
       a ? (a.fileName ?? (a.value || "-")) : "-";
     // Voice recordings play in place, under their question.
     const sound = new Map(response.files.filter((f) => f.audio && f.url).map((f) => [f.blockId as string, f.url!]));
-    const out: { title: string; rows: { q: string; a: string; empty: boolean; file: boolean; audio?: string }[] }[] = [];
+    const out: {
+      title: string;
+      rows: { q: string; a: string; empty: boolean; file: boolean; audio?: string; transcript?: string | null }[];
+    }[] = [];
     let g: (typeof out)[number] = { title: "Answers", rows: [] };
     const used = new Set<string>();
     for (const b of form?.blocks ?? []) {
+      // Content (text, pictures, video) is shown on the form, never answered.
+      if (b.kind === "content") continue;
       if (b.kind === "pagebreak") {
         if (g.rows.length) out.push(g);
         g = { title: b.pageName || "Next page", rows: [] };
@@ -729,6 +795,7 @@ function ResponseDrawer({
         empty: !a || (!a.value && !a.fileName),
         file: !!a?.fileName,
         audio: sound.get(b._id),
+        transcript: a?.transcript,
       });
     }
     if (g.rows.length) out.push(g);
@@ -838,6 +905,18 @@ function ResponseDrawer({
             Export
           </Button>
           <span className="fk-section-spacer" />
+          {manage && response.status !== "new" && (
+            <Button
+              variant="ghost"
+              onClick={async () => {
+                await setStatus({ ids: [response._id], status: "new" });
+                toast("Marked as unread", { detail: name });
+                onClose();
+              }}
+            >
+              Mark unread
+            </Button>
+          )}
           {!manage ? null : response.status === "reviewed" ? (
             <Button variant="secondary" onClick={() => setStatus({ ids: [response._id], status: "read" })}>
               Undo reviewed
@@ -927,7 +1006,15 @@ function ResponseDrawer({
                   {r.empty ? (
                     <span style={{ color: "var(--color-text-tertiary)" }}>Not answered</span>
                   ) : r.audio ? (
-                    <audio controls preload="none" src={r.audio} style={{ width: "100%", maxWidth: 360, height: 36 }} aria-label={`Recording for ${r.q}`} />
+                    <>
+                      <audio controls preload="none" src={r.audio} style={{ width: "100%", maxWidth: 360, height: 36 }} aria-label={`Recording for ${r.q}`} />
+                      {r.transcript && (
+                        <div style={{ marginTop: 8, whiteSpace: "pre-wrap" }}>
+                          <span style={{ display: "block", fontSize: 12, color: "var(--color-text-tertiary)", marginBottom: 2 }}>Written out by AI</span>
+                          {r.transcript}
+                        </div>
+                      )}
+                    </>
                   ) : r.file ? (
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
                       <Paperclip size={15} strokeWidth={1.8} aria-hidden />

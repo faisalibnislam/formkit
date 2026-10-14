@@ -29,7 +29,14 @@ const DAY = 24 * 60 * 60 * 1000;
 const MAX_TAGS = 12;
 
 function answerText(a: Doc<"responses">["answers"][number]) {
-  return a.value ?? (a.values ? a.values.join(", ") : null);
+  const base = a.value ?? (a.values ? a.values.join(", ") : null);
+  return withFollowUp(base, a.followUp);
+}
+
+/** An answer, with the AI's follow-up question and its answer after it, when there was one. */
+export function withFollowUp(text: string | null, f?: { question: string; answer: string }) {
+  if (!f?.answer.trim()) return text;
+  return `${text ?? ""}\n\n↳ ${f.question}\n${f.answer.trim()}`;
 }
 
 async function shape(ctx: QueryCtx, r: Doc<"responses">, formTitle: string) {
@@ -61,6 +68,7 @@ async function shape(ctx: QueryCtx, r: Doc<"responses">, formTitle: string) {
       question: a.question,
       value: answerText(a),
       fileName: a.fileName ?? null,
+      transcript: a.transcript ?? null,
     })),
     files,
     respondentName: r.respondentName ?? null,
@@ -189,6 +197,13 @@ export const rows = query({
     search: v.optional(v.string()),
     order: v.union(v.literal("desc"), v.literal("asc")),
     limit: v.number(),
+    /** Narrowing: a status, a tag, and a window of time (submittedAt, ms). */
+    status: v.optional(v.union(v.literal("new"), v.literal("read"), v.literal("reviewed"))),
+    /** Only responses whose AI reply is waiting for the owner. */
+    held: v.optional(v.boolean()),
+    tag: v.optional(v.string()),
+    since: v.optional(v.number()),
+    until: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const { ownerId, forms } = await inboxForms(ctx, args.formId, args.forms);
@@ -196,10 +211,19 @@ export const rows = query({
     const titles = new Map(forms.map((f) => [f._id as string, f.title]));
     const limit = Math.max(1, Math.min(MAX_ROWS, Math.floor(args.limit)));
     const preview = args.kind === "preview";
+    const tag = args.tag?.trim().toLowerCase();
     const keep = (r: Doc<"responses">) =>
       titles.has(r.formId) &&
       !!r.preview === preview &&
-      (args.kind === "partial" ? r.partial : args.kind === "complete" ? !r.partial : true);
+      (args.kind === "partial" ? r.partial : args.kind === "complete" ? !r.partial : true) &&
+      (!args.status || r.status === args.status) &&
+      (!args.held || !!r.aiReply?.held) &&
+      (!tag || (r.tags ?? []).some((t) => t.toLowerCase() === tag)) &&
+      (args.since === undefined || r.submittedAt >= args.since) &&
+      (args.until === undefined || r.submittedAt < args.until);
+    // A window of time narrows the index itself, not just the rows read.
+    const since = args.since ?? 0;
+    const until = args.until ?? Number.MAX_SAFE_INTEGER;
     const single = forms.length === 1 ? forms[0]! : null;
     const term = args.search?.trim().slice(0, 100);
 
@@ -212,13 +236,13 @@ export const rows = query({
         ? ctx.db
             .query("responses")
             .withIndex("by_form_preview_submitted", (q) =>
-              q.eq("formId", single._id).eq("preview", preview ? true : undefined),
+              q.eq("formId", single._id).eq("preview", preview ? true : undefined).gte("submittedAt", since).lt("submittedAt", until),
             )
             .order(args.order)
         : ctx.db
             .query("responses")
             .withIndex("by_owner_preview_submitted", (q) =>
-              q.eq("ownerId", ownerId).eq("preview", preview ? true : undefined),
+              q.eq("ownerId", ownerId).eq("preview", preview ? true : undefined).gte("submittedAt", since).lt("submittedAt", until),
             )
             .order(args.order);
 
@@ -657,8 +681,8 @@ export const exportPage = query({
         const text = a.values
           ? a.values.join("; ")
           : a.fileId
-            ? ((await ctx.storage.getUrl(a.fileId)) ?? a.fileName ?? "")
-            : (a.fileName ?? a.value ?? "");
+            ? ((await ctx.storage.getUrl(a.fileId)) ?? a.fileName ?? "") + (a.transcript ? `\n${a.transcript}` : "")
+            : (withFollowUp(a.fileName ?? a.value ?? "", a.followUp) ?? "");
         answers.push({ q: a.question, text });
       }
       records.push({
@@ -672,6 +696,9 @@ export const exportPage = query({
         phone: r.respondentPhone ?? "",
         company: r.respondentCompany ?? "",
         source: r.source ?? "",
+        utm: r.utm
+          ? [r.utm.source ?? "", r.utm.medium ?? "", r.utm.campaign ?? "", r.utm.term ?? "", r.utm.content ?? ""]
+          : null,
         device: r.device ?? "",
         tags: (r.tags ?? []).join(", "),
         note: r.note ?? "",

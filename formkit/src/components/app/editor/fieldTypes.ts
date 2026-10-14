@@ -24,7 +24,10 @@ export type FieldType = {
     | "signature"
     | "voice"
     | "date"
-    | "hidden";
+    | "hidden"
+    | "statement"
+    | "image"
+    | "video";
   defaultOptions?: string[];
 };
 
@@ -69,10 +72,16 @@ export const FIELD_TYPES: FieldType[] = [
   { type: "yes-no", label: "Yes / No", group: "Choice", icon: "toggle-left", preview: "yesno" },
   { type: "rating", label: "Rating", group: "Rating", icon: "star", preview: "rating" },
   { type: "scale", label: "Opinion scale", group: "Rating", icon: "sliders-horizontal", preview: "scale" },
+  // Not a type of its own: an opinion scale from 0 to 10, read as NPS (see Builder.add).
+  { type: "nps", label: "Net Promoter Score", group: "Rating", icon: "gauge", preview: "scale" },
   { type: "file", label: "File upload", group: "Upload", icon: "paperclip", preview: "file" },
   { type: "signature", label: "Signature", group: "Upload", icon: "pen-line", preview: "signature" },
   { type: "voice", label: "Voice recording", group: "Upload", icon: "mic", preview: "voice" },
   { type: "hidden", label: "Hidden field", group: "Smart", icon: "eye-off", preview: "hidden" },
+  // Content, not questions: added as kind "content" (see Builder.add).
+  { type: "statement", label: "Text", group: "Content", icon: "pilcrow", preview: "statement" },
+  { type: "image", label: "Image", group: "Content", icon: "image", preview: "image" },
+  { type: "video", label: "Video", group: "Content", icon: "video", preview: "video" },
 ];
 
 /** Field types that are part of a paid plan, and the feature that covers them. */
@@ -88,6 +97,9 @@ export function fieldType(type: string | null | undefined) {
 export function hasOptions(type: string | null | undefined) {
   return ["single-choice", "multi-choice", "dropdown"].includes(type ?? "");
 }
+
+/** Library entries that are content (kind "content"), not questions. */
+export const CONTENT_TYPES = new Set(["statement", "image", "video"]);
 
 export function hasScale(type: string | null | undefined) {
   return ["scale", "rating"].includes(type ?? "");
@@ -119,6 +131,9 @@ export function matchFieldTypes(term: string) {
 export function defaultTitle(type: string) {
   const t = fieldType(type);
   if (t.type === "hidden") return "Where they came from";
+  if (t.type === "nps") return "How likely are you to recommend us to a friend?";
+  if (t.type === "statement") return "A few words before the next question";
+  if (t.type === "image" || t.type === "video") return "";
   return t.type === "short-text" ? "Untitled question" : `${t.label} question`;
 }
 

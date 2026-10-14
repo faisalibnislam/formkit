@@ -5,8 +5,8 @@ import { SHARE_IMAGE, SITE_URL } from "@/lib/site";
 import { JsonLd, article, breadcrumb } from "@/components/site/JsonLd";
 import { SITE_DATES } from "@/lib/dates";
 
-const TITLE = "API and webhooks";
-const DESCRIPTION = "Read your forms and responses from your own code, and check that webhooks really came from Formkit.";
+const TITLE = "API, AI assistants and webhooks";
+const DESCRIPTION = "Build, publish and read forms from your own code or an AI assistant, on every plan, and check that webhooks really came from Formkit.";
 
 export const metadata: Metadata = {
   title: TITLE,

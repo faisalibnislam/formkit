@@ -16,15 +16,42 @@ export function QuestionPreview({
   scaleMin,
   scaleMax,
   maxSeconds,
+  imageUrl,
+  alt,
+  videoUrl,
 }: {
   type: string | null;
   options?: string[] | null;
   scaleMin?: number | null;
   scaleMax?: number | null;
   maxSeconds?: number | null;
+  /** Content blocks. */
+  imageUrl?: string | null;
+  alt?: string | null;
+  videoUrl?: string | null;
 }) {
   const shape = fieldType(type).preview;
   const choices = (options ?? []).slice(0, 4);
+
+  // Content: the text is the card's title and help; a picture or a video shows as itself.
+  if (shape === "statement") return null;
+  if (shape === "image") {
+    return imageUrl ? (
+      // eslint-disable-next-line @next/next/no-img-element -- a stored upload, already sized by the browser
+      <img src={imageUrl} alt={alt ?? ""} className="fk-ghost-image" />
+    ) : (
+      <div className="fk-ghost" data-tall="true" style={{ display: "grid", placeItems: "center", fontSize: 13 }}>
+        Add a picture in its settings
+      </div>
+    );
+  }
+  if (shape === "video") {
+    return (
+      <div className="fk-ghost" data-tall="true" style={{ display: "grid", placeItems: "center", fontSize: 13 }}>
+        {videoUrl ? `Video: ${videoUrl}` : "Paste a YouTube or Vimeo link in its settings"}
+      </div>
+    );
+  }
 
   if (shape === "textarea") return <div className="fk-ghost" data-tall="true" />;
 

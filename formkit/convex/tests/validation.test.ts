@@ -113,3 +113,35 @@ describe("submit", () => {
     expect(await t.run((ctx) => ctx.db.query("responses").collect())).toHaveLength(1);
   });
 });
+
+describe("answer rules and Other", () => {
+  test("ranges, lengths, patterns, dates and picks", () => {
+    const n = block("number", { validation: { min: 18, max: 99 } });
+    const t = block("short-text", { validation: { minLength: 3, pattern: "[A-Z]{2}\\d{4}", patternMessage: "Use your order number." } });
+    const d = block("date", { validation: { minDate: "2026-01-01" } });
+    const m = block("multi-choice", { options: ["A", "B", "C"], validation: { maxPicks: 2 } });
+    const p = validateAnswers({}, [n, t, d, m], [], [
+      { blockId: n._id, value: "12" },
+      { blockId: t._id, value: "AB12" },
+      { blockId: d._id, value: "2025-12-31" },
+      { blockId: m._id, values: ["A", "B", "C"] },
+    ], { partial: false });
+    expect(p.map((x) => x.message)).toEqual([
+      "“number”: Use a number of at least 18.",
+      "“short-text”: Use your order number.",
+      "“date”: Pick a date on or before 2026-01-01.".replace("on or before", "on or after"),
+      "“multi-choice”: Pick no more than 2.",
+    ]);
+  });
+
+  test("an Other answer is allowed only where Other is on", () => {
+    const off = block("single-choice", { options: ["Red"] });
+    const on = block("single-choice", { options: ["Red"], allowOther: true });
+    const multi = block("multi-choice", { options: ["A"], allowOther: true });
+    expect(codes(validateAnswers({}, [off], [], [{ blockId: off._id, value: "Teal" }], { partial: false }))).toEqual(["option"]);
+    expect(validateAnswers({}, [on, multi], [], [
+      { blockId: on._id, value: "Teal" },
+      { blockId: multi._id, values: ["A", "Something else"] },
+    ], { partial: false })).toEqual([]);
+  });
+});

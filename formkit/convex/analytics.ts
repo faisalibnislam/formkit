@@ -5,6 +5,7 @@ import { requireUser } from "./model/identity";
 import { currentSpace, spaceForms } from "./model/spaces";
 import { completionRate, formFor, ownerKeyOf, ownersOf } from "./model/forms";
 import { hasFeature } from "./model/plans";
+import { summarize } from "./model/summary";
 
 /**
  * Analytics, computed from what is actually stored.
@@ -222,6 +223,17 @@ export const overview = query({
       if (!r.partial) s.completed++;
     }
 
+    // Campaigns: responses by utm_campaign, and how many of them finished.
+    const byCampaign = new Map<string, { responses: number; completed: number }>();
+    for (const r of recent) {
+      const name = r.utm?.campaign;
+      if (!name) continue;
+      const c = byCampaign.get(name) ?? { responses: 0, completed: 0 };
+      c.responses++;
+      if (!r.partial) c.completed++;
+      byCampaign.set(name, c);
+    }
+
     const byDevice = new Map<string, number>();
     for (const r of recent) {
       const d = (r.device ?? "Unknown").split(" · ")[0]!;
@@ -251,6 +263,10 @@ export const overview = query({
         }))
         .sort((a, b) => b.views - a.views || b.responses - a.responses),
       devices: (full ? [...byDevice.entries()] : []).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
+      campaigns: (full ? [...byCampaign.entries()] : [])
+        .map(([name, c]) => ({ name, ...c }))
+        .sort((a, b) => b.responses - a.responses)
+        .slice(0, 50),
       /** Lifetime counters, which the dashboard and form list still show. */
       lifetime: {
         views: forms.reduce((n, f) => n + (f.views ?? 0), 0),
@@ -272,5 +288,44 @@ export const overview = query({
         }))
         .sort((a, b) => b.inRange - a.inRange || b.responses - a.responses),
     };
+  },
+});
+
+/** How many of the latest finished responses the summary reads, at most. */
+const SUMMARY_CAP = 5000;
+
+/**
+ * Each question's answers summed up (model/summary.ts), from the form's
+ * latest finished responses in the range. On every plan: it is what anyone
+ * opening a form's results expects to see first.
+ */
+export const summary = query({
+  args: { formId: v.id("forms"), from: v.optional(v.number()), to: v.optional(v.number()) },
+  handler: async (ctx, { formId, from, to }) => {
+    await formFor(ctx, formId, "read");
+    const blocks = (
+      await ctx.db
+        .query("blocks")
+        .withIndex("by_form_order", (q) => q.eq("formId", formId))
+        .collect()
+    ).sort((a, b) => a.order - b.order);
+    const rows: Doc<"responses">[] = [];
+    let capped = false;
+    const source = ctx.db
+      .query("responses")
+      .withIndex("by_form_preview_submitted", (q) => {
+        const base = q.eq("formId", formId).eq("preview", undefined);
+        return from !== undefined && to !== undefined ? base.gte("submittedAt", from).lt("submittedAt", to) : base;
+      })
+      .order("desc");
+    for await (const r of source) {
+      if (r.partial) continue;
+      if (rows.length === SUMMARY_CAP) {
+        capped = true;
+        break;
+      }
+      rows.push(r);
+    }
+    return { total: rows.length, capped, questions: summarize(blocks, rows) };
   },
 });

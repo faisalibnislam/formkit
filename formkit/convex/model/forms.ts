@@ -257,7 +257,10 @@ export async function purgeFormData(ctx: MutationCtx, form: Doc<"forms">) {
     .query("blocks")
     .withIndex("by_form_order", (q) => q.eq("formId", form._id))
     .collect();
-  for (const row of blocks) await ctx.db.delete(row._id);
+  for (const row of blocks) {
+    if (row.imageId) await ctx.storage.delete(row.imageId).catch(() => undefined);
+    await ctx.db.delete(row._id);
+  }
 
   const responses = await ctx.db
     .query("responses")

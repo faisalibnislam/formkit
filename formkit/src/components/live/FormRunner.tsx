@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { VoiceRecorder } from "./VoiceRecorder";
 import { voiceLength } from "../../../convex/model/voice";
-import { ArrowLeft, Check, Clock3, CornerDownLeft, CreditCard, Lock, Paperclip } from "lucide-react";
+import { ArrowLeft, Check, Clock3, CornerDownLeft, CreditCard, Lock, Paperclip, Sparkles } from "lucide-react";
 import type { Id } from "../../../convex/_generated/dataModel";
 import {
   cleanCss,
@@ -18,6 +18,8 @@ import { computeAll, pipe, pipeValues } from "../../../convex/model/calc";
 import { LiveReply } from "./LiveReply";
 import { QuizResult } from "./QuizResult";
 import { applyLogic, conditionsOf, type Rule as LogicRule } from "../../../convex/model/logicEval";
+import { ruleProblem } from "../../../convex/model/validate";
+import { videoEmbed } from "../../../convex/model/video";
 import { LogoLockup } from "./LogoLockup";
 import { Logo } from "@/components/brand/Logo";
 
@@ -38,7 +40,7 @@ import { Logo } from "@/components/brand/Logo";
 
 export type Block = {
   _id: Id<"blocks">;
-  kind: "field" | "pagebreak";
+  kind: "field" | "pagebreak" | "content";
   type: string | null;
   title: string | null;
   help: string | null;
@@ -61,6 +63,31 @@ export type Block = {
   extract?: { from: Id<"blocks"> } | null;
   /** Quiz: what the question is worth, when it counts. */
   marks?: number | null;
+  /** Words at either end of a scale. */
+  scaleLabels?: { start?: string; end?: string } | null;
+  /** Choices: an "Other" option with its own words. */
+  allowOther?: boolean;
+  /** Limits the answer is held to (model/validate.ts says the same on the server). */
+  validation?: Validation | null;
+  /** Pro: the AI may ask one follow-up question to this written answer. */
+  followUp?: boolean | null;
+  /** Content blocks: a picture (and its description) or a video link. */
+  imageUrl?: string | null;
+  alt?: string | null;
+  videoUrl?: string | null;
+};
+
+export type Validation = {
+  min?: number;
+  max?: number;
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+  patternMessage?: string;
+  minDate?: string;
+  maxDate?: string;
+  minPicks?: number;
+  maxPicks?: number;
 };
 
 type Rule = LogicRule;
@@ -76,7 +103,14 @@ export type Ending = {
   redirect?: string;
 };
 
-export type Answer = { value?: string; values?: string[]; fileId?: Id<"_storage">; fileName?: string };
+export type Answer = {
+  value?: string;
+  values?: string[];
+  fileId?: Id<"_storage">;
+  fileName?: string;
+  /** The AI's follow-up to this answer, and what the person said to it. */
+  followUp?: { question: string; answer: string };
+};
 
 /** Pro: the quiz settings the form itself needs. */
 export type QuizSettings = {
@@ -159,6 +193,8 @@ export function FormRunner({
   closed = false,
   resume,
   onSubmit,
+  onFollowUp,
+  onSaveForLater,
   onPay,
   onStart,
   onThink,
@@ -173,6 +209,10 @@ export function FormRunner({
   /** Answers already given - a partial being finished, or a response being changed. */
   resume?: { token: string; answers: Record<string, Answer>; editing: boolean };
   onSubmit: (args: SubmitArgs) => Promise<Submitted>;
+  /** Pro: the follow-up question to a written answer, or null. The live form only. */
+  onFollowUp?: (blockId: string, answer: string) => Promise<string | null>;
+  /** "Save and finish later": emails the person their link back. The live form only. */
+  onSaveForLater?: (email: string, resumeToken: string) => Promise<void>;
   /** Opens the payment page for a response that owes one; the live form only. */
   onPay?: (r: { responseId: Id<"responses">; resumeToken: string }) => Promise<{ url: string } | { paid: true } | null>;
   onStart?: () => void;
@@ -208,6 +248,12 @@ export function FormRunner({
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
   const [prove, setProve] = useState(false);
+  // "Save and finish later": the panel, the address, and how sending it went.
+  const [later, setLater] = useState<{ open: boolean; email: string; state: "idle" | "sending" | "sent"; error?: string }>({
+    open: false,
+    email: "",
+    state: "idle",
+  });
   const [human, setHuman] = useState(false);
   const [trap, setTrap] = useState("");
   const openedAt = useRef(0);
@@ -234,6 +280,9 @@ export function FormRunner({
   // Pro: what the AI said about answers, by condition id, once asked.
   const [judged, setJudged] = useState<Record<string, boolean>>({});
   const [thinking, setThinking] = useState(false);
+  // Follow-ups: each written answer is looked at once, and at most two are asked.
+  const followUpsAsked = useRef(new Set<string>());
+  const followUpsShown = useRef(0);
   // The answer each AI condition or hidden field was last asked about.
   const askedWith = useRef<Record<string, string>>({});
 
@@ -319,15 +368,33 @@ export function FormRunner({
   const lastPage = page >= live.length - 1;
   const cur = fields[Math.min(step, Math.max(0, fields.length - 1))];
   const lastStep = step >= fields.length - 1;
-  const answeredCount = fields.filter((b) => filled(kept[b._id])).length;
+  // Content blocks are shown, not answered: they never count as questions.
+  const questions = fields.filter((b) => b.kind !== "content");
+  const answeredCount = questions.filter((b) => filled(kept[b._id])).length;
 
   function isRequired(b: Block) {
     // A hidden question is never required, or the form cannot be finished.
-    if (hidden.has(b._id)) return false;
+    if (hidden.has(b._id) || b.kind === "content") return false;
     if (b.required || forced.has(b._id)) return true;
     return data.rules.requireEmail && b.type === "email";
   }
   const firstMissing = (list: Block[]) => list.find((b) => isRequired(b) && !filled(kept[b._id]));
+  // A question's own rules (range, length, pattern, dates, picks): the same
+  // check the server makes (model/validate.ts).
+  const [ruleErrors, setRuleErrors] = useState<Record<string, string>>({});
+  function stopsOnRule(list: Block[]) {
+    for (const b of list) {
+      if (hidden.has(b._id) || b.kind === "content") continue;
+      const message = ruleProblem(b as never, kept[b._id]);
+      if (message) {
+        setRuleErrors({ [b._id]: message });
+        focusQuestion(b._id);
+        return b;
+      }
+    }
+    setRuleErrors({});
+    return null;
+  }
 
   // Leaving keeps what was answered.
   useEffect(() => {
@@ -442,6 +509,30 @@ export function FormRunner({
    * again with what it said. Never holds anyone up for long: after a few
    * seconds, or on any failure, the form goes on with the fallbacks.
    */
+  /**
+   * Before moving on: may the AI ask one follow-up to a written answer here?
+   * Shows it under that answer and stays put; the person can answer it or
+   * just carry on, since it is never required.
+   */
+  async function askFollowUp(list: Block[]) {
+    if (!onFollowUp || mode !== "live" || followUpsShown.current >= 2) return false;
+    for (const b of list) {
+      if (!b.followUp || hidden.has(b._id) || followUpsAsked.current.has(b._id)) continue;
+      const text = kept[b._id]?.value?.trim();
+      if (!text) continue;
+      followUpsAsked.current.add(b._id);
+      setThinking(true);
+      const question = await onFollowUp(b._id, text).catch(() => null);
+      setThinking(false);
+      if (!question) continue;
+      followUpsShown.current += 1;
+      setAnswers((prev) => ({ ...prev, [b._id]: { ...prev[b._id], followUp: { question, answer: "" } } }));
+      window.setTimeout(() => document.getElementById(`q-${b._id}-followup`)?.focus(), 50);
+      return true;
+    }
+    return false;
+  }
+
   async function think(list: Block[]) {
     const same = { answers: kept, judged, outcome };
     if (!onThink || mode !== "live" || !data.smart?.ai) return same;
@@ -500,6 +591,8 @@ export function FormRunner({
       return;
     }
     setProblem(null);
+    if (stopsOnRule(current?.fields ?? [])) return;
+    if (await askFollowUp(current?.fields ?? [])) return;
     const now = await think(current?.fields ?? []);
     if (!lastPage) {
       // A matching "jump to" rule skips straight to the page that holds its
@@ -522,6 +615,8 @@ export function FormRunner({
       return;
     }
     setProblem(null);
+    if (stopsOnRule([cur])) return;
+    if (await askFollowUp([cur])) return;
     const now = await think([cur]);
     if (!lastStep) {
       const to = now.outcome.jumpTo;
@@ -535,6 +630,11 @@ export function FormRunner({
       setStep(fields.indexOf(missing));
       setProblem(missing._id);
       focusQuestion(missing._id);
+      return;
+    }
+    const broken = stopsOnRule(fields);
+    if (broken) {
+      setStep(fields.indexOf(broken));
       return;
     }
     void send(human, { answers: now.answers, ending: now.outcome.ending });
@@ -733,7 +833,7 @@ export function FormRunner({
             {data.welcome?.button || "Start"}
           </button>
           <span style={{ fontSize: 13.5, opacity: 0.75 }}>
-            {fields.length} {fields.length === 1 ? "question" : "questions"}
+            {questions.length} {questions.length === 1 ? "question" : "questions"}
           </span>
         </div>
         {credit}
@@ -766,10 +866,74 @@ export function FormRunner({
     </div>
   );
 
+  /* ---------- save and finish later ---------- */
+  async function saveForLater() {
+    if (!onSaveForLater) return;
+    setLater((l) => ({ ...l, state: "sending", error: undefined }));
+    try {
+      const r = await onSubmit({
+        partial: true,
+        device: describeDevice(),
+        durationMs: since(openedAt.current),
+        answers: Object.entries(kept)
+          .filter(([id]) => fields.some((f) => f._id === id) || hiddenFields.some((f) => f._id === id))
+          .map(([blockId, a]) => ({ blockId: blockId as Id<"blocks">, ...a })),
+      });
+      await onSaveForLater(later.email, r.resumeToken);
+      setLater((l) => ({ ...l, state: "sent" }));
+    } catch (e) {
+      const d = (e as { data?: unknown }).data;
+      setLater((l) => ({ ...l, state: "idle", error: typeof d === "string" ? d : "That did not send. Try again in a moment." }));
+    }
+  }
+  const emailAnswer = fields.find((b) => b.type === "email" && kept[b._id]?.value)?._id;
+  const laterBox =
+    onSaveForLater && mode === "live" && !resume?.editing && answeredCount > 0 && !quiz ? (
+      <div className="fk-live-later">
+        {later.state === "sent" ? (
+          <p role="status">We have emailed you a link. Your answers are saved; carry on whenever you like.</p>
+        ) : !later.open ? (
+          <button
+            type="button"
+            className="fk-live-later-open"
+            onClick={() => setLater((l) => ({ ...l, open: true, email: l.email || (emailAnswer ? (kept[emailAnswer]?.value ?? "") : "") }))}
+          >
+            Save and finish later
+          </button>
+        ) : (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void saveForLater();
+            }}
+          >
+            <label htmlFor="fk-later-email">We will email you a link back to your answers.</label>
+            <div className="fk-live-later-row">
+              <input
+                id="fk-later-email"
+                type="email"
+                required
+                autoComplete="email"
+                placeholder="you@example.com"
+                value={later.email}
+                onChange={(e) => setLater((l) => ({ ...l, email: e.target.value }))}
+              />
+              <button type="submit" style={button(false)} disabled={later.state === "sending"}>
+                {later.state === "sending" ? "Sending…" : "Email me the link"}
+              </button>
+            </div>
+            {later.error && <p role="alert" className="fk-live-err">{later.error}</p>}
+          </form>
+        )}
+      </div>
+    ) : null;
+
   const failure = failed && <div className="fk-live-err" role="alert" style={{ marginTop: 18 }}>{failed}</div>;
 
   const question = (b: Block, big = false) => {
-    const err = fileProblem[b._id] ?? (problem === b._id ? "This one is needed before you can go on." : null);
+    if (b.kind === "content") return <ContentBlock key={b._id} block={b} say={say} big={big} />;
+    const err =
+      fileProblem[b._id] ?? (problem === b._id ? "This one is needed before you can go on." : (ruleErrors[b._id] ?? null));
     const a11y: A11y = {
       id: `q-${b._id}-input`,
       labelledBy: `q-${b._id}-title`,
@@ -806,6 +970,7 @@ export function FormRunner({
           onChange={(a) => {
             setAnswers((prev) => ({ ...prev, [b._id]: a }));
             if (problem === b._id) setProblem(null);
+            if (ruleErrors[b._id]) setRuleErrors({});
           }}
           onFile={(file) => attach(b, file)}
           capMb={data.uploadCapMb}
@@ -817,6 +982,26 @@ export function FormRunner({
       {err && (
         <div className="fk-live-err" id={`q-${b._id}-err`} role="alert">
           {err}
+        </div>
+      )}
+      {kept[b._id]?.followUp && (
+        <div className="fk-live-followup">
+          <label htmlFor={`q-${b._id}-followup`}>
+            <Sparkles size={14} strokeWidth={1.8} aria-hidden /> {kept[b._id]!.followUp!.question}
+          </label>
+          <textarea
+            id={`q-${b._id}-followup`}
+            rows={2}
+            placeholder="Optional"
+            value={kept[b._id]!.followUp!.answer}
+            maxLength={2000}
+            onChange={(e) =>
+              setAnswers((prev) => ({
+                ...prev,
+                [b._id]: { ...prev[b._id], followUp: { question: prev[b._id]!.followUp!.question, answer: e.target.value } },
+              }))
+            }
+          />
         </div>
       )}
     </div>
@@ -904,6 +1089,7 @@ export function FormRunner({
             )}
           </div>
         </form>
+        {laterBox}
         {credit}
       </Shell>
     );
@@ -953,10 +1139,11 @@ export function FormRunner({
             {thinking ? "One moment…" : busy ? "Sending…" : lastPage ? (resume?.editing ? "Save changes" : "Submit") : "Next"}
           </button>
           <span style={{ fontSize: 13.5, opacity: 0.75 }}>
-            {answeredCount} of {fields.length} answered
+            {answeredCount} of {questions.length} answered
           </span>
         </div>
       </form>
+      {laterBox}
       {credit}
     </Shell>
   );
@@ -1054,6 +1241,8 @@ function Control({
   shuffle?: number;
 }) {
   const radius = Math.min(theme.radius, 24);
+  // "Other" was picked but nothing typed yet (an empty answer is no answer).
+  const [otherOpen, setOtherOpen] = useState(false);
   // What every native control carries: its name (the question), its help and
   // error text, and whether it is required or wrong.
   const native = {
@@ -1063,6 +1252,15 @@ function Control({
     "aria-required": a11y.required || undefined,
     "aria-invalid": a11y.invalid || undefined,
   };
+  // The question's own limits, given to the browser too, so the right
+  // keyboard and pickers show; the form still checks them in words.
+  const r = block.validation ?? {};
+  const limits =
+    block.type === "number"
+      ? { min: r.min, max: r.max }
+      : block.type === "date"
+        ? { min: r.minDate, max: r.maxDate }
+        : { maxLength: r.maxLength, minLength: r.minLength };
   const group = {
     id: a11y.id,
     "aria-labelledby": a11y.labelledBy,
@@ -1111,6 +1309,7 @@ function Control({
           style={{ ...box, resize: "vertical" }}
           placeholder={block.placeholder ?? ""}
           value={value?.value ?? ""}
+          maxLength={r.maxLength}
           {...native}
           onChange={(e) => onChange({ value: e.target.value })}
         />
@@ -1122,8 +1321,15 @@ function Control({
         block.type === "yes-no"
           ? ["Yes", "No"].filter((o) => !hiddenOptions?.has(o)).map((o) => ({ o, left: null as number | null }))
           : offered;
-      const focusable = options.find((x) => x.o === value?.value)?.o ?? options.find((x) => !(x.left !== null && x.left <= 0))?.o;
+      const labels = options.map((x) => x.o);
+      const other = block.type !== "yes-no" && !!block.allowOther;
+      const typed = other && value?.value && !labels.includes(value.value) ? value.value : null;
+      const otherOn = other && (otherOpen || typed !== null);
+      const focusable = otherOn
+        ? "__other"
+        : (options.find((x) => x.o === value?.value)?.o ?? options.find((x) => !(x.left !== null && x.left <= 0))?.o);
       return (
+        <>
         <div className="fk-live-choices" role="radiogroup" {...group} onKeyDown={radioKeys}>
           {options.map(({ o, left }) => (
             <button
@@ -1137,19 +1343,57 @@ function Control({
               data-full={left !== null && left <= 0 ? "true" : undefined}
               disabled={left !== null && left <= 0}
               style={{ borderRadius: radius }}
-              onClick={() => onChange({ value: o })}
+              onClick={() => {
+                setOtherOpen(false);
+                onChange({ value: o });
+              }}
             >
               {o}
               {placeNote(left) && <span className="fk-live-places">{placeNote(left)}</span>}
             </button>
           ))}
+          {other && (
+            <button
+              type="button"
+              role="radio"
+              aria-checked={otherOn}
+              tabIndex={focusable === "__other" ? 0 : -1}
+              className="fk-live-choice"
+              data-picked={otherOn ? "true" : undefined}
+              style={{ borderRadius: radius }}
+              onClick={() => {
+                setOtherOpen(true);
+                onChange({ value: typed ?? "" });
+              }}
+            >
+              Other
+            </button>
+          )}
         </div>
+        {otherOn && (
+          <input
+            style={{ ...box, marginTop: 10 }}
+            autoFocus
+            aria-label="Other, please say"
+            placeholder="Please say"
+            value={typed ?? ""}
+            maxLength={200}
+            onChange={(e) => onChange({ value: e.target.value })}
+          />
+        )}
+        </>
       );
     }
 
     case "multi-choice": {
-      const picked = value?.values ?? [];
+      const labels = offered.map((x) => x.o);
+      const all = value?.values ?? [];
+      const picked = block.allowOther ? all.filter((v) => labels.includes(v)) : all;
+      const typed = block.allowOther ? (all.find((v) => !labels.includes(v)) ?? "") : "";
+      const otherOn = !!block.allowOther && (otherOpen || !!typed);
+      const withOther = (list: string[]) => (otherOn && typed ? [...list, typed] : list);
       return (
+        <>
         <div className="fk-live-choices" role="group" {...group}>
           {offered.map(({ o, left }) => (
             <button
@@ -1164,7 +1408,7 @@ function Control({
               style={{ borderRadius: radius }}
               onClick={() =>
                 onChange({
-                  values: picked.includes(o) ? picked.filter((p) => p !== o) : [...picked, o],
+                  values: withOther(picked.includes(o) ? picked.filter((p) => p !== o) : [...picked, o]),
                 })
               }
             >
@@ -1172,7 +1416,37 @@ function Control({
               {placeNote(left) && <span className="fk-live-places">{placeNote(left)}</span>}
             </button>
           ))}
+          {block.allowOther && (
+            <button
+              type="button"
+              role="checkbox"
+              aria-checked={otherOn}
+              className="fk-live-choice"
+              data-picked={otherOn ? "true" : undefined}
+              style={{ borderRadius: radius }}
+              onClick={() => {
+                if (otherOn) {
+                  setOtherOpen(false);
+                  onChange({ values: picked });
+                } else setOtherOpen(true);
+              }}
+            >
+              Other
+            </button>
+          )}
         </div>
+        {otherOn && (
+          <input
+            style={{ ...box, marginTop: 10 }}
+            autoFocus
+            aria-label="Other, please say"
+            placeholder="Please say"
+            value={typed}
+            maxLength={200}
+            onChange={(e) => onChange({ values: e.target.value ? [...picked, e.target.value] : picked })}
+          />
+        )}
+        </>
       );
     }
 
@@ -1219,7 +1493,8 @@ function Control({
       const from = block.scaleMin ?? 1;
       const to = block.scaleMax ?? 5;
       return (
-        <div className="fk-live-scale" role="radiogroup" {...group} onKeyDown={radioKeys}>
+        <div>
+          <div className="fk-live-scale" role="radiogroup" {...group} onKeyDown={radioKeys}>
           {Array.from({ length: Math.max(0, to - from + 1) }).map((_, i) => {
             const n = from + i;
             const chosen = value?.value === String(n);
@@ -1229,6 +1504,13 @@ function Control({
                 type="button"
                 role="radio"
                 aria-checked={chosen}
+                aria-label={[
+                  String(n),
+                  n === from ? block.scaleLabels?.start : undefined,
+                  n === to ? block.scaleLabels?.end : undefined,
+                ]
+                  .filter(Boolean)
+                  .join(", ")}
                 tabIndex={chosen || (!value?.value && i === 0) ? 0 : -1}
                 data-picked={value?.value === String(n) ? "true" : undefined}
                 onClick={() => onChange({ value: String(n) })}
@@ -1237,6 +1519,13 @@ function Control({
               </button>
             );
           })}
+        </div>
+          {(block.scaleLabels?.start || block.scaleLabels?.end) && (
+            <div className="fk-live-scale-labels" aria-hidden>
+              <span>{block.scaleLabels?.start}</span>
+              <span>{block.scaleLabels?.end}</span>
+            </div>
+          )}
         </div>
       );
     }
@@ -1331,10 +1620,51 @@ function Control({
           placeholder={block.placeholder ?? ""}
           value={value?.value ?? ""}
           {...native}
+          {...limits}
           onChange={(e) => onChange({ value: e.target.value })}
         />
       );
   }
+}
+
+/**
+ * Content between questions: words, a picture (shown only with its
+ * description) or a YouTube or Vimeo video, embedded without tracking cookies.
+ */
+function ContentBlock({ block, say, big }: { block: Block; say: (t: string | null | undefined) => string; big: boolean }) {
+  const embed = block.type === "video" && block.videoUrl ? videoEmbed(block.videoUrl) : null;
+  return (
+    <div className="fk-live-q fk-live-content" id={`q-${block._id}`} data-big={big ? "true" : undefined}>
+      {block.type === "statement" && (
+        <>
+          {block.title && <h2 className="fk-live-q-title">{say(block.title)}</h2>}
+          {block.help && <p className="fk-live-content-text">{say(block.help)}</p>}
+        </>
+      )}
+      {block.type === "image" && block.imageUrl && block.alt && (
+        <figure style={{ margin: 0 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- the owner's own upload, at its own size */}
+          <img src={block.imageUrl} alt={block.alt} className="fk-live-content-image" loading="lazy" />
+          {block.title && <figcaption className="fk-live-q-help">{say(block.title)}</figcaption>}
+        </figure>
+      )}
+      {embed && (
+        <>
+          {block.title && <div className="fk-live-q-title">{say(block.title)}</div>}
+          <div className="fk-live-video">
+            <iframe
+              src={embed}
+              title={block.title || "Video"}
+              loading="lazy"
+              allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allowFullScreen
+            />
+          </div>
+        </>
+      )}
+    </div>
+  );
 }
 
 type A11y = { id: string; labelledBy: string; describedBy?: string; required: boolean; invalid: boolean };

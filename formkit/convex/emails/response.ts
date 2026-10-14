@@ -166,11 +166,14 @@ export function renderDigest({
   heading,
   lede,
   rows,
+  notes = [],
   link,
 }: {
   heading: string;
   lede: string;
   rows: { form: string; line: string; count?: number }[];
+  /** Weekly, Pro: what people said, form by form, written by AI from its reading of each response. */
+  notes?: { form: string; text: string }[];
   link: string;
 }) {
   return renderShell({
@@ -183,7 +186,13 @@ export function renderDigest({
         line: r.line,
         figure: r.count !== undefined ? `${r.count.toLocaleString("en-US")} new` : undefined,
       })),
-    )}${button("Open your responses", link)}`,
+    )}${
+      notes.length
+        ? `<div style="margin-top:26px;font-size:13px;font-weight:500;color:${C.muted};">What people said, read by AI</div>${notes
+            .map((n) => quote(n.text, n.form, { top: 10 }))
+            .join("")}`
+        : ""
+    }${button("Open your responses", link)}`,
     reason: "You chose to get this summary in Formkit.",
     links: [{ label: "Notification settings", href: SETTINGS }],
   });
@@ -228,5 +237,21 @@ export function renderTeamInvite({
       `Sign in, or make an account, with this email address, and ${company} is in the company menu at the top of Formkit.`,
     )}${button("Open Formkit", link)}`,
     reason: `${inviter} added this address to ${company} on Formkit.`,
+  });
+}
+
+/** A respondent's own link back to a form they started, sent when they ask for it. */
+export function renderResumeLink({ title, link, brand }: { title: string; link: string; brand: Partial<Brand> & { name: string } }) {
+  const b: Brand = { name: brand.name, logoUrl: brand.logoUrl ?? null, color: safeColor(brand.color), badge: brand.badge !== false };
+  return renderShell({
+    brand: b,
+    eyebrow: "Your answers are saved",
+    heading: `Finish ${title} when you are ready`,
+    lede: "Everything you answered so far is kept. Open the link to carry on where you left off.",
+    body: `${button("Carry on", link, b.color ?? undefined)}${paragraph(
+      "Anyone with this link can see and change your answers, so keep it to yourself.",
+      { muted: true, top: 22 },
+    )}`,
+    reason: `Sent because you asked ${b.name} to save your place.`,
   });
 }

@@ -116,3 +116,50 @@ export async function ogImage({
     fonts.length ? { ...OG_SIZE, fonts } : OG_SIZE,
   );
 }
+
+/**
+ * A shared link to a customer's form: their name and colour, the form's
+ * title and welcome line. It is their form, so no Formkit marketing on it.
+ */
+export async function formCard({ title, owner, about, color }: { title: string; owner: string | null; about: string | null; color: string | null }) {
+  const [regular, bold] = await Promise.all([outfit(400), outfit(600)]);
+  const fonts = [
+    ...(regular ? [{ name: "Outfit", data: regular, weight: 400 as const, style: "normal" as const }] : []),
+    ...(bold ? [{ name: "Outfit", data: bold, weight: 600 as const, style: "normal" as const }] : []),
+  ];
+  const accent = color && /^#[0-9a-f]{6}$/i.test(color) ? color : "#2e78bb";
+  const long = title.length > 48;
+  return new ImageResponse(
+    (
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          padding: "72px 80px",
+          ...(fonts.length ? { fontFamily: "Outfit" } : {}),
+          color: "#21282E",
+          background: "#f7fbff",
+          borderTop: `18px solid ${accent}`,
+        }}
+      >
+        <div style={{ display: "flex", fontSize: 30, fontWeight: 600, color: accent }}>{owner ?? ""}</div>
+        <div style={{ display: "flex", flexDirection: "column", maxWidth: 1000 }}>
+          <div style={{ fontSize: long ? 64 : 80, fontWeight: 600, lineHeight: 1.05, letterSpacing: -2 }}>{title}</div>
+          {about && (
+            <div style={{ fontSize: 30, lineHeight: 1.4, marginTop: 24, color: "#5f666c", maxWidth: 940 }}>
+              {about.length > 140 ? `${about.slice(0, 137)}…` : about}
+            </div>
+          )}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 24, color: "#5f666c" }}>
+          <div style={{ display: "flex", width: 14, height: 14, borderRadius: 14, background: accent }} />
+          Open the form
+        </div>
+      </div>
+    ),
+    fonts.length ? { ...OG_SIZE, fonts } : OG_SIZE,
+  );
+}

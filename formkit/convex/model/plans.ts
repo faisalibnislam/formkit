@@ -116,6 +116,7 @@ export const FEATURES = {
   // Pro - AI on responses
   "ai.reply": { plan: "pro", label: "AI-written replies to every submission", group: "AI" },
   "ai.insights": { plan: "pro", label: "AI insights on your submissions", group: "AI" },
+  "ai.transcribe": { plan: "pro", label: "Voice answers written out, searchable and in exports", group: "AI" },
   "logic.ai": { plan: "pro", label: "AI decides: logic that reads answers, and facts pulled from them", group: "AI" },
   // Pro - quizzes
   quiz: { plan: "pro", label: "Quizzes and exams: marking, a timer and results", group: "Smarter forms" },
@@ -124,7 +125,6 @@ export const FEATURES = {
   approvals: { plan: "business", label: "Approval before publishing", group: "Teams" },
   audit: { plan: "business", label: "Audit log", group: "Control" },
   retention: { plan: "business", label: "Data retention rules", group: "Control" },
-  api: { plan: "business", label: "API access", group: "Control" },
   sso: { plan: "business", label: "Sign-in with your company’s Google or Microsoft", group: "Control" },
   "support.priority": { plan: "business", label: "Priority support", group: "Control" },
 } as const satisfies Record<string, { plan: Exclude<PlanId, "free">; label: string; group: string }>;

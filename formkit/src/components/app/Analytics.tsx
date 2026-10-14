@@ -2,6 +2,7 @@
 
 import { useSeedClock, useSeededQuery } from "@/lib/seed";
 import { AiInsights } from "./AiInsights";
+import { QuestionSummary } from "./QuestionSummary";
 import { useState } from "react";
 import Link from "next/link";
 import { useMutation } from "convex/react";
@@ -459,6 +460,42 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
                 </div>
               </section>
 
+              {data.full && data.campaigns.length > 0 && (
+                <section>
+                  <h3 className="fk-outside-title">Campaigns</h3>
+                  <div className="fk-panel" data-pad="none">
+                    <div className="fk-table-wrap">
+                      <table className="fk-table" data-static="true">
+                        <thead>
+                          <tr>
+                            <th scope="col">utm_campaign</th>
+                            <th scope="col" style={{ textAlign: "right" }}>
+                              Responses
+                            </th>
+                            <th scope="col" style={{ textAlign: "right" }}>
+                              Finished
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {data.campaigns.map((c) => (
+                            <tr key={c.name}>
+                              <td className="fk-table-name" style={{ whiteSpace: "normal" }}>
+                                {c.name}
+                              </td>
+                              <td className="fk-table-quiet" style={{ textAlign: "right" }}>
+                                {c.responses.toLocaleString("en-US")}
+                              </td>
+                              <td style={{ textAlign: "right" }}>{c.completed.toLocaleString("en-US")}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </section>
+              )}
+
               {data.full && data.devices.length > 0 && (
                 <section>
                   <h3 className="fk-outside-title">Devices</h3>
@@ -497,6 +534,7 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
               )}
             </div>
 
+            {scope && <QuestionSummary formId={scope} from={span.from} to={span.to} />}
             {scope && <AiInsights formId={scope} from={span.from} to={span.to} />}
           </>
         )

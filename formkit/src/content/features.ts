@@ -303,7 +303,10 @@ export const FEATURE_PAGES: Story[] = [
         title: "Webhooks, Zapier and Make",
         body: "Every response as JSON, signed so you know it came from Formkit, retried if your end is down, with recent deliveries listed so you can see what happened.",
       },
-      { title: "The API (Business)", body: "Read your forms and responses from your own code with a key, through a documented read-only API." },
+      {
+        title: "The API and AI assistants",
+        body: "On every plan: build, publish and read forms from your own code, or ask Claude, ChatGPT or Cursor to do it for you. Nothing can be deleted that way, and drafts stay drafts until you say.",
+      },
     ],
     templates: ["bug-report", "webinar-registration", "lead-qualification"],
     help: ["webhooks", "slack", "google-sheets", "api"],

@@ -1,11 +1,12 @@
 import { conditionsOf } from "./model/logicEval";
 import { ConvexError, v } from "convex/values";
 import { mutation } from "./_generated/server";
-import { questionType } from "./schema";
+import { blockExtras, questionType } from "./schema";
 import { formFor, recount } from "./model/forms";
 import { requireFeature } from "./model/plans";
 import { validKey } from "./model/calc";
 import { voiceLength } from "./model/voice";
+import { videoEmbed } from "./model/video";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 
@@ -34,7 +35,14 @@ const blockFields = {
   answerKey: v.optional(v.array(v.string())),
   marks: v.optional(v.number()),
   extract: v.optional(v.union(v.object({ from: v.id("blocks"), what: v.string() }), v.null())),
+  ...blockExtras,
 };
+
+function checkedVideo(url: string) {
+  if (!url.trim()) return undefined;
+  if (!videoEmbed(url)) throw new ConvexError("Paste a YouTube or Vimeo link.");
+  return url.trim().slice(0, 500);
+}
 
 /** A key not already used on this form: "source", then "source_2" and on. */
 async function freeKey(ctx: MutationCtx, formId: Id<"forms">, want: string) {
@@ -54,7 +62,7 @@ async function freeKey(ctx: MutationCtx, formId: Id<"forms">, want: string) {
 export const add = mutation({
   args: {
     formId: v.id("forms"),
-    kind: v.union(v.literal("field"), v.literal("pagebreak")),
+    kind: v.union(v.literal("field"), v.literal("pagebreak"), v.literal("content")),
     /** Insert position. Omitted appends to the end. */
     at: v.optional(v.number()),
     ...blockFields,
@@ -83,7 +91,17 @@ export const add = mutation({
       kind,
       ...(kind === "pagebreak"
         ? { pageName: fields.pageName ?? "New page" }
-        : {
+        : kind === "content"
+          ? {
+              // A statement, a picture or a video: shown, never answered.
+              type: fields.type === "image" || fields.type === "video" ? fields.type : "statement",
+              title: fields.title ?? "",
+              help: fields.help,
+              imageId: fields.imageId,
+              alt: fields.alt,
+              videoUrl: fields.videoUrl === undefined ? undefined : checkedVideo(fields.videoUrl),
+            }
+          : {
             type: fields.type ?? "short-text",
             title: fields.title ?? "Untitled question",
             help: fields.help,
@@ -97,6 +115,10 @@ export const add = mutation({
             ...(fields.type === "hidden"
               ? { key: await freeKey(ctx, formId, fields.key ?? "source"), defaultValue: fields.defaultValue }
               : {}),
+            nps: fields.nps,
+            scaleLabels: fields.scaleLabels,
+            allowOther: fields.allowOther,
+            validation: fields.validation,
           }),
     });
 
@@ -126,6 +148,27 @@ export const update = mutation({
       };
     }
     if (patch.maxSeconds !== undefined) patch = { ...patch, maxSeconds: voiceLength(patch.maxSeconds) };
+    if (patch.videoUrl !== undefined) patch = { ...patch, videoUrl: checkedVideo(patch.videoUrl) ?? "" };
+    if (patch.alt !== undefined) patch = { ...patch, alt: patch.alt.trim().slice(0, 300) };
+    if (patch.validation?.pattern) {
+      try {
+        new RegExp(patch.validation.pattern);
+      } catch {
+        throw new ConvexError("That pattern is not a valid regular expression.");
+      }
+      patch = { ...patch, validation: { ...patch.validation, pattern: patch.validation.pattern.slice(0, 200) } };
+    }
+    if (patch.followUp?.on) {
+      await requireFeature(ctx, form, "logic.ai");
+      if (!["short-text", "long-text"].includes((patch.type ?? block.type) ?? "")) {
+        throw new ConvexError("A follow-up question can follow a written answer.");
+      }
+      patch = { ...patch, followUp: { on: true, instruction: patch.followUp.instruction?.trim().slice(0, 300) || undefined } };
+    }
+    if (patch.transcribe) {
+      await requireFeature(ctx, form, "ai.transcribe");
+      if ((patch.type ?? block.type) !== "voice") throw new ConvexError("Only a voice recording can be written out.");
+    }
     if (patch.extract) {
       await requireFeature(ctx, form, "logic.ai");
       if ((patch.type ?? block.type) !== "hidden") throw new ConvexError("Only a hidden field can be filled in by AI.");
@@ -212,7 +255,9 @@ export const duplicate = mutation({
     for (let i = order + 1; i < blocks.length; i++) {
       await ctx.db.patch(blocks[i]!._id, { order: i + 1 });
     }
-    const id = await ctx.db.insert("blocks", { ...rest, order: order + 1 });
+    // A key names one question: the copy gets the next free one (budget_2).
+    const key = rest.key ? await freeKey(ctx, block.formId, rest.key) : undefined;
+    const id = await ctx.db.insert("blocks", { ...rest, ...(key ? { key } : {}), order: order + 1 });
     await ctx.db.patch(block.formId, { updatedAt: Date.now() });
     await recount(ctx, block.formId);
     return id;
@@ -313,8 +358,10 @@ export const duplicatePage = mutation({
     let first: Id<"blocks"> | null = null;
     for (const [k, b] of run.entries()) {
       const { _id, _creationTime, order, ...rest } = b;
+      const key = rest.key ? await freeKey(ctx, block.formId, rest.key) : undefined;
       const id = await ctx.db.insert("blocks", {
         ...rest,
+        ...(key ? { key } : {}),
         ...(k === 0 ? { pageName: `${b.pageName ?? "Page"} copy` } : {}),
         order: end + k,
       });

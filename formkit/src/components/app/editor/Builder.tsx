@@ -26,9 +26,9 @@ import { useToast } from "@/components/ui/Toast";
 import { DraftInput, DraftTextarea } from "./Draft";
 import { FieldIcon } from "./FieldIcon";
 import { FieldPicker } from "./FieldPicker";
-import { FieldSettings, NothingSelected, PageSettings } from "./Inspector";
+import { ContentSettings, FieldSettings, NothingSelected, PageSettings } from "./Inspector";
 import { QuestionPreview } from "./QuestionPreview";
-import { FIELD_GROUPS, PAID_TYPES, defaultTitle, fieldType, matchFieldTypes } from "./fieldTypes";
+import { CONTENT_TYPES, FIELD_GROUPS, PAID_TYPES, defaultTitle, fieldType, matchFieldTypes } from "./fieldTypes";
 import { ProChip } from "@/components/plan/UpgradeSheet";
 import { openUpgrade, usePlan } from "@/components/plan/usePlan";
 import { openComments, setCurrentBlock, usePresence } from "./collab";
@@ -236,15 +236,35 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
       return;
     }
     setPickerAt(null);
+    if (CONTENT_TYPES.has(type)) {
+      const content = await tracked(
+        addBlock({
+          formId,
+          kind: "content",
+          at: at ?? insertIndex(),
+          type: type as Block["type"],
+          title: defaultTitle(type),
+          ...(type === "statement" ? { help: "Say what people should know before they carry on." } : {}),
+        }),
+      );
+      if (content) setSelected(content);
+      toast("Added", { detail: meta.label });
+      return;
+    }
     const id = await tracked(
       addBlock({
         formId,
         kind: "field",
         at: at ?? insertIndex(),
-        type: type as Block["type"],
+        // NPS is an opinion scale from 0 to 10 with its usual words at each end.
+        type: (type === "nps" ? "scale" : type) as Block["type"],
         title: defaultTitle(type),
         options: meta.defaultOptions,
-        ...(meta.preview === "scale" ? { scaleMin: 1, scaleMax: 5 } : {}),
+        ...(type === "nps"
+          ? { scaleMin: 0, scaleMax: 10, nps: true, scaleLabels: { start: "Not likely", end: "Very likely" } }
+          : meta.preview === "scale"
+            ? { scaleMin: 1, scaleMax: 5 }
+            : {}),
         ...(meta.preview === "rating" ? { scaleMax: 5 } : {}),
         ...(type === "hidden" ? { key: "source" } : {}),
       }),
@@ -724,7 +744,7 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
                     ))}
                   </div>
                   <h4 className="fk-qcard-title">
-                    {b.title || "Untitled question"}
+                    {b.title || (b.kind === "content" ? fieldType(b.type).label : "Untitled question")}
                     {b.required && (
                       <span className="fk-qcard-required" title="Required">
                         *
@@ -739,6 +759,9 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
                       scaleMin={b.scaleMin}
                       scaleMax={b.scaleMax}
                       maxSeconds={b.maxSeconds}
+                      imageUrl={form.images?.[b._id] ?? null}
+                      alt={b.alt}
+                      videoUrl={b.videoUrl}
                     />
                   </div>
                 </div>
@@ -982,6 +1005,8 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
 
         {active?.kind === "field" ? (
           <FieldSettings block={active} fields={fields} rules={rules ?? []} />
+        ) : active?.kind === "content" ? (
+          <ContentSettings block={active} imageUrl={form.images?.[active._id] ?? null} />
         ) : active?.kind === "pagebreak" ? (
           <PageSettings
             block={active}

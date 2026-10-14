@@ -3,18 +3,18 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useAction, useMutation, useQuery } from "convex/react";
-import { Check, Copy, KeyRound, RefreshCw, ShieldCheck, Trash2 } from "lucide-react";
+import { RefreshCw, ShieldCheck, Trash2 } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
-import { Badge, Button, Field, Input, Modal, Select, Switch } from "@/components/ui";
+import { Badge, Button, Field, Input, Select, Switch } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 import { ProChip } from "@/components/plan/UpgradeSheet";
 import { openUpgrade, upgradeOnPlanError, useGate } from "@/components/plan/usePlan";
 import { ContactSupport } from "@/components/support/ContactSupport";
-import { fullTime, relativeTime } from "../bits";
+import { fullTime } from "../bits";
 import { DnsRecords } from "./Domains";
 import { Panel, Row, errorText } from "./bits";
 
-type Feature = "audit" | "retention" | "api" | "sso";
+type Feature = "audit" | "retention" | "sso";
 
 function chip(feature: Feature) {
   return <ProChip plan="business" onClick={() => openUpgrade({ feature })} />;
@@ -108,100 +108,6 @@ function RetentionPanel() {
           />
         </div>
       </Row>
-    </Panel>
-  );
-}
-
-function ApiPanel() {
-  const toast = useToast();
-  const gate = useGate("api");
-  const keys = useQuery(api.controls.apiKeys, {});
-  const create = useMutation(api.controls.createApiKey);
-  const revoke = useMutation(api.controls.revokeApiKey);
-  const [name, setName] = useState("");
-  const [fresh, setFresh] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-  return (
-    <Panel
-      title="API keys"
-      lede={
-        <>
-          Read your forms and responses from your own code.{" "}
-          <Link href="/api-docs" className="fk-linkbtn" target="_blank">
-            How the API works
-          </Link>
-        </>
-      }
-      aside={gate.locked ? chip("api") : null}
-    >
-      <div className="fk-domainadd">
-        <Field label="Name" help="What it is for, so you know which to revoke.">
-          <Input value={name} placeholder="Warehouse sync" onChange={(e) => setName(e.target.value)} />
-        </Field>
-        <Button
-          iconLeft={<KeyRound size={16} strokeWidth={1.8} aria-hidden />}
-          onClick={gate.guard(async () => {
-            try {
-              setFresh(await create({ name }));
-              setName("");
-            } catch (e) {
-              if (!upgradeOnPlanError(e)) toast(errorText(e, "That key was not made."));
-            }
-          })}
-        >
-          Create key
-        </Button>
-      </div>
-      {(keys ?? []).length > 0 && (
-        <div className="fk-rows" style={{ marginTop: 14 }}>
-          {keys!.map((k) => (
-            <div key={k._id} className="fk-row" data-static="true">
-              <span className="fk-row-main">
-                <span className="fk-row-title">{k.name}</span>
-                <span className="fk-row-meta">
-                  {k.prefix}… · made {relativeTime(k.createdAt)} ·{" "}
-                  {k.lastUsedAt ? `last used ${relativeTime(k.lastUsedAt)}` : "never used"}
-                </span>
-              </span>
-              <span className="fk-row-side">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  iconLeft={<Trash2 size={15} strokeWidth={1.8} aria-hidden />}
-                  onClick={async () => {
-                    await revoke({ keyId: k._id });
-                    toast("Key revoked", { detail: "Anything using it stops working now." });
-                  }}
-                >
-                  Revoke
-                </Button>
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-      {fresh && (
-        <Modal
-          title="Your new API key"
-          description="Copy it now. Formkit keeps only a fingerprint and cannot show it again."
-          onClose={() => setFresh(null)}
-          width={560}
-          footer={<Button onClick={() => setFresh(null)}>Done</Button>}
-        >
-          <button
-            type="button"
-            className="fk-dns-cell fk-copyline"
-            onClick={async () => {
-              await navigator.clipboard.writeText(fresh).catch(() => {});
-              setCopied(true);
-              window.setTimeout(() => setCopied(false), 1500);
-            }}
-          >
-            <span>{fresh}</span>
-            {copied ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
-          </button>
-        </Modal>
-      )}
     </Panel>
   );
 }
@@ -354,13 +260,12 @@ function PaperworkPanel() {
   );
 }
 
-/** Settings → Controls (Business): audit, retention, API, sign-in, paperwork. */
+/** Settings → Controls (Business): audit, retention, sign-in, paperwork. API keys are in Developers. */
 export function ControlsSection() {
   return (
     <>
       <AuditPanel />
       <RetentionPanel />
-      <ApiPanel />
       <SsoPanel />
       <PaperworkPanel />
     </>

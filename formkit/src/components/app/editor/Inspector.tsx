@@ -26,6 +26,7 @@ import { errorText } from "../settings/bits";
 import { useToast } from "@/components/ui/Toast";
 import { DraftArea, DraftPill } from "./Draft";
 import {
+  CONTENT_TYPES,
   FIELD_TYPES,
   fieldType,
   hasOptions,
@@ -37,6 +38,7 @@ import { VALUELESS, firstValue, opLabel } from "./operators";
 import { tracked } from "./saveStatus";
 import { openUpgrade, upgradeOnPlanError, useGate, usePlan } from "@/components/plan/usePlan";
 import { ProChip } from "@/components/plan/UpgradeSheet";
+import { ImageUpload } from "../ImageUpload";
 import { suggestKey } from "../../../../convex/model/calc";
 
 type Block = Doc<"blocks">;
@@ -255,7 +257,8 @@ export function FieldSettings({
                   : {}),
               })
             }
-            options={FIELD_TYPES.map((t) => ({ value: t.type, label: t.label }))}
+            // Presets (NPS) and content blocks are not types a question can switch to.
+            options={FIELD_TYPES.filter((t) => t.type !== "nps" && !CONTENT_TYPES.has(t.type)).map((t) => ({ value: t.type, label: t.label }))}
           />
         </Field>
       </div>
@@ -386,6 +389,7 @@ export function FieldSettings({
           <PropertyRow label="Maximum size" hint="Set by your plan. A five-minute recording is around 3 MB">
             <span className="fk-static-pill">{plan?.limits.uploadMb ?? 10} MB</span>
           </PropertyRow>
+          <TranscribeSetting block={block} patch={patch} />
         </>
       )}
 
@@ -396,7 +400,8 @@ export function FieldSettings({
               <DraftPill
                 type="number"
                 value={String(block.scaleMin ?? 1)}
-                onCommit={(v) => patch({ scaleMin: Number(v) || 0 })}
+                // 0 or 1, and always below the top of the scale.
+                onCommit={(v) => patch({ scaleMin: Math.max(0, Math.min((block.scaleMax ?? 5) - 1, Math.round(Number(v)) || 0)) })}
               />
             </Field>
           )}
@@ -404,10 +409,47 @@ export function FieldSettings({
             <DraftPill
               type="number"
               value={String(block.scaleMax ?? 5)}
-              onCommit={(v) => patch({ scaleMax: Math.max(2, Math.min(10, Number(v) || 5)) })}
+              onCommit={(v) =>
+                patch({
+                  scaleMax: Math.max(
+                    block.type === "scale" ? (block.scaleMin ?? 1) + 1 : 2,
+                    Math.min(10, Math.round(Number(v)) || 5),
+                  ),
+                })
+              }
             />
           </Field>
         </div>
+      )}
+
+      {block.type === "scale" && (
+        <>
+          <div style={{ display: "flex", gap: 10, paddingBottom: 12 }}>
+            <Field label="Label at the start">
+              <DraftPill
+                value={block.scaleLabels?.start ?? ""}
+                placeholder="Not likely"
+                maxLength={40}
+                onCommit={(v) => patch({ scaleLabels: { ...block.scaleLabels, start: v.trim() || undefined } })}
+              />
+            </Field>
+            <Field label="Label at the end">
+              <DraftPill
+                value={block.scaleLabels?.end ?? ""}
+                placeholder="Very likely"
+                maxLength={40}
+                onCommit={(v) => patch({ scaleLabels: { ...block.scaleLabels, end: v.trim() || undefined } })}
+              />
+            </Field>
+          </div>
+          <PropertyRow label="Net Promoter Score" hint="A 0 to 10 scale, scored as NPS in Analytics">
+            <Switch
+              checked={!!block.nps}
+              label="Net Promoter Score"
+              onChange={(on) => patch(on ? { nps: true, scaleMin: 0, scaleMax: 10 } : { nps: false })}
+            />
+          </PropertyRow>
+        </>
       )}
 
       {hasOptions(block.type) && (
@@ -507,6 +549,16 @@ export function FieldSettings({
           </div>
         </div>
       )}
+
+      {(block.type === "single-choice" || block.type === "multi-choice") && (
+        <PropertyRow label="“Other” option" hint="People can pick Other and write their own answer">
+          <Switch checked={!!block.allowOther} label="Other option" onChange={(on) => patch({ allowOther: on })} />
+        </PropertyRow>
+      )}
+
+      {(block.type === "short-text" || block.type === "long-text") && <FollowUpSetting block={block} patch={patch} />}
+
+      <AnswerRules block={block} patch={patch} />
 
       {block.type !== "hidden" && <QuizKey block={block} />}
 
@@ -793,5 +845,239 @@ function QuizKey({ block }: { block: Block }) {
         />
       </div>
     </div>
+  );
+}
+
+/**
+ * What an answer is held to, by question type: a number's range, a text's
+ * length or pattern, a date's window, how many choices. Checked in the form
+ * and on the server (convex/model/validate.ts).
+ */
+function AnswerRules({
+  block,
+  patch,
+}: {
+  block: Doc<"blocks">;
+  patch: (p: Partial<Doc<"blocks">>) => void;
+}) {
+  const r = block.validation ?? {};
+  const set = (next: Partial<NonNullable<Doc<"blocks">["validation"]>>) => {
+    const merged = { ...r, ...next };
+    for (const k of Object.keys(merged) as (keyof typeof merged)[]) if (merged[k] === undefined || merged[k] === "") delete merged[k];
+    // An empty set, not undefined: Convex drops undefined, so the old rules would stay.
+    patch({ validation: merged });
+  };
+  const num = (v: string) => (v.trim() === "" || !Number.isFinite(Number(v)) ? undefined : Number(v));
+  const whole = (v: string) => (num(v) === undefined ? undefined : Math.max(0, Math.round(Number(v))));
+
+  const pair = (a: React.ReactNode, b: React.ReactNode) => (
+    <div style={{ display: "flex", gap: 10, padding: "12px 0" }}>
+      {a}
+      {b}
+    </div>
+  );
+  switch (block.type) {
+    case "number":
+      return pair(
+        <Field label="Lowest">
+          <DraftPill type="number" value={r.min === undefined ? "" : String(r.min)} placeholder="Any" onCommit={(v) => set({ min: num(v) })} />
+        </Field>,
+        <Field label="Highest">
+          <DraftPill type="number" value={r.max === undefined ? "" : String(r.max)} placeholder="Any" onCommit={(v) => set({ max: num(v) })} />
+        </Field>,
+      );
+    case "short-text":
+    case "long-text":
+      return (
+        <>
+          {pair(
+            <Field label="Fewest characters">
+              <DraftPill type="number" value={r.minLength === undefined ? "" : String(r.minLength)} placeholder="Any" onCommit={(v) => set({ minLength: whole(v) })} />
+            </Field>,
+            <Field label="Most characters">
+              <DraftPill type="number" value={r.maxLength === undefined ? "" : String(r.maxLength)} placeholder="Any" onCommit={(v) => set({ maxLength: whole(v) })} />
+            </Field>,
+          )}
+          {block.type === "short-text" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, paddingBottom: 12 }}>
+              <Field label="Must match (a regular expression)" help="For example [A-Z]{2}\d{6} for an order number">
+                <DraftPill value={r.pattern ?? ""} placeholder="Anything" maxLength={200} onCommit={(v) => set({ pattern: v.trim() || undefined })} />
+              </Field>
+              {r.pattern && (
+                <Field label="What to say when it does not">
+                  <DraftPill
+                    value={r.patternMessage ?? ""}
+                    placeholder="That is not in the form this question asks for."
+                    maxLength={140}
+                    onCommit={(v) => set({ patternMessage: v.trim() || undefined })}
+                  />
+                </Field>
+              )}
+            </div>
+          )}
+        </>
+      );
+    case "date":
+      return pair(
+        <Field label="Earliest">
+          <DraftPill type="date" value={r.minDate ?? ""} onCommit={(v) => set({ minDate: v || undefined })} />
+        </Field>,
+        <Field label="Latest">
+          <DraftPill type="date" value={r.maxDate ?? ""} onCommit={(v) => set({ maxDate: v || undefined })} />
+        </Field>,
+      );
+    case "multi-choice":
+      return pair(
+        <Field label="Pick at least">
+          <DraftPill type="number" value={r.minPicks === undefined ? "" : String(r.minPicks)} placeholder="Any" onCommit={(v) => set({ minPicks: whole(v) })} />
+        </Field>,
+        <Field label="Pick at most">
+          <DraftPill type="number" value={r.maxPicks === undefined ? "" : String(r.maxPicks)} placeholder="Any" onCommit={(v) => set({ maxPicks: whole(v) })} />
+        </Field>,
+      );
+    default:
+      return null;
+  }
+}
+
+/**
+ * Settings for content between questions: a statement's words, a picture
+ * and its description, or a video link (YouTube or Vimeo).
+ */
+export function ContentSettings({ block, imageUrl }: { block: Doc<"blocks">; imageUrl: string | null }) {
+  const update = useMutation(api.blocks.update);
+  const toast = useToast();
+  const patch = (p: Parameters<typeof update>[0]["patch"]) =>
+    tracked(update({ blockId: block._id, patch: p })).catch((e) => toast(errorText(e, "That did not save."), { tone: "error" }));
+  return (
+    <section className="fk-panel" data-pad="tight">
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+        <h3 style={{ flex: 1, margin: 0 }}>Content settings</h3>
+        <Badge>{block.type === "image" ? "Image" : block.type === "video" ? "Video" : "Text"}</Badge>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {block.type === "statement" && (
+          <>
+            <Field label="Heading">
+              <DraftPill value={block.title ?? ""} maxLength={200} onCommit={(v) => patch({ title: v })} />
+            </Field>
+            <Field label="Text">
+              <DraftArea value={block.help ?? ""} rows={5} maxLength={2000} onCommit={(v) => patch({ help: v })} />
+            </Field>
+          </>
+        )}
+        {block.type === "image" && (
+          <>
+            <ImageUpload
+              label="Picture"
+              help="PNG, JPEG, WebP or SVG, up to 5 MB."
+              hasImage={!!imageUrl}
+              preview={
+                <span className="fk-logo-plate" data-shape="wide">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- a stored upload */}
+                  {imageUrl ? <img src={imageUrl} alt="" /> : null}
+                </span>
+              }
+              onUploaded={(imageId) => patch({ imageId })}
+              onCleared={() => patch({ imageId: undefined })}
+            />
+            <Field label="Describe the picture" help="Read out to people who cannot see it. Required for the picture to show.">
+              <DraftArea value={block.alt ?? ""} rows={2} maxLength={300} onCommit={(v) => patch({ alt: v })} />
+            </Field>
+            <Field label="Caption (optional)">
+              <DraftPill value={block.title ?? ""} maxLength={200} onCommit={(v) => patch({ title: v })} />
+            </Field>
+          </>
+        )}
+        {block.type === "video" && (
+          <>
+            <Field label="YouTube or Vimeo link">
+              <DraftPill value={block.videoUrl ?? ""} placeholder="https://youtu.be/…" maxLength={500} onCommit={(v) => patch({ videoUrl: v })} />
+            </Field>
+            <Field label="Title (optional)" help="Shown above the video, and read out as its name.">
+              <DraftPill value={block.title ?? ""} maxLength={200} onCommit={(v) => patch({ title: v })} />
+            </Field>
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Pro: each recording written out by the AI once the response is sent, so it
+ * can be searched, exported and read without pressing play.
+ */
+function TranscribeSetting({
+  block,
+  patch,
+}: {
+  block: Doc<"blocks">;
+  patch: (p: Partial<Doc<"blocks">>) => void;
+}) {
+  const gate = useGate("ai.transcribe");
+  return (
+    <div className="fk-proprow">
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>
+          Write out recordings with AI
+          {gate.locked && <ProChip plan="pro" onClick={() => openUpgrade({ feature: "ai.transcribe" })} />}
+        </div>
+        <div className="fk-proprow-hint">
+          Each recording is written out after it is sent. You can search it, export it, and AI replies read it.
+        </div>
+      </div>
+      <Switch
+        checked={!!block.transcribe}
+        label="Write out recordings with AI"
+        onChange={gate.guard((next: boolean) => patch({ transcribe: next }))}
+      />
+    </div>
+  );
+}
+
+/**
+ * Pro: one AI follow-up question after a vague written answer. The owner can
+ * say what to dig into; the person can always skip it.
+ */
+function FollowUpSetting({
+  block,
+  patch,
+}: {
+  block: Doc<"blocks">;
+  patch: (p: Partial<Doc<"blocks">>) => void;
+}) {
+  const gate = useGate("logic.ai");
+  const on = !!block.followUp?.on;
+  return (
+    <>
+      <div className="fk-proprow">
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>
+            AI follow-up question
+            {gate.locked && <ProChip plan="pro" onClick={() => openUpgrade({ feature: "logic.ai" })} />}
+          </div>
+          <div className="fk-proprow-hint">
+            When an answer is vague, the AI asks one short question about it before they move on. They can skip it.
+          </div>
+        </div>
+        <Switch
+          checked={on}
+          label="AI follow-up question"
+          onChange={gate.guard((next: boolean) => patch({ followUp: { on: next, instruction: block.followUp?.instruction } }))}
+        />
+      </div>
+      {on && (
+        <div style={{ paddingBottom: 12 }}>
+          <Field label="What to dig into (optional)" help="For example: the budget, the timeline, or what they tried before.">
+            <DraftPill
+              value={block.followUp?.instruction ?? ""}
+              maxLength={300}
+              onCommit={(v) => patch({ followUp: { on: true, instruction: v.trim() || undefined } })}
+            />
+          </Field>
+        </div>
+      )}
+    </>
   );
 }

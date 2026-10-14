@@ -2993,6 +2993,106 @@ button.fk-chip {
   height: 1px;
   opacity: 0;
 }
+/* The AI's follow-up question under a written answer. */
+.fk-live-followup {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.035);
+}
+.fk-live-followup label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-weight: 550;
+}
+.fk-live-followup textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  font: inherit;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+  resize: vertical;
+}
+
+/* "Save and finish later" under a live form. */
+.fk-live-later {
+  margin-top: 22px;
+  font-size: 0.9em;
+}
+.fk-live-later-open {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 550;
+  opacity: 0.85;
+  cursor: pointer;
+}
+.fk-live-later-open:hover {
+  opacity: 1;
+}
+.fk-live-later label {
+  display: block;
+  margin-bottom: 8px;
+}
+.fk-live-later-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.fk-live-later-row input {
+  flex: 1;
+  min-width: 200px;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 12px;
+  font: inherit;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+/* Content between questions on a live form. */
+.fk-live-content-text {
+  margin: 8px 0 0;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+.fk-live-content-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 14px;
+}
+.fk-live-video {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  margin-top: 10px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.06);
+}
+.fk-live-video iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* Words under either end of an opinion scale. */
+.fk-live-scale-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 8px;
+  font-size: 0.82em;
+  opacity: 0.75;
+}
+
 /* Keyboard focus on a live form: always visible, in the form's own accent.
    !important because controls set outline:none inline for mouse users. */
 .fk-live :is(input, textarea, select, button, a, [role="radio"], [role="checkbox"]):focus-visible {
@@ -6957,4 +7057,93 @@ html.fk-own-bar::-webkit-scrollbar {
   color: inherit;
   opacity: 0.6;
   font-variant-numeric: tabular-nums;
+}
+
+/* Analytics: answers, question by question (QuestionSummary). */
+.fk-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 28px 40px;
+  margin-top: 8px;
+}
+.fk-summary .fk-droprow-pct {
+  white-space: nowrap;
+  min-width: 76px;
+  text-align: right;
+}
+.fk-summary-q h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 550;
+  line-height: 1.35;
+}
+.fk-summary-n {
+  color: var(--color-text-secondary);
+  font-weight: 450;
+  margin-right: 4px;
+}
+.fk-summary-meta {
+  margin: 4px 0 12px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+.fk-summary-big {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+.fk-summary-big strong {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.fk-summary-spread {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 96px;
+}
+.fk-summary-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  gap: 6px;
+}
+.fk-summary-bar {
+  width: 100%;
+  border-radius: 4px 4px 2px 2px;
+  background: var(--blue-500);
+}
+.fk-summary-bar[data-empty="true"] {
+  background: var(--neutral-150);
+}
+.fk-summary-tick {
+  font-size: 11.5px;
+  color: var(--color-text-secondary);
+}
+.fk-summary-latest {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+.fk-summary-latest li {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--color-surface-sunken);
+  font-size: 13.5px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+/* Builder canvas: a content block's picture. */
+.fk-ghost-image {
+  display: block;
+  max-width: 100%;
+  max-height: 220px;
+  border-radius: 10px;
+  object-fit: cover;
 }

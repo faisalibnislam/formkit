@@ -2,13 +2,15 @@ import { hasLimits, placesLeft, placesTaken } from "./model/places";
 import { isAudio, voiceLength } from "./model/voice";
 import { owed, takesPayment } from "./payments";
 import { ConvexError, v } from "convex/values";
-import { action, internalMutation, internalQuery, mutation, query, type MutationCtx } from "./_generated/server";
+import { action, internalAction, internalMutation, internalQuery, mutation, query, type MutationCtx } from "./_generated/server";
+import { send } from "./notifications";
+import { renderResumeLink } from "./emails/response";
 import { validateAnswers } from "./model/validate";
 import { servedForm } from "./model/served";
 import type { Rule } from "./model/logicEval";
 import { internal } from "./_generated/api";
 import { closedReason, notifyResponse, tellFormTeam } from "./model/inbox";
-import { queueReply } from "./model/aiReply";
+import { queueClassify, queueReply, voiceToWrite } from "./model/aiReply";
 import { chargeResponse, usesAiLogic } from "./model/aiMeter";
 import { markAll, marked } from "./model/quiz";
 import { Doc, Id } from "./_generated/dataModel";
@@ -218,7 +220,7 @@ async function payload(ctx: QueryCtx, live: Doc<"forms">, opts: { draft?: boolea
       partials: await partialsOn(ctx, form.ownerId),
     },
     // A hidden field without the plan is left out entirely.
-    blocks: blocks.filter((b) => b.type !== "hidden" || smart.hidden).map((b) => ({
+    blocks: await Promise.all(blocks.filter((b) => b.type !== "hidden" || smart.hidden).map(async (b) => ({
       _id: b._id,
       kind: b.kind,
       type: b.type ?? null,
@@ -238,9 +240,18 @@ async function payload(ctx: QueryCtx, live: Doc<"forms">, opts: { draft?: boolea
       /** Places left per option; null where an option has no limit. */
       left: advanced ? placesLeft(b, taken) : null,
       extract: smart.ai && b.extract ? { from: b.extract.from } : null,
+      /** Pro: the AI may ask one follow-up to this answer (what to dig into stays with the owner). */
+      followUp: smart.ai && b.followUp?.on ? true : null,
       /** Quiz: what the question is worth, when it counts. */
       marks: quiz && marked(b) ? (b.marks ?? 1) : null,
-    })),
+      scaleLabels: b.scaleLabels ?? null,
+      allowOther: !!b.allowOther,
+      validation: b.validation ?? null,
+      /** Content blocks: a picture (with its description) or a video link. */
+      imageUrl: b.kind === "content" && b.imageId ? await ctx.storage.getUrl(b.imageId) : null,
+      alt: b.alt ?? null,
+      videoUrl: b.kind === "content" ? (b.videoUrl ?? null) : null,
+    }))),
     /** Business: the quiz's settings the form itself needs - never the answers. */
     quiz: quizPublic,
     /** Business: an AI-written reply follows, and where it goes. */
@@ -279,9 +290,19 @@ export const linkState = query({
   handler: async (ctx, { slug, handle }) => {
     const form = await resolve(ctx, slug, handle);
     if (form && (form.status === "published" || form.status === "closed")) {
-      // The browser tab: the form's title, and its owner's square logo.
+      // The browser tab and a shared link's card: the form's title as
+      // published, its welcome line, and its owner's name, logo and colour.
       const brand = await brandOf(ctx, form);
-      return { live: true as const, home: null, title: form.title, name: brand.name, icon: brand.markUrl };
+      const shown = (await servedForm(ctx, form)).form;
+      return {
+        live: true as const,
+        home: null,
+        title: shown.title,
+        name: brand.name,
+        icon: brand.markUrl,
+        color: brand.color ?? null,
+        about: shown.welcome?.message?.trim().slice(0, 200) || null,
+      };
     }
     let owner: { ownerId: Id<"users">; brand: "me" | Id<"companies"> } | null = form
       ? { ownerId: form.ownerId, brand: form.brand }
@@ -299,6 +320,8 @@ export const linkState = query({
       title: null,
       name: null,
       icon: null,
+      color: null,
+      about: null,
     };
   },
 });
@@ -480,6 +503,7 @@ const answerArg = v.object({
   values: v.optional(v.array(v.string())),
   fileId: v.optional(v.id("_storage")),
   fileName: v.optional(v.string()),
+  followUp: v.optional(v.object({ question: v.string(), answer: v.string() })),
 });
 
 type AnswerIn = {
@@ -488,9 +512,21 @@ type AnswerIn = {
   values?: string[];
   fileId?: Id<"_storage">;
   fileName?: string;
+  followUp?: { question: string; answer: string };
 };
 
 /** Build and store the record; shared by the public link and the preview. */
+/** utm_ tags, trimmed, or nothing when none were given. */
+function cleanUtm(utm?: { source?: string; medium?: string; campaign?: string; term?: string; content?: string }) {
+  if (!utm) return undefined;
+  const out: Record<string, string> = {};
+  for (const k of ["source", "medium", "campaign", "term", "content"] as const) {
+    const v = utm[k]?.trim();
+    if (v) out[k] = v.slice(0, 80);
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
 async function store(
   ctx: MutationCtx,
   live: Doc<"forms">,
@@ -504,6 +540,7 @@ async function store(
     attemptId?: Id<"quizAttempts">;
     timedOut?: boolean;
     answers: AnswerIn[];
+    utm?: { source?: string; medium?: string; campaign?: string; term?: string; content?: string };
   },
   existing: Doc<"responses"> | null,
   preview: boolean,
@@ -517,7 +554,15 @@ async function store(
 
   const answers = args.answers
     .filter((a) => byId.has(a.blockId))
-    .map((a) => ({ ...a, question: byId.get(a.blockId)!.title ?? "Question" }));
+    .map((a) => ({
+      ...a,
+      question: byId.get(a.blockId)!.title ?? "Question",
+      // An AI follow-up only on a question that asks one, kept short.
+      followUp:
+        a.followUp && byId.get(a.blockId)!.followUp?.on
+          ? { question: a.followUp.question.slice(0, 300), answer: a.followUp.answer.slice(0, 4000) }
+          : undefined,
+    }));
 
   // The respondent's name and email come from whichever fields collect them.
   const typed = (t: string) => answers.find((a) => byId.get(a.blockId)!.type === t && a.value);
@@ -535,11 +580,13 @@ async function store(
     totalCount: blocks.filter((b) => b.type !== "hidden").length,
     answers,
     respondentName: named?.value,
-    respondentEmail: mailed?.value?.trim().toLowerCase(),
+    // An address given to "save and finish later" stays when no email question was answered.
+    respondentEmail: mailed?.value?.trim().toLowerCase() || existing?.respondentEmail,
     respondentPhone: phoned?.value?.trim(),
     respondentCompany: firm?.value?.trim(),
     device: args.device,
     source: preview ? "Preview" : args.source,
+    utm: preview ? undefined : cleanUtm(args.utm),
     durationMs: args.durationMs,
     status: "new" as const,
     resumeToken: existing?.resumeToken ?? crypto.randomUUID(),
@@ -634,8 +681,14 @@ async function store(
     // AI logic read this response while it was filled in: it counts once
     // against the company's AI, whether or not a reply is written too.
     if (await usesAiLogic(ctx, form)) await chargeResponse(ctx, form, responseId);
+    // Pro: voice answers are written out first, so the AI reply and reading
+    // that follow can use what was said. They wait for it.
+    const hold = !!saved && (await voiceToWrite(ctx, form, saved));
     // The AI reply is queued first, so the confirmation knows to wait for it.
-    if (!existing?.aiReply) await queueReply(ctx, form, responseId);
+    const reply = !existing?.aiReply && (await queueReply(ctx, form, responseId, { hold }));
+    // Pro: reading every response without a reply (sentiment, topics, urgency).
+    const classify = !existing?.insight && (await queueClassify(ctx, form, responseId, { hold }));
+    if (hold) await ctx.scheduler.runAfter(0, internal.transcribe.run, { responseId, reply, classify });
     // Instant quiz results go out by email as soon as the mark is in.
     if (quizOn?.results === "instant" && quizOn.emailResults && "quiz" in full && !full.quiz.pending) {
       await ctx.scheduler.runAfter(0, internal.quiz.emailResult, { responseId });
@@ -789,6 +842,16 @@ export const submit = mutation({
     human: v.optional(v.boolean()),
     /** A Turnstile check that passed (verifyHuman), spent by this submission. */
     pass: v.optional(v.id("humanPasses")),
+    /** The link's utm_ tags. */
+    utm: v.optional(
+      v.object({
+        source: v.optional(v.string()),
+        medium: v.optional(v.string()),
+        campaign: v.optional(v.string()),
+        term: v.optional(v.string()),
+        content: v.optional(v.string()),
+      }),
+    ),
     /** The ending the person's answers led to, when it was not the default. */
     ending: v.optional(v.string()),
     /** Quiz: the attempt started when the timer began, and whether it ran out. */
@@ -923,5 +986,61 @@ export const submitPreview = mutation({
   handler: async (ctx, args) => {
     const { form } = await accessOf(ctx, args.formId);
     return store(ctx, form, { ...args, partial: false }, null, true);
+  },
+});
+
+/**
+ * "Save and finish later": the person leaves an email address on a form
+ * they started, and gets their own link back to it. The response must be
+ * a partial they hold the token for; once every two minutes at most.
+ */
+export const emailResumeLink = mutation({
+  args: { formId: v.id("forms"), resumeToken: v.string(), email: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { formId, resumeToken, email }) => {
+    const to = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(to) || to.length > 254) {
+      throw new ConvexError("That does not look like an email address.");
+    }
+    const r = await ctx.db
+      .query("responses")
+      .withIndex("by_resume", (q) => q.eq("resumeToken", resumeToken))
+      .first();
+    if (!r || r.formId !== formId || !r.partial) throw new ConvexError("Those answers are not saved any more.");
+    if (r.resumeEmailedAt && Date.now() - r.resumeEmailedAt < 2 * 60_000) {
+      throw new ConvexError("We have just sent it. Give it a minute, then check your spam folder.");
+    }
+    await ctx.db.patch(r._id, { resumeEmailedAt: Date.now(), ...(r.respondentEmail ? {} : { respondentEmail: to }) });
+    await ctx.scheduler.runAfter(0, internal.publicForm.mailResumeLink, { responseId: r._id, to });
+    return null;
+  },
+});
+
+export const resumeMail = internalQuery({
+  args: { responseId: v.id("responses") },
+  handler: async (ctx, { responseId }) => {
+    const r = await ctx.db.get(responseId);
+    const form = r && (await ctx.db.get(r.formId));
+    if (!r?.resumeToken || !form) return null;
+    return { title: form.title, token: r.resumeToken, brand: await brandOf(ctx, form) };
+  },
+});
+
+export const mailResumeLink = internalAction({
+  args: { responseId: v.id("responses"), to: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { responseId, to }) => {
+    const m: { title: string; token: string; brand: { name: string; logoUrl: string | null; color: string | null; badge: boolean } } | null =
+      await ctx.runQuery(internal.publicForm.resumeMail, { responseId });
+    if (!m) return null;
+    const site = (process.env.SITE_URL ?? "https://formkit.app").replace(/\/$/, "");
+    const link = `${site}/r/${m.token}`;
+    await send({
+      to: [to],
+      subject: `Finish ${m.title} when you are ready`,
+      html: renderResumeLink({ title: m.title, link, brand: m.brand }),
+      text: `Everything you answered so far on ${m.title} is saved. Carry on here: ${link}\n\nAnyone with this link can see and change your answers, so keep it to yourself.`,
+    });
+    return null;
   },
 });

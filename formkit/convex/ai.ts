@@ -14,9 +14,10 @@ import { aiAllowed, requireUser } from "./model/identity";
 import { aiStatus, spendAi } from "./model/aiMeter";
 import { currentSpace, spaceOfForm } from "./model/spaces";
 import { CREDIT_COST } from "./model/plans";
-import { formFor, recount, uniqueSlug } from "./model/forms";
+import { formFor, recount } from "./model/forms";
 import { hasFeature } from "./model/plans";
 import { logActivity } from "./model/access";
+import { insertDraftForm, presetTheme } from "./model/draftForm";
 import { OPERATORS } from "./logic";
 import { THEME_PRESETS } from "./model/themePresets";
 import {
@@ -131,7 +132,10 @@ async function snapshot(ctx: QueryCtx, form: Doc<"forms">): Promise<Snapshot> {
     id: form._id,
     title: form.title,
     brandColor: company?.brandColor ?? null,
-    blocks: blocks.map((b) => ({
+    // Content (statements, pictures, videos) is not part of what the AI edits.
+    blocks: blocks
+      .filter((b): b is typeof b & { kind: "field" | "pagebreak" } => b.kind !== "content")
+      .map((b) => ({
       id: b._id,
       kind: b.kind,
       type: b.type,
@@ -356,10 +360,6 @@ export const addRules = internalMutation({
   },
 });
 
-function presetTheme(id: string, primary?: string) {
-  const p = THEME_PRESETS.find((t) => t.id === id) ?? THEME_PRESETS[0]!;
-  return { preset: p.id, bg: p.bg, surface: p.surface, text: p.text, primary: primary ?? p.primary, radius: p.radius };
-}
 
 export const setTheme = internalMutation({
   args: { formId: v.id("forms"), preset: v.string(), primary: v.optional(v.string()) },
@@ -411,69 +411,12 @@ export const commit = mutation({
     // The draft came back through the browser, so it is checked again here.
     const checked = toDraft(parseJson<RawDraft>(draftAsJson(raw as Draft)));
     if (!checked) throw new Error("That draft could not be read. Ask for it again.");
-    const draft = checked.draft;
-    const now = Date.now();
-
-    const companies = await ctx.db
-      .query("companies")
-      .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
-      .collect();
-    const branded = companies.find((c) => c.useBranding);
-    const formId = await ctx.db.insert("forms", {
+    return insertDraftForm(ctx, {
+      draft: checked.draft,
       ownerId: user._id,
-      brand: branded ? branded._id : "me",
-      title: draft.title,
-      description: draft.description || undefined,
-      slug: await uniqueSlug(ctx, draft.title),
-      status: "draft",
-      welcome: draft.welcome,
-      thanks: draft.thanks,
-      theme: draft.theme ? presetTheme(draft.theme) : undefined,
-      responsesCount: 0,
-      completedCount: 0,
-      views: 0,
-      starts: 0,
-      createdAt: now,
-      updatedAt: now,
+      actorId: user._id,
+      activity: "created the form with Ask Formkit",
     });
-
-    const fieldIds: Id<"blocks">[] = [];
-    for (const [order, it] of draft.items.entries()) {
-      const id = await ctx.db.insert(
-        "blocks",
-        it.kind === "pagebreak"
-          ? { formId, order, kind: "pagebreak", pageName: it.pageName }
-          : {
-              formId,
-              order,
-              kind: "field",
-              type: it.type,
-              title: it.title,
-              help: it.help,
-              required: it.required,
-              options: it.options,
-            },
-      );
-      if (it.kind === "field") fieldIds.push(id);
-    }
-    for (const [order, r] of draft.rules.entries()) {
-      const whenId = fieldIds[r.when - 1];
-      const targetId = fieldIds[r.target - 1];
-      if (!whenId || !targetId) continue;
-      await ctx.db.insert("logicRules", {
-        formId,
-        name: r.name,
-        enabled: true,
-        join: "and",
-        conditions: [{ blockId: whenId, operator: r.operator, value: r.value }],
-        action: r.action,
-        targetId,
-        order,
-      });
-    }
-    await recount(ctx, formId);
-    await logActivity(ctx, formId, user._id, "created the form with Ask Formkit", "sparkles");
-    return formId;
   },
 });
 
