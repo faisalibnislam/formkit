@@ -331,7 +331,19 @@ export const checkNow = action({
   handler: async (ctx, { domainId }): Promise<null> => {
     const row: Doc<"domains"> | null = await ctx.runQuery(internal.domains.ownRow, { domainId });
     if (!row) throw new ConvexError("That domain is no longer connected.");
+    // Released after a week without DNS: start a fresh week. check() puts it
+    // back on the Vercel project, since Vercel no longer has it.
+    if (row.releasedAt) await ctx.runMutation(internal.domains.rewait, { domainId });
     await check(ctx, row);
+    return null;
+  },
+});
+
+export const rewait = internalMutation({
+  args: { domainId: v.id("domains") },
+  returns: v.null(),
+  handler: async (ctx, { domainId }) => {
+    await ctx.db.patch(domainId, { addedAt: Date.now(), releasedAt: undefined, status: "pending" });
     return null;
   },
 });
@@ -495,13 +507,55 @@ export const pending = internalQuery({
   },
 });
 
-/** Every ten minutes: domains waiting on DNS (for a week), and live ones due their hourly look. */
+/** Domains still waiting on DNS a week after they were added. */
+export const stale = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const week = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return (
+      await ctx.db
+        .query("domains")
+        .withIndex("by_status", (q) => q.eq("status", "pending"))
+        .collect()
+    ).filter((d) => d.addedAt <= week);
+  },
+});
+
+export const release = internalMutation({
+  args: { domainId: v.id("domains") },
+  returns: v.null(),
+  handler: async (ctx, { domainId }) => {
+    const row = await ctx.db.get(domainId);
+    if (!row || row.status !== "pending") return null;
+    await ctx.db.patch(domainId, {
+      status: "failed",
+      releasedAt: Date.now(),
+      checkedAt: Date.now(),
+      detail:
+        "No DNS record pointed here within a week, so Formkit stopped waiting and released the domain. Add the record shown, then press Check now to connect it again.",
+    });
+    return null;
+  },
+});
+
+/**
+ * Every ten minutes: domains waiting on DNS (for a week), and live ones due
+ * their hourly look. A domain still waiting after a week is taken off the
+ * Vercel project, so abandoned set-ups do not pile up there as "Invalid
+ * Configuration"; Check now puts it back.
+ */
 export const recheckPending = internalAction({
   args: {},
   returns: v.null(),
   handler: async (ctx): Promise<null> => {
     const rows: Doc<"domains">[] = await ctx.runQuery(internal.domains.pending, {});
     for (const row of rows) await check(ctx, row);
+    const stale: Doc<"domains">[] = await ctx.runQuery(internal.domains.stale, {});
+    for (const row of stale) {
+      const res = await vercelCall("DELETE", `/v9/projects/${process.env.VERCEL_PROJECT_ID}/domains/${row.host}`);
+      // Gone already counts; anything else (switched off, Vercel down) waits for the next run.
+      if (res.ok || res.status === 404) await ctx.runMutation(internal.domains.release, { domainId: row._id });
+    }
     return null;
   },
 });

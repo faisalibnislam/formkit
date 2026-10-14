@@ -1031,8 +1031,11 @@ export default defineSchema({
     /** The DNS records to set, as Vercel reports them. */
     records: v.optional(v.array(v.object({ type: v.string(), name: v.string(), value: v.string() }))),
     detail: v.optional(v.string()),
+    /** When it was added, or re-added after being released: the week of waiting runs from here. */
     addedAt: v.number(),
     checkedAt: v.optional(v.number()),
+    /** Set when a week passed without DNS and it was taken off the Vercel project. */
+    releasedAt: v.optional(v.number()),
   })
     .index("by_host", ["host"])
     .index("by_owner", ["ownerId"])
