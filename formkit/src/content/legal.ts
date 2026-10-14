@@ -60,7 +60,7 @@ export const PRIVACY: LegalSection[] = [
     id: "who-else-sees-it",
     title: "Who else touches it",
     paras: [
-      "A small number of companies handle data for us because they run the machines: Convex and Vercel host Formkit, Resend delivers its email, Polar handles billing for paid plans, and Google's Gemini models power the AI features. They are bound to use it only to provide that service. If you allow it on our public pages, Google Analytics also receives visit data from those pages (see Cookies).",
+      "A small number of companies handle data for us because they run the machines: Convex and Vercel host Formkit, Resend delivers its email, Polar handles billing for paid plans, Google's Gemini models power the AI features, and Sentry receives reports of errors in the app (what went wrong, without answers or account details). They are bound to use it only to provide that service. If you allow it on our public pages, Google Analytics also receives visit data from those pages (see Cookies).",
       "AI features send Google only what they need. Ask Formkit sends your prompt and the form you are working on, and, when you ask it to read responses, counts and written answers without names, email addresses or phone numbers. If you turn on AI replies, AI logic or AI insights for a form, each response to it is sent as it arrives, so the reply, decision or summary can be written. Google may not use any of it to train its models.",
       "Formkit staff can reach your account for support: to answer a ticket, look into a report, or investigate abuse. When they do, it is logged, and a support view is read-only: staff can see what you see and change nothing.",
     ],
@@ -279,6 +279,7 @@ export const DPA: LegalSection[] = [
       "Vercel: hosting for the website and the forms.",
       "Resend: delivery of the emails Formkit sends.",
       "Cloudflare (Turnstile): the spam check on forms with spam protection on. It sees the respondent's browser and connection, never their answers.",
+      "Sentry: reports of errors in the app, with links stripped of tokens and without answers or account details.",
       "Polar: billing for Formkit plans (your account details only, never your responses).",
       "Google (Gemini): the AI features. It receives your prompts and the form when you use Ask Formkit; responses without names, emails or phone numbers when you ask it to read them; and each response to a form with AI replies, AI logic or AI insights turned on. It may not use the data to train its models.",
     ],

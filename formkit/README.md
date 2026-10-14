@@ -70,7 +70,10 @@ npx convex env set --prod TURNSTILE_SECRET_KEY 0x...             # Cloudflare Tu
 On Vercel (all environments): `NEXT_PUBLIC_CONVEX_URL`, `NEXT_PUBLIC_SITE_URL`,
 `NEXT_PUBLIC_GA_ID` to switch on Google Analytics on the public pages, behind
 its consent banner, and `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (with
-`TURNSTILE_SECRET_KEY` on Convex) to switch on Turnstile.
+`TURNSTILE_SECRET_KEY` on Convex) to switch on Turnstile, and
+`NEXT_PUBLIC_SENTRY_DSN` to send errors to Sentry (browser and server; nothing
+is sent while it is unset). Errors inside Convex functions are reported by
+Convex's own Sentry integration, set up in the Convex dashboard.
 
 **Google and Microsoft sign-in** (Business single sign-on) are switched on by
 setting their OAuth apps on the Convex deployment: `AUTH_GOOGLE_ID` /
