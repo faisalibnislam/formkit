@@ -3,6 +3,7 @@
 import { conditionsOf } from "../../../../convex/model/logicEval";
 import { useSeededQuery } from "@/lib/seed";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { UNDO_EVENT } from "./UndoRedo";
 import type { DragEvent, PointerEvent } from "react";
 import { useMutation, useQuery } from "convex/react";
 import {
@@ -115,6 +116,8 @@ const SHORTCUTS: [string, string][] = [
   ["Alt+↑ Alt+↓", "Move it up or down"],
   [`${MOD}+D`, "Duplicate it"],
   ["Delete", "Delete it (Undo brings it back)"],
+  [`${MOD}+Z`, "Undo the last change to questions, pages or logic"],
+  [`${MOD}+Shift+Z`, "Redo it"],
   [`${MOD}+Enter`, "Add a question below it"],
   [`${MOD}+Shift+P`, "Preview the form"],
   ["Esc", "Select nothing"],
@@ -400,6 +403,22 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
     if (copy) setSelected(copy);
     toast("Duplicated");
   }
+
+  // ⌘Z first brings back a question still waiting on its toast's Undo.
+  const pendingUndo = useRef(undoDelete);
+  useEffect(() => {
+    pendingUndo.current = undoDelete;
+  });
+  useEffect(() => {
+    const onUndo = (e: Event) => {
+      const newest = [...pendingDeletes.current.keys()].pop();
+      if (!newest) return;
+      e.preventDefault();
+      pendingUndo.current(newest as Id<"blocks">);
+    };
+    window.addEventListener(UNDO_EVENT, onUndo);
+    return () => window.removeEventListener(UNDO_EVENT, onUndo);
+  }, []);
 
   // Keyboard shortcuts, while nothing is being typed in and no dialog is open.
   const keys = useRef({ add, duplicate, deleteQuestion, nudge, blocks, selected });

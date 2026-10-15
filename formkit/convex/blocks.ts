@@ -1,4 +1,5 @@
 import { conditionsOf } from "./model/logicEval";
+import { remember } from "./model/history";
 import { ConvexError, v } from "convex/values";
 import { mutation } from "./_generated/server";
 import { blockExtras, questionType } from "./schema";
@@ -7,7 +8,7 @@ import { requireFeature } from "./model/plans";
 import { validKey } from "./model/calc";
 import { voiceLength } from "./model/voice";
 import { videoEmbed } from "./model/video";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 
 /**
@@ -59,6 +60,12 @@ async function freeKey(ctx: MutationCtx, formId: Id<"forms">, want: string) {
   for (let i = 2; ; i++) if (!used.has(`${base}_${i}`)) return `${base}_${i}`;
 }
 
+/** A block's name in an undo label. */
+const named = (b: Doc<"blocks">) => {
+  const t = (b.kind === "pagebreak" ? b.pageName : b.title)?.trim() || (b.kind === "pagebreak" ? "page" : "question");
+  return t.length > 40 ? `${t.slice(0, 39)}…` : t;
+};
+
 export const add = mutation({
   args: {
     formId: v.id("forms"),
@@ -71,6 +78,7 @@ export const add = mutation({
   handler: async (ctx, { formId, kind, at, ...fields }) => {
     const form = await formFor(ctx, formId);
     if (fields.type === "hidden") await requireFeature(ctx, form, "logic.hidden");
+    await remember(ctx, formId, kind === "pagebreak" ? "Add a page" : kind === "content" ? "Add a block" : "Add a question");
 
     const blocks = (
       await ctx.db
@@ -194,6 +202,9 @@ export const update = mutation({
       }
       patch.key = key || undefined;
     }
+    await remember(ctx, block.formId, `Edit “${named(block)}”`, {
+      key: `block:${blockId}:${Object.keys(patch).sort().join(",")}`,
+    });
     // null clears the AI extraction; the stored field cannot hold null.
     const { extract, ...rest } = patch;
     await ctx.db.patch(blockId, { ...rest, ...(extract === null ? { extract: undefined } : extract ? { extract } : {}) });
@@ -210,6 +221,7 @@ export const remove = mutation({
     const block = await ctx.db.get(blockId);
     if (!block) return null;
     await formFor(ctx, block.formId);
+    await remember(ctx, block.formId, `Delete “${named(block)}”`);
 
     const rules = await ctx.db
       .query("logicRules")
@@ -246,6 +258,7 @@ export const duplicate = mutation({
     const block = await ctx.db.get(blockId);
     if (!block) throw new Error("That question no longer exists.");
     await formFor(ctx, block.formId);
+    await remember(ctx, block.formId, `Duplicate “${named(block)}”`);
 
     const { _id, _creationTime, order, ...rest } = block;
     const blocks = (
@@ -273,6 +286,7 @@ export const reorder = mutation({
   returns: v.null(),
   handler: async (ctx, { formId, ids }) => {
     await formFor(ctx, formId);
+    await remember(ctx, formId, "Move a question");
     for (const [i, id] of ids.entries()) {
       const block = await ctx.db.get(id);
       if (block?.formId === formId && block.order !== i) {
@@ -296,6 +310,7 @@ export const removePage = mutation({
     const block = await ctx.db.get(blockId);
     if (!block || block.kind !== "pagebreak") return 0;
     await formFor(ctx, block.formId);
+    await remember(ctx, block.formId, `Delete the page “${named(block)}”`);
 
     const blocks = (
       await ctx.db
@@ -342,6 +357,7 @@ export const duplicatePage = mutation({
     const block = await ctx.db.get(blockId);
     if (!block || block.kind !== "pagebreak") throw new Error("That page no longer exists.");
     await formFor(ctx, block.formId);
+    await remember(ctx, block.formId, `Duplicate the page “${named(block)}”`);
 
     const blocks = (
       await ctx.db

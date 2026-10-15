@@ -296,6 +296,10 @@ export async function purgeStep(ctx: MutationCtx, formId: Id<"forms">): Promise<
   }
   if (!(await gone(await ctx.db.query("placeCounts").withIndex("by_form_block", (q) => q.eq("formId", formId)).take(left)))) return false;
   if (!(await gone(await ctx.db.query("responseEmbeddings").withIndex("by_form", (q) => q.eq("formId", formId)).take(left)))) return false;
+  // Undo history holds whole drafts, so a few rows at a time.
+  const batch = Math.min(left, 8);
+  const history = await ctx.db.query("draftHistory").withIndex("by_form_kind_at", (q) => q.eq("formId", formId)).take(batch);
+  if (!(await gone(history)) || history.length === batch) return false;
 
   // Connections, and what they delivered.
   for (const c of await ctx.db.query("connections").withIndex("by_form", (q) => q.eq("formId", formId)).take(50)) {

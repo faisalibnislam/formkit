@@ -1108,6 +1108,34 @@ button.fk-chip {
 .fk-savestatus[data-tone="error"]::before {
   background: var(--red-400, #f87171);
 }
+/* Undo and redo, beside the save status on the sky. */
+.fk-undo {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: 4px;
+}
+.fk-undo button {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--neutral-0);
+  cursor: pointer;
+}
+.fk-undo button:hover:not(:disabled) {
+  background: rgb(255 255 255 / 0.16);
+}
+.fk-undo button:focus-visible {
+  outline: 2px solid var(--neutral-0);
+  outline-offset: 1px;
+}
+.fk-undo button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
 
 /* ---------- the Logic tab ---------- */
 

@@ -1067,6 +1067,9 @@ export const QUERIES: Record<string, unknown> = {
       order: 4,
     },
   ],
+  "history:state": { undo: { label: "Edit “Budget range”", mine: true }, redo: null },
+  "mutation:history:undo": "Edit “Budget range”",
+  "mutation:history:redo": "Edit “Budget range”",
   "ai:usage": { used: 3, limit: 25, allowed: true },
   "insights:overview": {
     locked: false,

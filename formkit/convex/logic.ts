@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { remember } from "./model/history";
 import { mutation, query } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { formFor } from "./model/forms";
@@ -101,6 +102,7 @@ export const add = mutation({
     const form = await formFor(ctx, formId);
     await checkPlan(ctx, form.ownerId, { action, conditions, groups });
     await checkTarget(ctx, formId, action, targetId);
+    await remember(ctx, formId, "Add a rule");
     const existing = await ctx.db
       .query("logicRules")
       .withIndex("by_form", (q) => q.eq("formId", formId))
@@ -151,6 +153,7 @@ export const update = mutation({
       groups: patch.groups ?? undefined,
     });
     if (patch.targetId || patch.action) await checkTarget(ctx, rule.formId, patch.action ?? rule.action, patch.targetId ?? rule.targetId);
+    await remember(ctx, rule.formId, `Change “${rule.name}”`, { key: `rule:${ruleId}:${Object.keys(patch).sort().join(",")}` });
     const { groups, conditions, ...rest } = patch;
     await ctx.db.patch(ruleId, {
       ...rest,
@@ -169,6 +172,7 @@ export const remove = mutation({
     const rule = await ctx.db.get(ruleId);
     if (!rule) return null;
     await formFor(ctx, rule.formId);
+    await remember(ctx, rule.formId, `Delete “${rule.name}”`);
     await ctx.db.delete(ruleId);
     await ctx.db.patch(rule.formId, { updatedAt: Date.now() });
     return null;
@@ -190,6 +194,7 @@ export const unapply = mutation({
     const rule = await ctx.db.get(ruleId);
     if (!rule) throw new Error("That rule no longer exists.");
     await formFor(ctx, rule.formId);
+    await remember(ctx, rule.formId, `Change “${rule.name}”`);
 
     if (rule.targetId === blockId) {
       await ctx.db.patch(ruleId, { targetId: undefined });

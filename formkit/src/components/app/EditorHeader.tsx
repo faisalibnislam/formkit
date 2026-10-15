@@ -33,6 +33,7 @@ import { useCommentRequests, usePresence, usePresenceBeat } from "./editor/colla
 import { usePreviewRequests, type PreviewRequest } from "./editor/previewBus";
 import { THEME_PRESETS, themeOf } from "./editor/themes";
 import { resetSaveStatus, tracked, useSaveStatus } from "./editor/saveStatus";
+import { UndoRedo } from "./editor/UndoRedo";
 
 /**
  * The header's dialogs open on a click, so they are not part of the first
@@ -212,6 +213,7 @@ export function EditorHeader({ formId, tab }: { formId: Id<"forms">; tab: string
                   {saved.label}
                 </span>
               )}
+              {(tab === "build" || tab === "logic") && <UndoRedo formId={formId} />}
             </div>
 
             <input

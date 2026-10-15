@@ -828,6 +828,25 @@ export default defineSchema({
     publishedBy: v.optional(v.string()),
   }).index("by_form", ["formId", "number"]),
 
+  /**
+   * Undo and redo in the builder: the questions, pages and rules as they were
+   * before a change (model/history.ts). The newest "undo" row is what Undo
+   * puts back; the newest "redo" row, what Redo does. A new change clears the
+   * redo rows, and only the last HISTORY_LIMIT undo rows are kept.
+   */
+  draftHistory: defineTable({
+    formId: v.id("forms"),
+    kind: v.union(v.literal("undo"), v.literal("redo")),
+    userId: v.optional(v.id("users")),
+    /** What the change was, for the button's tooltip: "Delete “Budget range”". */
+    label: v.string(),
+    /** Changes with the same key in quick succession (typing a title) are one step. */
+    key: v.optional(v.string()),
+    at: v.number(),
+    blocks: v.array(v.any()),
+    rules: v.array(v.any()),
+  }).index("by_form_kind_at", ["formId", "kind", "at"]),
+
   templates: defineTable({
     // Built-in templates have no owner; a saved one belongs to its author.
     ownerId: v.optional(v.id("users")),

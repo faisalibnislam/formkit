@@ -23,6 +23,8 @@ test("the inbox filters by the company's own statuses, and they can be changed",
 test("the builder lists its keyboard shortcuts on ?", async ({ page }) => {
   await page.goto("/app/forms/f1");
   await expect(page.locator("[data-block-id]").first()).toBeVisible({ timeout: 45_000 });
+  // The questions are server-rendered; Undo appears once the page is live.
+  await expect(page.getByRole("button", { name: /^Undo: / })).toBeVisible({ timeout: 45_000 });
   await page.locator("body").press("Shift+Slash");
   await expect(page.getByRole("dialog", { name: "Keyboard shortcuts" })).toBeVisible();
 });

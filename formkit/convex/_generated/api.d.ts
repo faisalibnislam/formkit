@@ -42,6 +42,7 @@ import type * as formCheck from "../formCheck.js";
 import type * as forms from "../forms.js";
 import type * as handles from "../handles.js";
 import type * as helpSignals from "../helpSignals.js";
+import type * as history from "../history.js";
 import type * as http from "../http.js";
 import type * as importForm from "../importForm.js";
 import type * as inbox from "../inbox.js";
@@ -68,9 +69,11 @@ import type * as model_gemini from "../model/gemini.js";
 import type * as model_grants from "../model/grants.js";
 import type * as model_grid from "../model/grid.js";
 import type * as model_handles from "../model/handles.js";
+import type * as model_history from "../model/history.js";
 import type * as model_identity from "../model/identity.js";
 import type * as model_importParse from "../model/importParse.js";
 import type * as model_inbox from "../model/inbox.js";
+import type * as model_jumps from "../model/jumps.js";
 import type * as model_langs from "../model/langs.js";
 import type * as model_logicCopy from "../model/logicCopy.js";
 import type * as model_logicEval from "../model/logicEval.js";
@@ -166,6 +169,7 @@ declare const fullApi: ApiFromModules<{
   "forms": typeof forms,
   "handles": typeof handles,
   "helpSignals": typeof helpSignals,
+  "history": typeof history,
   "http": typeof http,
   "importForm": typeof importForm,
   "inbox": typeof inbox,
@@ -192,9 +196,11 @@ declare const fullApi: ApiFromModules<{
   "model/grants": typeof model_grants,
   "model/grid": typeof model_grid,
   "model/handles": typeof model_handles,
+  "model/history": typeof model_history,
   "model/identity": typeof model_identity,
   "model/importParse": typeof model_importParse,
   "model/inbox": typeof model_inbox,
+  "model/jumps": typeof model_jumps,
   "model/langs": typeof model_langs,
   "model/logicCopy": typeof model_logicCopy,
   "model/logicEval": typeof model_logicEval,

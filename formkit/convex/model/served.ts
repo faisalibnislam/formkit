@@ -44,7 +44,7 @@ export function contentOf(form: Doc<"forms">): Content {
   return out as Content;
 }
 
-async function draftOf(ctx: QueryCtx | MutationCtx, formId: Id<"forms">) {
+export async function draftOf(ctx: QueryCtx | MutationCtx, formId: Id<"forms">) {
   const blocks = (
     await ctx.db
       .query("blocks")
@@ -194,4 +194,5 @@ export async function applyToDraft(
     }
   }
   await recount(ctx, form._id);
+  return moved;
 }
