@@ -110,7 +110,7 @@ export const API_DOCS: LegalSection[] = [
     title: "AI assistants (MCP)",
     paras: [
       "Formkit's MCP server at https://formkit.app/api/mcp lets Claude, ChatGPT, Cursor and other assistants use the API for you: build a form from a description, publish it when you say, and tell you what people said. Its tools are list_forms, get_form, create_form, update_form, publish_form, close_form, reopen_form, list_responses, get_response, search_responses, set_response_status, tag_response, form_summary and get_ai_insights. None of them can delete anything.",
-      "In Claude or ChatGPT, add a custom connector with that address: you sign in to Formkit and choose what it may do, and you can disconnect it in Settings → Developers. Tools that take a key, like Claude Code, use an API key instead:",
+      "In assistants that show apps, get_form arrives as a preview of the form and list_responses as a table you can search and sort. In Claude or ChatGPT, add a custom connector with that address: you sign in to Formkit and choose what it may do, and you can disconnect it in Settings → Developers. Tools that take a key, like Claude Code, use an API key instead:",
     ],
     code: ['claude mcp add --transport http formkit https://formkit.app/api/mcp \\\n  --header "Authorization: Bearer fk_live_…"'],
   },

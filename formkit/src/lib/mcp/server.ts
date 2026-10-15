@@ -1,5 +1,6 @@
 import { QUESTION_TYPES, RULE_OPERATORS } from "../../../convex/model/questionTypes";
 import { THEME_PRESETS } from "../../../convex/model/themePresets";
+import { APPS, APP_MIME, SKYBRIDGE_MIME, skybridgeUri } from "./apps";
 
 /**
  * Formkit's MCP server: what Claude, ChatGPT, Cursor and other AI assistants
@@ -30,12 +31,23 @@ type Tool = {
   description: string;
   inputSchema: Record<string, unknown>;
   annotations: { readOnlyHint: boolean; destructiveHint: boolean; idempotentHint: boolean; openWorldHint: boolean };
+  /** A view the assistant can show with the result (apps.ts). */
+  _meta?: Record<string, unknown>;
   run: (args: Record<string, unknown>, api: ApiCall) => Promise<{ status: number; body: unknown }>;
 };
 
 const id = (what: string) => ({ type: "string", description: `The ${what}'s id.` });
 const enc = (v: unknown) => encodeURIComponent(String(v ?? ""));
 const read = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
+
+/** Shows a tool's result in one of Formkit's views, in hosts that can. */
+const view = (uri: string, invoking: string, invoked: string) => ({
+  ui: { resourceUri: uri },
+  "ui/resourceUri": uri,
+  "openai/outputTemplate": skybridgeUri(uri),
+  "openai/toolInvocation/invoking": invoking,
+  "openai/toolInvocation/invoked": invoked,
+});
 const change = (idempotent: boolean) => ({ readOnlyHint: false, destructiveHint: false, idempotentHint: idempotent, openWorldHint: false });
 
 const QUESTION = {
@@ -110,6 +122,7 @@ export const TOOLS: Tool[] = [
     description: "A form's questions (with their ids), pages, logic rules, welcome and thank-you screens, link, and how many draft changes are not live yet.",
     inputSchema: { type: "object", properties: { form_id: id("form") }, required: ["form_id"] },
     annotations: read,
+    _meta: view("ui://formkit/form-preview.html", "Opening the form…", "Here is the form"),
     run: (a, api) => api("GET", `forms/${enc(a.form_id)}`),
   },
   {
@@ -216,6 +229,7 @@ export const TOOLS: Tool[] = [
       required: ["form_id"],
     },
     annotations: read,
+    _meta: view("ui://formkit/responses.html", "Reading responses…", "Here are the responses"),
     run: ({ form_id, ...rest }, api) =>
       api(
         "GET",
@@ -329,7 +343,13 @@ const failure = (id: RpcMessage["id"], code: number, message: string): RpcReply 
 function serverInfo(requested: unknown) {
   return {
     protocolVersion: SUPPORTED_VERSIONS.includes(String(requested)) ? String(requested) : SUPPORTED_VERSIONS[0],
-    capabilities: { tools: { listChanged: false }, resources: { listChanged: false }, prompts: { listChanged: false } },
+    capabilities: {
+      tools: { listChanged: false },
+      resources: { listChanged: false },
+      prompts: { listChanged: false },
+      // Views for the form preview and responses table (apps.ts).
+      extensions: { "io.modelcontextprotocol/ui": {} },
+    },
     serverInfo: INFO,
     instructions: INSTRUCTIONS,
   };
@@ -351,7 +371,14 @@ export async function respond(msg: RpcMessage, api: ApiCall): Promise<RpcReply |
       return result(msg.id, {});
     case "tools/list":
       return result(msg.id, {
-        tools: TOOLS.map(({ name, title, description, inputSchema, annotations }) => ({ name, title, description, inputSchema, annotations })),
+        tools: TOOLS.map(({ name, title, description, inputSchema, annotations, _meta }) => ({
+          name,
+          title,
+          description,
+          inputSchema,
+          annotations,
+          ...(_meta ? { _meta } : {}),
+        })),
       });
     case "tools/call": {
       const tool = TOOLS.find((t) => t.name === params.name);
@@ -371,13 +398,16 @@ export async function respond(msg: RpcMessage, api: ApiCall): Promise<RpcReply |
       if (out.status === 401) throw new Unauthorised();
       const forms = ((out.body as { data?: { id: string; title: string; status: string }[] }).data ?? []).slice(0, 100);
       return result(msg.id, {
-        resources: forms.map((f) => ({
+        resources: [
+          ...APPS.map((a) => ({ uri: a.uri, name: a.name, title: a.title, description: a.description, mimeType: APP_MIME })),
+          ...forms.map((f) => ({
           uri: `formkit://forms/${f.id}`,
           name: f.title,
           title: f.title,
           description: `A ${f.status} form: its questions, logic and settings.`,
           mimeType: "application/json",
-        })),
+          })),
+        ],
       });
     }
     case "resources/templates/list":
@@ -388,6 +418,25 @@ export async function respond(msg: RpcMessage, api: ApiCall): Promise<RpcReply |
         ],
       });
     case "resources/read": {
+      // The views need no account: they are the same page for everyone, and get their data from the tool result.
+      const app = APPS.find((a) => a.uri === params.uri || skybridgeUri(a.uri) === params.uri);
+      if (app) {
+        const skybridge = params.uri !== app.uri;
+        return result(msg.id, {
+          contents: [
+            {
+              uri: String(params.uri),
+              mimeType: skybridge ? SKYBRIDGE_MIME : APP_MIME,
+              text: app.html,
+              _meta: {
+                ui: { prefersBorder: true, csp: { connectDomains: [], resourceDomains: [] } },
+                "openai/widgetPrefersBorder": true,
+                "openai/widgetDescription": app.description,
+              },
+            },
+          ],
+        });
+      }
       const m = /^formkit:\/\/forms\/([^/]+)(\/summary)?$/.exec(String(params.uri ?? ""));
       if (!m) return failure(msg.id, -32002, "No such resource.");
       const out = await api("GET", `forms/${enc(m[1])}${m[2] ? "/summary" : ""}`);
