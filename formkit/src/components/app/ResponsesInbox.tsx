@@ -972,6 +972,15 @@ function ResponseDrawer({
         title: "Payment",
         rows: [
           { q: "Amount", a: payText(response.payment), empty: false, file: false },
+          ...(response.payment.quantity && response.payment.quantity > 1
+            ? [{ q: "How many", a: String(response.payment.quantity), empty: false, file: false }]
+            : []),
+          ...(response.payment.discount
+            ? [{ q: "Discount", a: payText({ amount: response.payment.discount, currency: response.payment.currency }), empty: false, file: false }]
+            : []),
+          ...(response.payment.tax
+            ? [{ q: "Of which tax", a: payText({ amount: response.payment.tax, currency: response.payment.currency }), empty: false, file: false }]
+            : []),
           { q: "Status", a: PAY_LABEL[response.payment.status], empty: false, file: false },
           ...(response.payment.at
             ? [{ q: "Paid", a: fullTime(response.payment.at), empty: false, file: false }]

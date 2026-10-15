@@ -9,7 +9,7 @@ export const SITE_DATES = {
   pricing: "2026-10-01",
   templates: "2026-09-30",
   compare: "2026-09-30",
-  help: "2026-10-01",
+  help: "2026-10-15",
   features: "2026-10-01",
   useCases: "2026-09-30",
   changelog: "2026-10-14",

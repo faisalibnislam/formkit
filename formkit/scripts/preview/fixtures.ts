@@ -1395,9 +1395,11 @@ export const QUERIES: Record<string, unknown> = {
   "payments:settings": {
     mine: true,
     account: { live: false, name: "Studio Nine", last4: "x9Qe", addedAt: now },
-    payment: { enabled: true, currency: "usd", amount: 2500, label: "Workshop seat" },
+    payment: { enabled: true, currency: "usd", amount: 2500, label: "Workshop seat", promoCodes: true, quantity: { from: "checkout", max: 6 }, tax: { inclusive: false } },
     calcNames: ["total"],
     currencies: ["usd", "eur", "gbp", "cad", "aud", "inr", "bdt", "jpy"],
+    numberQuestions: [{ id: "b9", title: "How many seats?" }],
+    webhook: { on: false, url: "https://example.convex.site/stripe/webhook/acct1" },
   },
   get "team:overview"() {
     const me = flag("fk_space") === "me";

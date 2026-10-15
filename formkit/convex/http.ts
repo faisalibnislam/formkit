@@ -7,6 +7,7 @@ import { handle as apiV2 } from "./apiV2";
 import { registerClient, revoke, token } from "./oauth";
 import { callback as integrationCallback } from "./integrations";
 import { http as agentForms } from "./agents";
+import { webhook as stripeWebhook } from "./payments";
 
 const http = httpRouter();
 
@@ -26,6 +27,9 @@ for (const method of ["GET", "POST", "PATCH", "DELETE", "OPTIONS"] as const) {
 }
 // An app's sign-in sends people back here (integrations.ts), through formkit.app.
 http.route({ path: "/integrations/callback", method: "GET", handler: integrationCallback });
+
+// Stripe confirming a form's payment, one address per connected account (payments.ts).
+http.route({ pathPrefix: "/stripe/webhook/", method: "POST", handler: stripeWebhook });
 
 // Forms AI agents can fill in (agents.ts), behind formkit.app/api/agent/forms/.
 for (const method of ["GET", "POST", "OPTIONS"] as const) {

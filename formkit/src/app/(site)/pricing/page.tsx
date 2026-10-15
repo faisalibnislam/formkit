@@ -364,7 +364,7 @@ export default function PricingPage() {
                   <h3>
                     <CreditCard size={16} strokeWidth={1.8} aria-hidden /> Take payments
                   </h3>
-                  <p>People pay after they send the form, through your own Stripe. Formkit takes nothing.</p>
+                  <p>People pay as they send the form, through your own Stripe. Formkit takes nothing.</p>
                 </Link>
                 <Link href="/features/integrations" className="fk-price-spot">
                   <div className="fk-spot-live" aria-hidden>

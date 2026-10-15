@@ -478,16 +478,30 @@ export default defineSchema({
       }),
     ),
 
-    /** Pro: take a payment through the owner's own Stripe after submitting. */
+    /** Pro: take a payment through the owner's own Stripe; the response is kept once it is paid. */
     payment: v.optional(
       v.object({
         enabled: v.boolean(),
         currency: v.string(),
         /** A fixed amount in the currency's minor unit (cents)… */
         amount: v.optional(v.number()),
-        /** …or the result of one of the form's calculations, in major units. */
+        /** …or the result of one of the form's calculations, in major units… */
         fromCalc: v.optional(v.string()),
+        /** …or what the person chooses to pay, at least `minimum` (minor units). */
+        choose: v.optional(v.object({ minimum: v.number(), suggested: v.optional(v.number()) })),
         label: v.optional(v.string()),
+        /** How many: one, the answer to a number question, or picked at checkout up to `max`. */
+        quantity: v.optional(
+          v.object({
+            from: v.union(v.literal("one"), v.literal("question"), v.literal("checkout")),
+            blockId: v.optional(v.id("blocks")),
+            max: v.optional(v.number()),
+          }),
+        ),
+        /** People can enter a Stripe promotion code. */
+        promoCodes: v.optional(v.boolean()),
+        /** Stripe Tax works out the tax; `inclusive` when the price already has it. */
+        tax: v.optional(v.object({ inclusive: v.boolean() })),
       }),
     ),
     /** Pro: named formulas over question keys, worked out at submit. */
@@ -653,10 +667,14 @@ export default defineSchema({
     payment: v.optional(
       v.object({
         status: v.union(v.literal("pending"), v.literal("paid"), v.literal("failed"), v.literal("none")),
+        /** What was paid in all, in minor units: after any discount, with any tax. */
         amount: v.number(),
         currency: v.string(),
         sessionId: v.optional(v.string()),
         at: v.optional(v.number()),
+        quantity: v.optional(v.number()),
+        tax: v.optional(v.number()),
+        discount: v.optional(v.number()),
       }),
     ),
     /** Pro: the form's calculations, worked out when it was sent. */
@@ -1583,7 +1601,34 @@ export default defineSchema({
     live: v.boolean(),
     name: v.optional(v.string()),
     addedAt: v.number(),
+    /** Stripe's signing secret for the webhook that confirms payments (sealed), and its endpoint. */
+    webhookSecret: v.optional(v.string()),
+    webhookId: v.optional(v.string()),
   }).index("by_owner", ["ownerId"]),
+
+  /**
+   * Pay first: answers waiting on their payment. Only once Stripe says it is
+   * paid do they become a response (payments.settle); unpaid ones are
+   * forgotten after a day or two.
+   */
+  paymentHolds: defineTable({
+    formId: v.id("forms"),
+    ownerId: v.id("users"),
+    /** The submission as the form sent it (publicForm.submit's arguments). */
+    args: v.any(),
+    /** Each, in minor units, and how many; `adjustable` lets people change it at checkout. */
+    unitAmount: v.number(),
+    currency: v.string(),
+    quantity: v.number(),
+    adjustable: v.optional(v.number()),
+    sessionId: v.optional(v.string()),
+    status: v.union(v.literal("open"), v.literal("paid"), v.literal("expired")),
+    responseId: v.optional(v.id("responses")),
+    createdAt: v.number(),
+  })
+    .index("by_session", ["sessionId"])
+    .index("by_status_created", ["status", "createdAt"])
+    .index("by_form", ["formId"]),
 
   /**
    * Pro: confirmation emails sent from the customer's own domain, verified

@@ -25,6 +25,7 @@ crons.hourly("erase accounts deleted 30 days ago", { minuteUTC: 40 }, internal.s
 crons.interval("check custom domains waiting on DNS", { minutes: 10 }, internal.domains.recheckPending, {});
 crons.interval("check email domains waiting on DNS", { minutes: 10 }, internal.emailDomains.recheckPending, {});
 crons.interval("settle payments nobody came back from", { minutes: 20 }, internal.payments.recheckPending, {});
+crons.interval("settle paid-first answers, forget unpaid ones", { minutes: 20 }, internal.payments.recheckHolds, {});
 crons.hourly("erase responses past each account's retention period", { minuteUTC: 50 }, internal.controls.applyRetention, {});
 crons.daily("erase account audit lines over a year old", { hourUTC: 3, minuteUTC: 10 }, internal.controls.purgeAudit, {});
 crons.hourly("end free plans that reached their date", { minuteUTC: 5 }, internal.adminCompanies.expireComps, {});

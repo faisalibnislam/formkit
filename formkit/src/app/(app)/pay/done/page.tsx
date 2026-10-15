@@ -7,5 +7,5 @@ export const metadata: Metadata = { title: "Payment", robots: { index: false } }
 export default async function PayDonePage({ searchParams }: PageProps<"/pay/done">) {
   const q = await searchParams;
   const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? null;
-  return <PayDone responseId={one(q.r)} sessionId={one(q.s)} cancelled={one(q.cancelled) === "1"} />;
+  return <PayDone responseId={one(q.r)} holdId={one(q.h)} sessionId={one(q.s)} cancelled={one(q.cancelled) === "1"} />;
 }

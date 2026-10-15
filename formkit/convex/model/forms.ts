@@ -286,7 +286,7 @@ export async function purgeStep(ctx: MutationCtx, formId: Id<"forms">): Promise<
   };
   if (!(await gone(responses, files))) return false;
 
-  for (const table of ["logicRules", "versions", "comments", "collaborators", "presence", "joinLinks", "activity", "aiReports", "quizAttempts"] as const) {
+  for (const table of ["logicRules", "versions", "comments", "collaborators", "presence", "joinLinks", "activity", "aiReports", "quizAttempts", "paymentHolds"] as const) {
     const rows = await ctx.db.query(table).withIndex("by_form", (q) => q.eq("formId", formId)).take(left);
     if (!(await gone(rows))) return false;
   }

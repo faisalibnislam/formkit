@@ -100,6 +100,7 @@ import type * as model_spaces from "../model/spaces.js";
 import type * as model_spamText from "../model/spamText.js";
 import type * as model_standing from "../model/standing.js";
 import type * as model_statuses from "../model/statuses.js";
+import type * as model_submitArgs from "../model/submitArgs.js";
 import type * as model_summary from "../model/summary.js";
 import type * as model_team from "../model/team.js";
 import type * as model_themePresets from "../model/themePresets.js";
@@ -235,6 +236,7 @@ declare const fullApi: ApiFromModules<{
   "model/spamText": typeof model_spamText,
   "model/standing": typeof model_standing,
   "model/statuses": typeof model_statuses,
+  "model/submitArgs": typeof model_submitArgs,
   "model/summary": typeof model_summary,
   "model/team": typeof model_team,
   "model/themePresets": typeof model_themePresets,

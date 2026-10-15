@@ -60,6 +60,7 @@ export function LiveForm({
   const uploadUrl = useMutation(api.publicForm.uploadUrl);
   const submit = useMutation(api.publicForm.submit);
   const checkout = useAction(api.payments.checkout);
+  const payFirst = useAction(api.payments.start);
   const think = useAction(api.aiLogic.think);
   const followUp = useAction(api.aiLogic.followUp);
   const startQuiz = useMutation(api.publicForm.startQuiz);
@@ -170,6 +171,29 @@ export function LiveForm({
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keptToken reads storage at call time
     [open, password, resume?.token, submit, verifyHuman, checking, tokenKey],
+  );
+
+  // Pay first: the same answers and checks as sending, held while the person pays (payments.start).
+  const onPayFirst = useCallback(
+    async (args: SubmitArgs & { chosen?: number }) => {
+      let pass: Id<"humanPasses"> | undefined;
+      if (checking && captcha.current) {
+        pass = (await verifyHuman({ formId: open!.formId, token: captcha.current }).catch(() => null)) ?? undefined;
+        resetCaptcha.current();
+      }
+      return await payFirst({
+        formId: open!.formId,
+        ...args,
+        ...(pass ? { pass } : {}),
+        password,
+        resumeToken: resume?.token ?? keptToken(),
+        deviceId: deviceId(),
+        source: sourceLabel(),
+        utm: utmOf(),
+      });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keptToken reads storage at call time
+    [open, password, resume?.token, payFirst, verifyHuman, checking],
   );
 
   const upload = useCallback(
@@ -301,6 +325,7 @@ export function LiveForm({
         onFollowUp={(blockId, answer) => followUp({ formId: (data as OpenForm).formId, blockId, answer })}
         onSaveForLater={(data as OpenForm).rules.partials === false ? undefined : saveForLater}
         onPay={checkout}
+        onPayFirst={onPayFirst}
         onThink={(a) => think({ formId: (data as OpenForm).formId, ...a })}
         onStartQuiz={() => startQuiz({ formId: (data as OpenForm).formId, deviceId: deviceId() })}
         onStart={() => void recordView({ formId: data.formId, started: true, source: sourceLabel(), deviceId: deviceId() })}

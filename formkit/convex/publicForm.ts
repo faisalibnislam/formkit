@@ -3,6 +3,7 @@ import { liveLanguages } from "./translations";
 import { isAudio, voiceLength } from "./model/voice";
 import { owed, takesPayment } from "./payments";
 import { ConvexError, v } from "convex/values";
+import { answerArg, submitArgs, type SubmitArgs } from "./model/submitArgs";
 import { action, internalAction, internalMutation, internalQuery, mutation, query, type MutationCtx } from "./_generated/server";
 import { send } from "./notifications";
 import { renderResumeLink } from "./emails/response";
@@ -519,14 +520,6 @@ export const resume = query({
   },
 });
 
-const answerArg = v.object({
-  blockId: v.id("blocks"),
-  value: v.optional(v.string()),
-  values: v.optional(v.array(v.string())),
-  fileId: v.optional(v.id("_storage")),
-  fileName: v.optional(v.string()),
-  followUp: v.optional(v.object({ question: v.string(), answer: v.string() })),
-});
 
 export type AnswerIn = {
   blockId: Id<"blocks">;
@@ -563,6 +556,8 @@ export async function store(
     timedOut?: boolean;
     answers: AnswerIn[];
     utm?: { source?: string; medium?: string; campaign?: string; term?: string; content?: string };
+    /** Pay first: the payment Stripe has confirmed (payments.settle). */
+    paid?: NonNullable<Doc<"responses">["payment"]>;
   },
   existing: Doc<"responses"> | null,
   preview: boolean,
@@ -639,8 +634,9 @@ export async function store(
       : undefined;
   const withCalc = calc ? { ...record, calc } : record;
   // A payment already made stays made; otherwise work out what is owed now.
-  const payment =
-    existing?.payment?.status === "paid"
+  const payment = args.paid
+    ? args.paid
+    : existing?.payment?.status === "paid"
       ? existing.payment
       : !args.partial && !preview
         ? await owed(ctx, form, calc)
@@ -787,6 +783,19 @@ export const prunePasses = internalMutation({
  * While the forms.strictAnswers flag is off for the owner, what would be
  * refused is only recorded, so false alarms can be found first.
  */
+/** The form's calculations for a set of answers, as store works them out (Pro). */
+export async function calcFor(ctx: QueryCtx, live: Doc<"forms">, answers: AnswerIn[]) {
+  const served = await servedForm(ctx, live);
+  const calcVars = served.form.calc ?? [];
+  if (!calcVars.length || !(await hasFeature(ctx, served.form, "logic.calc"))) return undefined;
+  const blocks = served.blocks.filter((b) => b.kind === "field");
+  return computeAll(
+    calcVars,
+    blocks.map((b) => ({ _id: b._id, kind: b.kind, type: b.type, key: b.key, options: b.options, scores: b.scores })),
+    Object.fromEntries(answers.map((a) => [a.blockId as string, { value: a.value, values: a.values }])),
+  );
+}
+
 /** Everything wrong with a set of answers, against the published form and its rules. */
 export async function answerProblems(
   ctx: MutationCtx,
@@ -918,106 +927,96 @@ export async function admit(
   }
 }
 
+
+
+/**
+ * Every check a submission must pass before it is kept - or, on a form that
+ * takes payment first, held until it is paid. Returns the form and the
+ * response it continues, or the reply to give straight away.
+ */
+export async function vet(
+  ctx: MutationCtx,
+  args: SubmitArgs,
+): Promise<{ form: Doc<"forms">; existing: Doc<"responses"> | null } | { early: { responseId: Id<"responses">; resumeToken: string; pay: boolean } }> {
+  const form = await ctx.db.get(args.formId);
+  if (!form || form.deletedAt) throw new ConvexError("That form is no longer available.");
+  if (form.status !== "published") throw new ConvexError("That form is not accepting answers.");
+  if (shouldAutoClose(form, Date.now())) throw new ConvexError("That form has closed.");
+  if (!(await passwordMatches(form.security, args.password))) {
+    throw new ConvexError("This form needs its password.");
+  }
+
+  const s = securityOf(form.security);
+  await checkUploads(ctx, form, args.answers);
+  if (args.partial && !(await partialsOn(ctx, form.ownerId))) {
+    throw new ConvexError("This form does not keep unfinished answers.");
+  }
+  await checkAnswers(ctx, form, args);
+
+  const existing = args.resumeToken
+    ? await ctx.db
+        .query("responses")
+        .withIndex("by_resume", (q) => q.eq("resumeToken", args.resumeToken!))
+        .first()
+    : null;
+  if (existing && existing.formId !== form._id) throw new ConvexError("That link belongs to another form.");
+  if (existing && !existing.partial && !s.editAfter) {
+    throw new ConvexError("This form does not allow changing an answer once it is sent.");
+  }
+  // Leaving the page while changing a sent response saves nothing: what
+  // was sent stays sent, rather than turning back into a partial.
+  if (existing && !existing.partial && args.partial) {
+    return { early: { responseId: existing._id, resumeToken: existing.resumeToken ?? args.resumeToken!, pay: false } };
+  }
+  // A new response, complete or partial, counts against the form's limits;
+  // saving more answers into one already started does not.
+  if (
+    !existing &&
+    !(await allowForm(ctx, "response", form._id, args.deviceId, RULES.responsesPerForm, RULES.responsesPerDevice))
+  ) {
+    throw new ConvexError("This form is taking a lot of answers right now. Try again in a minute.");
+  }
+
+  if (!args.partial) {
+    if (s.spam) {
+      if (args.trap) throw new ConvexError("That did not send. Try again in a moment.");
+      const fast = (args.durationMs ?? Number.POSITIVE_INFINITY) < TOO_FAST_MS;
+      // With Turnstile set up, a submission either carries a pass from it,
+      // or the person ticks the box (when Turnstile could not run for them).
+      const turnstile = !!process.env.TURNSTILE_SECRET_KEY;
+      const proven = !!args.pass && (await spendPass(ctx, args.pass, form._id));
+      if (!proven && !args.human && !existing && (turnstile || fast)) {
+        throw new ConvexError({ code: "prove", message: "Tick the box to show you are a person." });
+      }
+    }
+
+    if (s.rateLimit && args.deviceId && !existing) {
+      const recent = await ctx.db
+        .query("responses")
+        .withIndex("by_form_device", (q) => q.eq("formId", form._id).eq("deviceId", args.deviceId))
+        .take(50);
+      if (recent.some((r) => !r.partial && Date.now() - r.submittedAt < RATE_MS)) {
+        throw new ConvexError("One submission a minute from each device. Try again in a moment.");
+      }
+    }
+
+    await admit(ctx, form, args, existing);
+  }
+
+  return { form, existing };
+}
+
 export const submit = mutation({
-  args: {
-    formId: v.id("forms"),
-    partial: v.boolean(),
-    device: v.optional(v.string()),
-    source: v.optional(v.string()),
-    durationMs: v.optional(v.number()),
-    resumeToken: v.optional(v.string()),
-    deviceId: v.optional(v.string()),
-    password: v.optional(v.string()),
-    /** The field only a script fills in. */
-    trap: v.optional(v.string()),
-    /** The person ticked "I am a person" after being asked. */
-    human: v.optional(v.boolean()),
-    /** A Turnstile check that passed (verifyHuman), spent by this submission. */
-    pass: v.optional(v.id("humanPasses")),
-    /** The link's utm_ tags. */
-    utm: v.optional(
-      v.object({
-        source: v.optional(v.string()),
-        medium: v.optional(v.string()),
-        campaign: v.optional(v.string()),
-        term: v.optional(v.string()),
-        content: v.optional(v.string()),
-      }),
-    ),
-    /** The ending the person's answers led to, when it was not the default. */
-    ending: v.optional(v.string()),
-    /** Quiz: the attempt started when the timer began, and whether it ran out. */
-    attemptId: v.optional(v.id("quizAttempts")),
-    timedOut: v.optional(v.boolean()),
-    answers: v.array(answerArg),
-  },
+  args: submitArgs,
   returns: v.object({ responseId: v.id("responses"), resumeToken: v.string(), pay: v.boolean() }),
   handler: async (ctx, args) => {
-    const form = await ctx.db.get(args.formId);
-    if (!form || form.deletedAt) throw new ConvexError("That form is no longer available.");
-    if (form.status !== "published") throw new ConvexError("That form is not accepting answers.");
-    if (shouldAutoClose(form, Date.now())) throw new ConvexError("That form has closed.");
-    if (!(await passwordMatches(form.security, args.password))) {
-      throw new ConvexError("This form needs its password.");
+    const checked = await vet(ctx, args);
+    if ("early" in checked) return checked.early;
+    const { form, existing } = checked;
+    // Pay first: a form that takes payment keeps the answers once they are paid for (payments.start).
+    if (!args.partial && (!existing || existing.partial) && (await takesPayment(ctx, form))) {
+      throw new ConvexError({ code: "pay", message: "This form takes payment before it is sent." });
     }
-
-    const s = securityOf(form.security);
-    await checkUploads(ctx, form, args.answers);
-    if (args.partial && !(await partialsOn(ctx, form.ownerId))) {
-      throw new ConvexError("This form does not keep unfinished answers.");
-    }
-    await checkAnswers(ctx, form, args);
-
-    const existing = args.resumeToken
-      ? await ctx.db
-          .query("responses")
-          .withIndex("by_resume", (q) => q.eq("resumeToken", args.resumeToken!))
-          .first()
-      : null;
-    if (existing && existing.formId !== form._id) throw new ConvexError("That link belongs to another form.");
-    if (existing && !existing.partial && !s.editAfter) {
-      throw new ConvexError("This form does not allow changing an answer once it is sent.");
-    }
-    // Leaving the page while changing a sent response saves nothing: what
-    // was sent stays sent, rather than turning back into a partial.
-    if (existing && !existing.partial && args.partial) {
-      return { responseId: existing._id, resumeToken: existing.resumeToken ?? args.resumeToken!, pay: false };
-    }
-    // A new response, complete or partial, counts against the form's limits;
-    // saving more answers into one already started does not.
-    if (
-      !existing &&
-      !(await allowForm(ctx, "response", form._id, args.deviceId, RULES.responsesPerForm, RULES.responsesPerDevice))
-    ) {
-      throw new ConvexError("This form is taking a lot of answers right now. Try again in a minute.");
-    }
-
-    if (!args.partial) {
-      if (s.spam) {
-        if (args.trap) throw new ConvexError("That did not send. Try again in a moment.");
-        const fast = (args.durationMs ?? Number.POSITIVE_INFINITY) < TOO_FAST_MS;
-        // With Turnstile set up, a submission either carries a pass from it,
-        // or the person ticks the box (when Turnstile could not run for them).
-        const turnstile = !!process.env.TURNSTILE_SECRET_KEY;
-        const proven = !!args.pass && (await spendPass(ctx, args.pass, form._id));
-        if (!proven && !args.human && !existing && (turnstile || fast)) {
-          throw new ConvexError({ code: "prove", message: "Tick the box to show you are a person." });
-        }
-      }
-
-      if (s.rateLimit && args.deviceId && !existing) {
-        const recent = await ctx.db
-          .query("responses")
-          .withIndex("by_form_device", (q) => q.eq("formId", form._id).eq("deviceId", args.deviceId))
-          .take(50);
-        if (recent.some((r) => !r.partial && Date.now() - r.submittedAt < RATE_MS)) {
-          throw new ConvexError("One submission a minute from each device. Try again in a moment.");
-        }
-      }
-
-      await admit(ctx, form, args, existing);
-    }
-
     return store(ctx, form, args, existing, false);
   },
 });
