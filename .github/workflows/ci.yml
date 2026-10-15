@@ -49,6 +49,9 @@ jobs:
       - run: npm run e2e
         env:
           CI: "true"
+          # The preview build answers from fixtures and never connects; the
+          # client only needs an address to be built with.
+          NEXT_PUBLIC_CONVEX_URL: http://127.0.0.1:3210
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
