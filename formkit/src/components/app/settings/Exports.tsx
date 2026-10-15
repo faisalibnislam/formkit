@@ -4,7 +4,7 @@ import { useViewer } from "@/lib/seed";
 import { useState } from "react";
 import { useAction, useConvex, useMutation, useQuery } from "convex/react";
 import { useFlag } from "../useFlags";
-import { Download, FileSpreadsheet, FileText, Mail, Send } from "lucide-react";
+import { Download, FileSpreadsheet, FileText, Mail, Send, FileJson } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import { Badge, Button, Field, Input, Select, Switch } from "@/components/ui";
@@ -39,6 +39,8 @@ function fromOf(range: string, now: number) {
   d.setHours(0, 0, 0, 0);
   return d.getTime() - (Number(range) - 1) * DAY;
 }
+
+const FORMAT_LABEL = { csv: "CSV", xlsx: "Excel", json: "JSON", "pdf-zip": "PDFs (zip)", "pdf-one": "One PDF" } as const;
 
 export function ExportsSection() {
   return (
@@ -251,12 +253,12 @@ function Recent() {
         {recent.map((x) => (
           <div key={x._id} className="fk-maillog-row">
             <span className="fk-export-mark" aria-hidden>
-              {x.format === "xlsx" ? <FileSpreadsheet size={17} strokeWidth={1.8} /> : <FileText size={17} strokeWidth={1.8} />}
+              {x.format === "xlsx" ? <FileSpreadsheet size={17} strokeWidth={1.8} /> : x.format === "json" ? <FileJson size={17} strokeWidth={1.8} /> : <FileText size={17} strokeWidth={1.8} />}
             </span>
             <span style={{ flex: 1, minWidth: 0 }}>
               <span className="fk-maillog-subject">{x.filename}</span>
               <span className="fk-maillog-meta">
-                {x.format === "xlsx" ? "Excel" : "CSV"} · {x.what} · {x.formTitle ?? "a deleted form"} ·{" "}
+                {FORMAT_LABEL[x.format]} · {x.what} · {x.formTitle ?? "a deleted form"} ·{" "}
                 {x.rows.toLocaleString("en-US")} {x.what === "analytics" ? "days" : "rows"}
                 {x.emailedTo ? ` · emailed to ${x.emailedTo}` : ""} · {relativeTime(x.at)}
               </span>
@@ -274,7 +276,7 @@ function Recent() {
                     from: x.from ?? undefined,
                     to: x.to ?? undefined,
                   });
-                  await downloadAnalytics(data, x.formTitle ?? "All forms", x.format);
+                  await downloadAnalytics(data, x.formTitle ?? "All forms", x.format === "xlsx" ? "xlsx" : "csv");
                   toast(`Downloading ${x.filename}`);
                   return;
                 }

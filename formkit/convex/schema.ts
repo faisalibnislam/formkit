@@ -847,7 +847,7 @@ export default defineSchema({
     userId: v.id("users"),
     formId: v.optional(v.id("forms")),
     what: v.union(v.literal("responses"), v.literal("contacts"), v.literal("analytics")),
-    format: v.union(v.literal("csv"), v.literal("xlsx")),
+    format: v.union(v.literal("csv"), v.literal("xlsx"), v.literal("json"), v.literal("pdf-zip"), v.literal("pdf-one")),
     filename: v.string(),
     rows: v.number(),
     from: v.optional(v.number()),

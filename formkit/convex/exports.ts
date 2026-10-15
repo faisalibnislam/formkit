@@ -15,7 +15,7 @@ const KEEP = 20;
 const fields = {
   formId: v.optional(v.id("forms")),
   what: v.union(v.literal("responses"), v.literal("contacts"), v.literal("analytics")),
-  format: v.union(v.literal("csv"), v.literal("xlsx")),
+  format: v.union(v.literal("csv"), v.literal("xlsx"), v.literal("json"), v.literal("pdf-zip"), v.literal("pdf-one")),
   filename: v.string(),
   rows: v.number(),
   from: v.optional(v.number()),
@@ -30,7 +30,7 @@ async function insert(
   args: {
     formId?: Id<"forms">;
     what: "responses" | "contacts" | "analytics";
-    format: "csv" | "xlsx";
+    format: "csv" | "xlsx" | "json" | "pdf-zip" | "pdf-one";
     filename: string;
     rows: number;
     from?: number;

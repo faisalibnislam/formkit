@@ -1067,6 +1067,34 @@ export const QUERIES: Record<string, unknown> = {
       order: 4,
     },
   ],
+  "responses:jsonPage": {
+    filename: "client-onboarding-responses",
+    title: "Client Onboarding",
+    cursor: "done",
+    done: true,
+    rows: [
+      {
+        id: "r1", formId: "f1", submittedAt: "2026-10-14T09:12:00.000Z", complete: true, status: "new", tags: ["vip"],
+        respondent: { name: "Sam Lee", email: "sam@example.com", phone: null, company: "Northwind" },
+        answers: [
+          { questionId: "b4", key: null, question: "What are we making?", value: "A new website" },
+          { questionId: "b5", key: null, question: "Budget range", value: "£20k–£35k" },
+        ],
+        calculations: {}, payment: { status: "paid", amount: 2500, currency: "usd" }, insight: null, source: "Direct", utm: null,
+        viewUrl: "https://formkit.app/app/responses?open=r1",
+      },
+      {
+        id: "r2", formId: "f1", submittedAt: "2026-10-15T11:40:00.000Z", complete: true, status: "read", tags: [],
+        respondent: { name: "سارة أحمد", email: "sara@example.com", phone: null, company: null },
+        answers: [
+          { questionId: "b4", key: null, question: "What are we making?", value: "متجر إلكتروني باللغة العربية" },
+          { questionId: "b5", key: null, question: "Budget range", value: "नमस्ते — क्षत्रिय बजट" },
+        ],
+        calculations: {}, payment: null, insight: null, source: null, utm: null,
+        viewUrl: "https://formkit.app/app/responses?open=r2",
+      },
+    ],
+  },
   "passkeys:list": [{ _id: "pk1", name: "iPhone", createdAt: Date.UTC(2026, 7, 20), lastUsedAt: Date.UTC(2026, 9, 13) }],
   "push:config": {
     publicKey: "BPreviewPreviewPreviewPreviewPreviewPreviewPreviewPreviewPreviewPreviewPreviewPreviewPrevie",
