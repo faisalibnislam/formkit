@@ -37,6 +37,7 @@ import {
   Trash2,
   Users,
   X,
+  Bot,
 } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -971,6 +972,15 @@ function ResponseDrawer({
         title: "Payment",
         rows: [
           { q: "Amount", a: payText(response.payment), empty: false, file: false },
+          ...(response.payment.quantity && response.payment.quantity > 1
+            ? [{ q: "How many", a: String(response.payment.quantity), empty: false, file: false }]
+            : []),
+          ...(response.payment.discount
+            ? [{ q: "Discount", a: payText({ amount: response.payment.discount, currency: response.payment.currency }), empty: false, file: false }]
+            : []),
+          ...(response.payment.tax
+            ? [{ q: "Of which tax", a: payText({ amount: response.payment.tax, currency: response.payment.currency }), empty: false, file: false }]
+            : []),
           { q: "Status", a: PAY_LABEL[response.payment.status], empty: false, file: false },
           ...(response.payment.at
             ? [{ q: "Paid", a: fullTime(response.payment.at), empty: false, file: false }]
@@ -1003,8 +1013,13 @@ function ResponseDrawer({
       icon: <FileText size={14} strokeWidth={1.8} aria-hidden />,
       text: form?.identity ? `${response.formTitle} · ${form.identity.name}` : response.formTitle,
     },
-    response.source && { icon: <Link2 size={14} strokeWidth={1.8} aria-hidden />, text: response.source },
-    response.device && { icon: <Monitor size={14} strokeWidth={1.8} aria-hidden />, text: response.device },
+    response.agent
+      ? {
+          icon: <Bot size={14} strokeWidth={1.8} aria-hidden />,
+          text: `Sent by an AI agent · ${response.agent.name}${response.agent.forWhom ? ` for ${response.agent.forWhom}` : ""}`,
+        }
+      : response.source && { icon: <Link2 size={14} strokeWidth={1.8} aria-hidden />, text: response.source },
+    !response.agent && response.device && { icon: <Monitor size={14} strokeWidth={1.8} aria-hidden />, text: response.device },
     duration(response.durationMs) && {
       icon: <Timer size={14} strokeWidth={1.8} aria-hidden />,
       text: `Took ${duration(response.durationMs)}`,

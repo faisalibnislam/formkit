@@ -1,6 +1,7 @@
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
+import { queuePush } from "./push";
 
 /**
  * Putting something in a person's bell.
@@ -91,6 +92,7 @@ export async function notify(
   const user = await ctx.db.get(userId);
   if (!user || user.deactivatedAt || !wants(user, group)) return null;
   const id = await ctx.db.insert("inbox", { ...item, userId, at: Date.now() });
+  await queuePush(ctx, user, { kind: item.kind, title: item.title, body: item.body, href: item.href, tag: String(id) });
   if ((item.kind === "reply" || item.kind === "mention") && user.emailPrefs?.comments !== false && user.email) {
     await ctx.scheduler.runAfter(EMAIL_AFTER_MS, internal.inbox.emailIfUnread, { inboxId: id });
   }
@@ -147,6 +149,14 @@ export async function notifyResponse(ctx: MutationCtx, form: Doc<"forms">, respo
         responseId: response._id,
         count: 1,
         at: Date.now(),
+      });
+      // One buzz per form until the person has looked: a busy form doesn't ring all day.
+      await queuePush(ctx, user, {
+        kind: "response",
+        title: `New response to ${form.title}`,
+        body: `${who} sent their answers.`,
+        href: `/app/forms/${form._id}?tab=responses&open=${response._id}`,
+        tag: `responses-${form._id}`,
       });
     }
   }

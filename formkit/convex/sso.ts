@@ -18,7 +18,12 @@ import { audit } from "./model/team";
  * enforcement cannot be turned on.
  */
 
-type Provider = "google" | "microsoft-entra-id";
+type Provider = "google" | "microsoft-entra-id" | "saml";
+
+/** The ways a company's people can sign in: Google and Microsoft when set up here, and its own SAML when live. */
+function waysIn(sso: Doc<"users">["sso"]): Provider[] {
+  return [...configuredProviders(), ...(sso?.workos?.connected ? (["saml"] as const) : [])];
+}
 
 export function configuredProviders(): Provider[] {
   const out: Provider[] = [];
@@ -70,6 +75,12 @@ export const settings = query({
           }
         : null,
       available: configuredProviders(),
+      /** SAML and SCIM through WorkOS, when Formkit has it set up. */
+      saml: process.env.WORKOS_API_KEY && process.env.WORKOS_CLIENT_ID
+        ? me.sso?.workos
+          ? { on: true as const, connected: me.sso.workos.connected, directory: me.sso.workos.directory, role: me.sso.workos.role }
+          : { on: true as const, connected: false, directory: false, role: "viewer" as const }
+        : null,
     };
   },
 });
@@ -119,7 +130,10 @@ export const remove = mutation({
 });
 
 export const setEnforced = mutation({
-  args: { enforce: v.boolean(), providers: v.optional(v.array(v.union(v.literal("google"), v.literal("microsoft-entra-id")))) },
+  args: {
+    enforce: v.boolean(),
+    providers: v.optional(v.array(v.union(v.literal("google"), v.literal("microsoft-entra-id"), v.literal("saml")))),
+  },
   returns: v.null(),
   handler: async (ctx, { enforce, providers }) => {
     const me = await requireUser(ctx);
@@ -127,14 +141,14 @@ export const setEnforced = mutation({
     if (enforce) {
       await requireFeature(ctx, me._id, "sso");
       if (!me.sso.verified) throw new ConvexError("Verify the domain first.");
-      if (!configuredProviders().length) throw new ConvexError("Google and Microsoft sign-in are not switched on for Formkit yet.");
+      if (!waysIn(me.sso).length) throw new ConvexError("Google and Microsoft sign-in are not switched on for Formkit yet, and there's no SAML connection.");
       // The owner must not lock themselves out: their own address needs a way in.
-      if (me.email?.endsWith(`@${me.sso.domain}`) && !(await hasOAuth(ctx, me))) {
-        throw new ConvexError("Sign in once with Google or Microsoft yourself before requiring it for everyone.");
+      if (me.email?.endsWith(`@${me.sso.domain}`) && !(await hasOAuth(ctx, me)) && !me.samlAt) {
+        throw new ConvexError("Sign in once with single sign-on yourself before requiring it for everyone.");
       }
     }
-    const allowed = (providers ?? me.sso.providers).filter((p) => configuredProviders().includes(p));
-    await ctx.db.patch(me._id, { sso: { ...me.sso, enforce, providers: allowed.length ? allowed : configuredProviders() } });
+    const allowed = (providers ?? me.sso.providers).filter((p) => waysIn(me.sso).includes(p));
+    await ctx.db.patch(me._id, { sso: { ...me.sso, enforce, providers: allowed.length ? allowed : waysIn(me.sso) } });
     await audit(ctx, me._id, me, enforce ? "Required single sign-on" : "Stopped requiring single sign-on", me.sso.domain);
     return null;
   },

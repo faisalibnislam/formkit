@@ -21,6 +21,7 @@ import { computeAll, pipe, pipeValues } from "../../../convex/model/calc";
 import { LiveReply } from "./LiveReply";
 import { QuizResult } from "./QuizResult";
 import { applyLogic, conditionsOf, type Rule as LogicRule } from "../../../convex/model/logicEval";
+import { endingOf, nextPage as jumpNext, type JumpPage } from "../../../convex/model/jumps";
 import { ruleProblem } from "../../../convex/model/validate";
 import { videoEmbed } from "../../../convex/model/video";
 import { LogoLockup } from "./LogoLockup";
@@ -163,8 +164,16 @@ export type OpenForm = {
   calc?: { name: string; formula: string }[];
   /** Pro: the brand's own font file and custom CSS, when the owner's plan has them. */
   custom?: { font: { name: string; url: string } | null; css: string | null } | null;
-  /** Pro: people go on to pay, through the owner's Stripe, after sending. */
-  payment?: { label: string | null; currency: string; amount: number | null; fromCalc: string | null } | null;
+  /** Pro: people pay through the owner's Stripe, and the answers are sent once they have. */
+  payment?: {
+    label: string | null;
+    currency: string;
+    amount: number | null;
+    fromCalc: string | null;
+    /** Pay what you want, at least `minimum`. */
+    choose?: { minimum: number; suggested: number | null } | null;
+    quantityAtCheckout?: number | null;
+  } | null;
 };
 
 /** What a sent response comes back as. */
@@ -183,6 +192,15 @@ export type SubmitArgs = {
   timedOut?: boolean;
   answers: ({ blockId: Id<"blocks"> } & Answer)[];
 };
+
+/** An amount as the person's browser writes money. */
+function money(amount: number, currency: string) {
+  try {
+    return new Intl.NumberFormat(undefined, { style: "currency", currency: currency.toUpperCase() }).format(amount);
+  } catch {
+    return `${amount.toFixed(2)} ${currency.toUpperCase()}`;
+  }
+}
 
 /** The same list in an order fixed by the seed: each person's own, but steady. */
 function shuffled<T>(list: T[], seed: number, key: (x: T) => string): T[] {
@@ -254,6 +272,7 @@ function FormRunnerInner({
   onFollowUp,
   onSaveForLater,
   onPay,
+  onPayFirst,
   onStart,
   onThink,
   onStartQuiz,
@@ -273,6 +292,10 @@ function FormRunnerInner({
   onSaveForLater?: (email: string, resumeToken: string) => Promise<void>;
   /** Opens the payment page for a response that owes one; the live form only. */
   onPay?: (r: { responseId: Id<"responses">; resumeToken: string }) => Promise<{ url: string } | { paid: true } | null>;
+  /** Pay first: holds the answers and opens Stripe, or keeps them at once when nothing is owed. The live form only. */
+  onPayFirst?: (
+    args: SubmitArgs & { chosen?: number },
+  ) => Promise<{ url: string; holdId: string } | { responseId: Id<"responses">; resumeToken: string }>;
   onStart?: () => void;
   /** Pro: starts a quiz attempt on the server, which keeps its clock. The live form only. */
   onStartQuiz?: () => Promise<{ attemptId: Id<"quizAttempts">; startedAt: number; endsAt: number | null }>;
@@ -297,6 +320,12 @@ function FormRunnerInner({
   const [started, setStarted] = useState(!!resume || !standalone);
   const [page, setPage] = useState(0);
   const [step, setStep] = useState(0);
+  const [trail, setTrail] = useState<number[]>([]);
+  // Pay first: what the person chose to pay, and the moment they are sent to Stripe.
+  const payFirst = mode === "live" && !!onPayFirst && !!data.payment && !resume?.editing;
+  const [chosen, setChosen] = useState(() => String(data.payment?.choose?.suggested ?? data.payment?.choose?.minimum ?? ""));
+  const [toStripe, setToStripe] = useState(false);
+  const rounds = useRef<Record<string, number>>({});
   const [answers, setAnswers] = useState<Record<string, Answer>>(() => resume?.answers ?? prefilled(blocks, data.smart?.hidden === true));
   // Hidden fields are sent with the answers but never shown.
   const hiddenFields = blocks.filter((b) => b.type === "hidden");
@@ -413,14 +442,33 @@ function FormRunnerInner({
 
   /* ---------- pages, and the questions in order ---------- */
   const pagesFor = (gone: Set<string>) => {
-    const pages: { name: string; fields: Block[] }[] = [{ name: "", fields: [] }];
+    const pages: { name: string; fields: Block[]; anchors: string[] }[] = [{ name: "", fields: [], anchors: [] }];
     for (const b of blocks) {
-      if (b.kind === "pagebreak") pages.push({ name: b.pageName ?? "", fields: [] });
-      else if (b.type !== "hidden" && !gone.has(b._id)) pages[pages.length - 1]!.fields.push(b);
+      if (b.kind === "pagebreak") pages.push({ name: b.pageName ?? "", fields: [], anchors: [b._id] });
+      else {
+        const last = pages[pages.length - 1]!;
+        last.anchors.push(b._id);
+        if (b.type !== "hidden" && !gone.has(b._id)) last.fields.push(b);
+      }
     }
     if (quiz?.shuffleQuestions) for (const p of pages) p.fields = shuffled(p.fields, seed, (b) => b._id);
-    return pages.filter((p) => p.fields.length > 0);
+    // A page with nothing to show is skipped; a jump to it lands on the next one that has something.
+    const out: typeof pages = [];
+    let carry: string[] = [];
+    for (const p of pages) {
+      if (!p.fields.length) carry = [...carry, ...p.anchors];
+      else {
+        out.push({ ...p, anchors: [...carry, ...p.anchors] });
+        carry = [];
+      }
+    }
+    return out;
   };
+  /** One question to a page, for one-at-a-time forms: hidden blocks and page breaks lead to the page's first question. */
+  const stepsOf = (pages: ReturnType<typeof pagesFor>) =>
+    pages.flatMap((p) =>
+      p.fields.map((f, i) => ({ anchors: i === 0 ? p.anchors.filter((id) => id === f._id || !p.fields.some((x) => x._id === id)) : [f._id] })),
+    );
   const live = pagesFor(hidden);
   const fields = live.flatMap((p) => p.fields);
   const current = live[Math.min(page, Math.max(0, live.length - 1))];
@@ -500,11 +548,32 @@ function FormRunnerInner({
   ) {
     const sending = over?.answers ?? kept;
     const ending = over && "ending" in over ? over.ending : outcome.ending;
+    const choose = payFirst ? data.payment?.choose : null;
+    if (choose && !(Number(chosen) >= choose.minimum)) {
+      setFailed(tx("atLeast", { amount: money(choose.minimum, data.payment!.currency) }));
+      return;
+    }
     setBusy(true);
     setFailed(null);
     try {
       savedPartial.current = true;
-      const r = await onSubmit({
+      const submit = payFirst
+        ? async (args: SubmitArgs): Promise<Submitted> => {
+            const r = await onPayFirst!({ ...args, ...(choose ? { chosen: Number(chosen) } : {}) });
+            if ("url" in r) {
+              try {
+                window.sessionStorage.setItem("fk.pay", JSON.stringify({ holdId: r.holdId }));
+              } catch {
+                /* Coming back to try again just will not be offered. */
+              }
+              setToStripe(true);
+              window.location.assign(r.url);
+              throw new Error("leaving");
+            }
+            return { responseId: r.responseId, resumeToken: r.resumeToken };
+          }
+        : onSubmit;
+      const r = await submit({
         partial: false,
         human: asHuman || undefined,
         trap: trap || undefined,
@@ -523,6 +592,8 @@ function FormRunnerInner({
       toTop();
       if (paying) void goPay(r.responseId!, r.resumeToken);
     } catch (e) {
+      // On the way to Stripe: nothing went wrong.
+      if (e instanceof Error && e.message === "leaving") return;
       savedPartial.current = false;
       const data = (e as { data?: unknown }).data;
       if (data && typeof data === "object" && (data as { code?: string }).code === "prove") {
@@ -646,6 +717,26 @@ function FormRunnerInner({
     };
   });
 
+  /** Where Next goes, counting the rounds of any jump back. */
+  function nextMove(list: JumpPage[], at: number, jumps: LogicRule[]) {
+    const move = jumpNext(list, at, jumps, rounds.current);
+    if (move.back) rounds.current[move.back] = (rounds.current[move.back] ?? 0) + 1;
+    return move;
+  }
+  /** Back retraces the pages actually visited, jumps and all. */
+  function goBack() {
+    const prev = trail.length ? trail[trail.length - 1]! : (conversational ? step : page) - 1;
+    setTrail((t) => t.slice(0, -1));
+    if (conversational) {
+      setProblem(null);
+      setStep(Math.max(0, prev));
+    }
+    else {
+      setPage(Math.max(0, prev));
+      toTop();
+    }
+  }
+
   async function nextPage() {
     const missing = firstMissing(current?.fields ?? []);
     if (missing) {
@@ -658,13 +749,11 @@ function FormRunnerInner({
     if (stopsOnRule(current?.fields ?? [])) return;
     if (await askFollowUp(current?.fields ?? [])) return;
     const now = await think(current?.fields ?? []);
-    if (!lastPage) {
-      // A matching "jump to" rule skips straight to the page that holds its
-      // question, as long as that page is ahead of this one.
-      const pagesNow = pagesFor(now.outcome.hidden);
-      const to = now.outcome.jumpTo;
-      const jumpPage = to ? pagesNow.findIndex((p) => p.fields.some((f) => f._id === to)) : -1;
-      setPage(jumpPage > page ? jumpPage : page + 1);
+    const move = nextMove(pagesFor(now.outcome.hidden), page, now.outcome.jumps);
+    if (move.finish !== undefined) return void send(human, { answers: now.answers, ending: endingOf(move.finish) ?? null });
+    if (!lastPage || move.back) {
+      setTrail((t) => [...t, page]);
+      setPage(move.to);
       toTop();
       return;
     }
@@ -682,11 +771,11 @@ function FormRunnerInner({
     if (stopsOnRule([cur])) return;
     if (await askFollowUp([cur])) return;
     const now = await think([cur]);
-    if (!lastStep) {
-      const to = now.outcome.jumpTo;
-      const fieldsNow = pagesFor(now.outcome.hidden).flatMap((p) => p.fields);
-      const jumpIndex = to ? fieldsNow.findIndex((f) => f._id === to) : -1;
-      setStep(jumpIndex > step ? jumpIndex : step + 1);
+    const move = nextMove(stepsOf(pagesFor(now.outcome.hidden)), step, now.outcome.jumps);
+    if (move.finish !== undefined) return void send(human, { answers: now.answers, ending: endingOf(move.finish) ?? null });
+    if (!lastStep || move.back) {
+      setTrail((t) => [...t, step]);
+      setStep(move.to);
       return;
     }
     const missing = firstMissing(fields);
@@ -775,6 +864,20 @@ function FormRunnerInner({
   }
 
   /* ---------- sent ---------- */
+  if (toStripe) {
+    return (
+      <Shell theme={theme} brand={data.brand} logos={data.logos} custom={data.custom}>
+        <div style={{ textAlign: split ? "left" : "center", paddingTop: "4vh" }}>
+          <span className="fk-live-lock" style={{ background: theme.primary, color: ink }}>
+            <CreditCard size={30} strokeWidth={1.8} aria-hidden />
+          </span>
+          <h1 style={{ marginTop: 22 }}>{tx("toPayment")}</h1>
+          <p className="fk-live-lede">{tx("payFirstNote")}</p>
+        </div>
+        {credit}
+      </Shell>
+    );
+  }
   if (done?.paying) {
     return (
       <Shell theme={theme} brand={data.brand} logos={data.logos} custom={data.custom}>
@@ -996,6 +1099,32 @@ function FormRunnerInner({
       </div>
     ) : null;
 
+  // Pay what you want: asked just before "Pay and send".
+  const choose = payFirst ? data.payment?.choose : null;
+  const amountField = choose ? (
+    <div className="fk-live-q">
+      <label htmlFor="fk-pay-amount" className="fk-live-q-title" style={{ display: "block" }}>
+        {tx("youPay", { currency: data.payment!.currency.toUpperCase() })}
+      </label>
+      <div className="fk-live-q-help" id="fk-pay-min">
+        {tx("atLeast", { amount: money(choose.minimum, data.payment!.currency) })}
+      </div>
+      <div className="fk-live-q-control">
+        <input
+          id="fk-pay-amount"
+          className="fk-live-input"
+          type="number"
+          inputMode="decimal"
+          min={choose.minimum}
+          step="0.01"
+          value={chosen}
+          onChange={(e) => setChosen(e.target.value)}
+          style={{ maxWidth: 220 }}
+          aria-describedby="fk-pay-min"
+        />
+      </div>
+    </div>
+  ) : null;
   const failure = failed && <div className="fk-live-err" role="alert" style={{ marginTop: 18 }}>{failed}</div>;
 
   const question = (b: Block, big = false) => {
@@ -1132,6 +1261,7 @@ function FormRunnerInner({
         >
           {trapField}
           {question(cur, true)}
+          {lastStep && amountField}
           {failure}
           {proveBox}
           <div className="fk-live-foot fk-live-sticky" style={{ background: theme.bg }}>
@@ -1139,16 +1269,13 @@ function FormRunnerInner({
               <button
                 type="button"
                 style={button(false)}
-                onClick={() => {
-                  setProblem(null);
-                  setStep((s) => Math.max(0, s - 1));
-                }}
+                onClick={goBack}
               >
                 <ArrowLeft size={17} strokeWidth={1.9} aria-hidden /> {tx("back")}
               </button>
             )}
             <button type="submit" style={button(true)} disabled={busy || thinking}>
-              {thinking ? tx("oneMoment") : busy ? tx("sending") : lastStep ? tx("submit") : tx("ok")}
+              {thinking ? tx("oneMoment") : busy ? tx("sending") : lastStep ? (payFirst ? tx("payAndSend") : tx("submit")) : tx("ok")}
             </button>
             {!lastStep && (
               <span className="fk-live-hint">
@@ -1188,23 +1315,17 @@ function FormRunnerInner({
         {trapField}
         <div style={{ marginTop: 10 }}>{(current?.fields ?? []).map((b) => question(b))}</div>
         {!fields.length && <p className="fk-live-note">{tx("noQuestions")}</p>}
+        {lastPage && amountField}
         {failure}
         {proveBox}
         <div className="fk-live-foot">
           {page > 0 && (
-            <button
-              type="button"
-              style={button(false)}
-              onClick={() => {
-                setPage((p) => p - 1);
-                toTop();
-              }}
-            >
+            <button type="button" style={button(false)} onClick={goBack}>
               {tx("back")}
             </button>
           )}
           <button type="submit" style={button(true)} disabled={busy || thinking || !fields.length}>
-            {thinking ? tx("oneMoment") : busy ? tx("sending") : lastPage ? (resume?.editing ? tx("saveChanges") : tx("submit")) : tx("next")}
+            {thinking ? tx("oneMoment") : busy ? tx("sending") : lastPage ? (resume?.editing ? tx("saveChanges") : payFirst ? tx("payAndSend") : tx("submit")) : tx("next")}
           </button>
           <span style={{ fontSize: 13.5, opacity: 0.75 }}>
             {tx("answeredOf", { n: answeredCount, total: questions.length })}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useSeededQuery, useViewer } from "@/lib/seed";
+import { SITE_URL } from "@/lib/site";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAction, useMutation, useQuery } from "convex/react";
@@ -111,6 +112,7 @@ export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
   const update = useMutation(api.forms.update);
   const setClosing = useMutation(api.forms.setClosing);
   const setPassword = useMutation(api.forms.setPassword);
+  const setAgents = useMutation(api.agents.setEnabled);
   const softDelete = useMutation(api.forms.softDelete);
   const sendTest = useAction(api.notifications.sendTest);
 
@@ -143,6 +145,7 @@ export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
   const zone = form.closing?.timezone ?? viewer?.timezone ?? localZone();
   const fields = form.blocks.filter((b) => b.kind === "field");
   const hasEmailQuestion = fields.some((b) => b.type === "email");
+  const agentAddress = `${SITE_URL}/api/agent/forms/${form.slug}`;
   const scheduled = !!(form.closing?.closeAt || form.closing?.closeAfter);
   const patchThanks = (p: Record<string, string>) =>
     tracked(
@@ -649,6 +652,42 @@ export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
               <TriangleAlert size={16} strokeWidth={1.8} aria-hidden />
               <span>This form has no email question yet, so nobody could submit it. Add one under Build.</span>
             </div>
+          )}
+          <Row
+            label="Let AI agents fill it in"
+            hint="Someone's AI assistant can read the questions and send answers for them, without a browser. Their responses are labelled, limited and checked for spam."
+          >
+            <Switch
+              checked={form.agents}
+              label="Let AI agents fill it in"
+              onChange={async (on) => {
+                await tracked(setAgents({ formId, on }));
+                toast(on ? "AI agents can fill it in" : "AI agents can no longer fill it in");
+              }}
+            />
+          </Row>
+          {form.agents && (
+            <Field label="Address for AI agents" help="Agents read the questions here and send answers to it. Password, payment and quiz forms can't be filled in this way.">
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <Input
+                  readOnly
+                  aria-label="Address for AI agents"
+                  value={agentAddress}
+                  wrapStyle={{ flex: 1 }}
+                  onFocus={(e) => e.currentTarget.select()}
+                />
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(agentAddress);
+                    toast("Copied", { detail: "The address for AI agents" });
+                  }}
+                >
+                  Copy
+                </Button>
+              </div>
+            </Field>
           )}
         </Card>
       )}

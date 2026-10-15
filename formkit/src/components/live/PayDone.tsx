@@ -30,15 +30,19 @@ function money(amount: number, currency: string) {
  */
 export function PayDone({
   responseId,
+  holdId,
   sessionId,
   cancelled,
 }: {
   responseId: string | null;
+  /** Pay first: the answers waiting on this payment (payments.ts). */
+  holdId: string | null;
   sessionId: string | null;
   cancelled: boolean;
 }) {
   const confirm = useAction(api.payments.confirm);
   const checkout = useAction(api.payments.checkout);
+  const retry = useAction(api.payments.retry);
   const [result, setResult] = useState<Result | undefined>(undefined);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
@@ -48,18 +52,23 @@ export function PayDone({
   useEffect(() => {
     if (asked.current) return;
     asked.current = true;
-    if (!responseId) return;
-    confirm({ responseId: responseId as Id<"responses">, sessionId: sessionId ?? undefined })
+    if (!responseId && !holdId) return;
+    confirm(
+      holdId
+        ? { holdId: holdId as Id<"paymentHolds">, sessionId: sessionId ?? undefined }
+        : { responseId: responseId as Id<"responses">, sessionId: sessionId ?? undefined },
+    )
       .then(setResult)
       .catch(() => setResult(null));
-  }, [confirm, responseId, sessionId]);
+  }, [confirm, responseId, holdId, sessionId]);
 
   /** Kept by the form when it sent the person here, so they can try again. */
-  function saved(): { responseId: Id<"responses">; resumeToken: string } | null {
+  function saved(): { responseId: Id<"responses">; resumeToken: string } | { holdId: Id<"paymentHolds"> } | null {
     try {
       const raw = window.sessionStorage.getItem("fk.pay");
-      const v = raw ? (JSON.parse(raw) as { responseId: Id<"responses">; resumeToken: string }) : null;
-      return v && v.responseId === responseId ? v : null;
+      const v = raw ? (JSON.parse(raw) as { responseId?: Id<"responses">; resumeToken?: string; holdId?: Id<"paymentHolds"> }) : null;
+      if (v?.holdId && v.holdId === holdId) return { holdId: v.holdId };
+      return v?.responseId && v.resumeToken && v.responseId === responseId ? { responseId: v.responseId, resumeToken: v.resumeToken } : null;
     } catch {
       return null;
     }
@@ -71,7 +80,7 @@ export function PayDone({
     setBusy(true);
     setProblem(null);
     try {
-      const next = await checkout(s);
+      const next = "holdId" in s ? await retry(s) : await checkout(s);
       if (next && "url" in next) window.location.assign(next.url);
       else setBusy(false);
     } catch (e) {
@@ -93,7 +102,7 @@ export function PayDone({
     cursor: "pointer",
   };
 
-  if (result === undefined && responseId) {
+  if (result === undefined && (responseId || holdId)) {
     return (
       <Shell theme={theme}>
         <div style={{ textAlign: "center", paddingTop: "10vh" }}>
@@ -132,7 +141,9 @@ export function PayDone({
         <p className="fk-live-lede">
           {paid
             ? `Thank you. ${money(result.amount, result.currency)} for ${result.formTitle}. Stripe will email your receipt.`
-            : `Your answers to ${result.formTitle} are saved, but the ${money(result.amount, result.currency)} payment has not gone through.`}
+            : holdId
+              ? `Your answers to ${result.formTitle} are sent once the ${money(result.amount, result.currency)} payment goes through. It hasn't yet.`
+              : `Your answers to ${result.formTitle} are saved, but the ${money(result.amount, result.currency)} payment has not gone through.`}
         </p>
         {problem && <p className="fk-live-err">{problem}</p>}
         {canRetry && (

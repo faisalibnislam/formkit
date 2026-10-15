@@ -1,4 +1,5 @@
 import { internal } from "./_generated/api";
+import { remember } from "./model/history";
 import { fromPortable, type PortableRule } from "./model/logicCopy";
 import { ConvexError, v } from "convex/values";
 import { internalMutation, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
@@ -265,6 +266,8 @@ export const get = query({
       ownerName: (await ctx.db.get(form.ownerId))?.name?.trim() || null,
       /** Whether the person looking is the owner: only they can move it between their names. */
       mine: (await requireUser(ctx))._id === form.ownerId,
+      /** AI agents may fill it in through /api/agent (agents.ts). */
+      agents: !!form.agents,
       calc: form.calc ?? [],
       endings: form.endings ?? [],
       aiReply: form.aiReply ?? null,
@@ -986,6 +989,7 @@ export const restoreVersion = mutation({
       publishedAt: now,
       publishedBy: user.name ?? user.email ?? "You",
     });
+    await remember(ctx, form._id, `Restore version ${version.number}`, { userId: user._id });
     await applyToDraft(ctx, form, { blocks: version.blocks, rules: version.rules ?? null, content: version.content });
     await ctx.db.patch(form._id, { updatedAt: now });
     return null;

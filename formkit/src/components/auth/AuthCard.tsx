@@ -2,14 +2,16 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useState } from "react";
-import { ArrowRight, Lock, Mail, RotateCcw, User } from "lucide-react";
+import { useCallback, useState, useSyncExternalStore } from "react";
+import { ArrowRight, KeyRound, Lock, Mail, RotateCcw, User } from "lucide-react";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { NightSky } from "@/components/brand/NightSky";
 import { SiteNav } from "@/components/site/SiteNav";
 import { Button, Checkbox, Field, Input, ProgressBar } from "@/components/ui";
+import { answerWithPasskey, cancelled, passkeysHere } from "@/lib/passkeys";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * Sign in, sign up, email verification, password reset and reactivation.
@@ -38,6 +40,8 @@ function readableError(err: unknown, fallback: string) {
   const raw = err instanceof Error ? err.message : String(err);
   const sso = raw.match(/([a-z0-9.-]+\.[a-z]{2,} signs in with [^.]+\.)/i);
   if (sso) return `${sso[1]} Use the button below.`;
+  if (/saml-email/.test(raw)) return "Enter your work email above, then choose single sign-on.";
+  if (/saml-none/.test(raw)) return "Single sign-on isn't set up for that address. Sign in with your password, or ask your IT team.";
   if (/InvalidSecret|InvalidAccountId/i.test(raw)) {
     return "That email and password do not match an account. Check the address, or reset the password.";
   }
@@ -131,6 +135,43 @@ export function AuthCard({ initialView }: { initialView: View }) {
       }
       router.push(landing());
     }, "Formkit could not sign you in. Try again in a moment.");
+
+  // A passkey needs no email: the device offers the ones it holds for this site.
+  const passkeys = useSyncExternalStore(
+    () => () => {},
+    () => passkeysHere(new URL(SITE_URL).hostname),
+    () => false,
+  );
+  const passkeyOptions = useMutation(api.passkeys.signInOptions);
+  // SAML through WorkOS: the address says which company's sign-in to use.
+  const samlOn = useQuery(api.workos.available, {}) === true;
+  const beginSaml = useAction(api.workos.begin);
+  const onSaml = () =>
+    run(async () => {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) throw new Error("saml-email");
+      const url = await beginSaml({ email: address });
+      if (!url) throw new Error("saml-none");
+      window.location.assign(url);
+    }, "Single sign-on didn't start. Try again in a moment.");
+  const onPasskey = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      const assertion = await answerWithPasskey(await passkeyOptions({}));
+      await signIn("passkey", { assertion: JSON.stringify(assertion) });
+      router.push(landing());
+    } catch (err) {
+      if (cancelled(err)) return;
+      const data = (err as { data?: { code?: string; message?: string } } | null)?.data;
+      setError(
+        data && typeof data === "object" && data.message
+          ? data.message
+          : readableError(err, "That passkey didn't work. Try again, or use your password."),
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const onSignUp = async () => {
     if (!terms) {
@@ -256,6 +297,22 @@ export function AuthCard({ initialView }: { initialView: View }) {
                 >
                   {busy ? "Signing in…" : "Sign in"}
                 </Button>
+                {samlOn && (
+                  <Button variant="secondary" fullWidth disabled={busy} onClick={onSaml}>
+                    Sign in with single sign-on
+                  </Button>
+                )}
+                {passkeys && (
+                  <Button
+                    variant="secondary"
+                    fullWidth
+                    disabled={busy}
+                    onClick={onPasskey}
+                    iconLeft={<KeyRound size={17} strokeWidth={1.8} aria-hidden />}
+                  >
+                    Sign in with a passkey
+                  </Button>
+                )}
                 {oauth && oauth.length > 0 && (
                   <>
                     <div className="fk-auth-or">

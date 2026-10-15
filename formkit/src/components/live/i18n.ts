@@ -83,6 +83,10 @@ const EN = {
   openForm: "Open the form",
   pageOf: "Page {n} of {total}",
   answeredOf: "{n} of {total} answered",
+  payAndSend: "Pay and send",
+  youPay: "How much you'll pay ({currency})",
+  atLeast: "At least {amount}.",
+  payFirstNote: "Your answers are sent once the payment goes through. Stripe handles it securely.",
 } as const;
 
 export type Key = keyof typeof EN;
@@ -142,6 +146,10 @@ const DICTS: Record<Exclude<Lang, "en">, Dict> = {
     openForm: "Abrir el formulario",
     pageOf: "Página {n} de {total}",
     answeredOf: "{n} de {total} respondidas",
+    payAndSend: "Pagar y enviar",
+    youPay: "Cuánto vas a pagar ({currency})",
+    atLeast: "Como mínimo {amount}.",
+    payFirstNote: "Tus respuestas se envían cuando se complete el pago. Stripe lo gestiona de forma segura.",
   },
   fr: {
     start: "Commencer",
@@ -196,6 +204,10 @@ const DICTS: Record<Exclude<Lang, "en">, Dict> = {
     openForm: "Ouvrir le formulaire",
     pageOf: "Page {n} sur {total}",
     answeredOf: "{n} sur {total} répondues",
+    payAndSend: "Payer et envoyer",
+    youPay: "Montant que vous payez ({currency})",
+    atLeast: "Au moins {amount}.",
+    payFirstNote: "Vos réponses sont envoyées une fois le paiement effectué. Stripe s’en charge en toute sécurité.",
   },
   de: {
     start: "Los geht’s",
@@ -250,6 +262,10 @@ const DICTS: Record<Exclude<Lang, "en">, Dict> = {
     openForm: "Formular öffnen",
     pageOf: "Seite {n} von {total}",
     answeredOf: "{n} von {total} beantwortet",
+    payAndSend: "Bezahlen und senden",
+    youPay: "Ihr Betrag ({currency})",
+    atLeast: "Mindestens {amount}.",
+    payFirstNote: "Ihre Antworten werden gesendet, sobald die Zahlung abgeschlossen ist. Stripe wickelt sie sicher ab.",
   },
   pt: {
     start: "Começar",
@@ -304,6 +320,10 @@ const DICTS: Record<Exclude<Lang, "en">, Dict> = {
     openForm: "Abrir o formulário",
     pageOf: "Página {n} de {total}",
     answeredOf: "{n} de {total} respondidas",
+    payAndSend: "Pagar e enviar",
+    youPay: "Quanto vai pagar ({currency})",
+    atLeast: "No mínimo {amount}.",
+    payFirstNote: "As suas respostas são enviadas assim que o pagamento for concluído. O Stripe trata dele com segurança.",
   },
   it: {
     start: "Inizia",
@@ -358,6 +378,10 @@ const DICTS: Record<Exclude<Lang, "en">, Dict> = {
     openForm: "Apri il modulo",
     pageOf: "Pagina {n} di {total}",
     answeredOf: "{n} di {total} risposte",
+    payAndSend: "Paga e invia",
+    youPay: "Quanto paghi ({currency})",
+    atLeast: "Almeno {amount}.",
+    payFirstNote: "Le tue risposte vengono inviate quando il pagamento è completato. Stripe lo gestisce in modo sicuro.",
   },
   nl: {
     start: "Beginnen",
@@ -412,6 +436,10 @@ const DICTS: Record<Exclude<Lang, "en">, Dict> = {
     openForm: "Formulier openen",
     pageOf: "Pagina {n} van {total}",
     answeredOf: "{n} van {total} beantwoord",
+    payAndSend: "Betalen en versturen",
+    youPay: "Hoeveel je betaalt ({currency})",
+    atLeast: "Minimaal {amount}.",
+    payFirstNote: "Je antwoorden worden verstuurd zodra de betaling rond is. Stripe handelt die veilig af.",
   },
   ar: {
     start: "ابدأ",
@@ -466,6 +494,10 @@ const DICTS: Record<Exclude<Lang, "en">, Dict> = {
     openForm: "افتح النموذج",
     pageOf: "الصفحة {n} من {total}",
     answeredOf: "تمت الإجابة عن {n} من {total}",
+    payAndSend: "ادفع وأرسل",
+    youPay: "المبلغ الذي ستدفعه ({currency})",
+    atLeast: "على الأقل {amount}.",
+    payFirstNote: "تُرسل إجاباتك بعد إتمام الدفع. تتولى Stripe الدفع بأمان.",
   },
   hi: {
     start: "शुरू करें",
@@ -520,6 +552,10 @@ const DICTS: Record<Exclude<Lang, "en">, Dict> = {
     openForm: "फ़ॉर्म खोलें",
     pageOf: "पृष्ठ {n} / {total}",
     answeredOf: "{total} में से {n} के जवाब दिए गए",
+    payAndSend: "भुगतान करें और भेजें",
+    youPay: "आप कितना देंगे ({currency})",
+    atLeast: "कम से कम {amount}।",
+    payFirstNote: "भुगतान पूरा होते ही आपके जवाब भेज दिए जाते हैं। Stripe भुगतान को सुरक्षित रूप से संभालता है।",
   },
   bn: {
     start: "শুরু করুন",
@@ -574,6 +610,10 @@ const DICTS: Record<Exclude<Lang, "en">, Dict> = {
     openForm: "ফর্মটি খুলুন",
     pageOf: "পৃষ্ঠা {n} / {total}",
     answeredOf: "{total}টির মধ্যে {n}টির উত্তর দেওয়া হয়েছে",
+    payAndSend: "পেমেন্ট করে পাঠান",
+    youPay: "আপনি কত দেবেন ({currency})",
+    atLeast: "অন্তত {amount}।",
+    payFirstNote: "পেমেন্ট সম্পন্ন হলেই আপনার উত্তর পাঠানো হয়। Stripe নিরাপদে পেমেন্ট সামলায়।",
   },
   ja: {
     start: "始める",
@@ -628,6 +668,10 @@ const DICTS: Record<Exclude<Lang, "en">, Dict> = {
     openForm: "フォームを開く",
     pageOf: "{total} ページ中 {n} ページ目",
     answeredOf: "{total} 問中 {n} 問回答済み",
+    payAndSend: "支払って送信",
+    youPay: "お支払い金額（{currency}）",
+    atLeast: "{amount}以上。",
+    payFirstNote: "お支払いが完了すると回答が送信されます。お支払いはStripeが安全に処理します。",
   },
   zh: {
     start: "开始",
@@ -682,6 +726,10 @@ const DICTS: Record<Exclude<Lang, "en">, Dict> = {
     openForm: "打开表单",
     pageOf: "第 {n} 页，共 {total} 页",
     answeredOf: "已回答 {n}/{total}",
+    payAndSend: "付款并提交",
+    youPay: "您支付的金额（{currency}）",
+    atLeast: "至少 {amount}。",
+    payFirstNote: "付款完成后即提交您的回答。Stripe 会安全地处理付款。",
   },
 };
 

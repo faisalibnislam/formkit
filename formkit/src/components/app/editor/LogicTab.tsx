@@ -20,7 +20,7 @@ import { groupsOf } from "../../../../convex/model/logicEval";
 import { LogicMap } from "./LogicMap";
 
 /**
- * Conditional logic. Show, hide or require a question, jump ahead, hide some
+ * Conditional logic. Show, hide or require a question, jump ahead or back, hide some
  * of a question's options, or finish on a particular ending - based on the
  * answers so far. Rules run top to bottom.
  *
@@ -95,7 +95,7 @@ export function LogicTab({ formId }: { formId: Id<"forms"> }) {
         <div style={{ flex: 1, minWidth: 240 }}>
           <h3 style={{ margin: "0 0 6px" }}>Conditional logic</h3>
           <p className="fk-panel-lede" style={{ margin: 0 }}>
-            Show, hide or require a question, skip ahead, hide options or pick the ending, based on the answers so
+            Show, hide or require a question, jump ahead or back, hide options or pick the ending, based on the answers so
             far. Rules run top to bottom.
           </p>
         </div>
@@ -135,8 +135,28 @@ function RuleCard({ rule, index, form }: { rule: Rule; index: number; form: Form
   const questions = form.blocks.filter((b) => b.kind === "field");
   const byId = (id?: string | null) => questions.find((q) => q._id === id);
   const questionOptions = questions.map((q) => ({ value: q._id as string, label: short(q.title) }));
-  const choiceQuestions = questions.filter((q) => (q.options?.length ?? 0) > 0 || q.type === "yes-no");
   const endings = form.endings ?? [];
+  // A jump can land on a whole page as well as on a question, ahead or back.
+  const jumpOptions = (() => {
+    const out: { value: string; label: string; group: string; note?: string }[] = [];
+    let page = 1;
+    let group = "Page 1";
+    for (const b of form.blocks) {
+      if (b.kind === "pagebreak") {
+        page++;
+        group = b.pageName ? `Page ${page} · ${short(b.pageName)}` : `Page ${page}`;
+        out.push({ value: b._id as string, label: `Start of page ${page}`, group });
+      } else if (b.kind === "field") out.push({ value: b._id as string, label: short(b.title), group });
+    }
+    // Or straight to the end: the form is sent there and then.
+    out.push({ value: "ending:default", label: "Thank-you screen", group: "Finish now" });
+    for (const e of endings) {
+      out.push({ value: `ending:${e.id}`, label: short(e.name), group: "Finish now", ...(advanced.locked ? { note: "Pro" } : {}) });
+    }
+    return out;
+  })();
+  const jumpValue = rule.targetId ? (rule.targetId as string) : rule.endingId ? `ending:${rule.endingId}` : null;
+  const choiceQuestions = questions.filter((q) => (q.options?.length ?? 0) > 0 || q.type === "yes-no");
 
   const patch = async (p: Parameters<typeof update>[0]["patch"]) => {
     try {
@@ -318,12 +338,14 @@ function RuleCard({ rule, index, form }: { rule: Rule; index: number; form: Form
             onChange={(v) => {
               if (ADVANCED.has(v) && advanced.locked) return openUpgrade({ feature: "logic.advanced" });
               const action = v as Rule["action"];
-              if (action === "ending") return void patch({ action, endingId: rule.endingId ?? endings[0]?.id });
+              if (action === "ending") return void patch({ action, endingId: endings.find((e) => e.id === rule.endingId)?.id ?? endings[0]?.id });
               if (action === "hide-options") {
                 const q = choiceQuestions.find((x) => x._id === rule.targetId) ?? choiceQuestions[0];
                 return void patch({ action, ...(q ? { targetId: q._id } : {}), options: [] });
               }
-              void patch({ action });
+              // Only a jump can land on a page break; anything else needs a question.
+              const onPage = form.blocks.some((b) => b._id === rule.targetId && b.kind === "pagebreak");
+              void patch({ action, ...(action !== "jump" && onPage && questions[0] ? { targetId: questions[0]._id } : {}) });
             }}
           />
         </div>
@@ -348,17 +370,28 @@ function RuleCard({ rule, index, form }: { rule: Rule; index: number; form: Form
           <div style={{ flex: "1 1 220px", minWidth: 180 }}>
             <Select
               size="sm"
-              ariaLabel="Which question is affected"
-              placeholder="Pick a question"
-              value={(rule.targetId as string | undefined) ?? null}
+              ariaLabel={rule.action === "jump" ? "Where to jump" : "Which question is affected"}
+              placeholder={rule.action === "jump" ? "Pick a page or question" : "Pick a question"}
+              value={rule.action === "jump" ? jumpValue : ((rule.targetId as string | undefined) ?? null)}
               options={
                 rule.action === "hide-options"
                   ? choiceQuestions.map((q) => ({ value: q._id as string, label: short(q.title) }))
-                  : questionOptions
+                  : rule.action === "jump"
+                    ? jumpOptions
+                    : questionOptions
               }
-              onChange={(v) =>
-                void patch({ targetId: v as Id<"blocks">, ...(rule.action === "hide-options" ? { options: [] } : {}) })
-              }
+              onChange={(v) => {
+                if (v.startsWith("ending:")) {
+                  const endingId = v.slice("ending:".length);
+                  if (endingId !== "default" && advanced.locked) return openUpgrade({ feature: "logic.advanced" });
+                  return void patch({ targetId: null, endingId });
+                }
+                void patch({
+                  targetId: v as Id<"blocks">,
+                  ...(rule.action === "jump" && rule.endingId ? { endingId: null } : {}),
+                  ...(rule.action === "hide-options" ? { options: [] } : {}),
+                });
+              }}
             />
           </div>
         )}
@@ -399,7 +432,13 @@ function RuleCard({ rule, index, form }: { rule: Rule; index: number; form: Form
         {rule.action === "ending" ? (
           <span className="fk-rchip">{ending?.name || "…"}</span>
         ) : (
-          <span className="fk-rchip">{target?.title || "…"}</span>
+          <span className="fk-rchip">
+            {target?.title ||
+              (rule.action === "jump" && rule.endingId
+                ? `the end · ${jumpOptions.find((o) => o.value === jumpValue)?.label ?? "an ending"}`
+                : jumpOptions.find((o) => o.value === rule.targetId && !byId(o.value))?.group) ||
+              "…"}
+          </span>
         )}
         {rule.action === "hide-options" && (
           <span className="fk-rchip" data-tone="ink">

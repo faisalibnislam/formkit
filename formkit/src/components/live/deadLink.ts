@@ -4,7 +4,7 @@ import { fetchQuery } from "convex/nextjs";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { api } from "../../../convex/_generated/api";
-import { isOwnHost } from "@/lib/site";
+import { SITE_URL, isOwnHost } from "@/lib/site";
 
 type LinkState = {
   live: boolean;
@@ -14,6 +14,7 @@ type LinkState = {
   icon: string | null;
   color?: string | null;
   about?: string | null;
+  agents?: boolean;
 };
 
 /** One lookup per request, shared by the page and its metadata. */
@@ -57,5 +58,7 @@ export async function formMetadata(slug: string, handle?: string): Promise<Metad
     openGraph: { title: state.title, description, siteName: state.name ?? undefined, type: "website" },
     twitter: { card: "summary_large_image", title: state.title, description },
     ...(state.icon ? { icons: { icon: state.icon, apple: state.icon } } : {}),
+    // An AI agent reading the page finds the form's machine-readable address (convex/agents.ts).
+    ...(state.agents ? { alternates: { types: { "application/json": `${SITE_URL}/api/agent/forms/${encodeURIComponent(slug)}` } } } : {}),
   };
 }

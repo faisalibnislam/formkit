@@ -1108,6 +1108,34 @@ button.fk-chip {
 .fk-savestatus[data-tone="error"]::before {
   background: var(--red-400, #f87171);
 }
+/* Undo and redo, beside the save status on the sky. */
+.fk-undo {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: 4px;
+}
+.fk-undo button {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--neutral-0);
+  cursor: pointer;
+}
+.fk-undo button:hover:not(:disabled) {
+  background: rgb(255 255 255 / 0.16);
+}
+.fk-undo button:focus-visible {
+  outline: 2px solid var(--neutral-0);
+  outline-offset: 1px;
+}
+.fk-undo button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
 
 /* ---------- the Logic tab ---------- */
 
@@ -7344,4 +7372,43 @@ html.fk-own-bar::-webkit-scrollbar {
   background: rgba(255, 255, 255, 0.85);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
   color: #21282e;
+}
+
+/* Settings → Notifications → Push: the devices signed up. */
+.fk-push-devices {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.fk-push-devices li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--neutral-50, #f6f7f8);
+}
+.fk-push-devices strong {
+  font-weight: 500;
+}
+.fk-push-devices small {
+  display: block;
+  margin-top: 2px;
+  color: var(--neutral-600, #545b61);
+  font-size: 12.5px;
+}
+
+/* Settings → Account → Passkeys: renaming in place. */
+.fk-passkey-name {
+  font: inherit;
+  font-weight: 500;
+  width: min(100%, 260px);
+  padding: 4px 8px;
+  border: 1px solid var(--neutral-300, #c9ced3);
+  border-radius: 8px;
+  background: var(--color-surface-card);
+  color: inherit;
 }

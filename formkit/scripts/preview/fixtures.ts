@@ -1055,7 +1055,27 @@ export const QUERIES: Record<string, unknown> = {
       options: ["More than £35k"],
       order: 3,
     },
+    {
+      _id: "r5",
+      formId: "f1",
+      name: "Not sure yet? Start over",
+      enabled: true,
+      join: "and",
+      conditions: [{ blockId: "b5", operator: "is-empty" }],
+      action: "jump",
+      targetId: "b1",
+      order: 4,
+    },
   ],
+  "passkeys:list": [{ _id: "pk1", name: "iPhone", createdAt: Date.UTC(2026, 7, 20), lastUsedAt: Date.UTC(2026, 9, 13) }],
+  "push:config": {
+    publicKey: "BPreviewPreviewPreviewPreviewPreviewPreviewPreviewPreviewPreviewPreviewPreviewPreviewPrevie",
+    prefs: { responses: true, mentions: true, approvals: false },
+    devices: [{ endpoint: "https://push.example.com/phone", device: "Safari on iOS", createdAt: Date.UTC(2026, 8, 2), lastSentAt: Date.UTC(2026, 9, 14) }],
+  },
+  "history:state": { undo: { label: "Edit “Budget range”", mine: true }, redo: null },
+  "mutation:history:undo": "Edit “Budget range”",
+  "mutation:history:redo": "Edit “Budget range”",
   "ai:usage": { used: 3, limit: 25, allowed: true },
   "insights:overview": {
     locked: false,
@@ -1375,9 +1395,11 @@ export const QUERIES: Record<string, unknown> = {
   "payments:settings": {
     mine: true,
     account: { live: false, name: "Studio Nine", last4: "x9Qe", addedAt: now },
-    payment: { enabled: true, currency: "usd", amount: 2500, label: "Workshop seat" },
+    payment: { enabled: true, currency: "usd", amount: 2500, label: "Workshop seat", promoCodes: true, quantity: { from: "checkout", max: 6 }, tax: { inclusive: false } },
     calcNames: ["total"],
     currencies: ["usd", "eur", "gbp", "cad", "aud", "inr", "bdt", "jpy"],
+    numberQuestions: [{ id: "b9", title: "How many seats?" }],
+    webhook: { on: false, url: "https://example.convex.site/stripe/webhook/acct1" },
   },
   get "team:overview"() {
     const me = flag("fk_space") === "me";
@@ -1427,8 +1449,10 @@ export const QUERIES: Record<string, unknown> = {
       record: { type: "TXT", name: "_formkit.studionine.co", value: "formkit-verify=8c1f0a3b9d2e4f5a6b7c8d9e" },
     },
     available: ["google", "microsoft-entra-id"],
+    saml: { on: true, connected: true, directory: false, role: "viewer" },
   },
   "sso:providers": [],
+  "workos:available": true,
   "support:mine": { priority: true, tickets: [] },
   "revenue:overview": (() => {
     const months = Array.from({ length: 12 }, (_, i) => {

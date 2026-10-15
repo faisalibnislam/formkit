@@ -12,6 +12,7 @@ import { Panel, Row } from "./bits";
 import { browserAlertsOn, browserAlertsSupported, setBrowserAlerts } from "../useInboxAlerts";
 import { PageSkeleton } from "../Skeleton";
 import { EmailDomainPanel } from "./Domains";
+import { PushPanel } from "./PushPanel";
 
 /**
  * Settings → Notifications. "Every form" sets the account's defaults - what
@@ -41,6 +42,7 @@ export function NotificationsSection() {
   return (
     <>
       <InApp prefs={viewer.inAppPrefs} emailComments={viewer.emailPrefs.comments} />
+      <PushPanel />
     <Panel
       title="Email me about"
       lede="For every form, or for one of them. A form's own choices win over these."

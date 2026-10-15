@@ -23,6 +23,8 @@ test("the inbox filters by the company's own statuses, and they can be changed",
 test("the builder lists its keyboard shortcuts on ?", async ({ page }) => {
   await page.goto("/app/forms/f1");
   await expect(page.locator("[data-block-id]").first()).toBeVisible({ timeout: 45_000 });
+  // The questions are server-rendered; Undo appears once the page is live.
+  await expect(page.getByRole("button", { name: /^Undo: / })).toBeVisible({ timeout: 45_000 });
   await page.locator("body").press("Shift+Slash");
   await expect(page.getByRole("dialog", { name: "Keyboard shortcuts" })).toBeVisible();
 });
@@ -31,5 +33,13 @@ test("Settings → Developers shows the AI assistant address and connected apps"
   await page.goto("/app/settings?tab=developers");
   await expect(page.getByText(/api\/mcp/).first()).toBeVisible();
   await expect(page.getByText("Claude", { exact: true })).toBeVisible();
+  await expectAccessible(page, { include: "main" });
+});
+
+test("Settings → Notifications offers push for each device, and lists them", async ({ page }) => {
+  await page.goto("/app/settings?tab=notifications");
+  await expect(page.getByRole("heading", { name: "Push notifications" })).toBeVisible({ timeout: 45_000 });
+  await expect(page.getByRole("switch", { name: "Push notifications on this device" })).toBeVisible();
+  await expect(page.getByRole("list", { name: "Signed-up devices" }).getByText("Safari on iOS")).toBeVisible();
   await expectAccessible(page, { include: "main" });
 });

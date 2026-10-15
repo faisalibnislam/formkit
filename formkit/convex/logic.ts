@@ -1,5 +1,7 @@
 import { v } from "convex/values";
+import { remember } from "./model/history";
 import { mutation, query } from "./_generated/server";
+import type { Doc, Id } from "./_generated/dataModel";
 import { formFor } from "./model/forms";
 import { requireFeature } from "./model/plans";
 import { conditionsOf } from "./model/logicEval";
@@ -42,11 +44,29 @@ const action = v.union(
 async function checkPlan(
   ctx: Parameters<typeof requireFeature>[0],
   ownerId: Parameters<typeof requireFeature>[1],
-  r: { action?: string; conditions?: { source?: string }[]; groups?: { conditions: { source?: string }[] }[] },
+  r: { action?: string; conditions?: { source?: string }[]; groups?: { conditions: { source?: string }[] }[]; jumpEnding?: string | null },
 ) {
   if (r.action === "hide-options" || r.action === "ending") await requireFeature(ctx, ownerId, "logic.advanced");
+  // Jumping straight to the usual thank-you screen is on every plan; to one of several endings is Pro.
+  if (r.jumpEnding && r.jumpEnding !== "default") await requireFeature(ctx, ownerId, "logic.advanced");
   const all = [...(r.conditions ?? []), ...(r.groups ?? []).flatMap((g) => g.conditions)];
   if (all.some((c) => c.source === "ai")) await requireFeature(ctx, ownerId, "logic.ai");
+}
+
+/**
+ * A rule's target must be on its own form. A jump may land on a page break
+ * (the start of that page) as well as on a question; nothing else can.
+ */
+async function checkTarget(
+  ctx: { db: { get: (id: Id<"blocks">) => Promise<Doc<"blocks"> | null> } },
+  formId: Id<"forms">,
+  action: string,
+  targetId: Id<"blocks"> | undefined,
+) {
+  if (!targetId) return;
+  const block = await ctx.db.get(targetId);
+  if (!block || block.formId !== formId) throw new Error("That question isn't on this form.");
+  if (block.kind === "pagebreak" && action !== "jump") throw new Error("Only a jump can go to a page.");
 }
 
 /** AI conditions need a stable id for their judgement to be kept against. */
@@ -82,7 +102,9 @@ export const add = mutation({
   returns: v.id("logicRules"),
   handler: async (ctx, { formId, name, join, action, targetId, conditions, groups, options, endingId }) => {
     const form = await formFor(ctx, formId);
-    await checkPlan(ctx, form.ownerId, { action, conditions, groups });
+    await checkPlan(ctx, form.ownerId, { action, conditions, groups, jumpEnding: action === "jump" ? endingId : undefined });
+    await checkTarget(ctx, formId, action, targetId);
+    await remember(ctx, formId, "Add a rule");
     const existing = await ctx.db
       .query("logicRules")
       .withIndex("by_form", (q) => q.eq("formId", formId))
@@ -117,9 +139,10 @@ export const update = mutation({
       /** null clears the groups, back to one list of conditions. */
       groups: v.optional(v.union(v.array(group), v.null())),
       action: v.optional(action),
-      targetId: v.optional(v.id("blocks")),
+      /** null clears it: a jump to an ending has no question. */
+      targetId: v.optional(v.union(v.id("blocks"), v.null())),
       options: v.optional(v.array(v.string())),
-      endingId: v.optional(v.string()),
+      endingId: v.optional(v.union(v.string(), v.null())),
     }),
   },
   returns: v.null(),
@@ -131,10 +154,16 @@ export const update = mutation({
       action: patch.action,
       conditions: patch.conditions,
       groups: patch.groups ?? undefined,
+      jumpEnding: (patch.action ?? rule.action) === "jump" ? patch.endingId : undefined,
     });
-    const { groups, conditions, ...rest } = patch;
+    const target = patch.targetId === null ? undefined : (patch.targetId ?? rule.targetId);
+    if (patch.targetId || patch.action) await checkTarget(ctx, rule.formId, patch.action ?? rule.action, target);
+    await remember(ctx, rule.formId, `Change “${rule.name}”`, { key: `rule:${ruleId}:${Object.keys(patch).sort().join(",")}` });
+    const { groups, conditions, targetId, endingId, ...rest } = patch;
     await ctx.db.patch(ruleId, {
       ...rest,
+      ...(targetId !== undefined ? { targetId: targetId ?? undefined } : {}),
+      ...(endingId !== undefined ? { endingId: endingId ?? undefined } : {}),
       ...(conditions ? { conditions: withIds(conditions) } : {}),
       ...(groups === null ? { groups: undefined } : groups ? { groups: groups.map((g) => ({ ...g, conditions: withIds(g.conditions) })) } : {}),
     });
@@ -150,6 +179,7 @@ export const remove = mutation({
     const rule = await ctx.db.get(ruleId);
     if (!rule) return null;
     await formFor(ctx, rule.formId);
+    await remember(ctx, rule.formId, `Delete “${rule.name}”`);
     await ctx.db.delete(ruleId);
     await ctx.db.patch(rule.formId, { updatedAt: Date.now() });
     return null;
@@ -171,6 +201,7 @@ export const unapply = mutation({
     const rule = await ctx.db.get(ruleId);
     if (!rule) throw new Error("That rule no longer exists.");
     await formFor(ctx, rule.formId);
+    await remember(ctx, rule.formId, `Change “${rule.name}”`);
 
     if (rule.targetId === blockId) {
       await ctx.db.patch(ruleId, { targetId: undefined });

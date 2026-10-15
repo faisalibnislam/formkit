@@ -51,4 +51,26 @@ describe("Formkit's MCP server", () => {
     const r = await respond({ jsonrpc: "2.0", id: 1, method: "sampling/createMessage" }, api());
     expect(r?.error?.code).toBe(-32601);
   });
+
+  it("shows a form and responses in views, for hosts that can", async () => {
+    const r = await respond({ jsonrpc: "2.0", id: 1, method: "tools/list" }, api());
+    const tools = (r?.result as { tools: { name: string; _meta?: { ui?: { resourceUri: string } } }[] }).tools;
+    expect(tools.find((t) => t.name === "get_form")?._meta?.ui?.resourceUri).toBe("ui://formkit/form-preview.html");
+    expect(tools.find((t) => t.name === "list_responses")?._meta?.ui?.resourceUri).toBe("ui://formkit/responses.html");
+
+    const listed = await respond({ jsonrpc: "2.0", id: 2, method: "resources/list" }, api(200, { data: [] }));
+    expect((listed?.result as { resources: { uri: string; mimeType: string }[] }).resources).toEqual(
+      expect.arrayContaining([expect.objectContaining({ uri: "ui://formkit/responses.html", mimeType: "text/html;profile=mcp-app" })]),
+    );
+
+    const page = await respond({ jsonrpc: "2.0", id: 3, method: "resources/read", params: { uri: "ui://formkit/form-preview.html" } }, api());
+    const content = (page?.result as { contents: { mimeType: string; text: string }[] }).contents[0]!;
+    expect(content.mimeType).toBe("text/html;profile=mcp-app");
+    expect(content.text).toMatch(/^<!doctype html>/);
+    // Self-contained: nothing loaded from elsewhere, and data never written as HTML.
+    expect(content.text).not.toMatch(/<script[^>]+src=|<link[^>]+href=|innerHTML/);
+
+    const chatgpt = await respond({ jsonrpc: "2.0", id: 4, method: "resources/read", params: { uri: "ui://formkit/responses.skybridge.html" } }, api());
+    expect((chatgpt?.result as { contents: { mimeType: string }[] }).contents[0]!.mimeType).toBe("text/html+skybridge");
+  });
 });

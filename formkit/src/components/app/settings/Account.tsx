@@ -1,6 +1,7 @@
 "use client";
 
 import { useViewer as useSeededViewer } from "@/lib/seed";
+import { PasskeysPanel } from "./PasskeysPanel";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -45,6 +46,7 @@ export function AccountSection() {
       <Profile viewer={viewer} />
       <Password email={viewer.email} />
       <Security viewer={viewer} />
+      <PasskeysPanel />
       <Panel title="Policy and terms">
         <p className="fk-setpanel-text">
           Deleting your account deactivates it straight away and closes every form you are collecting on.

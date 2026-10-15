@@ -219,6 +219,11 @@ export function validateAnswers(
   for (const r of rules) {
     if (r.enabled === false) continue;
     if (usesAi(r) && r.targetId) lenient.add(r.targetId);
+    // A jump to an ending may have skipped everything after the questions it looks at.
+    if (r.action === "jump" && !r.targetId && r.endingId && (usesAi(r) || ruleMatches(r, { answers: asAnswers, types }))) {
+      const from = Math.max(-1, ...conditionsOf(r).map((c) => (c.blockId ? (position.get(c.blockId) ?? -1) : -1)));
+      for (const b of ordered.slice(from + 1)) lenient.add(b._id);
+    }
     // A jump may have skipped everything between the questions it looks at and its target.
     if (r.action === "jump" && r.targetId && (usesAi(r) || ruleMatches(r, { answers: asAnswers, types }))) {
       const from = Math.max(-1, ...conditionsOf(r).map((c) => (c.blockId ? (position.get(c.blockId) ?? -1) : -1)));

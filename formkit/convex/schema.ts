@@ -179,9 +179,23 @@ export default defineSchema({
         token: v.string(),
         verified: v.boolean(),
         enforce: v.boolean(),
-        providers: v.array(v.union(v.literal("google"), v.literal("microsoft-entra-id"))),
+        providers: v.array(v.union(v.literal("google"), v.literal("microsoft-entra-id"), v.literal("saml"))),
+        /** SAML and SCIM through WorkOS (workos.ts): the company's organization there. */
+        workos: v.optional(
+          v.object({
+            organizationId: v.string(),
+            /** A SAML connection is live, so people can sign in with it. */
+            connected: v.boolean(),
+            /** A directory (SCIM) adds and removes members. */
+            directory: v.boolean(),
+            /** The role people get when they first sign in, or are added by the directory. */
+            role: v.union(v.literal("editor"), v.literal("viewer")),
+          }),
+        ),
       }),
     ),
+    /** Last sign-in through the company's SAML single sign-on. */
+    samlAt: v.optional(v.number()),
     polarCustomerId: v.optional(v.string()),
     polarSubscriptionId: v.optional(v.string()),
     /** Seats on the personal company's plan (it can have members too). */
@@ -248,6 +262,14 @@ export default defineSchema({
         security: v.optional(v.boolean()),
       }),
     ),
+    // Settings → Notifications → On this device: which kinds are pushed. Absent means on.
+    pushPrefs: v.optional(
+      v.object({
+        responses: v.optional(v.boolean()),
+        mentions: v.optional(v.boolean()),
+        approvals: v.optional(v.boolean()),
+      }),
+    ),
     // Settings → Exports → Email a copy: every new response, in full.
     emailCopy: v.optional(v.object({ on: v.boolean(), to: v.string() })),
     lastDaily: v.optional(v.string()), // YYYY-MM-DD in the person's zone
@@ -259,6 +281,7 @@ export default defineSchema({
     .index("by_polar_customer", ["polarCustomerId"])
     .index("by_retention", ["retentionDays"])
     .index("by_sso_domain", ["sso.domain"])
+    .index("by_workos_org", ["sso.workos.organizationId"])
     // Admin → Users and Companies: by name, suspended, staff, and a name search.
     .index("by_name", ["name"])
     .index("by_deactivated", ["deactivatedAt"])
@@ -454,6 +477,8 @@ export default defineSchema({
     languages: v.optional(v.array(v.string())),
     /** Pro: responses are indexed for search by meaning (semantic.ts). */
     semantic: v.optional(v.boolean()),
+    /** AI agents may read and fill in the form through /api/agent (agents.ts). Off unless switched on. */
+    agents: v.optional(v.boolean()),
     /** Pro: one reminder, this many hours on, to someone who left an email and stopped partway. */
     remind: v.optional(v.object({ hours: v.number() })),
     closing: v.optional(
@@ -468,16 +493,30 @@ export default defineSchema({
       }),
     ),
 
-    /** Pro: take a payment through the owner's own Stripe after submitting. */
+    /** Pro: take a payment through the owner's own Stripe; the response is kept once it is paid. */
     payment: v.optional(
       v.object({
         enabled: v.boolean(),
         currency: v.string(),
         /** A fixed amount in the currency's minor unit (cents)… */
         amount: v.optional(v.number()),
-        /** …or the result of one of the form's calculations, in major units. */
+        /** …or the result of one of the form's calculations, in major units… */
         fromCalc: v.optional(v.string()),
+        /** …or what the person chooses to pay, at least `minimum` (minor units). */
+        choose: v.optional(v.object({ minimum: v.number(), suggested: v.optional(v.number()) })),
         label: v.optional(v.string()),
+        /** How many: one, the answer to a number question, or picked at checkout up to `max`. */
+        quantity: v.optional(
+          v.object({
+            from: v.union(v.literal("one"), v.literal("question"), v.literal("checkout")),
+            blockId: v.optional(v.id("blocks")),
+            max: v.optional(v.number()),
+          }),
+        ),
+        /** People can enter a Stripe promotion code. */
+        promoCodes: v.optional(v.boolean()),
+        /** Stripe Tax works out the tax; `inclusive` when the price already has it. */
+        tax: v.optional(v.object({ inclusive: v.boolean() })),
       }),
     ),
     /** Pro: named formulas over question keys, worked out at submit. */
@@ -636,15 +675,21 @@ export default defineSchema({
     respondentCompany: v.optional(v.string()),
     device: v.optional(v.string()),
     source: v.optional(v.string()),
+    /** Sent by an AI agent through /api/agent (agents.ts), as it named itself. */
+    agent: v.optional(v.object({ name: v.string(), url: v.optional(v.string()), forWhom: v.optional(v.string()) })),
     durationMs: v.optional(v.number()),
     /** Pro: the payment taken after this response, through the owner's Stripe. */
     payment: v.optional(
       v.object({
         status: v.union(v.literal("pending"), v.literal("paid"), v.literal("failed"), v.literal("none")),
+        /** What was paid in all, in minor units: after any discount, with any tax. */
         amount: v.number(),
         currency: v.string(),
         sessionId: v.optional(v.string()),
         at: v.optional(v.number()),
+        quantity: v.optional(v.number()),
+        tax: v.optional(v.number()),
+        discount: v.optional(v.number()),
       }),
     ),
     /** Pro: the form's calculations, worked out when it was sent. */
@@ -828,6 +873,25 @@ export default defineSchema({
     publishedBy: v.optional(v.string()),
   }).index("by_form", ["formId", "number"]),
 
+  /**
+   * Undo and redo in the builder: the questions, pages and rules as they were
+   * before a change (model/history.ts). The newest "undo" row is what Undo
+   * puts back; the newest "redo" row, what Redo does. A new change clears the
+   * redo rows, and only the last HISTORY_LIMIT undo rows are kept.
+   */
+  draftHistory: defineTable({
+    formId: v.id("forms"),
+    kind: v.union(v.literal("undo"), v.literal("redo")),
+    userId: v.optional(v.id("users")),
+    /** What the change was, for the button's tooltip: "Delete “Budget range”". */
+    label: v.string(),
+    /** Changes with the same key in quick succession (typing a title) are one step. */
+    key: v.optional(v.string()),
+    at: v.number(),
+    blocks: v.array(v.any()),
+    rules: v.array(v.any()),
+  }).index("by_form_kind_at", ["formId", "kind", "at"]),
+
   templates: defineTable({
     // Built-in templates have no owner; a saved one belongs to its author.
     ownerId: v.optional(v.id("users")),
@@ -908,6 +972,61 @@ export default defineSchema({
     .index("by_user_at", ["userId", "at"])
     .index("by_user_read", ["userId", "readAt"])
     .index("by_user_form_kind", ["userId", "formId", "kind"]),
+
+  /**
+   * A browser or phone that asked for push notifications (model/push.ts).
+   * The endpoint is the push service's address for it; the keys encrypt what
+   * is sent, so the push service cannot read it.
+   */
+  pushSubscriptions: defineTable({
+    userId: v.id("users"),
+    endpoint: v.string(),
+    p256dh: v.string(),
+    auth: v.string(),
+    /** "Chrome on macOS", for the list of devices. */
+    device: v.string(),
+    createdAt: v.number(),
+    lastSentAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_endpoint", ["endpoint"]),
+
+  /** A SAML sign-in on its way through WorkOS: one use, ten minutes. */
+  samlStates: defineTable({
+    state: v.string(),
+    ownerId: v.id("users"),
+    organizationId: v.string(),
+    expiresAt: v.number(),
+  })
+    .index("by_state", ["state"])
+    .index("by_expires", ["expiresAt"]),
+
+  /** Passkeys: another way into an account, beside the password (model/webauthn.ts). */
+  passkeys: defineTable({
+    userId: v.id("users"),
+    /** base64url, as the browser names it. */
+    credentialId: v.string(),
+    /** The public key as a JWK, and its COSE algorithm (-7 ES256, -257 RS256). */
+    publicKey: v.string(),
+    alg: v.number(),
+    signCount: v.number(),
+    transports: v.optional(v.array(v.string())),
+    name: v.string(),
+    createdAt: v.number(),
+    lastUsedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_credential", ["credentialId"]),
+
+  /** A passkey ceremony's one-time challenge, good for five minutes. */
+  passkeyChallenges: defineTable({
+    challenge: v.string(),
+    kind: v.union(v.literal("register"), v.literal("signIn")),
+    userId: v.optional(v.id("users")),
+    expiresAt: v.number(),
+  })
+    .index("by_challenge", ["challenge"])
+    .index("by_expires", ["expiresAt"]),
 
   /** Which live announcements a person has already seen in the bell. */
   announcementReads: defineTable({
@@ -1238,6 +1357,8 @@ export default defineSchema({
     status: v.union(v.literal("active"), v.literal("pending")),
     invitedBy: v.optional(v.id("users")),
     invitedAt: v.number(),
+    /** Added by the company's directory (SCIM, through WorkOS), which also removes them. */
+    directory: v.optional(v.boolean()),
   })
     .index("by_owner", ["ownerId"])
     .index("by_email", ["email"])
@@ -1507,7 +1628,34 @@ export default defineSchema({
     live: v.boolean(),
     name: v.optional(v.string()),
     addedAt: v.number(),
+    /** Stripe's signing secret for the webhook that confirms payments (sealed), and its endpoint. */
+    webhookSecret: v.optional(v.string()),
+    webhookId: v.optional(v.string()),
   }).index("by_owner", ["ownerId"]),
+
+  /**
+   * Pay first: answers waiting on their payment. Only once Stripe says it is
+   * paid do they become a response (payments.settle); unpaid ones are
+   * forgotten after a day or two.
+   */
+  paymentHolds: defineTable({
+    formId: v.id("forms"),
+    ownerId: v.id("users"),
+    /** The submission as the form sent it (publicForm.submit's arguments). */
+    args: v.any(),
+    /** Each, in minor units, and how many; `adjustable` lets people change it at checkout. */
+    unitAmount: v.number(),
+    currency: v.string(),
+    quantity: v.number(),
+    adjustable: v.optional(v.number()),
+    sessionId: v.optional(v.string()),
+    status: v.union(v.literal("open"), v.literal("paid"), v.literal("expired")),
+    responseId: v.optional(v.id("responses")),
+    createdAt: v.number(),
+  })
+    .index("by_session", ["sessionId"])
+    .index("by_status_created", ["status", "createdAt"])
+    .index("by_form", ["formId"]),
 
   /**
    * Pro: confirmation emails sent from the customer's own domain, verified

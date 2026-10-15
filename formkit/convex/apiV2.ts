@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { remember } from "./model/history";
 import { httpAction, internalMutation, internalQuery } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
@@ -540,6 +541,7 @@ async function editDraft(ctx: MutationCtx, form: Doc<"forms">, b: Body, actorId:
 
   const ops = Array.isArray(b.ops) ? (b.ops as Body[]) : [];
   if (ops.length > 50) return "At most 50 changes at a time.";
+  if (ops.length) await remember(ctx, form._id, `Changes made ${how}`, { userId: actorId });
   let blocks = await blocksOf(ctx, form._id);
   const own = (qid: unknown) => blocks.find((x) => x._id === qid && x.kind === "field");
   const renumber = async (order: Doc<"blocks">[]) => {

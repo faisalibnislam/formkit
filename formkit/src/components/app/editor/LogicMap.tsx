@@ -8,6 +8,7 @@ import type { Doc } from "../../../../convex/_generated/dataModel";
 import { Button, Input, PillTabs, Select } from "@/components/ui";
 import { applyLogic, conditionsOf, type Answer, type Rule as EvalRule } from "../../../../convex/model/logicEval";
 import { computeAll } from "../../../../convex/model/calc";
+import { MAX_ROUNDS, endingOf, nextPage } from "../../../../convex/model/jumps";
 import { MULTI, VALUELESS, opLabel, valueControl } from "./operators";
 
 /**
@@ -21,18 +22,19 @@ type Form = NonNullable<FunctionReturnType<typeof api.forms.get>>;
 type Block = Form["blocks"][number];
 type Rule = Doc<"logicRules">;
 
-type Page = { index: number; name: string; blocks: Block[] };
+type Page = { index: number; name: string; blocks: Block[]; breakId?: string };
 
 function pagesOf(blocks: Block[]): Page[] {
   const pages: Page[] = [{ index: 0, name: "", blocks: [] }];
   for (const b of blocks) {
-    if (b.kind === "pagebreak") pages.push({ index: pages.length, name: b.pageName ?? "", blocks: [] });
+    if (b.kind === "pagebreak") pages.push({ index: pages.length, name: b.pageName ?? "", blocks: [], breakId: b._id });
     else pages[pages.length - 1]!.blocks.push(b);
   }
   return pages.filter((p, i) => p.blocks.length > 0 || i === 0);
 }
 
-const title = (b: Block | undefined) => b?.title || "Untitled question";
+const title = (b: Block | undefined) =>
+  b?.kind === "pagebreak" ? b.pageName || "the next page" : b?.title || "Untitled question";
 
 type Check = { level: "warn" | "info"; rule?: string; text: string };
 
@@ -46,7 +48,7 @@ export function logicChecks(form: Form, rules: Rule[]): Check[] {
   let p = 0;
   for (const b of blocks) {
     if (b.kind === "pagebreak") p++;
-    else pageOf.set(b._id, p);
+    pageOf.set(b._id, p);
   }
   const calcNames = new Set((form.calc ?? []).map((c) => c.name));
   const endings = form.endings ?? [];
@@ -78,6 +80,12 @@ export function logicChecks(form: Form, rules: Rule[]): Check[] {
       }
     }
 
+    if (r.action === "jump" && !r.targetId && r.endingId) {
+      if (r.endingId !== "default" && !endings.some((e) => e.id === r.endingId)) {
+        out.push({ level: "warn", rule: r._id, text: `${name} finishes on an ending that doesn’t exist.` });
+      }
+      continue;
+    }
     if (r.action === "ending") {
       if (!r.endingId || !endings.some((e) => e.id === r.endingId)) {
         out.push({ level: "warn", rule: r._id, text: `${name} ends on an ending that doesn’t exist.` });
@@ -103,11 +111,21 @@ export function logicChecks(form: Form, rules: Rule[]): Check[] {
     if (r.action === "jump") {
       const from = Math.max(0, ...readers.map((id) => pageOf.get(id) ?? 0));
       const to = pageOf.get(target._id) ?? 0;
-      if (to <= from) {
+      // What someone can change on the way round: a hidden field is set by the link, not by them.
+      const answerable = readers.filter((id) => byId.get(id)?.type !== "hidden" && (pageOf.get(id) ?? 0) >= to);
+      if (to === from && readers.length) {
+        out.push({ level: "warn", rule: r._id, text: `${name} jumps onto the same page, so it does nothing.` });
+      } else if (to < from && !answerable.length) {
         out.push({
           level: "warn",
           rule: r._id,
-          text: `${name} jumps back or onto the same page. A jump only ever moves forward, so it does nothing.`,
+          text: `${name} sends people back to page ${to + 1}, but nothing they answer on the way can change it, so it would loop. The form moves on after ${MAX_ROUNDS} rounds.`,
+        });
+      } else if (to < from) {
+        out.push({
+          level: "info",
+          rule: r._id,
+          text: `${name} sends people back to page ${to + 1}. They go round again until their answer changes; after ${MAX_ROUNDS} rounds the form moves on.`,
         });
       }
     }
@@ -188,7 +206,10 @@ function FlowMap({ form, rules }: { form: Form; rules: Rule[] }) {
   const live = rules.filter((r) => r.enabled);
   const byId = new Map(form.blocks.map((b) => [b._id as string, b]));
   const pageOf = new Map<string, number>();
-  pages.forEach((p, i) => p.blocks.forEach((b) => pageOf.set(b._id, i)));
+  pages.forEach((p, i) => {
+    if (p.breakId) pageOf.set(p.breakId, i);
+    p.blocks.forEach((b) => pageOf.set(b._id, i));
+  });
   const endings = form.endings ?? [];
 
   return (
@@ -229,11 +250,20 @@ function FlowMap({ form, rules }: { form: Form; rules: Rule[] }) {
               })}
             </ul>
             {jumpsHere.map((r) => {
+              if (!r.targetId && r.endingId) {
+                const e = endings.find((x) => x.id === r.endingId);
+                return (
+                  <div key={r._id} className="fk-lmap-jump">
+                    ⤓ If <Words rule={r} byId={byId} />, finish now · {e ? e.name : "Thank-you screen"}
+                  </div>
+                );
+              }
               const to = r.targetId ? pageOf.get(r.targetId) : undefined;
+              const back = to !== undefined && to <= i;
               return (
-                <div key={r._id} className="fk-lmap-jump">
-                  ↷ If <Words rule={r} byId={byId} />, skip to page {to !== undefined ? to + 1 : "?"} ·{" "}
-                  {title(r.targetId ? byId.get(r.targetId) : undefined)}
+                <div key={r._id} className="fk-lmap-jump" data-back={back ? "true" : undefined}>
+                  {back ? "↶" : "↷"} If <Words rule={r} byId={byId} />, {back ? "go back" : "skip"} to page{" "}
+                  {to !== undefined ? to + 1 : "?"} · {title(r.targetId ? byId.get(r.targetId) : undefined)}
                 </div>
               );
             })}
@@ -310,14 +340,30 @@ function Tester({ form, rules }: { form: Form; rules: Rule[] }) {
     ...p,
     shown: p.blocks.filter((b) => b.type !== "hidden" && !out.hidden.has(b._id)),
   }));
-  const livePages = pages.filter((p) => p.shown.length > 0);
-  const visited: number[] = [];
-  const jumpPage = out.jumpTo ? livePages.findIndex((p) => p.shown.some((b) => b._id === out.jumpTo)) : -1;
-  for (let at = 0; at < livePages.length && visited.length <= livePages.length; ) {
-    visited.push(at);
-    at = jumpPage > at ? jumpPage : at + 1;
+  // Pages with nothing to show are skipped; a jump to one lands on the next.
+  const livePages: (Page & { shown: Block[]; anchors: string[] })[] = [];
+  let carry: string[] = [];
+  for (const p of pages) {
+    const anchors = [...carry, ...(p.breakId ? [p.breakId] : []), ...p.blocks.map((b) => b._id as string)];
+    if (!p.shown.length) carry = anchors;
+    else {
+      livePages.push({ ...p, anchors });
+      carry = [];
+    }
   }
-  const ending = out.ending ? form.endings?.find((e) => e.id === out.ending) : undefined;
+  // The answers here never change on the way round, so a jump back runs its full rounds.
+  const visits = new Map<number, number>();
+  const rounds: Record<string, number> = {};
+  let finishedOn: string | null | undefined;
+  for (let at = 0, guard = 0; at < livePages.length && guard < 200; guard++) {
+    visits.set(at, (visits.get(at) ?? 0) + 1);
+    const move = nextPage(livePages, at, out.jumps, rounds);
+    if (move.back) rounds[move.back] = (rounds[move.back] ?? 0) + 1;
+    if (move.finish !== undefined) finishedOn = endingOf(move.finish) ?? null;
+    at = move.to;
+  }
+  const endingId = finishedOn !== undefined ? finishedOn : out.ending;
+  const ending = endingId ? form.endings?.find((e) => e.id === endingId) : undefined;
   const set = (id: string, a: Answer | undefined) =>
     setAnswers((prev) => {
       const next = { ...prev };
@@ -441,11 +487,11 @@ function Tester({ form, rules }: { form: Form; rules: Rule[] }) {
         <h4>What happens</h4>
         <ol className="fk-lmap-path">
           {livePages.map((p, i) => (
-            <li key={p.index} data-skipped={visited.includes(i) ? undefined : "true"}>
+            <li key={p.index} data-skipped={visits.has(i) ? undefined : "true"}>
               <strong>{p.name || `Page ${p.index + 1}`}</strong>
               <span>
                 {p.shown.length} question{p.shown.length === 1 ? "" : "s"}
-                {!visited.includes(i) ? " · skipped" : ""}
+                {!visits.has(i) ? " · skipped" : (visits.get(i) ?? 0) > 1 ? ` · seen ${visits.get(i)} times` : ""}
               </span>
             </li>
           ))}

@@ -9,7 +9,7 @@ import { Badge, Button, Field, Input, Modal, Select, Switch } from "@/components
 import { useToast } from "@/components/ui/Toast";
 import { ProChip } from "@/components/plan/UpgradeSheet";
 import { openUpgrade, upgradeOnPlanError, useGate } from "@/components/plan/usePlan";
-import { errorText } from "../settings/bits";
+import { Row, errorText } from "../settings/bits";
 import { fullTime } from "../bits";
 
 type Kind = "webhook" | "slack" | "discord" | "teams" | "sheets";
@@ -614,31 +614,68 @@ export function PaymentsSection({
   const connect = useAction(api.payments.connect);
   const disconnect = useMutation(api.payments.disconnect);
   const save = useMutation(api.payments.setFormPayment);
+  const setSecret = useAction(api.payments.setWebhookSecret);
   const gate = useGate("payments", features);
   const [key, setKey] = useState("");
+  const [secret, setSecretText] = useState("");
   const [busy, setBusy] = useState(false);
-  const [draft, setDraft] = useState<{ amount: string; currency: string; source: string; label: string } | null>(null);
+  type Draft = {
+    amount: string;
+    currency: string;
+    /** "" a fixed amount, "choose" pay what you want, or a calculation's name. */
+    source: string;
+    minimum: string;
+    suggested: string;
+    label: string;
+    quantity: "one" | "question" | "checkout";
+    blockId: string;
+    max: string;
+    promoCodes: boolean;
+    tax: "" | "exclusive" | "inclusive";
+  };
+  const [draft, setDraft] = useState<Draft | null>(null);
 
   if (!data) return null;
   const p = data.payment;
   const decimals = (c: string) => (c === "jpy" ? 0 : 2);
-  const current = draft ?? {
-    amount: p?.amount !== undefined ? (p.amount / 10 ** decimals(p.currency)).toFixed(decimals(p.currency)) : "",
-    currency: p?.currency ?? "usd",
-    source: p?.fromCalc ?? "",
+  const major = (minor: number | undefined, c: string) => (minor !== undefined ? (minor / 10 ** decimals(c)).toFixed(decimals(c)) : "");
+  const cur = p?.currency ?? "usd";
+  const current: Draft = draft ?? {
+    amount: major(p?.amount, cur),
+    currency: cur,
+    source: p?.choose ? "choose" : (p?.fromCalc ?? ""),
+    minimum: major(p?.choose?.minimum, cur),
+    suggested: major(p?.choose?.suggested, cur),
     label: p?.label ?? "",
+    quantity: p?.quantity?.from ?? "one",
+    blockId: (p?.quantity?.blockId as string | undefined) ?? "",
+    max: String(p?.quantity?.max ?? 10),
+    promoCodes: !!p?.promoCodes,
+    tax: p?.tax ? (p.tax.inclusive ? "inclusive" : "exclusive") : "",
   };
-  const patch = (x: Partial<typeof current>) => setDraft({ ...current, ...x });
+  const patch = (x: Partial<Draft>) => setDraft({ ...current, ...x });
+  const num = (x: string) => x.replace(/[^0-9.]/g, "");
 
   async function apply(enabled: boolean) {
     try {
+      const choose = current.source === "choose";
       await save({
         formId,
         enabled,
         currency: current.currency,
         amount: current.source ? undefined : Number(current.amount) || undefined,
-        fromCalc: current.source || undefined,
+        fromCalc: current.source && !choose ? current.source : undefined,
+        choose: choose
+          ? { minimum: Number(current.minimum) || 0, ...(current.suggested ? { suggested: Number(current.suggested) } : {}) }
+          : undefined,
         label: current.label || undefined,
+        quantity: {
+          from: current.quantity,
+          ...(current.quantity === "question" && current.blockId ? { blockId: current.blockId as Id<"blocks"> } : {}),
+          max: Number(current.max) || 10,
+        },
+        promoCodes: current.promoCodes,
+        tax: current.tax ? { inclusive: current.tax === "inclusive" } : null,
       });
       setDraft(null);
       toast(enabled ? "Payment on" : "Payment off");
@@ -654,8 +691,8 @@ export function PaymentsSection({
         {gate.locked && <ProChip onClick={() => openUpgrade({ feature: "payments" })} />}
       </div>
       <p className="fk-panel-lede">
-        After someone sends the form, they go on to pay through your own Stripe account. The money goes straight to you,
-        and Formkit takes nothing.
+        People pay through your own Stripe account as they send the form, and their answers arrive once the payment has
+        gone through. The money goes straight to you, and Formkit takes nothing.
       </p>
 
       {!data.account ? (
@@ -663,7 +700,8 @@ export function PaymentsSection({
           <div className="fk-domainrow">
             <p className="fk-proprow-hint" style={{ margin: "0 0 12px" }}>
               In Stripe, go to Developers → API keys → Create restricted key. Give it <strong>Write</strong> access to{" "}
-              <strong>Checkout Sessions</strong> and nothing else, then paste it here.
+              <strong>Checkout Sessions</strong>, and to <strong>Webhook Endpoints</strong> so payments are confirmed the moment
+              they go through. Nothing else, then paste it here.
             </p>
             <div className="fk-domainadd">
               <Field label="Restricted key">
@@ -723,33 +761,68 @@ export function PaymentsSection({
                 </Button>
               )}
             </div>
+            {data.webhook && !data.webhook.on && data.mine && (
+              <div style={{ marginTop: 12 }}>
+                <p className="fk-proprow-hint" style={{ margin: "0 0 8px" }}>
+                  Payments are confirmed when people come back from Stripe, and checked every 20 minutes. To confirm them the
+                  moment they go through, add a webhook in Stripe (Developers → Webhooks) for{" "}
+                  <strong>checkout.session.completed</strong> and the other checkout.session events, sent to:
+                </p>
+                <CopyLine text={data.webhook.url} />
+                <div className="fk-domainadd" style={{ marginTop: 8 }}>
+                  <Field label="Its signing secret">
+                    <Input value={secret} type="password" autoComplete="off" placeholder="whsec_…" onChange={(e) => setSecretText(e.target.value)} />
+                  </Field>
+                  <Button
+                    variant="secondary"
+                    disabled={!secret.trim()}
+                    onClick={async () => {
+                      try {
+                        await setSecret({ secret });
+                        setSecretText("");
+                        toast("Webhook saved", { detail: "Payments are confirmed as they go through." });
+                      } catch (e) {
+                        toast(errorText(e, "That secret did not save."));
+                      }
+                    }}
+                  >
+                    Save
+                  </Button>
+                </div>
+              </div>
+            )}
+            {data.webhook?.on && <p className="fk-proprow-hint" style={{ margin: "10px 0 0" }}>Payments are confirmed the moment they go through.</p>}
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 16 }}>
             <Field label="Amount">
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                {data.calcNames.length > 0 && (
-                  <div style={{ minWidth: 200 }}>
-                    <Select
-                      ariaLabel="Where the amount comes from"
-                      value={current.source}
-                      onChange={(source) => patch({ source })}
-                      options={[
-                        { value: "", label: "A fixed amount" },
-                        ...data.calcNames.map((n) => ({ value: n, label: `The result of ${n}` })),
-                      ]}
-                    />
-                  </div>
-                )}
+                <div style={{ minWidth: 200 }}>
+                  <Select
+                    ariaLabel="Where the amount comes from"
+                    value={current.source}
+                    onChange={(source) => patch({ source })}
+                    options={[
+                      { value: "", label: "A fixed amount" },
+                      { value: "choose", label: "Pay what you want" },
+                      ...data.calcNames.map((n) => ({ value: n, label: `The result of ${n}` })),
+                    ]}
+                  />
+                </div>
                 {!current.source && (
                   <div style={{ width: 150 }}>
-                    <Input
-                      value={current.amount}
-                      inputMode="decimal"
-                      placeholder="25.00"
-                      onChange={(e) => patch({ amount: e.target.value.replace(/[^0-9.]/g, "") })}
-                    />
+                    <Input aria-label="Amount" value={current.amount} inputMode="decimal" placeholder="25.00" onChange={(e) => patch({ amount: num(e.target.value) })} />
                   </div>
+                )}
+                {current.source === "choose" && (
+                  <>
+                    <div style={{ width: 150 }}>
+                      <Input aria-label="The least someone can pay" value={current.minimum} inputMode="decimal" placeholder="At least 5.00" onChange={(e) => patch({ minimum: num(e.target.value) })} />
+                    </div>
+                    <div style={{ width: 150 }}>
+                      <Input aria-label="Suggested amount" value={current.suggested} inputMode="decimal" placeholder="Suggest 10.00" onChange={(e) => patch({ suggested: num(e.target.value) })} />
+                    </div>
+                  </>
                 )}
                 <div style={{ width: 120 }}>
                   <Select
@@ -761,12 +834,60 @@ export function PaymentsSection({
                 </div>
               </div>
             </Field>
+            <Field label="How many">
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <div style={{ minWidth: 220 }}>
+                  <Select
+                    ariaLabel="How many"
+                    value={current.quantity}
+                    onChange={(quantity) => patch({ quantity: quantity as Draft["quantity"] })}
+                    options={[
+                      { value: "one", label: "One" },
+                      ...(data.numberQuestions.length ? [{ value: "question", label: "The answer to a number question" }] : []),
+                      { value: "checkout", label: "Picked on the payment page" },
+                    ]}
+                  />
+                </div>
+                {current.quantity === "question" && (
+                  <div style={{ minWidth: 220 }}>
+                    <Select
+                      ariaLabel="Which question"
+                      placeholder="Pick a question"
+                      value={current.blockId || null}
+                      onChange={(blockId) => patch({ blockId })}
+                      options={data.numberQuestions.map((q) => ({ value: q.id as string, label: q.title }))}
+                    />
+                  </div>
+                )}
+                {current.quantity !== "one" && (
+                  <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>
+                    at most
+                    <span style={{ width: 90 }}>
+                      <Input value={current.max} inputMode="numeric" onChange={(e) => patch({ max: e.target.value.replace(/[^0-9]/g, "") })} />
+                    </span>
+                  </label>
+                )}
+              </div>
+            </Field>
             <Field label="What it is for" help="Shown on the Stripe page and the receipt. Leave it blank to use the form's name.">
-              <Input
-                value={current.label}
-                placeholder="Workshop ticket"
-                onChange={(e) => patch({ label: e.target.value })}
-              />
+              <Input value={current.label} placeholder="Workshop ticket" onChange={(e) => patch({ label: e.target.value })} />
+            </Field>
+            <Row label="Promotion codes" hint="People can enter a code you made in Stripe for a discount">
+              <Switch checked={current.promoCodes} label="Promotion codes" onChange={(promoCodes) => patch({ promoCodes })} />
+            </Row>
+            <Field label="Tax" help="Stripe Tax works it out from the person's address. Set it up in Stripe first.">
+              <div style={{ maxWidth: 320 }}>
+                <Select
+                  ariaLabel="Tax"
+                  value={current.tax}
+                  onChange={(tax) => patch({ tax: tax as Draft["tax"] })}
+                  options={[
+                    { value: "", label: "No tax added" },
+                    { value: "exclusive", label: "Stripe Tax, added on top" },
+                    { value: "inclusive", label: "Stripe Tax, already in the price" },
+                  ]}
+                />
+              </div>
             </Field>
             <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
               {p?.enabled ? (
@@ -785,7 +906,7 @@ export function PaymentsSection({
         </>
       )}
       <p className="fk-proprow-hint" style={{ margin: "16px 0 0" }}>
-        Responses show whether they are paid, and exports gain a Payment column. Refunds are made in Stripe.
+        Responses show what was paid, with any tax and discount, and exports gain a Payment column. Refunds are made in Stripe.
       </p>
     </section>
   );

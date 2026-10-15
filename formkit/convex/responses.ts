@@ -82,6 +82,8 @@ async function shape(ctx: QueryCtx, r: Doc<"responses">, formTitle: string) {
     respondentCompany: r.respondentCompany ?? null,
     device: r.device ?? null,
     source: r.source ?? null,
+    /** Sent by an AI agent (agents.ts), as it named itself. */
+    agent: r.agent ?? null,
     durationMs: r.durationMs ?? null,
     status: r.status,
     /** The status as the form's company names and colours it. */
@@ -104,7 +106,17 @@ async function shape(ctx: QueryCtx, r: Doc<"responses">, formTitle: string) {
     /** Pro: the form's calculations, as worked out when it was sent. */
     calc: r.calc ?? null,
     /** Pro: the payment taken after sending, amount in minor units. */
-    payment: r.payment ? { status: r.payment.status, amount: r.payment.amount, currency: r.payment.currency, at: r.payment.at ?? null } : null,
+    payment: r.payment
+      ? {
+          status: r.payment.status,
+          amount: r.payment.amount,
+          currency: r.payment.currency,
+          at: r.payment.at ?? null,
+          quantity: r.payment.quantity ?? null,
+          tax: r.payment.tax ?? null,
+          discount: r.payment.discount ?? null,
+        }
+      : null,
     /** Which of the form's endings they reached, when not the usual one. */
     ending: r.ending ?? null,
     /** Pro: the AI-written reply and what the AI read in the response. */

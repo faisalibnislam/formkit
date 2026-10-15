@@ -29,6 +29,9 @@ export const RULES = {
   /** New responses, complete or partial. */
   responsesPerForm: { max: 300, windowMs: MINUTE },
   responsesPerDevice: { max: 20, windowMs: HOUR },
+  /** Responses from AI agents (agents.ts): per form, and per caller's address. */
+  agentsPerForm: { max: 60, windowMs: HOUR },
+  agentsPerCaller: { max: 10, windowMs: HOUR },
   /** Help centre signals, for everyone together. */
   helpSignals: { max: 2000, windowMs: HOUR },
 } satisfies Record<string, Rule>;

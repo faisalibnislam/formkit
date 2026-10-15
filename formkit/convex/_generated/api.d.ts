@@ -12,6 +12,7 @@ import type * as admin from "../admin.js";
 import type * as adminCompanies from "../adminCompanies.js";
 import type * as adminReports from "../adminReports.js";
 import type * as adminTally from "../adminTally.js";
+import type * as agents from "../agents.js";
 import type * as ai from "../ai.js";
 import type * as aiLogic from "../aiLogic.js";
 import type * as aiReply from "../aiReply.js";
@@ -42,6 +43,7 @@ import type * as formCheck from "../formCheck.js";
 import type * as forms from "../forms.js";
 import type * as handles from "../handles.js";
 import type * as helpSignals from "../helpSignals.js";
+import type * as history from "../history.js";
 import type * as http from "../http.js";
 import type * as importForm from "../importForm.js";
 import type * as inbox from "../inbox.js";
@@ -68,9 +70,11 @@ import type * as model_gemini from "../model/gemini.js";
 import type * as model_grants from "../model/grants.js";
 import type * as model_grid from "../model/grid.js";
 import type * as model_handles from "../model/handles.js";
+import type * as model_history from "../model/history.js";
 import type * as model_identity from "../model/identity.js";
 import type * as model_importParse from "../model/importParse.js";
 import type * as model_inbox from "../model/inbox.js";
+import type * as model_jumps from "../model/jumps.js";
 import type * as model_langs from "../model/langs.js";
 import type * as model_logicCopy from "../model/logicCopy.js";
 import type * as model_logicEval from "../model/logicEval.js";
@@ -81,6 +85,7 @@ import type * as model_oauthProfile from "../model/oauthProfile.js";
 import type * as model_places from "../model/places.js";
 import type * as model_plans from "../model/plans.js";
 import type * as model_providers from "../model/providers.js";
+import type * as model_push from "../model/push.js";
 import type * as model_questionTypes from "../model/questionTypes.js";
 import type * as model_quiz from "../model/quiz.js";
 import type * as model_rateLimit from "../model/rateLimit.js";
@@ -92,8 +97,10 @@ import type * as model_security from "../model/security.js";
 import type * as model_served from "../model/served.js";
 import type * as model_sheet from "../model/sheet.js";
 import type * as model_spaces from "../model/spaces.js";
+import type * as model_spamText from "../model/spamText.js";
 import type * as model_standing from "../model/standing.js";
 import type * as model_statuses from "../model/statuses.js";
+import type * as model_submitArgs from "../model/submitArgs.js";
 import type * as model_summary from "../model/summary.js";
 import type * as model_team from "../model/team.js";
 import type * as model_themePresets from "../model/themePresets.js";
@@ -101,11 +108,16 @@ import type * as model_totp from "../model/totp.js";
 import type * as model_validate from "../model/validate.js";
 import type * as model_video from "../model/video.js";
 import type * as model_voice from "../model/voice.js";
+import type * as model_webPush from "../model/webPush.js";
+import type * as model_webauthn from "../model/webauthn.js";
 import type * as notifications from "../notifications.js";
 import type * as oauth from "../oauth.js";
+import type * as passkeys from "../passkeys.js";
 import type * as payments from "../payments.js";
 import type * as presence from "../presence.js";
 import type * as publicForm from "../publicForm.js";
+import type * as push from "../push.js";
+import type * as pushSend from "../pushSend.js";
 import type * as quiz from "../quiz.js";
 import type * as rateLimits from "../rateLimits.js";
 import type * as responses from "../responses.js";
@@ -122,6 +134,7 @@ import type * as templates from "../templates.js";
 import type * as transcribe from "../transcribe.js";
 import type * as translations from "../translations.js";
 import type * as users from "../users.js";
+import type * as workos from "../workos.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -136,6 +149,7 @@ declare const fullApi: ApiFromModules<{
   "adminCompanies": typeof adminCompanies,
   "adminReports": typeof adminReports,
   "adminTally": typeof adminTally,
+  "agents": typeof agents,
   "ai": typeof ai,
   "aiLogic": typeof aiLogic,
   "aiReply": typeof aiReply,
@@ -166,6 +180,7 @@ declare const fullApi: ApiFromModules<{
   "forms": typeof forms,
   "handles": typeof handles,
   "helpSignals": typeof helpSignals,
+  "history": typeof history,
   "http": typeof http,
   "importForm": typeof importForm,
   "inbox": typeof inbox,
@@ -192,9 +207,11 @@ declare const fullApi: ApiFromModules<{
   "model/grants": typeof model_grants,
   "model/grid": typeof model_grid,
   "model/handles": typeof model_handles,
+  "model/history": typeof model_history,
   "model/identity": typeof model_identity,
   "model/importParse": typeof model_importParse,
   "model/inbox": typeof model_inbox,
+  "model/jumps": typeof model_jumps,
   "model/langs": typeof model_langs,
   "model/logicCopy": typeof model_logicCopy,
   "model/logicEval": typeof model_logicEval,
@@ -205,6 +222,7 @@ declare const fullApi: ApiFromModules<{
   "model/places": typeof model_places,
   "model/plans": typeof model_plans,
   "model/providers": typeof model_providers,
+  "model/push": typeof model_push,
   "model/questionTypes": typeof model_questionTypes,
   "model/quiz": typeof model_quiz,
   "model/rateLimit": typeof model_rateLimit,
@@ -216,8 +234,10 @@ declare const fullApi: ApiFromModules<{
   "model/served": typeof model_served,
   "model/sheet": typeof model_sheet,
   "model/spaces": typeof model_spaces,
+  "model/spamText": typeof model_spamText,
   "model/standing": typeof model_standing,
   "model/statuses": typeof model_statuses,
+  "model/submitArgs": typeof model_submitArgs,
   "model/summary": typeof model_summary,
   "model/team": typeof model_team,
   "model/themePresets": typeof model_themePresets,
@@ -225,11 +245,16 @@ declare const fullApi: ApiFromModules<{
   "model/validate": typeof model_validate,
   "model/video": typeof model_video,
   "model/voice": typeof model_voice,
+  "model/webPush": typeof model_webPush,
+  "model/webauthn": typeof model_webauthn,
   "notifications": typeof notifications,
   "oauth": typeof oauth,
+  "passkeys": typeof passkeys,
   "payments": typeof payments,
   "presence": typeof presence,
   "publicForm": typeof publicForm,
+  "push": typeof push,
+  "pushSend": typeof pushSend,
   "quiz": typeof quiz,
   "rateLimits": typeof rateLimits,
   "responses": typeof responses,
@@ -246,6 +271,7 @@ declare const fullApi: ApiFromModules<{
   "transcribe": typeof transcribe,
   "translations": typeof translations,
   "users": typeof users,
+  "workos": typeof workos,
 }>;
 export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "public">>;
 export declare const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">>;

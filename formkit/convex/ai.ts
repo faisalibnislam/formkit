@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { remember } from "./model/history";
 import {
   action,
   internalMutation,
@@ -292,6 +293,7 @@ export const addQuestions = internalMutation({
   handler: async (ctx, { formId, items }) => {
     const user = await requireUser(ctx);
     await formFor(ctx, formId);
+    await remember(ctx, formId, "Questions from Ask Formkit", { userId: user._id });
     let order = await nextOrder(ctx, formId);
     for (const it of items) {
       await ctx.db.insert("blocks", {
@@ -340,6 +342,7 @@ export const applyRewrite = mutation({
   handler: async (ctx, { formId, items }) => {
     const user = await requireUser(ctx);
     await formFor(ctx, formId);
+    await remember(ctx, formId, "Ask Formkit's rewrite", { userId: user._id });
     let changed = 0;
     for (const it of items) {
       const block = await ctx.db.get(it.blockId);
