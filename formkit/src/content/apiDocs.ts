@@ -115,6 +115,17 @@ export const API_DOCS: LegalSection[] = [
     code: ['claude mcp add --transport http formkit https://formkit.app/api/mcp \\\n  --header "Authorization: Bearer fk_live_…"'],
   },
   {
+    id: "agents",
+    title: "Forms AI agents can fill in",
+    paras: [
+      "When a form's owner switches on Settings → Security → Let AI agents fill it in, someone's AI assistant can answer it for them without a browser. No key is needed: GET https://formkit.app/api/agent/forms/{slug} describes the questions (their ids, keys, types, options and whether they're required), and a POST to the same address sends the answers. The form's page also names this address in a link rel=\"alternate\" tag.",
+      "The answers go through the same checks as the form in a browser - its rules, required questions, places left and one answer per person - plus a spam check, at most 10 an hour from one caller and 60 an hour for the form. A reply of 422 lists what to fix, question by question. The response reaches the owner labelled as sent by an AI agent. Forms with a password, a payment, a quiz, or a required upload, signature or recording can't be filled in this way.",
+    ],
+    code: [
+      'curl https://formkit.app/api/agent/forms/book-a-call \\\n  -H "Content-Type: application/json" \\\n  -d \'{"agent": {"name": "Ada"}, "onBehalfOf": "Sam Lee",\n       "answers": {"<question id>": "Sam Lee", "<question id>": "sam@example.com"}}\'',
+    ],
+  },
+  {
     id: "errors",
     title: "Errors",
     bullets: [

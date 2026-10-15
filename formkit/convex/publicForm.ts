@@ -134,7 +134,7 @@ const LATE_GRACE_MS = 60_000;
  * by device or by email. Read through the indexes, so the check costs the
  * same on a form with ten answers as on one with ten thousand.
  */
-async function answeredBefore(
+export async function answeredBefore(
   ctx: QueryCtx,
   formId: Id<"forms">,
   deviceId: string | undefined,
@@ -307,6 +307,8 @@ export const linkState = query({
         icon: brand.markUrl,
         color: brand.color ?? null,
         about: shown.welcome?.message?.trim().slice(0, 200) || null,
+        /** AI agents may fill it in (agents.ts): the page says where. */
+        agents: !!form.agents && form.status === "published" && (await flagOn(ctx, "forms.agents", form.ownerId)),
       };
     }
     let owner: { ownerId: Id<"users">; brand: "me" | Id<"companies"> } | null = form
@@ -526,7 +528,7 @@ const answerArg = v.object({
   followUp: v.optional(v.object({ question: v.string(), answer: v.string() })),
 });
 
-type AnswerIn = {
+export type AnswerIn = {
   blockId: Id<"blocks">;
   value?: string;
   values?: string[];
@@ -547,7 +549,7 @@ function cleanUtm(utm?: { source?: string; medium?: string; campaign?: string; t
   return Object.keys(out).length ? out : undefined;
 }
 
-async function store(
+export async function store(
   ctx: MutationCtx,
   live: Doc<"forms">,
   args: {
@@ -785,7 +787,8 @@ export const prunePasses = internalMutation({
  * While the forms.strictAnswers flag is off for the owner, what would be
  * refused is only recorded, so false alarms can be found first.
  */
-async function checkAnswers(
+/** Everything wrong with a set of answers, against the published form and its rules. */
+export async function answerProblems(
   ctx: MutationCtx,
   form: Doc<"forms">,
   args: { partial: boolean; ending?: string; answers: AnswerIn[] },
@@ -795,10 +798,18 @@ async function checkAnswers(
   const rules = served.rules.filter(
     (r) => r.enabled && (advanced || (r.action !== "hide-options" && r.action !== "ending")),
   );
-  const problems = validateAnswers(served.form, served.blocks, rules as unknown as Rule[], args.answers, {
+  return validateAnswers(served.form, served.blocks, rules as unknown as Rule[], args.answers, {
     partial: args.partial,
     ending: args.ending,
   });
+}
+
+async function checkAnswers(
+  ctx: MutationCtx,
+  form: Doc<"forms">,
+  args: { partial: boolean; ending?: string; answers: AnswerIn[] },
+) {
+  const problems = await answerProblems(ctx, form, args);
   if (!problems.length) return;
   if (await flagOn(ctx, "forms.strictAnswers", form.ownerId)) {
     throw new ConvexError({ code: "invalid", message: problems[0]!.message, blockId: problems[0]!.blockId ?? null });
@@ -851,6 +862,62 @@ export const pruneValidationLog = internalMutation({
  * the person left, and carries a token so they can be sent back to it. The
  * token, not a response id, is what lets a record be replaced.
  */
+/**
+ * What a complete response must clear before it is kept, from a browser or
+ * from an AI agent: a limited place still free, the email the form needs,
+ * one answer per person, one quiz attempt. Throws what to tell them.
+ */
+export async function admit(
+  ctx: MutationCtx,
+  form: Doc<"forms">,
+  args: { deviceId?: string; answers: AnswerIn[] },
+  existing: Doc<"responses"> | null,
+) {
+  const s = securityOf(form.security);
+  const { blocks } = await servedForm(ctx, form);
+  const emailIds = new Set(blocks.filter((b) => b.type === "email").map((b) => b._id as string));
+  const email = args.answers
+    .find((a) => emailIds.has(a.blockId) && a.value?.trim())
+    ?.value?.trim()
+    .toLowerCase();
+
+  // Limited places: a place is only taken if it is still free when sent.
+  if (blocks.some(hasLimits) && (await hasFeature(ctx, form, "logic.advanced"))) {
+    await startPlaceCounts(ctx, form._id, blocks);
+    const taken = await placesTaken(ctx, form._id, blocks, existing);
+    for (const a of args.answers) {
+      const b = blocks.find((x) => x._id === a.blockId);
+      if (!b || !hasLimits(b)) continue;
+      const left = placesLeft(b, taken) ?? [];
+      for (const picked of a.values ?? (a.value ? [a.value] : [])) {
+        const i = (b.options ?? []).indexOf(picked);
+        if (i >= 0 && left[i] !== null && left[i]! <= 0) {
+          throw new ConvexError(`“${picked}” has just filled up. Pick another and send again.`);
+        }
+      }
+    }
+  }
+
+  if (s.requireEmail && !email) {
+    throw new ConvexError("This form needs your email address before it can be sent.");
+  }
+
+  if (!s.multiple && !existing) {
+    if (await answeredBefore(ctx, form._id, args.deviceId, email)) {
+      throw new ConvexError("You have already answered this form. Thank you.");
+    }
+  }
+
+  // Business: a quiz taken once per person - by device and by email.
+  const quiz = await quizOf(ctx, form);
+  if (quiz && existing && !existing.partial) throw new ConvexError("Answers to a quiz can’t be changed once sent.");
+  if (quiz?.oneAttempt && !existing) {
+    if (await answeredBefore(ctx, form._id, args.deviceId, email)) {
+      throw new ConvexError("You’ve already taken this quiz. It allows one attempt.");
+    }
+  }
+}
+
 export const submit = mutation({
   args: {
     formId: v.id("forms"),
@@ -948,48 +1015,7 @@ export const submit = mutation({
         }
       }
 
-      const { blocks } = await servedForm(ctx, form);
-      const emailIds = new Set(blocks.filter((b) => b.type === "email").map((b) => b._id as string));
-      const email = args.answers
-        .find((a) => emailIds.has(a.blockId) && a.value?.trim())
-        ?.value?.trim()
-        .toLowerCase();
-
-      // Limited places: a place is only taken if it is still free when sent.
-      if (blocks.some(hasLimits) && (await hasFeature(ctx, form, "logic.advanced"))) {
-        await startPlaceCounts(ctx, form._id, blocks);
-        const taken = await placesTaken(ctx, form._id, blocks, existing);
-        for (const a of args.answers) {
-          const b = blocks.find((x) => x._id === a.blockId);
-          if (!b || !hasLimits(b)) continue;
-          const left = placesLeft(b, taken) ?? [];
-          for (const picked of a.values ?? (a.value ? [a.value] : [])) {
-            const i = (b.options ?? []).indexOf(picked);
-            if (i >= 0 && left[i] !== null && left[i]! <= 0) {
-              throw new ConvexError(`“${picked}” has just filled up. Pick another and send again.`);
-            }
-          }
-        }
-      }
-
-      if (s.requireEmail && !email) {
-        throw new ConvexError("This form needs your email address before it can be sent.");
-      }
-
-      if (!s.multiple && !existing) {
-        if (await answeredBefore(ctx, form._id, args.deviceId, email)) {
-          throw new ConvexError("You have already answered this form. Thank you.");
-        }
-      }
-
-      // Business: a quiz taken once per person - by device and by email.
-      const quiz = await quizOf(ctx, form);
-      if (quiz && existing && !existing.partial) throw new ConvexError("Answers to a quiz can’t be changed once sent.");
-      if (quiz?.oneAttempt && !existing) {
-        if (await answeredBefore(ctx, form._id, args.deviceId, email)) {
-          throw new ConvexError("You’ve already taken this quiz. It allows one attempt.");
-        }
-      }
+      await admit(ctx, form, args, existing);
     }
 
     return store(ctx, form, args, existing, false);

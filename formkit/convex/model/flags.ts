@@ -86,6 +86,12 @@ export const FLAGS = [
     defaultOn: true,
   },
   {
+    key: "forms.agents",
+    label: "Forms AI agents can fill in",
+    description: "The /api/agent address for forms whose owners allowed agents. Off, it answers that agents are paused.",
+    defaultOn: true,
+  },
+  {
     key: "notify.push",
     label: "Push notifications",
     description: "Notifications on people's phones and computers. Off, nothing is pushed; the bell and email carry on.",

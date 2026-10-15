@@ -12,6 +12,7 @@ import type * as admin from "../admin.js";
 import type * as adminCompanies from "../adminCompanies.js";
 import type * as adminReports from "../adminReports.js";
 import type * as adminTally from "../adminTally.js";
+import type * as agents from "../agents.js";
 import type * as ai from "../ai.js";
 import type * as aiLogic from "../aiLogic.js";
 import type * as aiReply from "../aiReply.js";
@@ -96,6 +97,7 @@ import type * as model_security from "../model/security.js";
 import type * as model_served from "../model/served.js";
 import type * as model_sheet from "../model/sheet.js";
 import type * as model_spaces from "../model/spaces.js";
+import type * as model_spamText from "../model/spamText.js";
 import type * as model_standing from "../model/standing.js";
 import type * as model_statuses from "../model/statuses.js";
 import type * as model_summary from "../model/summary.js";
@@ -145,6 +147,7 @@ declare const fullApi: ApiFromModules<{
   "adminCompanies": typeof adminCompanies,
   "adminReports": typeof adminReports,
   "adminTally": typeof adminTally,
+  "agents": typeof agents,
   "ai": typeof ai,
   "aiLogic": typeof aiLogic,
   "aiReply": typeof aiReply,
@@ -229,6 +232,7 @@ declare const fullApi: ApiFromModules<{
   "model/served": typeof model_served,
   "model/sheet": typeof model_sheet,
   "model/spaces": typeof model_spaces,
+  "model/spamText": typeof model_spamText,
   "model/standing": typeof model_standing,
   "model/statuses": typeof model_statuses,
   "model/summary": typeof model_summary,

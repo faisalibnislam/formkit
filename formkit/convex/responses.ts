@@ -82,6 +82,8 @@ async function shape(ctx: QueryCtx, r: Doc<"responses">, formTitle: string) {
     respondentCompany: r.respondentCompany ?? null,
     device: r.device ?? null,
     source: r.source ?? null,
+    /** Sent by an AI agent (agents.ts), as it named itself. */
+    agent: r.agent ?? null,
     durationMs: r.durationMs ?? null,
     status: r.status,
     /** The status as the form's company names and colours it. */

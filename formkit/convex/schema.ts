@@ -462,6 +462,8 @@ export default defineSchema({
     languages: v.optional(v.array(v.string())),
     /** Pro: responses are indexed for search by meaning (semantic.ts). */
     semantic: v.optional(v.boolean()),
+    /** AI agents may read and fill in the form through /api/agent (agents.ts). Off unless switched on. */
+    agents: v.optional(v.boolean()),
     /** Pro: one reminder, this many hours on, to someone who left an email and stopped partway. */
     remind: v.optional(v.object({ hours: v.number() })),
     closing: v.optional(
@@ -644,6 +646,8 @@ export default defineSchema({
     respondentCompany: v.optional(v.string()),
     device: v.optional(v.string()),
     source: v.optional(v.string()),
+    /** Sent by an AI agent through /api/agent (agents.ts), as it named itself. */
+    agent: v.optional(v.object({ name: v.string(), url: v.optional(v.string()), forWhom: v.optional(v.string()) })),
     durationMs: v.optional(v.number()),
     /** Pro: the payment taken after this response, through the owner's Stripe. */
     payment: v.optional(

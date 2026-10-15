@@ -37,6 +37,7 @@ import {
   Trash2,
   Users,
   X,
+  Bot,
 } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -1003,8 +1004,13 @@ function ResponseDrawer({
       icon: <FileText size={14} strokeWidth={1.8} aria-hidden />,
       text: form?.identity ? `${response.formTitle} · ${form.identity.name}` : response.formTitle,
     },
-    response.source && { icon: <Link2 size={14} strokeWidth={1.8} aria-hidden />, text: response.source },
-    response.device && { icon: <Monitor size={14} strokeWidth={1.8} aria-hidden />, text: response.device },
+    response.agent
+      ? {
+          icon: <Bot size={14} strokeWidth={1.8} aria-hidden />,
+          text: `Sent by an AI agent · ${response.agent.name}${response.agent.forWhom ? ` for ${response.agent.forWhom}` : ""}`,
+        }
+      : response.source && { icon: <Link2 size={14} strokeWidth={1.8} aria-hidden />, text: response.source },
+    !response.agent && response.device && { icon: <Monitor size={14} strokeWidth={1.8} aria-hidden />, text: response.device },
     duration(response.durationMs) && {
       icon: <Timer size={14} strokeWidth={1.8} aria-hidden />,
       text: `Took ${duration(response.durationMs)}`,

@@ -6,6 +6,7 @@ import { handle as restApi } from "./restApi";
 import { handle as apiV2 } from "./apiV2";
 import { registerClient, revoke, token } from "./oauth";
 import { callback as integrationCallback } from "./integrations";
+import { http as agentForms } from "./agents";
 
 const http = httpRouter();
 
@@ -25,6 +26,11 @@ for (const method of ["GET", "POST", "PATCH", "DELETE", "OPTIONS"] as const) {
 }
 // An app's sign-in sends people back here (integrations.ts), through formkit.app.
 http.route({ path: "/integrations/callback", method: "GET", handler: integrationCallback });
+
+// Forms AI agents can fill in (agents.ts), behind formkit.app/api/agent/forms/.
+for (const method of ["GET", "POST", "OPTIONS"] as const) {
+  http.route({ pathPrefix: "/agent/forms/", method, handler: agentForms });
+}
 // OAuth for apps that connect to the MCP server (convex/oauth.ts).
 for (const method of ["POST", "OPTIONS"] as const) {
   http.route({ path: "/oauth/token", method, handler: token });

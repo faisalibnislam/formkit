@@ -266,6 +266,8 @@ export const get = query({
       ownerName: (await ctx.db.get(form.ownerId))?.name?.trim() || null,
       /** Whether the person looking is the owner: only they can move it between their names. */
       mine: (await requireUser(ctx))._id === form.ownerId,
+      /** AI agents may fill it in through /api/agent (agents.ts). */
+      agents: !!form.agents,
       calc: form.calc ?? [],
       endings: form.endings ?? [],
       aiReply: form.aiReply ?? null,
