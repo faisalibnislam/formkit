@@ -1055,6 +1055,17 @@ export const QUERIES: Record<string, unknown> = {
       options: ["More than £35k"],
       order: 3,
     },
+    {
+      _id: "r5",
+      formId: "f1",
+      name: "Not sure yet? Start over",
+      enabled: true,
+      join: "and",
+      conditions: [{ blockId: "b5", operator: "is-empty" }],
+      action: "jump",
+      targetId: "b1",
+      order: 4,
+    },
   ],
   "ai:usage": { used: 3, limit: 25, allowed: true },
   "insights:overview": {

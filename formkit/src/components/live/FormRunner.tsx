@@ -21,6 +21,7 @@ import { computeAll, pipe, pipeValues } from "../../../convex/model/calc";
 import { LiveReply } from "./LiveReply";
 import { QuizResult } from "./QuizResult";
 import { applyLogic, conditionsOf, type Rule as LogicRule } from "../../../convex/model/logicEval";
+import { nextPage as jumpNext, type JumpPage } from "../../../convex/model/jumps";
 import { ruleProblem } from "../../../convex/model/validate";
 import { videoEmbed } from "../../../convex/model/video";
 import { LogoLockup } from "./LogoLockup";
@@ -297,6 +298,8 @@ function FormRunnerInner({
   const [started, setStarted] = useState(!!resume || !standalone);
   const [page, setPage] = useState(0);
   const [step, setStep] = useState(0);
+  const [trail, setTrail] = useState<number[]>([]);
+  const rounds = useRef<Record<string, number>>({});
   const [answers, setAnswers] = useState<Record<string, Answer>>(() => resume?.answers ?? prefilled(blocks, data.smart?.hidden === true));
   // Hidden fields are sent with the answers but never shown.
   const hiddenFields = blocks.filter((b) => b.type === "hidden");
@@ -413,14 +416,33 @@ function FormRunnerInner({
 
   /* ---------- pages, and the questions in order ---------- */
   const pagesFor = (gone: Set<string>) => {
-    const pages: { name: string; fields: Block[] }[] = [{ name: "", fields: [] }];
+    const pages: { name: string; fields: Block[]; anchors: string[] }[] = [{ name: "", fields: [], anchors: [] }];
     for (const b of blocks) {
-      if (b.kind === "pagebreak") pages.push({ name: b.pageName ?? "", fields: [] });
-      else if (b.type !== "hidden" && !gone.has(b._id)) pages[pages.length - 1]!.fields.push(b);
+      if (b.kind === "pagebreak") pages.push({ name: b.pageName ?? "", fields: [], anchors: [b._id] });
+      else {
+        const last = pages[pages.length - 1]!;
+        last.anchors.push(b._id);
+        if (b.type !== "hidden" && !gone.has(b._id)) last.fields.push(b);
+      }
     }
     if (quiz?.shuffleQuestions) for (const p of pages) p.fields = shuffled(p.fields, seed, (b) => b._id);
-    return pages.filter((p) => p.fields.length > 0);
+    // A page with nothing to show is skipped; a jump to it lands on the next one that has something.
+    const out: typeof pages = [];
+    let carry: string[] = [];
+    for (const p of pages) {
+      if (!p.fields.length) carry = [...carry, ...p.anchors];
+      else {
+        out.push({ ...p, anchors: [...carry, ...p.anchors] });
+        carry = [];
+      }
+    }
+    return out;
   };
+  /** One question to a page, for one-at-a-time forms: hidden blocks and page breaks lead to the page's first question. */
+  const stepsOf = (pages: ReturnType<typeof pagesFor>) =>
+    pages.flatMap((p) =>
+      p.fields.map((f, i) => ({ anchors: i === 0 ? p.anchors.filter((id) => id === f._id || !p.fields.some((x) => x._id === id)) : [f._id] })),
+    );
   const live = pagesFor(hidden);
   const fields = live.flatMap((p) => p.fields);
   const current = live[Math.min(page, Math.max(0, live.length - 1))];
@@ -646,6 +668,26 @@ function FormRunnerInner({
     };
   });
 
+  /** Where Next goes, counting the rounds of any jump back. */
+  function nextMove(list: JumpPage[], at: number, jumps: LogicRule[]) {
+    const move = jumpNext(list, at, jumps, rounds.current);
+    if (move.back) rounds.current[move.back] = (rounds.current[move.back] ?? 0) + 1;
+    return move;
+  }
+  /** Back retraces the pages actually visited, jumps and all. */
+  function goBack() {
+    const prev = trail.length ? trail[trail.length - 1]! : (conversational ? step : page) - 1;
+    setTrail((t) => t.slice(0, -1));
+    if (conversational) {
+      setProblem(null);
+      setStep(Math.max(0, prev));
+    }
+    else {
+      setPage(Math.max(0, prev));
+      toTop();
+    }
+  }
+
   async function nextPage() {
     const missing = firstMissing(current?.fields ?? []);
     if (missing) {
@@ -658,13 +700,10 @@ function FormRunnerInner({
     if (stopsOnRule(current?.fields ?? [])) return;
     if (await askFollowUp(current?.fields ?? [])) return;
     const now = await think(current?.fields ?? []);
-    if (!lastPage) {
-      // A matching "jump to" rule skips straight to the page that holds its
-      // question, as long as that page is ahead of this one.
-      const pagesNow = pagesFor(now.outcome.hidden);
-      const to = now.outcome.jumpTo;
-      const jumpPage = to ? pagesNow.findIndex((p) => p.fields.some((f) => f._id === to)) : -1;
-      setPage(jumpPage > page ? jumpPage : page + 1);
+    const move = nextMove(pagesFor(now.outcome.hidden), page, now.outcome.jumps);
+    if (!lastPage || move.back) {
+      setTrail((t) => [...t, page]);
+      setPage(move.to);
       toTop();
       return;
     }
@@ -682,11 +721,10 @@ function FormRunnerInner({
     if (stopsOnRule([cur])) return;
     if (await askFollowUp([cur])) return;
     const now = await think([cur]);
-    if (!lastStep) {
-      const to = now.outcome.jumpTo;
-      const fieldsNow = pagesFor(now.outcome.hidden).flatMap((p) => p.fields);
-      const jumpIndex = to ? fieldsNow.findIndex((f) => f._id === to) : -1;
-      setStep(jumpIndex > step ? jumpIndex : step + 1);
+    const move = nextMove(stepsOf(pagesFor(now.outcome.hidden)), step, now.outcome.jumps);
+    if (!lastStep || move.back) {
+      setTrail((t) => [...t, step]);
+      setStep(move.to);
       return;
     }
     const missing = firstMissing(fields);
@@ -1139,10 +1177,7 @@ function FormRunnerInner({
               <button
                 type="button"
                 style={button(false)}
-                onClick={() => {
-                  setProblem(null);
-                  setStep((s) => Math.max(0, s - 1));
-                }}
+                onClick={goBack}
               >
                 <ArrowLeft size={17} strokeWidth={1.9} aria-hidden /> {tx("back")}
               </button>
@@ -1192,14 +1227,7 @@ function FormRunnerInner({
         {proveBox}
         <div className="fk-live-foot">
           {page > 0 && (
-            <button
-              type="button"
-              style={button(false)}
-              onClick={() => {
-                setPage((p) => p - 1);
-                toTop();
-              }}
-            >
+            <button type="button" style={button(false)} onClick={goBack}>
               {tx("back")}
             </button>
           )}

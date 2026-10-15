@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import type { Doc, Id } from "./_generated/dataModel";
 import { formFor } from "./model/forms";
 import { requireFeature } from "./model/plans";
 import { conditionsOf } from "./model/logicEval";
@@ -49,6 +50,22 @@ async function checkPlan(
   if (all.some((c) => c.source === "ai")) await requireFeature(ctx, ownerId, "logic.ai");
 }
 
+/**
+ * A rule's target must be on its own form. A jump may land on a page break
+ * (the start of that page) as well as on a question; nothing else can.
+ */
+async function checkTarget(
+  ctx: { db: { get: (id: Id<"blocks">) => Promise<Doc<"blocks"> | null> } },
+  formId: Id<"forms">,
+  action: string,
+  targetId: Id<"blocks"> | undefined,
+) {
+  if (!targetId) return;
+  const block = await ctx.db.get(targetId);
+  if (!block || block.formId !== formId) throw new Error("That question isn't on this form.");
+  if (block.kind === "pagebreak" && action !== "jump") throw new Error("Only a jump can go to a page.");
+}
+
 /** AI conditions need a stable id for their judgement to be kept against. */
 function withIds<T extends { id?: string; source?: string }>(list: T[]): T[] {
   return list.map((c) => (c.source === "ai" && !c.id ? { ...c, id: crypto.randomUUID().slice(0, 12) } : c));
@@ -83,6 +100,7 @@ export const add = mutation({
   handler: async (ctx, { formId, name, join, action, targetId, conditions, groups, options, endingId }) => {
     const form = await formFor(ctx, formId);
     await checkPlan(ctx, form.ownerId, { action, conditions, groups });
+    await checkTarget(ctx, formId, action, targetId);
     const existing = await ctx.db
       .query("logicRules")
       .withIndex("by_form", (q) => q.eq("formId", formId))
@@ -132,6 +150,7 @@ export const update = mutation({
       conditions: patch.conditions,
       groups: patch.groups ?? undefined,
     });
+    if (patch.targetId || patch.action) await checkTarget(ctx, rule.formId, patch.action ?? rule.action, patch.targetId ?? rule.targetId);
     const { groups, conditions, ...rest } = patch;
     await ctx.db.patch(ruleId, {
       ...rest,

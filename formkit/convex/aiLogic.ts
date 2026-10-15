@@ -403,7 +403,7 @@ Operators by question type:
 - dates: on, before, after, between (YYYY-MM-DD), is-empty, is-not-empty.
 - text and email: is, is-not, contains, not-contains, starts-with, ends-with, matches (a regular expression), is-empty, is-not-empty${", email-domain (email only, value like company.com)"}.
 ${c.results.length ? "- results: equals, at-least, at-most, greater, less, between.\n" : ""}
-Actions: ${actions.join(", ")}. "show" shows the target question only when the conditions hold; "hide" hides it when they hold; "require" makes it required; "jump" skips ahead to the target question's page${c.advanced ? '; "hide-options" hides some options ("options") of a choice question (target)' : ""}${c.advanced && c.endings.length ? '; "ending" finishes on one of the endings ("ending": its id)' : ""}.
+Actions: ${actions.join(", ")}. "show" shows the target question only when the conditions hold; "hide" hides it when they hold; "require" makes it required; "jump" moves to the target question's page, ahead or back (back is for sending people round again, e.g. to fix an answer)${c.advanced ? '; "hide-options" hides some options ("options") of a choice question (target)' : ""}${c.advanced && c.endings.length ? '; "ending" finishes on one of the endings ("ending": its id)' : ""}.
 A condition must read a question that comes before the one it affects.
 
 Write at most 4 rules. Give each a short name (under 40 characters) and a one-sentence plain explanation. Never use em dashes. If the description can't be done with these, return no rules and say why in "note", briefly and kindly.`;

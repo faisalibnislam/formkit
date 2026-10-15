@@ -204,6 +204,8 @@ export type LogicOutcome = {
   hidden: Set<string>;
   forced: Set<string>;
   jumpTo: string | null;
+  /** Every matching "jump to" rule, in order: where Next goes is model/jumps.ts. */
+  jumps: Rule[];
   /** Options hidden on a question, by question id. */
   hiddenOptions: Map<string, Set<string>>;
   /** The ending to show, from the first matching "ending" rule. */
@@ -212,7 +214,7 @@ export type LogicOutcome = {
 
 /** Everything the rules say, for one set of answers. Rules run top to bottom. */
 export function applyLogic(rules: Rule[], ctx: LogicContext): LogicOutcome {
-  const out: LogicOutcome = { hidden: new Set(), forced: new Set(), jumpTo: null, hiddenOptions: new Map(), ending: null };
+  const out: LogicOutcome = { hidden: new Set(), forced: new Set(), jumpTo: null, jumps: [], hiddenOptions: new Map(), ending: null };
   for (const rule of rules) {
     if (rule.enabled === false) continue;
     if (rule.action === "ending") {
@@ -224,7 +226,10 @@ export function applyLogic(rules: Rule[], ctx: LogicContext): LogicOutcome {
     if (rule.action === "show" && !hit) out.hidden.add(rule.targetId);
     if (rule.action === "hide" && hit) out.hidden.add(rule.targetId);
     if (rule.action === "require" && hit) out.forced.add(rule.targetId);
-    if (rule.action === "jump" && hit && out.jumpTo === null) out.jumpTo = rule.targetId;
+    if (rule.action === "jump" && hit) {
+      if (out.jumpTo === null) out.jumpTo = rule.targetId;
+      out.jumps.push(rule);
+    }
     if (rule.action === "hide-options" && hit && rule.options?.length) {
       const set = out.hiddenOptions.get(rule.targetId) ?? new Set<string>();
       for (const o of rule.options) set.add(o);
