@@ -179,9 +179,23 @@ export default defineSchema({
         token: v.string(),
         verified: v.boolean(),
         enforce: v.boolean(),
-        providers: v.array(v.union(v.literal("google"), v.literal("microsoft-entra-id"))),
+        providers: v.array(v.union(v.literal("google"), v.literal("microsoft-entra-id"), v.literal("saml"))),
+        /** SAML and SCIM through WorkOS (workos.ts): the company's organization there. */
+        workos: v.optional(
+          v.object({
+            organizationId: v.string(),
+            /** A SAML connection is live, so people can sign in with it. */
+            connected: v.boolean(),
+            /** A directory (SCIM) adds and removes members. */
+            directory: v.boolean(),
+            /** The role people get when they first sign in, or are added by the directory. */
+            role: v.union(v.literal("editor"), v.literal("viewer")),
+          }),
+        ),
       }),
     ),
+    /** Last sign-in through the company's SAML single sign-on. */
+    samlAt: v.optional(v.number()),
     polarCustomerId: v.optional(v.string()),
     polarSubscriptionId: v.optional(v.string()),
     /** Seats on the personal company's plan (it can have members too). */
@@ -267,6 +281,7 @@ export default defineSchema({
     .index("by_polar_customer", ["polarCustomerId"])
     .index("by_retention", ["retentionDays"])
     .index("by_sso_domain", ["sso.domain"])
+    .index("by_workos_org", ["sso.workos.organizationId"])
     // Admin → Users and Companies: by name, suspended, staff, and a name search.
     .index("by_name", ["name"])
     .index("by_deactivated", ["deactivatedAt"])
@@ -976,6 +991,16 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_endpoint", ["endpoint"]),
 
+  /** A SAML sign-in on its way through WorkOS: one use, ten minutes. */
+  samlStates: defineTable({
+    state: v.string(),
+    ownerId: v.id("users"),
+    organizationId: v.string(),
+    expiresAt: v.number(),
+  })
+    .index("by_state", ["state"])
+    .index("by_expires", ["expiresAt"]),
+
   /** Passkeys: another way into an account, beside the password (model/webauthn.ts). */
   passkeys: defineTable({
     userId: v.id("users"),
@@ -1332,6 +1357,8 @@ export default defineSchema({
     status: v.union(v.literal("active"), v.literal("pending")),
     invitedBy: v.optional(v.id("users")),
     invitedAt: v.number(),
+    /** Added by the company's directory (SCIM, through WorkOS), which also removes them. */
+    directory: v.optional(v.boolean()),
   })
     .index("by_owner", ["ownerId"])
     .index("by_email", ["email"])

@@ -1449,8 +1449,10 @@ export const QUERIES: Record<string, unknown> = {
       record: { type: "TXT", name: "_formkit.studionine.co", value: "formkit-verify=8c1f0a3b9d2e4f5a6b7c8d9e" },
     },
     available: ["google", "microsoft-entra-id"],
+    saml: { on: true, connected: true, directory: false, role: "viewer" },
   },
   "sso:providers": [],
+  "workos:available": true,
   "support:mine": { priority: true, tickets: [] },
   "revenue:overview": (() => {
     const months = Array.from({ length: 12 }, (_, i) => {

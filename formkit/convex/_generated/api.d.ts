@@ -134,6 +134,7 @@ import type * as templates from "../templates.js";
 import type * as transcribe from "../transcribe.js";
 import type * as translations from "../translations.js";
 import type * as users from "../users.js";
+import type * as workos from "../workos.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -270,6 +271,7 @@ declare const fullApi: ApiFromModules<{
   "transcribe": typeof transcribe,
   "translations": typeof translations,
   "users": typeof users,
+  "workos": typeof workos,
 }>;
 export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "public">>;
 export declare const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">>;

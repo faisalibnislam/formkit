@@ -35,7 +35,7 @@ const AS_ROLE = { admin: "an Admin", editor: "an Editor", viewer: "a Viewer" } a
 const spaceOfRow = (row: Doc<"teamMembers">): SpaceRef => ({ ownerId: row.ownerId, brand: row.companyId ?? "me" });
 
 /** After members change on a paid company, its subscription's seats follow. */
-async function seatsChanged(ctx: MutationCtx, space: SpaceRef) {
+export async function seatsChanged(ctx: MutationCtx, space: SpaceRef) {
   if ((await spacePlanId(ctx, space)) === "free") return;
   await ctx.scheduler.runAfter(0, internal.billing.syncSeats, { key: spaceKey(space) });
 }
