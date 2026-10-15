@@ -1,0 +1,40 @@
+{
+  "type": "instant_trigger",
+  "label": "Watch responses",
+  "description": "Starts the moment someone sends a response to one of your forms. Needs Formkit Pro.",
+  "webhook": "responses",
+  "communication": {
+    "output": {
+      "id": "{{body.response.id}}",
+      "formId": "{{body.form.id}}",
+      "formTitle": "{{body.form.title}}",
+      "submittedAt": "{{body.response.submittedAt}}",
+      "name": "{{body.response.respondent.name}}",
+      "email": "{{body.response.respondent.email}}",
+      "answers": "{{body.response.answers}}",
+      "calculations": "{{body.response.calculations}}",
+      "payment": "{{body.response.payment}}"
+    }
+  },
+  "interface": [
+    { "name": "id", "type": "text", "label": "Response ID" },
+    { "name": "formId", "type": "text", "label": "Form ID" },
+    { "name": "formTitle", "type": "text", "label": "Form" },
+    { "name": "submittedAt", "type": "date", "label": "Sent at" },
+    { "name": "name", "type": "text", "label": "Name" },
+    { "name": "email", "type": "email", "label": "Email" },
+    {
+      "name": "answers",
+      "type": "array",
+      "label": "Answers",
+      "spec": [
+        { "name": "key", "type": "text", "label": "Key" },
+        { "name": "question", "type": "text", "label": "Question" },
+        { "name": "value", "type": "text", "label": "Answer" },
+        { "name": "fileUrl", "type": "url", "label": "File" }
+      ]
+    },
+    { "name": "calculations", "type": "any", "label": "Calculations" },
+    { "name": "payment", "type": "any", "label": "Payment" }
+  ]
+}

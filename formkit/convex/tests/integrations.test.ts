@@ -79,3 +79,40 @@ test("HubSpot: a response without an email is not sent, and says why", async () 
   const log = await t.run((ctx) => ctx.db.query("deliveries").collect());
   expect(log[0]).toMatchObject({ ok: false, detail: "No email address to match a contact to" });
 });
+
+test("HubSpot: the contact gets the answers as a note, and a changed response updates that note", async () => {
+  vi.stubEnv("HUBSPOT_CLIENT_ID", "cid");
+  vi.stubEnv("HUBSPOT_CLIENT_SECRET", "csecret");
+  const calls: { url: string; method: string; body: string }[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string, init?: RequestInit) => {
+      const u = String(url);
+      calls.push({ url: u, method: init?.method ?? "GET", body: String(init?.body ?? "") });
+      if (u.includes("batch/upsert")) return new Response(JSON.stringify({ results: [{ id: "C1" }] }), { status: 200 });
+      if (u.endsWith("/crm/v3/objects/notes")) return new Response(JSON.stringify({ id: "N1" }), { status: 200 });
+      return new Response("{}", { status: 200 });
+    }),
+  );
+  const t = backend();
+  const owner = await person(t, "owner@example.com");
+  await t.run((ctx) => ctx.db.patch(owner.userId, { plan: "pro", planStatus: "active" } as never));
+  const formId = await form(t, owner.userId, { status: "draft", security: { spam: false, rateLimit: false, multiple: true } });
+  const email = await owner.as.mutation(api.blocks.add, { formId, kind: "field", type: "email", title: "Email" });
+  const idea = await owner.as.mutation(api.blocks.add, { formId, kind: "field", type: "long-text", title: "Your <idea>" });
+  await owner.as.mutation(api.forms.publish, { formId });
+  const accountId = await t.mutation(internal.integrations.saveAccount, { ownerId: owner.userId, provider: "hubspot", label: "acme", access: "tok" });
+  await owner.as.action(api.integrations.setup, { formId, accountId });
+  const sent = await t.mutation(api.publicForm.submit, { formId, partial: false, answers: [{ blockId: email, value: "sam@example.com" }, { blockId: idea, value: "A & B" }] });
+  const conn = (await t.run((ctx) => ctx.db.query("connections").collect()))[0]!;
+  await t.action(internal.connections.deliver, { connectionId: conn._id, responseId: sent.responseId, attempt: 1 });
+  const note = calls.find((c) => c.url.endsWith("/crm/v3/objects/notes"))!;
+  expect(note.body).toContain("Your &lt;idea&gt;");
+  expect(note.body).toContain("A &amp; B");
+  expect(JSON.parse(note.body).associations[0].to.id).toBe("C1");
+  expect(await t.query(internal.integrations.ref, { connectionId: conn._id, responseId: sent.responseId })).toBe("C1|N1");
+
+  await t.action(internal.connections.deliver, { connectionId: conn._id, responseId: sent.responseId, event: "response.updated", attempt: 1 });
+  expect(calls.some((c) => c.method === "PATCH" && c.url.endsWith("/notes/N1"))).toBe(true);
+});
+

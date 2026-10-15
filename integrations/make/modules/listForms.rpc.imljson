@@ -1,0 +1,12 @@
+{
+  "label": "List forms",
+  "connection": "apikey",
+  "communication": {
+    "url": "/forms",
+    "method": "GET",
+    "response": {
+      "iterate": "{{body.data}}",
+      "output": { "label": "{{item.title}}", "value": "{{item.id}}" }
+    }
+  }
+}

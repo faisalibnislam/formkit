@@ -458,6 +458,8 @@ export const saveRef = internalMutation({
   },
 });
 
+const esc = (x: string) => x.replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]!);
+
 /** Each column's answer, matched by question. */
 function valuesFor(columns: string[], answers: Answer[]) {
   const byQuestion = new Map(answers.map((a) => [a.question.trim(), a.fileUrl ?? a.value]));
@@ -529,7 +531,24 @@ export async function pushToApp(ctx: ActionCtx, c: Doc<"connections">, p: Payloa
           ],
         },
       });
-      made = existing ? null : ((out.results as { id: string }[])?.[0]?.id ?? null);
+      const contactId = (out.results as { id: string }[])?.[0]?.id;
+      // The answers, as a note on the contact: one per response, updated when it changes.
+      const body = [
+        `<p><strong>${esc(c.target.name === "Contacts" ? "A response" : c.target.name)}</strong> · ${esc(new Date(r.submittedAt).toUTCString())}</p>`,
+        ...r.answers.filter((a) => (a.fileUrl ?? a.value)?.trim()).map((a) => `<p><strong>${esc(a.question)}</strong><br>${esc(a.fileUrl ?? a.value)}</p>`),
+      ].join("");
+      const [, noteId] = (existing ?? "").split("|");
+      if (noteId) {
+        await call(token, `https://api.hubapi.com/crm/v3/objects/notes/${noteId}`, { method: "PATCH", body: { properties: { hs_note_body: body } } });
+      } else if (contactId) {
+        const note = await call(token, "https://api.hubapi.com/crm/v3/objects/notes", {
+          body: {
+            properties: { hs_timestamp: new Date(r.submittedAt).toISOString(), hs_note_body: body },
+            associations: [{ to: { id: contactId }, types: [{ associationCategory: "HUBSPOT_DEFINED", associationTypeId: 202 }] }],
+          },
+        });
+        made = `${contactId}|${note.id as string}`;
+      }
     }
     if (made) await ctx.runMutation(internal.integrations.saveRef, { connectionId: c._id, responseId, ref: made });
     return { ok: true, status: 200, detail: existing ? "Updated" : undefined };
