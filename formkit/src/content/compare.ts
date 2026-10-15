@@ -3,11 +3,12 @@
  *
  * Standing rule: competitors are named only here, with no logos, brand colours,
  * screenshots or claims we cannot back up. Every row is sourced to each
- * product's published pricing page as of September 2026 (the free plan unless
- * the row says otherwise), and a dash means "offered but narrower".
+ * product's own pricing page, help centre or developer docs as of October
+ * 2026 (the free plan unless the row says otherwise), and a dash means
+ * "offered but narrower". A row we could not confirm is left out.
  */
 
-export const COMPARE_ASOF = "September 2026";
+export const COMPARE_ASOF = "October 2026";
 
 export type CellKind = "yes" | "part" | "no";
 export type Cell = { kind: CellKind; note: string };
@@ -61,6 +62,10 @@ export const COMPARE_ROWS: CompareRow[] = [
   {
     label: "Collaborators on the free tier",
     cells: [y("Editors"), p("Paid seats"), y("Three per form, unlimited on Pro")],
+  },
+  {
+    label: "Works in Claude and ChatGPT (MCP)",
+    cells: [n("Not offered"), y("MCP server"), y("Every plan, with in-chat views")],
   },
 ];
 
@@ -149,7 +154,7 @@ export const RIVALS: Rival[] = [
   {
     slug: "jotform",
     importExample: "https://form.jotform.com/…",
-    updated: "2026-09-30",
+    updated: "2026-10-15",
     name: "Jotform",
     line: "A huge form builder with thousands of templates, widgets and integrations. It has been around for years and covers almost every kind of form.",
     meta: "Formkit compared with Jotform on the free plan: form and submission limits, logic, AI building, collaborators and publishing under your own link.",
@@ -163,6 +168,10 @@ export const RIVALS: Rival[] = [
       { label: "People working on a form", them: p("One user on Starter"), us: y("Unlimited members, 3 guests per form") },
       { label: "Take payments", them: y("10 payments a month free"), us: p("Pro, with your own Stripe") },
       { label: "Price of the first paid plan", them: p("Bronze, $39 a month"), us: y("Pro, $6 a seat a month") },
+      { label: "Works in Claude and ChatGPT (MCP)", them: y("All plans, with in-chat views"), us: y("Every plan, with in-chat views") },
+      { label: "Sign in with a passkey", them: n("Not offered"), us: y("Every plan") },
+      { label: "Responses as JSON", them: p("Through the API"), us: y("A download, or the API") },
+      { label: "Many responses as PDFs", them: y("Emailed zip"), us: y("Zip or one PDF, in any language") },
     ],
     faqs: [
       {
@@ -186,7 +195,7 @@ export const RIVALS: Rival[] = [
   {
     slug: "tally",
     importExample: "https://tally.so/r/…",
-    updated: "2026-09-30",
+    updated: "2026-10-15",
     name: "Tally",
     line: "A generous free form builder that feels like writing a document. Type your questions and it becomes a form.",
     meta: "Formkit compared with Tally on the free plan: logic, partial responses, drop-off analytics, collaborators, version history and your own link.",
@@ -201,6 +210,8 @@ export const RIVALS: Rival[] = [
       { label: "People working on a form", them: n("Pro"), us: y("Unlimited members, 3 guests per form") },
       { label: "Sheets, Zapier and webhooks", them: y("On the free plan"), us: p("Pro") },
       { label: "Publish under your own link", them: n("Custom domain on Pro"), us: y("formkit.app/your-name") },
+      { label: "Works in Claude and ChatGPT (MCP)", them: y("Free on all plans, in beta"), us: y("Every plan, with in-chat views") },
+      { label: "Responses as JSON", them: p("Through the API"), us: y("A download, or the API") },
     ],
     faqs: [
       {
@@ -223,7 +234,7 @@ export const RIVALS: Rival[] = [
   },
   {
     slug: "fillout",
-    updated: "2026-09-30",
+    updated: "2026-10-15",
     name: "Fillout",
     line: "A capable form builder with a generous free response limit and strong ties to Airtable, Notion and other databases.",
     meta: "Formkit compared with Fillout on the free plan: response limits, logic, partial responses, collaborators and custom domains.",
@@ -236,6 +247,9 @@ export const RIVALS: Rival[] = [
       { label: "Partial responses kept", them: n("Paid plans"), us: y("On every plan") },
       { label: "Publish under your own link", them: n("Shared domain"), us: y("formkit.app/your-name") },
       { label: "Custom domain", them: p("Business plan, $75 a month"), us: p("Pro, $6 a seat a month") },
+      { label: "Works in Claude and ChatGPT (MCP)", them: n("Not offered for forms"), us: y("Every plan") },
+      { label: "Pay what you want", them: y("Included"), us: p("Pro, with a minimum") },
+      { label: "Tax worked out for you", them: n("No automatic VAT"), us: p("Stripe Tax, on Pro") },
     ],
     faqs: [
       {
@@ -258,7 +272,7 @@ export const RIVALS: Rival[] = [
   },
   {
     slug: "microsoft-forms",
-    updated: "2026-09-30",
+    updated: "2026-10-15",
     name: "Microsoft Forms",
     line: "Simple forms and quizzes built into Microsoft 365. If your school or company runs on Microsoft, it is already there.",
     meta: "Formkit compared with Microsoft Forms for personal accounts: response limits, branching, themes, your own link and export.",
@@ -270,6 +284,7 @@ export const RIVALS: Rival[] = [
       { label: "Your own colours, type and logo", them: p("Built-in themes"), us: y("Full theme editor") },
       { label: "Publish under your own link", them: n("Shared domain"), us: y("formkit.app/your-name") },
       { label: "Export", them: y("Excel"), us: y("CSV; Excel on Pro") },
+      { label: "Logic that jumps back", them: n("Branching goes forward only"), us: y("With loop protection") },
     ],
     faqs: [
       {
@@ -292,7 +307,7 @@ export const RIVALS: Rival[] = [
   },
   {
     slug: "surveymonkey",
-    updated: "2026-09-30",
+    updated: "2026-10-15",
     name: "SurveyMonkey",
     line: "A long-standing survey tool with deep analysis, benchmarks and panels for research at scale.",
     meta: "Formkit compared with SurveyMonkey's free Basic plan: questions per survey, responses you can see, logic and export.",
@@ -304,6 +319,8 @@ export const RIVALS: Rival[] = [
       { label: "Conditional logic", them: n("Paid plans"), us: y("Skip, show, hide") },
       { label: "Export", them: n("Paid plans"), us: y("CSV on every plan") },
       { label: "Publish under your own link", them: n("Shared domain"), us: y("formkit.app/your-name") },
+      { label: "Logic that jumps back", them: n("Skip logic goes forward only"), us: y("With loop protection") },
+      { label: "Many responses as PDFs", them: p("Paid plans"), us: y("Every plan") },
     ],
     faqs: [
       {

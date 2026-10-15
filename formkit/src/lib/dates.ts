@@ -8,7 +8,7 @@ export const SITE_DATES = {
   home: "2026-10-15",
   pricing: "2026-10-15",
   templates: "2026-09-30",
-  compare: "2026-09-30",
+  compare: "2026-10-15",
   help: "2026-10-15",
   features: "2026-10-15",
   useCases: "2026-09-30",

@@ -154,7 +154,7 @@ export default async function CompareDetailPage(props: PageProps<"/compare/[slug
                 Feature by feature
               </h2>
               <p className="fk-cmp-lede">
-                Based on each product&rsquo;s published pricing page, {COMPARE_ASOF}, and
+                Based on each product&rsquo;s own pricing page, help centre and developer docs, {COMPARE_ASOF}, and
                 the free plan unless a row says otherwise. A dash means the feature exists
                 but is narrower. Plans change, so check theirs before you decide.
               </p>
