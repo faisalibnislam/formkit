@@ -954,6 +954,33 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_endpoint", ["endpoint"]),
 
+  /** Passkeys: another way into an account, beside the password (model/webauthn.ts). */
+  passkeys: defineTable({
+    userId: v.id("users"),
+    /** base64url, as the browser names it. */
+    credentialId: v.string(),
+    /** The public key as a JWK, and its COSE algorithm (-7 ES256, -257 RS256). */
+    publicKey: v.string(),
+    alg: v.number(),
+    signCount: v.number(),
+    transports: v.optional(v.array(v.string())),
+    name: v.string(),
+    createdAt: v.number(),
+    lastUsedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_credential", ["credentialId"]),
+
+  /** A passkey ceremony's one-time challenge, good for five minutes. */
+  passkeyChallenges: defineTable({
+    challenge: v.string(),
+    kind: v.union(v.literal("register"), v.literal("signIn")),
+    userId: v.optional(v.id("users")),
+    expiresAt: v.number(),
+  })
+    .index("by_challenge", ["challenge"])
+    .index("by_expires", ["expiresAt"]),
+
   /** Which live announcements a person has already seen in the bell. */
   announcementReads: defineTable({
     userId: v.id("users"),

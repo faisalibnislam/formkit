@@ -7400,3 +7400,15 @@ html.fk-own-bar::-webkit-scrollbar {
   color: var(--neutral-600, #545b61);
   font-size: 12.5px;
 }
+
+/* Settings → Account → Passkeys: renaming in place. */
+.fk-passkey-name {
+  font: inherit;
+  font-weight: 500;
+  width: min(100%, 260px);
+  padding: 4px 8px;
+  border: 1px solid var(--neutral-300, #c9ced3);
+  border-radius: 8px;
+  background: var(--color-surface-card);
+  color: inherit;
+}

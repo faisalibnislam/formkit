@@ -106,8 +106,10 @@ import type * as model_validate from "../model/validate.js";
 import type * as model_video from "../model/video.js";
 import type * as model_voice from "../model/voice.js";
 import type * as model_webPush from "../model/webPush.js";
+import type * as model_webauthn from "../model/webauthn.js";
 import type * as notifications from "../notifications.js";
 import type * as oauth from "../oauth.js";
+import type * as passkeys from "../passkeys.js";
 import type * as payments from "../payments.js";
 import type * as presence from "../presence.js";
 import type * as publicForm from "../publicForm.js";
@@ -237,8 +239,10 @@ declare const fullApi: ApiFromModules<{
   "model/video": typeof model_video,
   "model/voice": typeof model_voice,
   "model/webPush": typeof model_webPush,
+  "model/webauthn": typeof model_webauthn,
   "notifications": typeof notifications,
   "oauth": typeof oauth,
+  "passkeys": typeof passkeys,
   "payments": typeof payments,
   "presence": typeof presence,
   "publicForm": typeof publicForm,

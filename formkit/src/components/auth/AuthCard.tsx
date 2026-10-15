@@ -2,14 +2,16 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useState } from "react";
-import { ArrowRight, Lock, Mail, RotateCcw, User } from "lucide-react";
+import { useCallback, useState, useSyncExternalStore } from "react";
+import { ArrowRight, KeyRound, Lock, Mail, RotateCcw, User } from "lucide-react";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { NightSky } from "@/components/brand/NightSky";
 import { SiteNav } from "@/components/site/SiteNav";
 import { Button, Checkbox, Field, Input, ProgressBar } from "@/components/ui";
+import { answerWithPasskey, cancelled, passkeysHere } from "@/lib/passkeys";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * Sign in, sign up, email verification, password reset and reactivation.
@@ -131,6 +133,33 @@ export function AuthCard({ initialView }: { initialView: View }) {
       }
       router.push(landing());
     }, "Formkit could not sign you in. Try again in a moment.");
+
+  // A passkey needs no email: the device offers the ones it holds for this site.
+  const passkeys = useSyncExternalStore(
+    () => () => {},
+    () => passkeysHere(new URL(SITE_URL).hostname),
+    () => false,
+  );
+  const passkeyOptions = useMutation(api.passkeys.signInOptions);
+  const onPasskey = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      const assertion = await answerWithPasskey(await passkeyOptions({}));
+      await signIn("passkey", { assertion: JSON.stringify(assertion) });
+      router.push(landing());
+    } catch (err) {
+      if (cancelled(err)) return;
+      const data = (err as { data?: { code?: string; message?: string } } | null)?.data;
+      setError(
+        data && typeof data === "object" && data.message
+          ? data.message
+          : readableError(err, "That passkey didn't work. Try again, or use your password."),
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const onSignUp = async () => {
     if (!terms) {
@@ -256,6 +285,17 @@ export function AuthCard({ initialView }: { initialView: View }) {
                 >
                   {busy ? "Signing in…" : "Sign in"}
                 </Button>
+                {passkeys && (
+                  <Button
+                    variant="secondary"
+                    fullWidth
+                    disabled={busy}
+                    onClick={onPasskey}
+                    iconLeft={<KeyRound size={17} strokeWidth={1.8} aria-hidden />}
+                  >
+                    Sign in with a passkey
+                  </Button>
+                )}
                 {oauth && oauth.length > 0 && (
                   <>
                     <div className="fk-auth-or">

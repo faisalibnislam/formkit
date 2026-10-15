@@ -1067,6 +1067,7 @@ export const QUERIES: Record<string, unknown> = {
       order: 4,
     },
   ],
+  "passkeys:list": [{ _id: "pk1", name: "iPhone", createdAt: Date.UTC(2026, 7, 20), lastUsedAt: Date.UTC(2026, 9, 13) }],
   "push:config": {
     publicKey: "BPreviewPreviewPreviewPreviewPreviewPreviewPreviewPreviewPreviewPreviewPreviewPreviewPrevie",
     prefs: { responses: true, mentions: true, approvals: false },
