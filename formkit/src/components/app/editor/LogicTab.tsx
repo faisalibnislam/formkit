@@ -135,9 +135,10 @@ function RuleCard({ rule, index, form }: { rule: Rule; index: number; form: Form
   const questions = form.blocks.filter((b) => b.kind === "field");
   const byId = (id?: string | null) => questions.find((q) => q._id === id);
   const questionOptions = questions.map((q) => ({ value: q._id as string, label: short(q.title) }));
+  const endings = form.endings ?? [];
   // A jump can land on a whole page as well as on a question, ahead or back.
   const jumpOptions = (() => {
-    const out: { value: string; label: string; group: string }[] = [];
+    const out: { value: string; label: string; group: string; note?: string }[] = [];
     let page = 1;
     let group = "Page 1";
     for (const b of form.blocks) {
@@ -147,10 +148,15 @@ function RuleCard({ rule, index, form }: { rule: Rule; index: number; form: Form
         out.push({ value: b._id as string, label: `Start of page ${page}`, group });
       } else if (b.kind === "field") out.push({ value: b._id as string, label: short(b.title), group });
     }
+    // Or straight to the end: the form is sent there and then.
+    out.push({ value: "ending:default", label: "Thank-you screen", group: "Finish now" });
+    for (const e of endings) {
+      out.push({ value: `ending:${e.id}`, label: short(e.name), group: "Finish now", ...(advanced.locked ? { note: "Pro" } : {}) });
+    }
     return out;
   })();
+  const jumpValue = rule.targetId ? (rule.targetId as string) : rule.endingId ? `ending:${rule.endingId}` : null;
   const choiceQuestions = questions.filter((q) => (q.options?.length ?? 0) > 0 || q.type === "yes-no");
-  const endings = form.endings ?? [];
 
   const patch = async (p: Parameters<typeof update>[0]["patch"]) => {
     try {
@@ -332,7 +338,7 @@ function RuleCard({ rule, index, form }: { rule: Rule; index: number; form: Form
             onChange={(v) => {
               if (ADVANCED.has(v) && advanced.locked) return openUpgrade({ feature: "logic.advanced" });
               const action = v as Rule["action"];
-              if (action === "ending") return void patch({ action, endingId: rule.endingId ?? endings[0]?.id });
+              if (action === "ending") return void patch({ action, endingId: endings.find((e) => e.id === rule.endingId)?.id ?? endings[0]?.id });
               if (action === "hide-options") {
                 const q = choiceQuestions.find((x) => x._id === rule.targetId) ?? choiceQuestions[0];
                 return void patch({ action, ...(q ? { targetId: q._id } : {}), options: [] });
@@ -366,7 +372,7 @@ function RuleCard({ rule, index, form }: { rule: Rule; index: number; form: Form
               size="sm"
               ariaLabel={rule.action === "jump" ? "Where to jump" : "Which question is affected"}
               placeholder={rule.action === "jump" ? "Pick a page or question" : "Pick a question"}
-              value={(rule.targetId as string | undefined) ?? null}
+              value={rule.action === "jump" ? jumpValue : ((rule.targetId as string | undefined) ?? null)}
               options={
                 rule.action === "hide-options"
                   ? choiceQuestions.map((q) => ({ value: q._id as string, label: short(q.title) }))
@@ -374,9 +380,18 @@ function RuleCard({ rule, index, form }: { rule: Rule; index: number; form: Form
                     ? jumpOptions
                     : questionOptions
               }
-              onChange={(v) =>
-                void patch({ targetId: v as Id<"blocks">, ...(rule.action === "hide-options" ? { options: [] } : {}) })
-              }
+              onChange={(v) => {
+                if (v.startsWith("ending:")) {
+                  const endingId = v.slice("ending:".length);
+                  if (endingId !== "default" && advanced.locked) return openUpgrade({ feature: "logic.advanced" });
+                  return void patch({ targetId: null, endingId });
+                }
+                void patch({
+                  targetId: v as Id<"blocks">,
+                  ...(rule.action === "jump" && rule.endingId ? { endingId: null } : {}),
+                  ...(rule.action === "hide-options" ? { options: [] } : {}),
+                });
+              }}
             />
           </div>
         )}
@@ -418,7 +433,11 @@ function RuleCard({ rule, index, form }: { rule: Rule; index: number; form: Form
           <span className="fk-rchip">{ending?.name || "…"}</span>
         ) : (
           <span className="fk-rchip">
-            {target?.title || jumpOptions.find((o) => o.value === rule.targetId && !byId(o.value))?.group || "…"}
+            {target?.title ||
+              (rule.action === "jump" && rule.endingId
+                ? `the end · ${jumpOptions.find((o) => o.value === jumpValue)?.label ?? "an ending"}`
+                : jumpOptions.find((o) => o.value === rule.targetId && !byId(o.value))?.group) ||
+              "…"}
           </span>
         )}
         {rule.action === "hide-options" && (

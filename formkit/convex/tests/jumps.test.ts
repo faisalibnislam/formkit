@@ -2,6 +2,7 @@ import { expect, test } from "vitest";
 import { api } from "../_generated/api";
 import { applyLogic, type Rule } from "../model/logicEval";
 import { MAX_ROUNDS, homePage, nextPage } from "../model/jumps";
+import { validateAnswers } from "../model/validate";
 import { backend, form, person } from "./fixtures.helpers";
 
 // Four pages: a page break opens each one after the first.
@@ -77,4 +78,30 @@ test("only a jump may land on a page break", async () => {
   const other = await form(t, owner.userId, { status: "draft" });
   const elsewhere = await owner.as.mutation(api.blocks.add, { formId: other, kind: "field", type: "short-text", title: "Elsewhere" });
   await expect(owner.as.mutation(api.logic.add, { formId, action: "jump", targetId: elsewhere, conditions: cond })).rejects.toThrow(/isn't on this form/);
+});
+
+test("a jump to an ending finishes from the page of its question, and later questions are not required", async () => {
+  const done: Rule = { _id: "r9", join: "and", conditions: [{ blockId: "plan", operator: "is", value: "Just looking" }], action: "jump", endingId: "default" };
+  const jumps = matching([done], { plan: "Just looking" });
+  expect(nextPage(pages, 0, jumps)).toEqual({ to: pages.length, finish: "default" });
+
+  const t = backend();
+  const owner = await person(t, "owner@example.com");
+  const formId = await form(t, owner.userId, { status: "draft" });
+  const plan = await owner.as.mutation(api.blocks.add, { formId, kind: "field", type: "short-text", title: "Plan", required: true });
+  await owner.as.mutation(api.blocks.add, { formId, kind: "pagebreak" });
+  const seats = await owner.as.mutation(api.blocks.add, { formId, kind: "field", type: "number", title: "Seats", required: true });
+  const ruleId = await owner.as.mutation(api.logic.add, { formId, action: "jump", endingId: "default", conditions: [{ blockId: plan, operator: "is", value: "Just looking" }] });
+  // A jump to the usual thank-you screen is on every plan; switching a page target back clears the ending.
+  await owner.as.mutation(api.logic.update, { ruleId, patch: { targetId: seats, endingId: null } });
+  await owner.as.mutation(api.logic.update, { ruleId, patch: { targetId: null, endingId: "default" } });
+
+  const problems = await t.run(async (ctx) => {
+    const blocks = await ctx.db.query("blocks").withIndex("by_form_order", (q) => q.eq("formId", formId)).collect();
+    const rules = await ctx.db.query("logicRules").withIndex("by_form", (q) => q.eq("formId", formId)).collect();
+    expect(rules[0]).toMatchObject({ endingId: "default" });
+    expect(rules[0]!.targetId).toBeUndefined();
+    return validateAnswers({ endings: [] }, blocks, rules, [{ blockId: plan, value: "Just looking" }], { partial: false });
+  });
+  expect(problems).toEqual([]);
 });

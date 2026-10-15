@@ -8,7 +8,7 @@ import type { Doc } from "../../../../convex/_generated/dataModel";
 import { Button, Input, PillTabs, Select } from "@/components/ui";
 import { applyLogic, conditionsOf, type Answer, type Rule as EvalRule } from "../../../../convex/model/logicEval";
 import { computeAll } from "../../../../convex/model/calc";
-import { MAX_ROUNDS, nextPage } from "../../../../convex/model/jumps";
+import { MAX_ROUNDS, endingOf, nextPage } from "../../../../convex/model/jumps";
 import { MULTI, VALUELESS, opLabel, valueControl } from "./operators";
 
 /**
@@ -80,6 +80,12 @@ export function logicChecks(form: Form, rules: Rule[]): Check[] {
       }
     }
 
+    if (r.action === "jump" && !r.targetId && r.endingId) {
+      if (r.endingId !== "default" && !endings.some((e) => e.id === r.endingId)) {
+        out.push({ level: "warn", rule: r._id, text: `${name} finishes on an ending that doesn’t exist.` });
+      }
+      continue;
+    }
     if (r.action === "ending") {
       if (!r.endingId || !endings.some((e) => e.id === r.endingId)) {
         out.push({ level: "warn", rule: r._id, text: `${name} ends on an ending that doesn’t exist.` });
@@ -244,6 +250,14 @@ function FlowMap({ form, rules }: { form: Form; rules: Rule[] }) {
               })}
             </ul>
             {jumpsHere.map((r) => {
+              if (!r.targetId && r.endingId) {
+                const e = endings.find((x) => x.id === r.endingId);
+                return (
+                  <div key={r._id} className="fk-lmap-jump">
+                    ⤓ If <Words rule={r} byId={byId} />, finish now · {e ? e.name : "Thank-you screen"}
+                  </div>
+                );
+              }
               const to = r.targetId ? pageOf.get(r.targetId) : undefined;
               const back = to !== undefined && to <= i;
               return (
@@ -340,13 +354,16 @@ function Tester({ form, rules }: { form: Form; rules: Rule[] }) {
   // The answers here never change on the way round, so a jump back runs its full rounds.
   const visits = new Map<number, number>();
   const rounds: Record<string, number> = {};
+  let finishedOn: string | null | undefined;
   for (let at = 0, guard = 0; at < livePages.length && guard < 200; guard++) {
     visits.set(at, (visits.get(at) ?? 0) + 1);
     const move = nextPage(livePages, at, out.jumps, rounds);
     if (move.back) rounds[move.back] = (rounds[move.back] ?? 0) + 1;
+    if (move.finish !== undefined) finishedOn = endingOf(move.finish) ?? null;
     at = move.to;
   }
-  const ending = out.ending ? form.endings?.find((e) => e.id === out.ending) : undefined;
+  const endingId = finishedOn !== undefined ? finishedOn : out.ending;
+  const ending = endingId ? form.endings?.find((e) => e.id === endingId) : undefined;
   const set = (id: string, a: Answer | undefined) =>
     setAnswers((prev) => {
       const next = { ...prev };

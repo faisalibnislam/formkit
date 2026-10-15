@@ -9,6 +9,10 @@ import { conditionsOf, type Rule } from "./logicEval";
  * person is sent round again from there and can change that answer. If they
  * don't, the same jump would send them round for ever, so each jump back is
  * taken at most MAX_ROUNDS times; after that the form simply moves on.
+ *
+ * A jump can also go to an ending (`endingId`, with no target): the form is
+ * sent there and then, once the page holding its last question is done.
+ * "default" is the usual thank-you screen.
  */
 
 export const MAX_ROUNDS = 5;
@@ -33,7 +37,12 @@ export type Move = {
   to: number;
   /** Set when a jump back was taken, so its rounds can be counted. */
   back?: string;
+  /** Set when a jump goes to an ending: send the form now, ending there. */
+  finish?: string;
 };
+
+/** The ending a "finish now" jump names, or undefined for the usual thank-you screen. */
+export const endingOf = (finish: string) => (finish === "default" ? undefined : finish);
 
 /**
  * Where "Next" goes from page `at`, given the jump rules that match now (in
@@ -42,6 +51,10 @@ export type Move = {
 export function nextPage(pages: JumpPage[], at: number, matching: Rule[], rounds: Record<string, number> = {}): Move {
   for (const rule of matching) {
     if (rule.action !== "jump" || rule.enabled === false) continue;
+    if (!rule.targetId && rule.endingId) {
+      if (at >= homePage(pages, rule)) return { to: pages.length, finish: rule.endingId };
+      continue;
+    }
     const to = pageHolding(pages, rule.targetId);
     if (to < 0 || to === at) continue;
     if (to > at) return { to };

@@ -44,9 +44,11 @@ const action = v.union(
 async function checkPlan(
   ctx: Parameters<typeof requireFeature>[0],
   ownerId: Parameters<typeof requireFeature>[1],
-  r: { action?: string; conditions?: { source?: string }[]; groups?: { conditions: { source?: string }[] }[] },
+  r: { action?: string; conditions?: { source?: string }[]; groups?: { conditions: { source?: string }[] }[]; jumpEnding?: string | null },
 ) {
   if (r.action === "hide-options" || r.action === "ending") await requireFeature(ctx, ownerId, "logic.advanced");
+  // Jumping straight to the usual thank-you screen is on every plan; to one of several endings is Pro.
+  if (r.jumpEnding && r.jumpEnding !== "default") await requireFeature(ctx, ownerId, "logic.advanced");
   const all = [...(r.conditions ?? []), ...(r.groups ?? []).flatMap((g) => g.conditions)];
   if (all.some((c) => c.source === "ai")) await requireFeature(ctx, ownerId, "logic.ai");
 }
@@ -100,7 +102,7 @@ export const add = mutation({
   returns: v.id("logicRules"),
   handler: async (ctx, { formId, name, join, action, targetId, conditions, groups, options, endingId }) => {
     const form = await formFor(ctx, formId);
-    await checkPlan(ctx, form.ownerId, { action, conditions, groups });
+    await checkPlan(ctx, form.ownerId, { action, conditions, groups, jumpEnding: action === "jump" ? endingId : undefined });
     await checkTarget(ctx, formId, action, targetId);
     await remember(ctx, formId, "Add a rule");
     const existing = await ctx.db
@@ -137,9 +139,10 @@ export const update = mutation({
       /** null clears the groups, back to one list of conditions. */
       groups: v.optional(v.union(v.array(group), v.null())),
       action: v.optional(action),
-      targetId: v.optional(v.id("blocks")),
+      /** null clears it: a jump to an ending has no question. */
+      targetId: v.optional(v.union(v.id("blocks"), v.null())),
       options: v.optional(v.array(v.string())),
-      endingId: v.optional(v.string()),
+      endingId: v.optional(v.union(v.string(), v.null())),
     }),
   },
   returns: v.null(),
@@ -151,12 +154,16 @@ export const update = mutation({
       action: patch.action,
       conditions: patch.conditions,
       groups: patch.groups ?? undefined,
+      jumpEnding: (patch.action ?? rule.action) === "jump" ? patch.endingId : undefined,
     });
-    if (patch.targetId || patch.action) await checkTarget(ctx, rule.formId, patch.action ?? rule.action, patch.targetId ?? rule.targetId);
+    const target = patch.targetId === null ? undefined : (patch.targetId ?? rule.targetId);
+    if (patch.targetId || patch.action) await checkTarget(ctx, rule.formId, patch.action ?? rule.action, target);
     await remember(ctx, rule.formId, `Change “${rule.name}”`, { key: `rule:${ruleId}:${Object.keys(patch).sort().join(",")}` });
-    const { groups, conditions, ...rest } = patch;
+    const { groups, conditions, targetId, endingId, ...rest } = patch;
     await ctx.db.patch(ruleId, {
       ...rest,
+      ...(targetId !== undefined ? { targetId: targetId ?? undefined } : {}),
+      ...(endingId !== undefined ? { endingId: endingId ?? undefined } : {}),
       ...(conditions ? { conditions: withIds(conditions) } : {}),
       ...(groups === null ? { groups: undefined } : groups ? { groups: groups.map((g) => ({ ...g, conditions: withIds(g.conditions) })) } : {}),
     });

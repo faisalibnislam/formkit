@@ -21,7 +21,7 @@ import { computeAll, pipe, pipeValues } from "../../../convex/model/calc";
 import { LiveReply } from "./LiveReply";
 import { QuizResult } from "./QuizResult";
 import { applyLogic, conditionsOf, type Rule as LogicRule } from "../../../convex/model/logicEval";
-import { nextPage as jumpNext, type JumpPage } from "../../../convex/model/jumps";
+import { endingOf, nextPage as jumpNext, type JumpPage } from "../../../convex/model/jumps";
 import { ruleProblem } from "../../../convex/model/validate";
 import { videoEmbed } from "../../../convex/model/video";
 import { LogoLockup } from "./LogoLockup";
@@ -701,6 +701,7 @@ function FormRunnerInner({
     if (await askFollowUp(current?.fields ?? [])) return;
     const now = await think(current?.fields ?? []);
     const move = nextMove(pagesFor(now.outcome.hidden), page, now.outcome.jumps);
+    if (move.finish !== undefined) return void send(human, { answers: now.answers, ending: endingOf(move.finish) ?? null });
     if (!lastPage || move.back) {
       setTrail((t) => [...t, page]);
       setPage(move.to);
@@ -722,6 +723,7 @@ function FormRunnerInner({
     if (await askFollowUp([cur])) return;
     const now = await think([cur]);
     const move = nextMove(stepsOf(pagesFor(now.outcome.hidden)), step, now.outcome.jumps);
+    if (move.finish !== undefined) return void send(human, { answers: now.answers, ending: endingOf(move.finish) ?? null });
     if (!lastStep || move.back) {
       setTrail((t) => [...t, step]);
       setStep(move.to);

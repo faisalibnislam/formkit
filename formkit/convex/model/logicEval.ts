@@ -221,6 +221,11 @@ export function applyLogic(rules: Rule[], ctx: LogicContext): LogicOutcome {
       if (out.ending === null && rule.endingId && ruleMatches(rule, ctx)) out.ending = rule.endingId;
       continue;
     }
+    // A jump to an ending has no target question.
+    if (rule.action === "jump" && !rule.targetId && rule.endingId) {
+      if (ruleMatches(rule, ctx)) out.jumps.push(rule);
+      continue;
+    }
     if (!rule.targetId) continue;
     const hit = ruleMatches(rule, ctx);
     if (rule.action === "show" && !hit) out.hidden.add(rule.targetId);
