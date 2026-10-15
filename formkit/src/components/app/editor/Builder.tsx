@@ -28,11 +28,12 @@ import { FieldIcon } from "./FieldIcon";
 import { FieldPicker } from "./FieldPicker";
 import { ContentSettings, FieldSettings, NothingSelected, PageSettings } from "./Inspector";
 import { QuestionPreview } from "./QuestionPreview";
-import { CONTENT_TYPES, FIELD_GROUPS, PAID_TYPES, defaultTitle, fieldType, matchFieldTypes } from "./fieldTypes";
+import { CONTENT_TYPES, DEFAULT_ROWS, FIELD_GROUPS, PAID_TYPES, defaultTitle, fieldType, matchFieldTypes } from "./fieldTypes";
 import { ProChip } from "@/components/plan/UpgradeSheet";
 import { openUpgrade, usePlan } from "@/components/plan/usePlan";
 import { openComments, setCurrentBlock, usePresence } from "./collab";
 import { tracked } from "./saveStatus";
+import { openPreview } from "./previewBus";
 import { PageSkeleton } from "../Skeleton";
 
 /**
@@ -108,6 +109,18 @@ function scrollToBlock(id: string) {
   });
 }
 
+const MOD = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘" : "Ctrl";
+const SHORTCUTS: [string, string][] = [
+  ["↑ ↓", "Select the question above or below"],
+  ["Alt+↑ Alt+↓", "Move it up or down"],
+  [`${MOD}+D`, "Duplicate it"],
+  ["Delete", "Delete it (Undo brings it back)"],
+  [`${MOD}+Enter`, "Add a question below it"],
+  [`${MOD}+Shift+P`, "Preview the form"],
+  ["Esc", "Select nothing"],
+  ["?", "Show these"],
+];
+
 export function Builder({ formId }: { formId: Id<"forms"> }) {
   const toast = useToast();
   const form = useSeededQuery(api.forms.get, { formId });
@@ -133,6 +146,7 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
 
   const [libTerm, setLibTerm] = useState("");
   const [selected, setSelected] = useState<Id<"blocks"> | null>(null);
+  const [shortcuts, setShortcuts] = useState(false);
   /** Where the field picker will insert, when it is open. */
   const [pickerAt, setPickerAt] = useState<number | null>(null);
   const [pageDel, setPageDel] = useState<{ id: Id<"blocks">; title: string; count: number } | null>(
@@ -266,6 +280,7 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
             ? { scaleMin: 1, scaleMax: 5 }
             : {}),
         ...(meta.preview === "rating" ? { scaleMax: 5 } : {}),
+        ...(type === "matrix" ? { rows: DEFAULT_ROWS } : {}),
         ...(type === "hidden" ? { key: "source" } : {}),
       }),
     );
@@ -385,6 +400,54 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
     if (copy) setSelected(copy);
     toast("Duplicated");
   }
+
+  // Keyboard shortcuts, while nothing is being typed in and no dialog is open.
+  const keys = useRef({ add, duplicate, deleteQuestion, nudge, blocks, selected });
+  useEffect(() => {
+    keys.current = { add, duplicate, deleteQuestion, nudge, blocks, selected };
+  });
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target instanceof HTMLElement ? e.target : null;
+      if (e.defaultPrevented || el?.closest("input, textarea, select, [contenteditable='true'], [role='dialog'], .ui-modal")) return;
+      const k = keys.current;
+      const mod = e.metaKey || e.ctrlKey;
+      const at = k.blocks.findIndex((b) => b._id === k.selected);
+      const block = at >= 0 ? k.blocks[at]! : null;
+      const question = block && block.kind !== "pagebreak" ? block : null;
+      if (e.key === "?" && !mod) {
+        e.preventDefault();
+        setShortcuts(true);
+      } else if (mod && e.shiftKey && e.key.toLowerCase() === "p") {
+        e.preventDefault();
+        openPreview({});
+      } else if (mod && e.key.toLowerCase() === "d" && question) {
+        e.preventDefault();
+        void k.duplicate(question._id);
+      } else if (mod && e.key === "Enter") {
+        e.preventDefault();
+        void k.add("short-text");
+      } else if ((e.key === "Delete" || e.key === "Backspace") && !mod && question) {
+        e.preventDefault();
+        k.deleteQuestion(question._id);
+      } else if (e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown") && block) {
+        e.preventDefault();
+        void k.nudge(block._id, e.key === "ArrowUp" ? -1 : 1);
+      } else if (!mod && !e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown") && k.blocks.length) {
+        e.preventDefault();
+        const next = at < 0 ? (e.key === "ArrowUp" ? k.blocks.length - 1 : 0) : at + (e.key === "ArrowUp" ? -1 : 1);
+        const target = k.blocks[Math.max(0, Math.min(k.blocks.length - 1, next))];
+        if (target) {
+          setSelected(target._id);
+          document.querySelector(`[data-block-id="${target._id}"]`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        }
+      } else if (e.key === "Escape" && k.selected) {
+        setSelected(null);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   if (!form) return <PageSkeleton kind="editor" label="Opening the form" />;
 
@@ -602,6 +665,7 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
               <div
                 id={`blk-${b._id}`}
                 className="fk-pagebreak"
+                data-block-id={b._id}
                 data-selected={b._id === selected ? "true" : undefined}
                 data-dragging={b._id === dragging ? "true" : undefined}
                 draggable
@@ -667,6 +731,7 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
               <article
                 id={`blk-${b._id}`}
                 className="fk-qcard"
+                data-block-id={b._id}
                 data-selected={b._id === selected ? "true" : undefined}
                 data-dragging={b._id === dragging ? "true" : undefined}
                 style={
@@ -756,6 +821,7 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
                     <QuestionPreview
                       type={b.type ?? null}
                       options={b.options}
+                      rows={b.rows}
                       scaleMin={b.scaleMin}
                       scaleMax={b.scaleMax}
                       maxSeconds={b.maxSeconds}
@@ -1026,6 +1092,29 @@ export function Builder({ formId }: { formId: Id<"forms"> }) {
 
       {pickerAt !== null && (
         <FieldPicker onPick={(type) => add(type, pickerAt)} onClose={() => setPickerAt(null)} />
+      )}
+
+      {shortcuts && (
+        <Modal
+          title="Keyboard shortcuts"
+          description="In the builder, while you are not typing in a field."
+          onClose={() => setShortcuts(false)}
+          width={460}
+          footer={<Button onClick={() => setShortcuts(false)}>Done</Button>}
+        >
+          <dl className="fk-shortcuts">
+            {SHORTCUTS.map(([keys, what]) => (
+              <Fragment key={what}>
+                <dt>
+                  {keys.split(" ").map((k) => (
+                    <kbd key={k}>{k}</kbd>
+                  ))}
+                </dt>
+                <dd>{what}</dd>
+              </Fragment>
+            ))}
+          </dl>
+        </Modal>
       )}
 
       {pageDel && (

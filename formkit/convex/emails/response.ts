@@ -1,4 +1,4 @@
-import { answers, button, C, EMAIL_SITE, facts, list, paragraph, quote, renderShell, safeColor, type Brand } from "./kit";
+import { answers, button, C, EMAIL_SITE, facts, linkLine, list, paragraph, quote, renderShell, safeColor, type Brand } from "./kit";
 
 /**
  * Every email apart from the sign-in codes: a response's notification and
@@ -60,12 +60,18 @@ export function renderConfirmation({
   rows,
   brandName,
   brand,
+  receipt,
+  edit,
 }: {
   subject: string;
   message: string;
   rows: { question: string; value: string }[];
   brandName: string;
   brand?: Partial<Brand>;
+  /** Their own copy, to keep, print or save as a PDF. */
+  receipt?: string | null;
+  /** Where to change their answers, when the form allows it. */
+  edit?: string | null;
 }) {
   const b: Brand = {
     name: brand?.name ?? brandName,
@@ -78,9 +84,13 @@ export function renderConfirmation({
     eyebrow: "Received",
     heading: subject,
     lede: message,
-    body: rows.length
-      ? `<div style="font-size:13px;font-weight:500;color:${C.muted};margin:4px 0 10px;">A copy of what you sent</div>${answers(rows)}`
-      : paragraph("Nothing else to do. This is just to say it arrived.", { muted: true }),
+    body: `${
+      rows.length
+        ? `<div style="font-size:13px;font-weight:500;color:${C.muted};margin:4px 0 10px;">A copy of what you sent</div>${answers(rows)}`
+        : paragraph("Nothing else to do. This is just to say it arrived.", { muted: true })
+    }${receipt ? button("Keep a copy", receipt, b.color ?? undefined) : ""}${
+      edit ? linkLine("Need to change something?", "Change your answers", edit, { top: 16 }) : ""
+    }`,
     reason: `Sent by ${b.name}. Reply to this email to reach them.`,
   });
 }
@@ -241,17 +251,32 @@ export function renderTeamInvite({
 }
 
 /** A respondent's own link back to a form they started, sent when they ask for it. */
-export function renderResumeLink({ title, link, brand }: { title: string; link: string; brand: Partial<Brand> & { name: string } }) {
+export function renderResumeLink({
+  title,
+  link,
+  brand,
+  reminder,
+}: {
+  title: string;
+  link: string;
+  brand: Partial<Brand> & { name: string };
+  /** The one reminder a form can send to someone who stopped partway. */
+  reminder?: boolean;
+}) {
   const b: Brand = { name: brand.name, logoUrl: brand.logoUrl ?? null, color: safeColor(brand.color), badge: brand.badge !== false };
   return renderShell({
     brand: b,
-    eyebrow: "Your answers are saved",
-    heading: `Finish ${title} when you are ready`,
-    lede: "Everything you answered so far is kept. Open the link to carry on where you left off.",
+    eyebrow: reminder ? "A reminder" : "Your answers are saved",
+    heading: reminder ? `You started ${title}` : `Finish ${title} when you are ready`,
+    lede: reminder
+      ? "You did not get to the end. Everything you answered is kept, so it only takes the rest."
+      : "Everything you answered so far is kept. Open the link to carry on where you left off.",
     body: `${button("Carry on", link, b.color ?? undefined)}${paragraph(
       "Anyone with this link can see and change your answers, so keep it to yourself.",
       { muted: true, top: 22 },
     )}`,
-    reason: `Sent because you asked ${b.name} to save your place.`,
+    reason: reminder
+      ? `Sent once by ${b.name}, because you started this form with this address. There will not be another.`
+      : `Sent because you asked ${b.name} to save your place.`,
   });
 }

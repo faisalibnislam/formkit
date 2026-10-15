@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
-import { Check, Copy, CreditCard, Hash, Link2, Send, Sheet, Trash2, Unplug, Webhook } from "lucide-react";
+import { Check, Copy, CreditCard, Hash, KeyRound, Link2, MessageSquare, RotateCcw, Send, Sheet, Trash2, Unplug, UsersRound, Webhook } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import { Badge, Button, Field, Input, Modal, Select, Switch } from "@/components/ui";
@@ -12,7 +12,15 @@ import { openUpgrade, upgradeOnPlanError, useGate } from "@/components/plan/useP
 import { errorText } from "../settings/bits";
 import { fullTime } from "../bits";
 
-type Kind = "webhook" | "slack" | "sheets";
+type Kind = "webhook" | "slack" | "discord" | "teams" | "sheets";
+type AppKind = "gsheets" | "notion" | "airtable" | "hubspot";
+const APP_KINDS: AppKind[] = ["gsheets", "notion", "airtable", "hubspot"];
+const APP_HINT: Record<AppKind, string> = {
+  gsheets: "A spreadsheet Formkit makes in your Google Drive, with a row for each response, kept up to date.",
+  notion: "A database in a Notion page you pick, with a page for each response.",
+  airtable: "A table in an Airtable base you pick, with a record for each response.",
+  hubspot: "Each person who leaves an email becomes a HubSpot contact, or updates theirs.",
+};
 
 const KINDS: { kind: Kind; label: string; icon: React.ReactNode; hint: string; feature: "connect.webhooks" | "connect.slack" | "connect.sheets" }[] = [
   {
@@ -30,10 +38,24 @@ const KINDS: { kind: Kind; label: string; icon: React.ReactNode; hint: string; f
     feature: "connect.slack",
   },
   {
+    kind: "discord",
+    label: "Discord",
+    icon: <MessageSquare size={17} strokeWidth={1.8} aria-hidden />,
+    hint: "A message in a Discord channel for each new response.",
+    feature: "connect.slack",
+  },
+  {
+    kind: "teams",
+    label: "Microsoft Teams",
+    icon: <UsersRound size={17} strokeWidth={1.8} aria-hidden />,
+    hint: "A card in a Teams channel for each new response.",
+    feature: "connect.slack",
+  },
+  {
     kind: "sheets",
-    label: "Google Sheets",
+    label: "Google Sheets, by link",
     icon: <Sheet size={17} strokeWidth={1.8} aria-hidden />,
-    hint: "A sheet that keeps itself up to date from a private link.",
+    hint: "A sheet you make reads your responses from a private link. Nothing to sign in to.",
     feature: "connect.sheets",
   },
 ];
@@ -63,6 +85,41 @@ function CopyLine({ text }: { text: string }) {
   );
 }
 
+const EVENT_LABEL: Record<string, string> = {
+  "response.created": "New",
+  "response.updated": "Changed",
+  "response.paid": "Paid",
+  "response.deleted": "Deleted",
+};
+
+/** What each kind's add dialog says. */
+const ADDING: Record<Exclude<Kind, "sheets">, { title: string; description: string; placeholder: string; name: string }> = {
+  webhook: {
+    title: "Add a webhook",
+    description: "Paste the address that should receive each response. For Zapier, use a “Catch Hook” trigger; for Make, a “Custom webhook”.",
+    placeholder: "https://hooks.zapier.com/…",
+    name: "Zapier: add to CRM",
+  },
+  slack: {
+    title: "Post to Slack",
+    description: "In Slack, add the Incoming Webhooks app to the channel, then paste the address it gives you.",
+    placeholder: "https://hooks.slack.com/services/…",
+    name: "#new-leads",
+  },
+  discord: {
+    title: "Post to Discord",
+    description: "In the channel's settings, open Integrations → Webhooks → New Webhook, then copy its address here.",
+    placeholder: "https://discord.com/api/webhooks/…",
+    name: "#signups",
+  },
+  teams: {
+    title: "Post to Microsoft Teams",
+    description: "In the channel, open Workflows and pick “Post to a channel when a webhook request is received”. Paste the address it gives you.",
+    placeholder: "https://….logic.azure.com/workflows/…",
+    name: "Sales channel",
+  },
+};
+
 const SCRIPT = (feed: string) => `function refreshFormkit() {
   var res = UrlFetchApp.fetch("${feed}.json");
   var data = JSON.parse(res.getContentText());
@@ -86,11 +143,14 @@ export function ConnectionsSection({
   const setEnabled = useMutation(api.connections.setEnabled);
   const remove = useMutation(api.connections.remove);
   const rotate = useMutation(api.connections.rotateToken);
+  const rotateSecret = useMutation(api.connections.rotateSecret);
+  const setEvents = useMutation(api.connections.setEvents);
+  const replay = useMutation(api.connections.replay);
   const test = useAction(api.connections.test);
   const hooks = useGate("connect.webhooks", features);
   const slack = useGate("connect.slack", features);
   const sheets = useGate("connect.sheets", features);
-  const gates = { webhook: hooks, slack, sheets };
+  const gates = { webhook: hooks, slack, discord: slack, teams: slack, sheets };
 
   const [adding, setAdding] = useState<Kind | null>(null);
   const [url, setUrl] = useState("");
@@ -98,6 +158,41 @@ export function ConnectionsSection({
   const [busy, setBusy] = useState<string | null>(null);
   const [secret, setSecret] = useState<string | null>(null);
   const [script, setScript] = useState<string | null>(null);
+  // Apps over OAuth: which Formkit is set up for, and the person's accounts.
+  const apps = useQuery(api.integrations.available, {});
+  const begin = useMutation(api.integrations.begin);
+  const setupApp = useAction(api.integrations.setup);
+  const loadPlaces = useAction(api.integrations.places);
+  const [app, setApp] = useState<{ kind: AppKind; provider: string; label: string; accountId: string; places: { id: string; name: string }[] | null; place: string } | null>(null);
+  const appsGate = useGate("connect.apps", features);
+
+  async function startApp(kind: AppKind) {
+    const p = apps?.providers.find((x) => x.kind === kind);
+    if (!p) return;
+    const gate = kind === "gsheets" ? sheets : appsGate;
+    if (gate.locked) {
+      openUpgrade({ feature: kind === "gsheets" ? "connect.sheets" : "connect.apps" });
+      return;
+    }
+    const account = apps!.accounts.find((a) => a.provider === p.id);
+    if (!account) {
+      try {
+        window.location.assign(await begin({ provider: p.id, returnTo: `${window.location.pathname}${window.location.search}` }));
+      } catch (e) {
+        toast(errorText(e, "That could not start."));
+      }
+      return;
+    }
+    setApp({ kind, provider: p.id, label: p.label, accountId: account.id, places: null, place: "" });
+    if (kind === "notion" || kind === "airtable") {
+      try {
+        const places = await loadPlaces({ accountId: account.id as never });
+        setApp((cur) => (cur && cur.accountId === account.id ? { ...cur, places, place: places[0]?.id ?? "" } : cur));
+      } catch (e) {
+        toast(errorText(e, "That account did not answer."));
+      }
+    }
+  }
 
   const start = (kind: Kind) => {
     if (gates[kind].locked) {
@@ -149,8 +244,34 @@ export function ConnectionsSection({
         ))}
       </div>
 
+      {(apps?.providers.length ?? 0) > 0 && (
+        <div className="fk-connect-kinds" style={{ marginTop: 10 }}>
+          {APP_KINDS.filter((k) => apps!.providers.some((p) => p.kind === k)).map((k) => {
+            const p = apps!.providers.find((x) => x.kind === k)!;
+            const locked = (k === "gsheets" ? sheets : appsGate).locked;
+            const account = apps!.accounts.find((a) => a.provider === p.id);
+            return (
+              <button key={k} type="button" className="fk-connect-kind" onClick={() => void startApp(k)}>
+                <span className="fk-connect-icon">{k === "gsheets" ? <Sheet size={17} strokeWidth={1.8} aria-hidden /> : <Link2 size={17} strokeWidth={1.8} aria-hidden />}</span>
+                <span style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 500 }}>
+                    {p.label}
+                    {locked && <ProChip />}
+                  </span>
+                  <span className="fk-proprow-hint">
+                    {APP_HINT[k]} {account ? `Connected as ${account.label}.` : "You sign in to it once."}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {(rows ?? []).map((c) => {
-        const meta = KINDS.find((k) => k.kind === c.kind)!;
+        const meta =
+          KINDS.find((k) => k.kind === c.kind) ??
+          ({ kind: c.kind, label: apps?.providers.find((p) => p.kind === c.kind)?.label ?? "App", icon: <Link2 size={17} strokeWidth={1.8} aria-hidden />, hint: "", feature: "connect.sheets" } as (typeof KINDS)[number]);
         return (
           <div key={c._id} className="fk-domainrow">
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -171,7 +292,7 @@ export function ConnectionsSection({
                 label={c.enabled ? "On" : "Off"}
                 onChange={(enabled) => void setEnabled({ connectionId: c._id, enabled })}
               />
-              {c.kind !== "sheets" && (
+              {c.kind !== "sheets" && !c.place && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -207,6 +328,59 @@ export function ConnectionsSection({
             </div>
 
             {c.url && <p className="fk-proprow-hint fk-connect-url">{c.url}</p>}
+            {c.place && (
+              <p className="fk-proprow-hint" style={{ margin: "6px 0 0" }}>
+                Into{" "}
+                {c.place.url ? (
+                  <a href={c.place.url} target="_blank" rel="noreferrer" className="fk-linkbtn">
+                    {c.place.name}
+                  </a>
+                ) : (
+                  c.place.name
+                )}
+                . Changed responses update what they became there.
+              </p>
+            )}
+
+            {c.kind !== "sheets" && !c.place && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+                <span className="fk-proprow-hint" style={{ margin: 0 }}>
+                  Sends:
+                </span>
+                {Object.keys(EVENT_LABEL)
+                  .filter((e) => c.kind === "webhook" || e !== "response.deleted")
+                  .map((e) => {
+                    const on = c.events.includes(e);
+                    return (
+                      <button
+                        key={e}
+                        type="button"
+                        className="fk-filter"
+                        aria-pressed={on}
+                        onClick={async () => {
+                          try {
+                            await setEvents({ connectionId: c._id, events: on ? c.events.filter((x) => x !== e) : [...c.events, e] });
+                          } catch (err) {
+                            toast(errorText(err, "That did not change."));
+                          }
+                        }}
+                      >
+                        {EVENT_LABEL[e]}
+                      </button>
+                    );
+                  })}
+                {c.kind === "webhook" && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    iconLeft={<KeyRound size={15} strokeWidth={1.8} aria-hidden />}
+                    onClick={async () => setSecret(await rotateSecret({ connectionId: c._id }))}
+                  >
+                    New secret
+                  </Button>
+                )}
+              </div>
+            )}
 
             {c.feed && (
               <div className="fk-connect-sheet">
@@ -244,8 +418,26 @@ export function ConnectionsSection({
                       {d.status || "-"}
                     </span>
                     <span>{fullTime(d.at)}</span>
+                    {d.event && <span className="fk-proprow-hint">{EVENT_LABEL[d.event] ?? d.event}</span>}
                     {d.attempt > 1 && <span className="fk-proprow-hint">try {d.attempt}</span>}
                     {d.detail && <span className="fk-proprow-hint fk-connect-detail">{d.detail}</span>}
+                    {d.canReplay && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        iconLeft={<RotateCcw size={14} strokeWidth={1.8} aria-hidden />}
+                        onClick={async () => {
+                          try {
+                            await replay({ deliveryId: d.id });
+                            toast("Sending it again");
+                          } catch (err) {
+                            toast(errorText(err, "That could not be sent again."));
+                          }
+                        }}
+                      >
+                        Send again
+                      </Button>
+                    )}
                   </div>
                 ))}
               </details>
@@ -264,12 +456,8 @@ export function ConnectionsSection({
 
       {adding && (
         <Modal
-          title={adding === "slack" ? "Post to Slack" : "Add a webhook"}
-          description={
-            adding === "slack"
-              ? "In Slack, add the Incoming Webhooks app to the channel, then paste the address it gives you."
-              : "Paste the address that should receive each response. For Zapier, use a “Catch Hook” trigger; for Make, a “Custom webhook”."
-          }
+          title={ADDING[adding as Exclude<Kind, "sheets">].title}
+          description={ADDING[adding as Exclude<Kind, "sheets">].description}
           onClose={() => setAdding(null)}
           width={520}
           footer={
@@ -288,7 +476,7 @@ export function ConnectionsSection({
               <Input
                 value={url}
                 autoFocus
-                placeholder={adding === "slack" ? "https://hooks.slack.com/services/…" : "https://hooks.zapier.com/…"}
+                placeholder={ADDING[adding as Exclude<Kind, "sheets">].placeholder}
                 onChange={(e) => setUrl(e.target.value)}
                 icon={<Link2 size={17} strokeWidth={1.8} aria-hidden />}
               />
@@ -296,7 +484,7 @@ export function ConnectionsSection({
             <Field label="Name" help="Only you see this.">
               <Input
                 value={label}
-                placeholder={adding === "slack" ? "#new-leads" : "Zapier: add to CRM"}
+                placeholder={ADDING[adding as Exclude<Kind, "sheets">].name}
                 onChange={(e) => setLabel(e.target.value)}
               />
             </Field>
@@ -304,10 +492,75 @@ export function ConnectionsSection({
         </Modal>
       )}
 
+      {app && (
+        <Modal
+          title={`Send responses to ${app.label}`}
+          description={APP_HINT[app.kind]}
+          onClose={() => setApp(null)}
+          width={520}
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setApp(null)}>
+                Cancel
+              </Button>
+              <Button
+                disabled={busy === "app" || ((app.kind === "notion" || app.kind === "airtable") && !app.place)}
+                onClick={async () => {
+                  setBusy("app");
+                  try {
+                    const made = await setupApp({ formId, accountId: app.accountId as never, place: app.place || undefined });
+                    setApp(null);
+                    toast(`Connected to ${app.label}`, { detail: `New responses go into ${made.name}.` });
+                  } catch (e) {
+                    if (!upgradeOnPlanError(e)) toast(errorText(e, "That did not connect."));
+                  } finally {
+                    setBusy(null);
+                  }
+                }}
+              >
+                {busy === "app" ? "Setting it up…" : app.kind === "gsheets" ? "Make the spreadsheet" : app.kind === "hubspot" ? "Connect" : "Make it"}
+              </Button>
+            </>
+          }
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <p className="fk-proprow-hint" style={{ margin: 0 }}>
+              Signed in as {apps?.accounts.find((a) => a.id === app.accountId)?.label}.{" "}
+              <button
+                type="button"
+                className="fk-linkbtn"
+                onClick={async () => window.location.assign(await begin({ provider: app.provider, returnTo: `${window.location.pathname}${window.location.search}` }))}
+              >
+                Use another account
+              </button>
+            </p>
+            {(app.kind === "notion" || app.kind === "airtable") && (
+              <Field
+                label={app.kind === "notion" ? "The page to make the database in" : "The base to make the table in"}
+                help={app.kind === "notion" ? "Only pages you shared with Formkit when you connected are listed." : undefined}
+              >
+                {app.places === null ? (
+                  <p className="fk-proprow-hint" style={{ margin: 0 }}>Looking…</p>
+                ) : app.places.length ? (
+                  <Select
+                    ariaLabel="Where"
+                    value={app.place}
+                    options={app.places.map((x) => ({ value: x.id, label: x.name }))}
+                    onChange={(place) => setApp({ ...app, place })}
+                  />
+                ) : (
+                  <p className="fk-proprow-hint" style={{ margin: 0 }}>Nothing is shared with Formkit yet. Use another account, and pick a page or base to share.</p>
+                )}
+              </Field>
+            )}
+          </div>
+        </Modal>
+      )}
+
       {secret && (
         <Modal
-          title="Webhook added"
-          description="This is the secret that signs every delivery. Copy it now. It is not shown again."
+          title="The webhook's secret"
+          description="This signs every delivery. Copy it now. It is not shown again, and any earlier secret stops working."
           onClose={() => setSecret(null)}
           width={520}
           footer={<Button onClick={() => setSecret(null)}>Done</Button>}

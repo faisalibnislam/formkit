@@ -1,3 +1,4 @@
+import { internal } from "./_generated/api";
 import { fromPortable, type PortableRule } from "./model/logicCopy";
 import { ConvexError, v } from "convex/values";
 import { internalMutation, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
@@ -17,6 +18,7 @@ import {
   storedBlock,
   uniqueSlug,
   purgeFormData,
+  purgeStep,
   countBlocks,
   recount,
   ownersOf,
@@ -65,6 +67,8 @@ async function decorate(ctx: Parameters<typeof formUrl>[0], form: Doc<"forms">) 
     completionRate: completionRate(form),
     liveVersion: form.liveVersion ?? null,
     closesAt: form.closing?.closeAt ?? null,
+    opensAt: form.opensAt ?? null,
+    remindHours: form.remind?.hours ?? null,
     closesAfter: form.closing?.closeAfter ?? null,
     deletedAt: form.deletedAt ?? null,
     /** Days left before the bin empties, for the red chip on a deleted row. */
@@ -596,7 +600,7 @@ export async function publishNow(ctx: MutationCtx, form: Doc<"forms">, user: Doc
       icon: "globe",
       actorId: user._id,
     });
-    await ctx.db.patch(formId, { approval: undefined });
+    await ctx.db.patch(formId, { approval: undefined, opensAt: undefined, openingBy: undefined });
     await audit(ctx, form.ownerId, user, number === 1 ? "Published a form" : `Published version ${number}`, form.title);
   }
 }
@@ -731,6 +735,52 @@ export async function setOpen(
     actorId: user._id,
   });
 }
+
+/** The hours a reminder can wait, from the last answer saved. */
+export const REMIND_HOURS = [3, 6, 12, 24, 48, 72];
+
+/** Pro: one reminder to people who left an email and stopped partway, or none (null). */
+export const setReminder = mutation({
+  args: { formId: v.id("forms"), hours: v.union(v.number(), v.null()) },
+  returns: v.null(),
+  handler: async (ctx, { formId, hours }) => {
+    const form = await formFor(ctx, formId);
+    if (hours === null) {
+      await ctx.db.patch(formId, { remind: undefined });
+      return null;
+    }
+    await requireFeature(ctx, form, "forms.reminders");
+    if (!REMIND_HOURS.includes(hours)) throw new ConvexError("Pick one of the waits offered.");
+    await ctx.db.patch(formId, { remind: { hours } });
+    return null;
+  },
+});
+
+/**
+ * Opens a draft or closed form on its own at a set time, or stops that (null).
+ * It opens as the person who set it, so a team that approves before
+ * publishing still does: someone who needs approval cannot schedule.
+ */
+export const setOpening = mutation({
+  args: { formId: v.id("forms"), opensAt: v.union(v.number(), v.null()) },
+  returns: v.null(),
+  handler: async (ctx, { formId, opensAt }) => {
+    const form = await formFor(ctx, formId);
+    const user = await requireUser(ctx);
+    if (opensAt === null) {
+      await ctx.db.patch(formId, { opensAt: undefined, openingBy: undefined });
+      return null;
+    }
+    if (form.status !== "draft" && form.status !== "closed") throw new ConvexError("Only a draft or a closed form can open later.");
+    if (opensAt < Date.now() + 60_000) throw new ConvexError("Pick a time at least a minute from now.");
+    if (await needsApproval(ctx, form, user._id)) {
+      throw new ConvexError({ code: "approval", message: "Forms on this team are approved before they go live, so an admin schedules the opening." });
+    }
+    await ctx.db.patch(formId, { opensAt, openingBy: user._id });
+    await ctx.db.insert("activity", { formId, userId: user._id, what: "scheduled the form to open", at: Date.now() });
+    return null;
+  },
+});
 
 /** Put a form away, or bring it back as a draft. Everything in it is kept. */
 export const archive = mutation({
@@ -1082,13 +1132,15 @@ export const sweepAllClosing = internalMutation({
   returns: v.number(),
   handler: async (ctx) => {
     const now = Date.now();
-    const forms = await ctx.db
+    // Only forms whose closing time has come: read by that time, not every
+    // published form. A response limit closes a form as the last one arrives.
+    const due = await ctx.db
       .query("forms")
-      .withIndex("by_status", (q) => q.eq("status", "published"))
-      .collect();
+      .withIndex("by_close_at", (q) => q.gt("closing.closeAt", 0).lte("closing.closeAt", now))
+      .take(200);
     let closed = 0;
-    for (const form of forms) {
-      if (!shouldAutoClose(form, now)) continue;
+    for (const form of due) {
+      if (form.status !== "published" || !shouldAutoClose(form, now)) continue;
       await ctx.db.patch(form._id, {
         status: "closed",
         closing: { ...(form.closing ?? {}), closedBy: "automatically", closedAt: now },
@@ -1110,11 +1162,46 @@ export const sweepAllClosing = internalMutation({
       });
       closed++;
     }
+
+    // Forms whose opening time has come.
+    const opening = await ctx.db
+      .query("forms")
+      .withIndex("by_opens_at", (q) => q.gt("opensAt", 0).lte("opensAt", now))
+      .take(50);
+    for (const form of opening) {
+      const by = form.openingBy ? await ctx.db.get(form.openingBy) : null;
+      await ctx.db.patch(form._id, { opensAt: undefined, openingBy: undefined });
+      if (form.deletedAt || form.status === "archived" || form.status === "published") continue;
+      const who = by ?? (await ctx.db.get(form.ownerId));
+      if (!who || (await needsApproval(ctx, form, who._id))) {
+        await tellFormTeam(ctx, form, {
+          kind: "unpublished",
+          title: `${form.title} did not open`,
+          body: "It was set to open now, but it needs an admin's approval first.",
+          href: `/app/forms/${form._id}`,
+          action: "Open the form",
+          icon: "clock",
+        });
+        continue;
+      }
+      if (form.status === "draft") await publishNow(ctx, form, who);
+      else await setOpen(ctx, form, who, true);
+    }
     return closed;
   },
 });
 
 const BIN_DAYS = 60;
+
+/** What an erased form owned, a step at a time until nothing is left. */
+export const purgeRest = internalMutation({
+  args: { formId: v.id("forms") },
+  returns: v.null(),
+  handler: async (ctx, { formId }) => {
+    if (!(await purgeStep(ctx, formId))) await ctx.scheduler.runAfter(0, internal.forms.purgeRest, { formId });
+    return null;
+  },
+});
 
 /** Daily: forms in Deleted for 60 days are erased, a few at a time. */
 export const purgeExpired = internalMutation({

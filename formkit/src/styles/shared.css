@@ -304,3 +304,117 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/* Builder keyboard shortcuts, the list behind "?" */
+.fk-shortcuts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px 16px;
+  margin: 0;
+  align-items: center;
+}
+.fk-shortcuts dt {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.fk-shortcuts dd {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+.fk-shortcuts kbd {
+  font: inherit;
+  font-size: 12.5px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--neutral-100, #f0f0f0);
+  box-shadow: inset 0 -1px 0 var(--neutral-200, #e2e2e2);
+  white-space: nowrap;
+}
+
+/* The form check in the publish dialog */
+.fk-formcheck {
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--neutral-50, #fafafa);
+}
+.fk-formcheck-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fk-formcheck-list li[data-level="warn"]::marker {
+  color: var(--amber-600, #b7791f);
+}
+
+/* A matrix question's answers on Analytics: rows by columns, shaded by share. */
+.fk-summary-matrix {
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  overflow-x: auto;
+}
+.fk-summary-matrix [role="row"] {
+  display: grid;
+  gap: 4px;
+  align-items: center;
+}
+.fk-summary-matrix [role="cell"] {
+  text-align: center;
+  padding: 6px 4px;
+  border-radius: 6px;
+}
+.fk-summary-matrix-head [role="columnheader"] {
+  text-align: center;
+  color: var(--color-text-tertiary);
+}
+
+/* A matrix question, drawn on the builder canvas */
+.fk-ghost-matrix {
+  display: grid;
+  gap: 8px 10px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+}
+.fk-ghost-matrix-head {
+  text-align: center;
+  font-size: 12px;
+}
+.fk-ghost-matrix-row {
+  color: var(--color-text-secondary);
+}
+
+/* Settings → Languages: a translation beside the form's own words */
+.fk-translate {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+}
+.fk-translate-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 12px;
+  align-items: start;
+}
+@media (max-width: 640px) {
+  .fk-translate-row {
+    grid-template-columns: 1fr;
+  }
+}
+.fk-translate-src {
+  font-size: 13.5px;
+  color: var(--color-text-secondary);
+  padding-top: 8px;
+}
+.fk-translate-label {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+}

@@ -75,7 +75,7 @@ function Plans() {
       id: "business" as const,
       price: `$${PLANS.business.price.month}`,
       per: "a seat a month",
-      points: ["Bigger AI allowances on every seat", "Approvals, audit log and retention", "API access and company sign-in"],
+      points: ["Bigger AI allowances on every seat", "Approvals, audit log and retention", "Company sign-in and priority support"],
     },
   ];
   return (

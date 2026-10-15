@@ -1,4 +1,5 @@
-import { hasLimits, placesLeft, placesTaken } from "./model/places";
+import { hasLimits, placesLeft, placesTaken, startPlaceCounts } from "./model/places";
+import { liveLanguages } from "./translations";
 import { isAudio, voiceLength } from "./model/voice";
 import { owed, takesPayment } from "./payments";
 import { ConvexError, v } from "convex/values";
@@ -144,14 +145,14 @@ async function answeredBefore(
     const mine = await ctx.db
       .query("responses")
       .withIndex("by_form_device", (q) => q.eq("formId", formId).eq("deviceId", deviceId))
-      .collect();
+      .take(50);
     if (sent(mine)) return true;
   }
   if (email) {
     const mine = await ctx.db
       .query("responses")
       .withIndex("by_form_email", (q) => q.eq("formId", formId).eq("respondentEmail", email))
-      .collect();
+      .take(50);
     if (sent(mine)) return true;
   }
   return false;
@@ -211,6 +212,8 @@ async function payload(ctx: QueryCtx, live: Doc<"forms">, opts: { draft?: boolea
     payment: await takesPayment(ctx, form),
     uploadCapMb: PLANS[await planOfId(ctx, form)].uploadMb,
     custom: await customLook(ctx, form),
+    /** The form's language, and (Pro) every other language it is offered in. */
+    ...(await liveLanguages(ctx, form, await hasFeature(ctx, form, "forms.languages"))),
     rules: {
       spam: s.spam,
       requireEmail: s.requireEmail,
@@ -229,6 +232,8 @@ async function payload(ctx: QueryCtx, live: Doc<"forms">, opts: { draft?: boolea
       placeholder: b.placeholder ?? null,
       required: b.required ?? false,
       options: b.options ?? null,
+      rows: b.type === "matrix" ? (b.rows ?? []) : null,
+      matrixMulti: b.type === "matrix" ? !!b.matrixMulti : null,
       accept: b.accept ?? null,
       scaleMin: b.scaleMin ?? null,
       scaleMax: b.scaleMax ?? null,
@@ -331,6 +336,19 @@ export const bySlug = query({
   handler: async (ctx, { slug, handle, password }) => {
     const form = await resolve(ctx, slug, handle);
     if (!form) return null;
+    // Scheduled to open: the link says when, rather than that it is unavailable.
+    if (form.opensAt && form.opensAt > Date.now() && !form.deletedAt && (form.status === "draft" || form.status === "closed")) {
+      return {
+        state: "soon" as const,
+        title: form.title,
+        brand: await brandOf(ctx, form),
+        logos: await themeLogos(ctx, form.theme),
+        theme: form.theme ?? null,
+        opensAt: form.opensAt,
+        timezone: form.closing?.timezone ?? null,
+        language: form.language ?? "en",
+      };
+    }
     if (form.status === "draft" || form.status === "archived") return { state: "draft" as const };
 
     const closed = form.status === "closed" || shouldAutoClose(form, Date.now());
@@ -342,6 +360,7 @@ export const bySlug = query({
         logos: await themeLogos(ctx, form.theme),
         theme: form.theme ?? null,
         message: form.closing?.message || CLOSED_NOTE,
+        language: form.language ?? "en",
       };
     }
 
@@ -353,6 +372,7 @@ export const bySlug = query({
         logos: await themeLogos(ctx, form.theme),
         theme: form.theme ?? null,
         wrong: !!password,
+        language: form.language ?? "en",
       };
     }
 
@@ -395,7 +415,7 @@ export const startQuiz = mutation({
       const done = await ctx.db
         .query("responses")
         .withIndex("by_form_device", (q) => q.eq("formId", formId).eq("deviceId", deviceId))
-        .collect();
+        .take(50);
       if (done.some((r) => !r.partial && !r.preview)) throw new ConvexError("You’ve already taken this quiz. It allows one attempt.");
     }
     const startedAt = Date.now();
@@ -590,6 +610,8 @@ async function store(
     durationMs: args.durationMs,
     status: "new" as const,
     resumeToken: existing?.resumeToken ?? crypto.randomUUID(),
+    // The respondent's own copy, once it is sent.
+    receiptToken: existing?.receiptToken ?? (args.partial || preview ? undefined : crypto.randomUUID()),
     versionNumber: form.liveVersion,
     deviceId: args.deviceId,
     preview: preview || undefined,
@@ -672,6 +694,7 @@ async function store(
   // the change, and nothing that greets a new response runs again.
   if (!args.partial && !preview && existing && !existing.partial) {
     await ctx.scheduler.runAfter(0, internal.connections.fanout, { responseId, event: "response.updated" });
+    if (form.semantic) await ctx.scheduler.runAfter(0, internal.semantic.index, { responseIds: [responseId] });
     return { responseId, resumeToken: record.resumeToken, pay: payment?.status === "pending" };
   }
 
@@ -689,6 +712,8 @@ async function store(
     // Pro: reading every response without a reply (sentiment, topics, urgency).
     const classify = !existing?.insight && (await queueClassify(ctx, form, responseId, { hold }));
     if (hold) await ctx.scheduler.runAfter(0, internal.transcribe.run, { responseId, reply, classify });
+    // Pro: searchable by meaning (it checks the plan and AI switches itself).
+    if (form.semantic) await ctx.scheduler.runAfter(hold ? 90_000 : 0, internal.semantic.index, { responseIds: [responseId] });
     // Instant quiz results go out by email as soon as the mark is in.
     if (quizOn?.results === "instant" && quizOn.emailResults && "quiz" in full && !full.quiz.pending) {
       await ctx.scheduler.runAfter(0, internal.quiz.emailResult, { responseId });
@@ -917,7 +942,7 @@ export const submit = mutation({
         const recent = await ctx.db
           .query("responses")
           .withIndex("by_form_device", (q) => q.eq("formId", form._id).eq("deviceId", args.deviceId))
-          .collect();
+          .take(50);
         if (recent.some((r) => !r.partial && Date.now() - r.submittedAt < RATE_MS)) {
           throw new ConvexError("One submission a minute from each device. Try again in a moment.");
         }
@@ -932,7 +957,8 @@ export const submit = mutation({
 
       // Limited places: a place is only taken if it is still free when sent.
       if (blocks.some(hasLimits) && (await hasFeature(ctx, form, "logic.advanced"))) {
-        const taken = await placesTaken(ctx, form._id, blocks, existing?._id);
+        await startPlaceCounts(ctx, form._id, blocks);
+        const taken = await placesTaken(ctx, form._id, blocks, existing);
         for (const a of args.answers) {
           const b = blocks.find((x) => x._id === a.blockId);
           if (!b || !hasLimits(b)) continue;
@@ -1016,6 +1042,47 @@ export const emailResumeLink = mutation({
   },
 });
 
+/**
+ * Hourly: one reminder to each person who left an email on a form with
+ * reminders on, stopped partway, and has not come back in the hours set.
+ * Never more than one per response, and a bounded number per form per hour.
+ */
+export const remindPartials = internalMutation({
+  args: {},
+  returns: v.number(),
+  handler: async (ctx) => {
+    const now = Date.now();
+    let sent = 0;
+    const forms = await ctx.db
+      .query("forms")
+      .withIndex("by_remind", (q) => q.gt("remind.hours", 0))
+      .take(500);
+    for (const form of forms) {
+      if (form.deletedAt || form.status !== "published" || !form.remind) continue;
+      if (!(await hasFeature(ctx, form, "forms.reminders"))) continue;
+      const due = now - form.remind.hours * 3_600_000;
+      // Partials last saved in the three days before they became due; older ones are left alone.
+      const rows = await ctx.db
+        .query("responses")
+        .withIndex("by_form_preview_submitted", (q) =>
+          q.eq("formId", form._id).eq("preview", undefined).gte("submittedAt", due - 72 * 3_600_000).lte("submittedAt", due),
+        )
+        .take(400);
+      let here = 0;
+      for (const r of rows) {
+        if (here >= 50) break;
+        if (!r.partial || r.remindedAt || !r.resumeToken || !r.respondentEmail) continue;
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(r.respondentEmail)) continue;
+        await ctx.db.patch(r._id, { remindedAt: now });
+        await ctx.scheduler.runAfter(0, internal.publicForm.mailResumeLink, { responseId: r._id, to: r.respondentEmail, reminder: true });
+        here++;
+      }
+      sent += here;
+    }
+    return sent;
+  },
+});
+
 export const resumeMail = internalQuery({
   args: { responseId: v.id("responses") },
   handler: async (ctx, { responseId }) => {
@@ -1027,9 +1094,9 @@ export const resumeMail = internalQuery({
 });
 
 export const mailResumeLink = internalAction({
-  args: { responseId: v.id("responses"), to: v.string() },
+  args: { responseId: v.id("responses"), to: v.string(), reminder: v.optional(v.boolean()) },
   returns: v.null(),
-  handler: async (ctx, { responseId, to }) => {
+  handler: async (ctx, { responseId, to, reminder }) => {
     const m: { title: string; token: string; brand: { name: string; logoUrl: string | null; color: string | null; badge: boolean } } | null =
       await ctx.runQuery(internal.publicForm.resumeMail, { responseId });
     if (!m) return null;
@@ -1037,10 +1104,54 @@ export const mailResumeLink = internalAction({
     const link = `${site}/r/${m.token}`;
     await send({
       to: [to],
-      subject: `Finish ${m.title} when you are ready`,
-      html: renderResumeLink({ title: m.title, link, brand: m.brand }),
+      subject: reminder ? `You started ${m.title}` : `Finish ${m.title} when you are ready`,
+      html: renderResumeLink({ title: m.title, link, brand: m.brand, reminder }),
       text: `Everything you answered so far on ${m.title} is saved. Carry on here: ${link}\n\nAnyone with this link can see and change your answers, so keep it to yourself.`,
     });
     return null;
+  },
+});
+
+/**
+ * A respondent's receipt, from the link in their confirmation: what they
+ * sent, when, and a reference, in the form's own look. Nothing is shown that
+ * they did not type or pick themselves (hidden fields stay hidden).
+ */
+export const receipt = query({
+  args: { token: v.string() },
+  handler: async (ctx, { token }) => {
+    if (!/^[0-9a-f-]{36}$/.test(token)) return null;
+    const r = await ctx.db
+      .query("responses")
+      .withIndex("by_receipt", (q) => q.eq("receiptToken", token))
+      .first();
+    if (!r || r.partial || r.preview) return null;
+    const form = await ctx.db.get(r.formId);
+    if (!form || form.deletedAt) return null;
+    const hidden = new Set(
+      (
+        await ctx.db
+          .query("blocks")
+          .withIndex("by_form_order", (q) => q.eq("formId", form._id))
+          .collect()
+      )
+        .filter((b) => b.type === "hidden")
+        .map((b) => b._id as string),
+    );
+    return {
+      title: form.title,
+      brand: await brandOf(ctx, form),
+      logos: await themeLogos(ctx, form.theme),
+      theme: form.theme ?? null,
+      submittedAt: r.submittedAt,
+      reference: r._id.slice(-8).toUpperCase(),
+      answers: r.answers
+        .filter((a) => !hidden.has(a.blockId))
+        .map((a) => ({
+          question: a.question,
+          answer: a.values?.length ? a.values.join(", ") : a.fileName ? `${a.value ? `${a.value} · ` : ""}${a.fileName}` : (a.value ?? ""),
+        }))
+        .filter((a) => a.answer.trim()),
+    };
   },
 });

@@ -38,6 +38,7 @@ import type * as emails_kit from "../emails/kit.js";
 import type * as emails_response from "../emails/response.js";
 import type * as exports from "../exports.js";
 import type * as flags from "../flags.js";
+import type * as formCheck from "../formCheck.js";
 import type * as forms from "../forms.js";
 import type * as handles from "../handles.js";
 import type * as helpSignals from "../helpSignals.js";
@@ -45,6 +46,7 @@ import type * as http from "../http.js";
 import type * as importForm from "../importForm.js";
 import type * as inbox from "../inbox.js";
 import type * as insights from "../insights.js";
+import type * as integrations from "../integrations.js";
 import type * as logic from "../logic.js";
 import type * as model_access from "../model/access.js";
 import type * as model_aiForms from "../model/aiForms.js";
@@ -64,10 +66,12 @@ import type * as model_flags from "../model/flags.js";
 import type * as model_forms from "../model/forms.js";
 import type * as model_gemini from "../model/gemini.js";
 import type * as model_grants from "../model/grants.js";
+import type * as model_grid from "../model/grid.js";
 import type * as model_handles from "../model/handles.js";
 import type * as model_identity from "../model/identity.js";
 import type * as model_importParse from "../model/importParse.js";
 import type * as model_inbox from "../model/inbox.js";
+import type * as model_langs from "../model/langs.js";
 import type * as model_logicCopy from "../model/logicCopy.js";
 import type * as model_logicEval from "../model/logicEval.js";
 import type * as model_logicOps from "../model/logicOps.js";
@@ -76,6 +80,7 @@ import type * as model_moreTemplates from "../model/moreTemplates.js";
 import type * as model_oauthProfile from "../model/oauthProfile.js";
 import type * as model_places from "../model/places.js";
 import type * as model_plans from "../model/plans.js";
+import type * as model_providers from "../model/providers.js";
 import type * as model_questionTypes from "../model/questionTypes.js";
 import type * as model_quiz from "../model/quiz.js";
 import type * as model_rateLimit from "../model/rateLimit.js";
@@ -106,12 +111,14 @@ import type * as responses from "../responses.js";
 import type * as restApi from "../restApi.js";
 import type * as revenue from "../revenue.js";
 import type * as security from "../security.js";
+import type * as semantic from "../semantic.js";
 import type * as spaces from "../spaces.js";
 import type * as sso from "../sso.js";
 import type * as support from "../support.js";
 import type * as team from "../team.js";
 import type * as templates from "../templates.js";
 import type * as transcribe from "../transcribe.js";
+import type * as translations from "../translations.js";
 import type * as users from "../users.js";
 
 /**
@@ -153,6 +160,7 @@ declare const fullApi: ApiFromModules<{
   "emails/response": typeof emails_response,
   "exports": typeof exports,
   "flags": typeof flags,
+  "formCheck": typeof formCheck,
   "forms": typeof forms,
   "handles": typeof handles,
   "helpSignals": typeof helpSignals,
@@ -160,6 +168,7 @@ declare const fullApi: ApiFromModules<{
   "importForm": typeof importForm,
   "inbox": typeof inbox,
   "insights": typeof insights,
+  "integrations": typeof integrations,
   "logic": typeof logic,
   "model/access": typeof model_access,
   "model/aiForms": typeof model_aiForms,
@@ -179,10 +188,12 @@ declare const fullApi: ApiFromModules<{
   "model/forms": typeof model_forms,
   "model/gemini": typeof model_gemini,
   "model/grants": typeof model_grants,
+  "model/grid": typeof model_grid,
   "model/handles": typeof model_handles,
   "model/identity": typeof model_identity,
   "model/importParse": typeof model_importParse,
   "model/inbox": typeof model_inbox,
+  "model/langs": typeof model_langs,
   "model/logicCopy": typeof model_logicCopy,
   "model/logicEval": typeof model_logicEval,
   "model/logicOps": typeof model_logicOps,
@@ -191,6 +202,7 @@ declare const fullApi: ApiFromModules<{
   "model/oauthProfile": typeof model_oauthProfile,
   "model/places": typeof model_places,
   "model/plans": typeof model_plans,
+  "model/providers": typeof model_providers,
   "model/questionTypes": typeof model_questionTypes,
   "model/quiz": typeof model_quiz,
   "model/rateLimit": typeof model_rateLimit,
@@ -221,12 +233,14 @@ declare const fullApi: ApiFromModules<{
   "restApi": typeof restApi,
   "revenue": typeof revenue,
   "security": typeof security,
+  "semantic": typeof semantic,
   "spaces": typeof spaces,
   "sso": typeof sso,
   "support": typeof support,
   "team": typeof team,
   "templates": typeof templates,
   "transcribe": typeof transcribe,
+  "translations": typeof translations,
   "users": typeof users,
 }>;
 export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "public">>;

@@ -346,13 +346,53 @@ function PeopleRows({ formId, people, empty, flag }: { formId: Id<"forms">; peop
  * The switch for reading every response with AI (sentiment, topics, intent,
  * urgency) on a form without AI replies, which already read them.
  */
+/** Pro: index this form's responses so the inbox can search them by meaning. */
+function SearchByMeaning({ formId }: { formId: Id<"forms"> }) {
+  const setting = useQuery(api.semantic.setting, { formId });
+  const set = useMutation(api.semantic.setSemantic);
+  const canWrite = useQuery(api.responses.canManage, { formId }) ?? false;
+  const toast = useToast();
+  if (!setting) return null;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 16 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 14 }}>Search responses by meaning</div>
+        <div className="fk-proprow-hint">
+          Find “money back” when you search for refunds. Each response is indexed by Google’s AI as it arrives, without
+          names, email addresses or phone numbers, and the latest 2,000 are indexed when you turn it on. It does not use
+          your AI responses.
+        </div>
+      </div>
+      {!canWrite ? (
+        <span className="fk-proprow-hint" style={{ margin: 0 }}>{setting.on ? "On" : "Off"}</span>
+      ) : setting.available ? (
+        <Switch
+          checked={setting.on}
+          label="Search responses by meaning"
+          onChange={(on) =>
+            void set({ formId, on })
+              .then(() => toast(on ? "Indexing responses" : "Search by meaning is off", { detail: on ? "Older responses join over the next few minutes." : undefined }))
+              .catch((e) => {
+                if (!upgradeOnPlanError(e)) toast(errorText(e, "That did not save."));
+              })
+          }
+        />
+      ) : (
+        <ProChip />
+      )}
+    </div>
+  );
+}
+
 function ReadEvery({ formId, compact = false }: { formId: Id<"forms">; compact?: boolean }) {
   const setting = useQuery(api.insights.classifySetting, { formId });
   const set = useMutation(api.insights.setClassify);
   const canWrite = useQuery(api.responses.canManage, { formId }) ?? false;
   const toast = useToast();
-  if (!setting || setting.byReply) return null;
+  if (!setting) return null;
+  if (setting.byReply) return compact ? <SearchByMeaning formId={formId} /> : null;
   const body = (
+    <>
     <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 14 }}>Read every response with AI</div>
@@ -377,6 +417,8 @@ function ReadEvery({ formId, compact = false }: { formId: Id<"forms">; compact?:
         <ProChip />
       )}
     </div>
+    <SearchByMeaning formId={formId} />
+    </>
   );
   if (compact) return body;
   return (

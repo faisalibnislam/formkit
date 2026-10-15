@@ -36,6 +36,10 @@ export const questionType = v.union(
   v.literal("voice"),
   /** Pro: never shown; filled from the link, or its default. */
   v.literal("hidden"),
+  /** A grid: each of `rows` answered with one of the options (columns), or several with `matrixMulti`. */
+  v.literal("matrix"),
+  /** The options, put in order. */
+  v.literal("ranking"),
   /** Content, not questions (kind "content"): text, a picture or a video between questions. */
   v.literal("statement"),
   v.literal("image"),
@@ -76,6 +80,10 @@ export const blockExtras = {
   followUp: v.optional(v.object({ on: v.boolean(), instruction: v.optional(v.string()) })),
   /** Pro, voice questions: the AI writes out each recording once it is sent. */
   transcribe: v.optional(v.boolean()),
+  /** Matrix questions: the statements down the side; the options are the columns. */
+  rows: v.optional(v.array(v.string())),
+  /** Matrix questions: several columns may be ticked in a row. */
+  matrixMulti: v.optional(v.boolean()),
   /** Content blocks: an uploaded image and its description, or a video link. */
   imageId: v.optional(v.id("_storage")),
   alt: v.optional(v.string()),
@@ -434,6 +442,20 @@ export default defineSchema({
     notify: v.optional(v.any()),
     /** Who may answer, and how often. See `model/security.ts`. */
     security: v.optional(v.any()),
+    /**
+     * Opens on its own at this time (a draft is published, a closed form
+     * reopened), as the person who set it. Cleared once it has opened.
+     */
+    opensAt: v.optional(v.number()),
+    openingBy: v.optional(v.id("users")),
+    /** The language the form is written in (model/langs.ts); English when unset. */
+    language: v.optional(v.string()),
+    /** Pro: the other languages it is offered in, each with its translation (formTranslations). */
+    languages: v.optional(v.array(v.string())),
+    /** Pro: responses are indexed for search by meaning (semantic.ts). */
+    semantic: v.optional(v.boolean()),
+    /** Pro: one reminder, this many hours on, to someone who left an email and stopped partway. */
+    remind: v.optional(v.object({ hours: v.number() })),
     closing: v.optional(
       v.object({
         message: v.optional(v.string()),
@@ -479,6 +501,9 @@ export default defineSchema({
     .index("by_owner_status", ["ownerId", "status"])
     .index("by_slug", ["slug"])
     .index("by_status", ["status"])
+    .index("by_opens_at", ["opensAt"])
+    .index("by_remind", ["remind.hours"])
+    .index("by_close_at", ["closing.closeAt"])
     .index("by_deleted", ["deletedAt"]),
 
   /** Questions and page breaks share one ordered list, as in the builder. */
@@ -664,6 +689,12 @@ export default defineSchema({
     ),
     /** When the person last asked for their link back to finish later (once every two minutes). */
     resumeEmailedAt: v.optional(v.number()),
+    /** When the one reminder to finish went out (forms.remind). */
+    remindedAt: v.optional(v.number()),
+    /** Who on the team is looking after it. */
+    assigneeId: v.optional(v.id("users")),
+    /** The private part of the respondent's receipt link, made when it is sent. */
+    receiptToken: v.optional(v.string()),
     /** Business: the AI-written reply to this response, and where it went. */
     aiReply: v.optional(
       v.object({
@@ -729,6 +760,7 @@ export default defineSchema({
     .index("by_owner_contact", ["ownerId", "contactKey"])
     // The admin overview's day counts (adminTally.ts).
     .index("by_preview_submitted", ["preview", "submittedAt"])
+    .index("by_receipt", ["receiptToken"])
     .index("by_resume", ["resumeToken"])
     .index("by_payment", ["payment.status", "submittedAt"])
     .searchIndex("search", { searchField: "searchText", filterFields: ["ownerId", "formId"] }),
@@ -834,6 +866,8 @@ export default defineSchema({
   comments: defineTable({
     formId: v.id("forms"),
     blockId: v.optional(v.id("blocks")),
+    /** A comment on one response, in its drawer, rather than on the form. */
+    responseId: v.optional(v.id("responses")),
     parentId: v.optional(v.id("comments")),
     authorId: v.id("users"),
     body: v.string(),
@@ -841,7 +875,9 @@ export default defineSchema({
     createdAt: v.number(),
     /** People @mentioned in the body. */
     mentions: v.optional(v.array(v.id("users"))),
-  }).index("by_form", ["formId"]),
+  })
+    .index("by_form", ["formId"])
+    .index("by_response", ["responseId"]),
 
   /**
    * The bell: one row per thing a person should know about. Responses to the
@@ -1249,6 +1285,110 @@ export default defineSchema({
     fetchedAt: v.optional(v.number()),
   }).index("by_client", ["clientId"]),
 
+  /**
+   * Pro, per form: each response's meaning as a vector (Gemini embeddings),
+   * from its answers without names, emails or other contact details, so the
+   * inbox can find "money back" when asked for "refunds".
+   */
+  responseEmbeddings: defineTable({
+    responseId: v.id("responses"),
+    formId: v.id("forms"),
+    ownerId: v.id("users"),
+    embedding: v.array(v.float64()),
+  })
+    .index("by_response", ["responseId"])
+    .index("by_form", ["formId"])
+    .vectorIndex("by_embedding", { vectorField: "embedding", dimensions: 768, filterFields: ["formId", "ownerId"] }),
+
+  /**
+   * Pro: a form's words in another language: each question's wording, help,
+   * placeholder, options and rows, and its screens. Options are shown in
+   * the language picked but answers keep the form's own option, so results,
+   * logic and exports stay in one language.
+   */
+  formTranslations: defineTable({
+    formId: v.id("forms"),
+    lang: v.string(),
+    blocks: v.array(
+      v.object({
+        blockId: v.id("blocks"),
+        title: v.optional(v.string()),
+        help: v.optional(v.string()),
+        placeholder: v.optional(v.string()),
+        options: v.optional(v.array(v.string())),
+        rows: v.optional(v.array(v.string())),
+        pageName: v.optional(v.string()),
+      }),
+    ),
+    screens: v.object({
+      welcomeTitle: v.optional(v.string()),
+      welcomeMessage: v.optional(v.string()),
+      welcomeButton: v.optional(v.string()),
+      thanksTitle: v.optional(v.string()),
+      thanksMessage: v.optional(v.string()),
+      closedMessage: v.optional(v.string()),
+    }),
+    updatedAt: v.number(),
+  }).index("by_form_lang", ["formId", "lang"]),
+
+  /** A person's own named filters for the responses inbox. */
+  savedViews: defineTable({
+    userId: v.id("users"),
+    name: v.string(),
+    filters: v.object({
+      kind: v.optional(v.string()),
+      status: v.optional(v.string()),
+      tag: v.optional(v.string()),
+      when: v.optional(v.string()),
+      form: v.optional(v.string()),
+      owner: v.optional(v.string()),
+      assigned: v.optional(v.string()),
+    }),
+    createdAt: v.number(),
+  }).index("by_user", ["userId"]),
+
+  /**
+   * Limited places (Pro): how many complete responses picked each option of
+   * a question with limits, kept as responses arrive, change and go
+   * (model/places.ts), so no one counts every response to check a place.
+   */
+  placeCounts: defineTable({
+    formId: v.id("forms"),
+    blockId: v.id("blocks"),
+    picks: v.array(v.object({ option: v.string(), n: v.number() })),
+  }).index("by_form_block", ["formId", "blockId"]),
+
+  /**
+   * An app account someone connected over OAuth (model/providers.ts), for
+   * their forms to send responses into. Tokens are sealed (model/sealed.ts).
+   */
+  integrationAccounts: defineTable({
+    ownerId: v.id("users"),
+    provider: v.union(v.literal("google"), v.literal("notion"), v.literal("airtable"), v.literal("hubspot")),
+    label: v.string(),
+    access: v.string(),
+    refresh: v.optional(v.string()),
+    expiresAt: v.optional(v.number()),
+    createdAt: v.number(),
+  }).index("by_owner", ["ownerId"]),
+
+  /** Between sending someone to an app's sign-in and their coming back. */
+  integrationStates: defineTable({
+    state: v.string(),
+    userId: v.id("users"),
+    provider: v.string(),
+    verifier: v.optional(v.string()),
+    returnTo: v.string(),
+    expiresAt: v.number(),
+  }).index("by_state", ["state"]),
+
+  /** Which row, page, record or contact a response became in an app, so a change updates it. */
+  integrationRefs: defineTable({
+    connectionId: v.id("connections"),
+    responseId: v.id("responses"),
+    ref: v.string(),
+  }).index("by_connection_response", ["connectionId", "responseId"]),
+
   /** One-time codes from the consent screen, swapped for tokens within minutes. */
   oauthCodes: defineTable({
     codeHash: v.string(),
@@ -1291,9 +1431,36 @@ export default defineSchema({
   connections: defineTable({
     formId: v.id("forms"),
     ownerId: v.id("users"),
-    kind: v.union(v.literal("webhook"), v.literal("slack"), v.literal("sheets")),
+    kind: v.union(
+      v.literal("webhook"),
+      v.literal("slack"),
+      v.literal("sheets"),
+      v.literal("discord"),
+      v.literal("teams"),
+      // Apps reached over OAuth (integrations.ts): a live Google Sheet, Notion, Airtable, HubSpot.
+      v.literal("gsheets"),
+      v.literal("notion"),
+      v.literal("airtable"),
+      v.literal("hubspot"),
+    ),
     label: v.optional(v.string()),
     url: v.optional(v.string()),
+    /** For an app: the connected account, and where in it responses go. */
+    accountId: v.optional(v.id("integrationAccounts")),
+    target: v.optional(
+      v.object({
+        id: v.string(),
+        sub: v.optional(v.string()),
+        name: v.string(),
+        url: v.optional(v.string()),
+        /** The questions, in the order their columns or fields were made. */
+        columns: v.optional(v.array(v.string())),
+      }),
+    ),
+    /** Which events it is sent (model of `EVENTS`); every one when unset. */
+    events: v.optional(v.array(v.string())),
+    /** Made through the API (a Zapier or Make subscription), which may also remove it. */
+    viaApi: v.optional(v.boolean()),
     /** Signs each webhook delivery; shown once, when the webhook is made. */
     secret: v.optional(v.string()),
     /** The private part of a Sheets link. */
@@ -1309,6 +1476,8 @@ export default defineSchema({
   deliveries: defineTable({
     connectionId: v.id("connections"),
     responseId: v.optional(v.id("responses")),
+    /** What was sent, so it can be sent again. */
+    event: v.optional(v.string()),
     at: v.number(),
     attempt: v.number(),
     ok: v.boolean(),

@@ -8,7 +8,7 @@ import {
   type MutationCtx,
   type QueryCtx,
 } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { aiAllowed, requireUser } from "./model/identity";
 import { aiStatus, spendAi } from "./model/aiMeter";
@@ -18,10 +18,10 @@ import { formFor, recount } from "./model/forms";
 import { hasFeature } from "./model/plans";
 import { logActivity } from "./model/access";
 import { insertDraftForm, presetTheme } from "./model/draftForm";
-import { OPERATORS } from "./logic";
+import { opLabel } from "./model/logicOps";
+import { writeRules } from "./aiLogic";
 import { THEME_PRESETS } from "./model/themePresets";
 import {
-  checkRule,
   clean,
   coerceType,
   describe,
@@ -30,7 +30,6 @@ import {
   FORM_RULES,
   ITEM_SCHEMA,
   PERSONAL_TYPES,
-  RULE_SCHEMA,
   toDraft,
   toItem,
   VOICE,
@@ -192,10 +191,12 @@ export const responsesFor = internalQuery({
       .query("blocks")
       .withIndex("by_form_order", (q) => q.eq("formId", formId))
       .collect();
-    const all = (await ctx.db.query("responses").withIndex("by_form", (q) => q.eq("formId", formId)).collect())
-      .filter((r) => !r.preview)
-      .sort((a, b) => b.submittedAt - a.submittedAt);
-    const rows = all.slice(0, 400);
+    // The newest 400, read newest first rather than every response sorted.
+    const rows = await ctx.db
+      .query("responses")
+      .withIndex("by_form_preview_submitted", (q) => q.eq("formId", formId).eq("preview", undefined))
+      .order("desc")
+      .take(400);
 
     const complete = rows.filter((r) => !r.partial);
     const durations = complete
@@ -242,11 +243,12 @@ export const responsesFor = internalQuery({
 
     return {
       title: form.title,
-      total: all.length,
+      total: form.responsesCount,
       read: rows.length,
       complete: complete.length,
       partial: rows.length - complete.length,
-      unread: all.filter((r) => r.status === "new").length,
+      // Among the newest 400.
+      unread: rows.filter((r) => r.status === "new").length,
       views: form.views ?? 0,
       medianMs: median,
       stops: [...stops.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3),
@@ -314,52 +316,6 @@ export const addQuestions = internalMutation({
     );
   },
 });
-
-export const addRules = internalMutation({
-  args: {
-    formId: v.id("forms"),
-    rules: v.array(
-      v.object({
-        name: v.string(),
-        whenId: v.id("blocks"),
-        operator: v.string(),
-        value: v.optional(v.string()),
-        action: v.union(v.literal("show"), v.literal("hide"), v.literal("require")),
-        targetId: v.id("blocks"),
-      }),
-    ),
-  },
-  handler: async (ctx, { formId, rules }) => {
-    const user = await requireUser(ctx);
-    await formFor(ctx, formId);
-    const existing = await ctx.db
-      .query("logicRules")
-      .withIndex("by_form", (q) => q.eq("formId", formId))
-      .collect();
-    let order = existing.length;
-    for (const r of rules) {
-      await ctx.db.insert("logicRules", {
-        formId,
-        name: r.name,
-        enabled: true,
-        join: "and",
-        conditions: [{ blockId: r.whenId, operator: r.operator, value: r.value }],
-        action: r.action,
-        targetId: r.targetId,
-        order: order++,
-      });
-    }
-    await ctx.db.patch(formId, { updatedAt: Date.now() });
-    await logActivity(
-      ctx,
-      formId,
-      user._id,
-      `added ${rules.length} logic ${rules.length === 1 ? "rule" : "rules"} with Ask Formkit`,
-      "git-branch",
-    );
-  },
-});
-
 
 export const setTheme = internalMutation({
   args: { formId: v.id("forms"), preset: v.string(), primary: v.optional(v.string()) },
@@ -686,54 +642,45 @@ ${FORM_RULES}`;
 }
 
 async function logic(ctx: ActionCtx, m: Asker, text: string, form: Snapshot): Promise<AskResult> {
-  const fields = form.blocks.filter((b) => b.kind === "field");
-  if (!fields.some((f) => ["single-choice", "multi-choice", "dropdown", "yes-no", "rating", "scale", "number"].includes(f.type ?? ""))) {
-    return {
-      kind: "say",
-      text: "Logic needs a question to branch on: a choice, a yes / no, a rating or a number. Add one and ask me again.",
-    };
-  }
-  const system = `You write conditional logic for a Formkit form. Reply with JSON matching the schema: at most four rules.
-A rule reads one question and shows, hides or requires another, which comes after it. Name both questions by their exact wording, as listed. For a choice or yes / no question the value is one of its options exactly ("Yes" or "No" for yes / no). Operators by kind. Choice: is, is-not, is-empty, is-not-empty; number: at-least, at-most, greater, less, is-empty; text: contains, is, is-empty, is-not-empty.
-Only write rules that make sense for the people answering. If nothing sensible can be written, return no rules.
-${VOICE}`;
-  const { text: raw } = await generate({ meter: { ...m, feature: "ask.edit" },
-    system,
-    turns: [{ role: "user", parts: [{ text: `The form "${form.title}":\n${describe(form.blocks)}\n\nWhat to do: ${text}` }] }],
-    schema: { type: "OBJECT", properties: { rules: { type: "ARRAY", items: RULE_SCHEMA } }, required: ["rules"] },
-    maxTokens: 1500,
-  });
-  const rules = (parseJson<{ rules?: Parameters<typeof checkRule>[0][] }>(raw)?.rules ?? [])
-    .map((r) => checkRule(r, fields))
-    .filter((r): r is DraftRule => r !== null && r.target > r.when)
-    .slice(0, 4);
+  void m;
+  // The same writer as the Logic tab's "Describe a rule": every operator,
+  // groups, jumps, hidden options, endings and calculated results.
+  const c = await ctx.runQuery(internal.aiLogic.describeContext, { formId: form.id });
+  if (!c.questions.length) return { kind: "say", text: "Add some questions first, then ask me for logic." };
+  const { rules, note } = await writeRules(ctx, c, text.slice(0, 1200));
   if (!rules.length) {
-    return { kind: "say", text: "I could not find a rule worth adding. Every question here seems to apply to everyone." };
+    return { kind: "say", text: note ?? "I could not find a rule worth adding. Every question here seems to apply to everyone." };
   }
-  await ctx.runMutation(internal.ai.addRules, {
-    formId: form.id,
-    rules: rules.map((r) => ({
-      name: r.name,
-      whenId: fields[r.when - 1]!.id,
-      operator: r.operator,
-      value: r.value,
-      action: r.action,
-      targetId: fields[r.target - 1]!.id,
-    })),
-  });
-  const label = (op: string) => Object.values(OPERATORS).flat().find((o) => o.value === op)?.label ?? op;
+  for (const p of rules) {
+    const one = p.groups.length === 1;
+    await ctx.runMutation(api.logic.add, {
+      formId: form.id,
+      name: p.name,
+      join: one ? p.groups[0]!.join : p.join,
+      action: p.action,
+      targetId: p.targetId,
+      conditions: p.groups[0]!.conditions,
+      groups: one ? undefined : p.groups,
+      options: p.options,
+      endingId: p.endingId,
+    });
+  }
+  const titles = new Map(c.questions.map((q) => [q.id, q.title]));
   return {
     kind: "rules",
     formId: form.id,
     title: form.title,
-    items: rules.map((r) => ({
-      name: r.name,
-      when: fields[r.when - 1]!.title ?? "",
-      operator: label(r.operator),
-      value: r.value,
-      action: r.action,
-      target: fields[r.target - 1]!.title ?? "",
-    })),
+    items: rules.map((r) => {
+      const first = r.groups[0]?.conditions[0];
+      return {
+        name: r.name,
+        when: first?.blockId ? (titles.get(first.blockId) ?? "") : first && "ref" in first ? (first.ref ?? "") : "",
+        operator: opLabel(first?.operator),
+        value: first?.value,
+        action: r.action,
+        target: r.targetId ? (titles.get(r.targetId) ?? "") : r.action === "ending" ? (c.endings.find((e) => e.id === r.endingId)?.name ?? "") : "",
+      };
+    }),
   };
 }
 

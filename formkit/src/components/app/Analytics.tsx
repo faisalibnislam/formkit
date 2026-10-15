@@ -3,6 +3,7 @@
 import { useSeedClock, useSeededQuery } from "@/lib/seed";
 import { AiInsights } from "./AiInsights";
 import { QuestionSummary } from "./QuestionSummary";
+import { AskAcross } from "./AskAcross";
 import { useState } from "react";
 import Link from "next/link";
 import { useMutation } from "convex/react";
@@ -410,6 +411,12 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
                 </section>
               )}
 
+              {data.capped && (
+                <p style={{ margin: 0, fontSize: 13, color: "var(--color-text-tertiary)" }}>
+                  A busy stretch: these figures cover the latest {(8000).toLocaleString("en-US")} responses and visits in each period, so the comparison is approximate.
+                </p>
+              )}
+
               <section>
                 <h3 className="fk-outside-title">Where people come from</h3>
                 <div className="fk-panel" data-pad="none">
@@ -534,6 +541,7 @@ export function Analytics({ formId }: { formId?: Id<"forms"> }) {
               )}
             </div>
 
+            {!formId && forms && <AskAcross forms={forms.filter((f) => f.responses > 0).map((f) => ({ _id: f._id, title: f.title }))} />}
             {scope && <QuestionSummary formId={scope} from={span.from} to={span.to} />}
             {scope && <AiInsights formId={scope} from={span.from} to={span.to} />}
           </>

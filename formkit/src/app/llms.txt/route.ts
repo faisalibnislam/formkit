@@ -21,7 +21,7 @@ export function GET() {
     "",
     `> Formkit is an online form builder. Build a form by describing it to the AI or with a drag-and-drop builder, add conditional and AI logic, take payments, and have AI write a personal reply to every response. Free for unlimited forms, responses and members; Pro is $${pro.price.month} a seat a month and Business $${business.price.month}.`,
     "",
-    `The free plan includes every question type (voice recording included), logic, themes, a formkit.app link, embeds, partial responses, CSV export and AI for ${free.ai.builds} new forms and ${free.ai.edits} edits a month. Pro adds a custom domain, connections (webhooks, Zapier, Make, Slack, Google Sheets), payments with your own Stripe, quizzes, calculations, AI replies, AI logic and AI insights. Business adds shared templates, approvals, an audit log, data retention, API access and SSO.`,
+    `The free plan includes every question type (voice recording included), logic, themes, a formkit.app link, embeds, partial responses, CSV export, the API and AI assistants (an MCP server at formkit.app/api/mcp), and AI for ${free.ai.builds} new forms and ${free.ai.edits} edits a month. Pro adds a custom domain, connections (webhooks, Zapier, Make, Slack, Google Sheets), payments with your own Stripe, quizzes, calculations, AI replies, AI logic and AI insights. Business adds shared templates, approvals, an audit log, data retention and SSO.`,
     "",
     "## Product",
     link("Pricing", "/pricing", "plans, seats, AI allowances and credits"),

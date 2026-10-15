@@ -3,10 +3,13 @@
 import { Turnstile, TURNSTILE_SITE_KEY } from "./Turnstile";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
-import { Lock } from "lucide-react";
+import { Clock, Lock } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { buttonInk, themeOf } from "@/components/app/editor/themes";
+import { isLang, tr, type Lang } from "./i18n";
+
+const langOf = (x: unknown): Lang => (isLang(x) ? x : "en");
 import { FormRunner, Shell, type Answer, type OpenForm, type SubmitArgs } from "./FormRunner";
 import { sourceLabel, utmOf } from "./source";
 
@@ -201,6 +204,25 @@ export function LiveForm({
     );
   }
 
+  if (data.state === "soon") {
+    const when = new Intl.DateTimeFormat(undefined, {
+      dateStyle: "full",
+      timeStyle: "short",
+      ...(data.timezone ? { timeZone: data.timezone, timeZoneName: "short" } : {}),
+    }).format(new Date(data.opensAt));
+    return (
+      <Shell theme={themeOf(data.theme)} brand={data.brand} logos={data.logos}>
+        <div style={{ paddingTop: "8vh", textAlign: "center" }}>
+          <span className="fk-live-lock">
+            <Clock size={30} strokeWidth={1.8} aria-hidden />
+          </span>
+          <h1 style={{ marginTop: 22 }}>{data.title}</h1>
+          <p className="fk-live-lede">{tr(langOf(data.language), "opensOn", { when })}</p>
+        </div>
+      </Shell>
+    );
+  }
+
   if (data.state === "closed") {
     return (
       <Shell theme={themeOf(data.theme)} brand={data.brand} logos={data.logos}>
@@ -230,20 +252,20 @@ export function LiveForm({
             <Lock size={30} strokeWidth={1.8} aria-hidden />
           </span>
           <h1 style={{ marginTop: 22 }}>{data.title}</h1>
-          <p className="fk-live-lede">This form is private. Enter the password you were given.</p>
+          <p className="fk-live-lede">{tr(langOf(data.language), "private")}</p>
           <input
             className="fk-live-input"
             type="password"
             autoComplete="current-password"
-            aria-label="Password"
-            placeholder="Password"
+            aria-label={tr(langOf(data.language), "password")}
+            placeholder={tr(langOf(data.language), "password")}
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
             style={{ marginTop: 22, borderRadius: Math.min(theme.radius, 24) }}
           />
           {data.wrong && (
             <div className="fk-live-err" role="alert">
-              That is not the password. Check it with whoever sent you the link.
+              {tr(langOf(data.language), "wrongPassword")}
             </div>
           )}
           <div className="fk-live-foot">
@@ -261,7 +283,7 @@ export function LiveForm({
                 cursor: "pointer",
               }}
             >
-              Open the form
+              {tr(langOf(data.language), "openForm")}
             </button>
           </div>
         </form>

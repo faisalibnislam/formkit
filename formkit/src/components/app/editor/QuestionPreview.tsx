@@ -13,6 +13,7 @@ import { voiceLabel, voiceLength } from "../../../../convex/model/voice";
 export function QuestionPreview({
   type,
   options,
+  rows,
   scaleMin,
   scaleMax,
   maxSeconds,
@@ -22,6 +23,8 @@ export function QuestionPreview({
 }: {
   type: string | null;
   options?: string[] | null;
+  /** A matrix's rows. */
+  rows?: string[] | null;
   scaleMin?: number | null;
   scaleMax?: number | null;
   maxSeconds?: number | null;
@@ -101,6 +104,43 @@ export function QuestionPreview({
           <Star key={i} size={22} strokeWidth={1.6} aria-hidden />
         ))}
       </div>
+    );
+  }
+
+  if (shape === "matrix") {
+    const cols = (options ?? []).slice(0, 5);
+    return (
+      <div className="fk-ghost-matrix" style={{ gridTemplateColumns: `minmax(90px, 1.4fr) repeat(${cols.length}, 1fr)` }}>
+        <span />
+        {cols.map((c, i) => (
+          <span key={i} className="fk-ghost-matrix-head">
+            {c}
+          </span>
+        ))}
+        {(rows ?? []).slice(0, 4).map((r, i) => (
+          <span key={i} style={{ display: "contents" }}>
+            <span className="fk-ghost-matrix-row">{r}</span>
+            {cols.map((_, j) => (
+              <span key={j} className="fk-ghost-dot" style={{ justifySelf: "center" }} />
+            ))}
+          </span>
+        ))}
+      </div>
+    );
+  }
+
+  if (shape === "ranking") {
+    return (
+      <>
+        {(choices.length ? choices : ["First", "Second"]).map((o, i) => (
+          <span key={i} className="fk-ghost-choice">
+            <span className="fk-chip" style={{ minWidth: 26, textAlign: "center" }}>
+              {i + 1}
+            </span>
+            {o}
+          </span>
+        ))}
+      </>
     );
   }
 

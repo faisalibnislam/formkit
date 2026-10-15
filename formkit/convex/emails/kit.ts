@@ -262,6 +262,11 @@ export function paragraph(text: string, opts: { muted?: boolean; top?: number } 
   return `<p style="margin:${opts.top ?? 0}px 0 0;font-family:${FONT};font-size:${opts.muted ? 13.5 : 15}px;line-height:1.6;color:${opts.muted ? C.muted : C.body};">${withLinks(text, C.blue600)}</p>`;
 }
 
+/** A line of text ending in a link, both escaped; no underline, as everywhere. */
+export function linkLine(lead: string, label: string, href: string, opts: { top?: number } = {}) {
+  return `<p style="margin:${opts.top ?? 0}px 0 0;font-family:${FONT};font-size:13.5px;line-height:1.6;color:${C.muted};">${e(lead)} <a href="${e(href)}" style="color:${C.ink};font-weight:500;text-decoration:none;">${e(label)}</a>.</p>`;
+}
+
 /** A pale rounded panel. */
 export function panel(inner: string, opts: { top?: number; pad?: string } = {}) {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:${opts.top ?? 0}px;">

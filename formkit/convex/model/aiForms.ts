@@ -1,4 +1,4 @@
-import { OPERATORS, operatorGroup } from "../logic";
+import { MULTI, VALUELESS, opsFor, valueControl } from "./logicOps";
 import { THEME_PRESETS } from "./themePresets";
 import { voice } from "./gemini";
 
@@ -9,15 +9,14 @@ import { voice } from "./gemini";
  * not have written. Pure functions, so they can be exercised on their own.
  */
 
-import { QUESTION_TYPES, type QuestionType } from "./questionTypes";
+import { QUESTION_TYPES, RULE_OPERATORS, type QuestionType } from "./questionTypes";
 export { QUESTION_TYPES, type QuestionType };
 
 export const CHOICE_TYPES = new Set(["single-choice", "multi-choice", "dropdown"]);
 /** Answers that identify a person. They stay out of anything sent to the model. */
 export const PERSONAL_TYPES = new Set(["name", "email", "phone", "address", "file", "signature", "voice", "company", "url"]);
 export const RULE_ACTIONS = ["show", "hide", "require"] as const;
-const ALL_OPERATORS = [...new Set(Object.values(OPERATORS).flatMap((g) => g.map((o) => o.value)))];
-const VALUELESS = new Set(["is-empty", "is-not-empty"]);
+const ALL_OPERATORS = [...RULE_OPERATORS];
 
 export const VOICE = `House style:
 - Sentence case: capitalise the first word and proper nouns only, never Title Case, never all lowercase.
@@ -63,13 +62,22 @@ export const RULE_SCHEMA = {
   properties: {
     name: { type: "STRING", description: "A short name, like 'Only for existing clients'." },
     when: { type: "STRING", description: "The exact wording of the question the rule reads." },
-    operator: { type: "STRING", enum: ALL_OPERATORS },
-    value: { type: "STRING", description: "For a choice question, one of its options exactly. Empty for is-empty and is-not-empty." },
+    operator: {
+      type: "STRING",
+      enum: ALL_OPERATORS,
+      description:
+        "Choice, yes/no, rating, scale: is, is-not, any-of, none-of, is-empty, is-not-empty. Numbers: is, is-not, at-least, at-most, greater, less, between. Dates: on, before, after, between. Text and email: is, is-not, contains, not-contains, starts-with, ends-with, email-domain (email only), matches.",
+    },
+    value: {
+      type: "STRING",
+      description: "For a choice question, one of its options exactly; for any-of and none-of, options joined with |. Dates as YYYY-MM-DD. Empty for is-empty and is-not-empty.",
+    },
+    value2: { type: "STRING", description: "The upper end, for between only. Otherwise empty." },
     action: { type: "STRING", enum: [...RULE_ACTIONS] },
     target: { type: "STRING", description: "The exact wording of the question it shows, hides or requires. It comes after the one it reads." },
   },
   required: ["name", "when", "operator", "value", "action", "target"],
-  propertyOrdering: ["name", "when", "operator", "value", "action", "target"],
+  propertyOrdering: ["name", "when", "operator", "value", "value2", "action", "target"],
 };
 
 export const DRAFT_SCHEMA = {
@@ -106,6 +114,8 @@ export type DraftRule = {
   when: number;
   operator: string;
   value?: string;
+  /** The upper end of "between". */
+  value2?: string;
   action: (typeof RULE_ACTIONS)[number];
   target: number;
 };
@@ -179,9 +189,9 @@ function resolveQuestion(ref: number | string | undefined, fields: RuleField[]) 
   return loose + 1;
 }
 
-/** A rule the Logic tab could have written, or nothing. */
+/** A rule the Logic tab could have written, or nothing: any operator its question offers. */
 export function checkRule(
-  raw: { name?: string; when?: number | string; operator?: string; value?: string; action?: string; target?: number | string },
+  raw: { name?: string; when?: number | string; operator?: string; value?: string; value2?: string; action?: string; target?: number | string },
   fields: RuleField[],
 ): DraftRule | null {
   const whenAt = resolveQuestion(raw.when, fields);
@@ -191,33 +201,53 @@ export function checkRule(
   // A rule only ever looks back: it reads an earlier answer to change a later question.
   if (!when || !target || targetAt <= whenAt) return null;
   if (!RULE_ACTIONS.includes(raw.action as (typeof RULE_ACTIONS)[number])) return null;
-  const group = operatorGroup(when.type, when.title);
-  if (!OPERATORS[group]!.some((o) => o.value === raw.operator)) return null;
+  const op = raw.operator ?? "";
+  if (!opsFor(when).some((o) => o.value === op)) return null;
+
+  const control = valueControl(when);
+  const options = when.type === "yes-no" ? ["Yes", "No"] : control.kind === "select" ? control.options : null;
+  const one = (s: string) => {
+    const wanted = s.trim();
+    if (!wanted) return undefined;
+    if (options) return options.find((o) => o.toLowerCase() === wanted.toLowerCase()) ?? (when.type === "yes-no" ? (/^y/i.test(wanted) ? "Yes" : /^n/i.test(wanted) ? "No" : undefined) : undefined);
+    if (control.kind === "text" && control.numeric) return /^-?\d+(\.\d+)?$/.test(wanted) ? wanted : undefined;
+    if (when.type === "date") return /^\d{4}-\d{2}-\d{2}$/.test(wanted) ? wanted : undefined;
+    return wanted.slice(0, 120);
+  };
 
   let value: string | undefined;
-  if (!VALUELESS.has(raw.operator!)) {
-    const wanted = String(raw.value ?? "").trim();
-    if (!wanted) return null;
-    if (when.type === "yes-no") {
-      value = /^y/i.test(wanted) ? "Yes" : /^n/i.test(wanted) ? "No" : undefined;
-    } else if (when.options?.length) {
-      value = when.options.find((o) => o.toLowerCase() === wanted.toLowerCase());
-    } else if (group === "number" || when.type === "rating" || when.type === "scale") {
-      value = /^-?\d+(\.\d+)?$/.test(wanted) ? wanted : undefined;
+  let value2: string | undefined;
+  if (!VALUELESS.has(op)) {
+    if (MULTI.has(op)) {
+      const picked = String(raw.value ?? "").split("|").map(one).filter((v): v is string => !!v);
+      if (!picked.length) return null;
+      value = [...new Set(picked)].join("|");
     } else {
-      value = wanted.slice(0, 120);
+      value = one(String(raw.value ?? ""));
+      if (value === undefined) return null;
     }
-    if (value === undefined) return null;
+    if (op === "between") {
+      value2 = one(String(raw.value2 ?? ""));
+      if (value2 === undefined) return null;
+    }
+    if (op === "matches") {
+      try {
+        new RegExp(value);
+      } catch {
+        return null;
+      }
+    }
   }
 
   const name =
     clean(raw.name, 60) ||
-    (value ? `Only for ${value.toLowerCase()}` : `When ${String(when.title ?? "").toLowerCase()} is answered`);
+    (value ? `Only for ${value.replace(/\|/g, " or ").toLowerCase()}` : `When ${String(when.title ?? "").toLowerCase()} is answered`);
   return {
     name,
     when: whenAt,
-    operator: raw.operator!,
+    operator: op,
     value,
+    ...(value2 !== undefined ? { value2 } : {}),
     action: raw.action as DraftRule["action"],
     target: targetAt,
   };

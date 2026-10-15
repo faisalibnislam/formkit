@@ -18,6 +18,7 @@ import { internal } from "./_generated/api";
 const crons = cronJobs();
 
 crons.interval("close forms whose rule has arrived", { minutes: 5 }, internal.forms.sweepAllClosing, {});
+crons.hourly("remind people who stopped partway", { minuteUTC: 30 }, internal.publicForm.remindPartials, {});
 crons.hourly("daily and weekly digests", { minuteUTC: 0 }, internal.digests.run, {});
 crons.hourly("erase forms 60 days in the bin", { minuteUTC: 20 }, internal.forms.purgeExpired, {});
 crons.hourly("erase accounts deleted 30 days ago", { minuteUTC: 40 }, internal.security.purgeDeactivated, {});

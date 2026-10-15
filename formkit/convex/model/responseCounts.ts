@@ -1,7 +1,8 @@
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
+import { movePlaces } from "./places";
 
-type Counted = Pick<Doc<"responses">, "partial" | "preview">;
+type Counted = Pick<Doc<"responses">, "partial" | "preview" | "answers">;
 
 /** What one response adds to its form's totals: previews count for nothing. */
 function weight(r: Counted | null) {
@@ -12,7 +13,7 @@ function weight(r: Counted | null) {
 /**
  * Moves a form's responsesCount and completedCount by one response going
  * from `before` to `after` (either may be null: added, or deleted). A
- * partial finished later moves Completed only.
+ * partial finished later moves Completed only. Limited places move with it.
  */
 export async function countChange(
   ctx: MutationCtx,
@@ -24,6 +25,8 @@ export async function countChange(
   const now = weight(after);
   const responses = now.responses - was.responses;
   const completed = now.completed - was.completed;
+  // Limited places taken, for questions that have them.
+  await movePlaces(ctx, formId, before, after);
   if (!responses && !completed) return;
   const form = await ctx.db.get(formId);
   if (!form) return;

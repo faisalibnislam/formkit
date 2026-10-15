@@ -105,13 +105,16 @@ export const FEATURES = {
   "logic.hidden": { plan: "pro", label: "Hidden fields and pre-filled answers", group: "Smarter forms" },
   "logic.piping": { plan: "pro", label: "Earlier answers in later questions", group: "Smarter forms" },
   "forms.redirect": { plan: "pro", label: "Send people to your page after", group: "Smarter forms" },
+  "forms.languages": { plan: "pro", label: "Forms in several languages, translated by AI", group: "Smarter forms" },
+  "forms.reminders": { plan: "pro", label: "A reminder to people who stopped partway", group: "Smarter forms" },
   "logic.advanced": { plan: "pro", label: "Several endings, hidden options and limited places", group: "Smarter forms" },
   // Pro - people
   collaborators: { plan: "pro", label: "Unlimited guests on every form", group: "Teams" },
   // Pro - connections
   "connect.webhooks": { plan: "pro", label: "Webhooks, to Zapier, Make or your own code", group: "Connections" },
-  "connect.slack": { plan: "pro", label: "Slack", group: "Connections" },
+  "connect.slack": { plan: "pro", label: "Slack, Discord and Microsoft Teams", group: "Connections" },
   "connect.sheets": { plan: "pro", label: "Google Sheets", group: "Connections" },
+  "connect.apps": { plan: "pro", label: "Notion, Airtable and HubSpot", group: "Connections" },
   payments: { plan: "pro", label: "Payments with your own Stripe", group: "Connections" },
   // Pro - AI on responses
   "ai.reply": { plan: "pro", label: "AI-written replies to every submission", group: "AI" },

@@ -1,3 +1,4 @@
+import { cellOf, isRanking } from "./grid";
 import type { Doc } from "../_generated/dataModel";
 import { applyLogic, conditionsOf, ruleMatches, type Answer, type Rule } from "./logicEval";
 
@@ -164,6 +165,25 @@ export function validateAnswers(
         const to = b.scaleMax ?? 5;
         const n = Number(v);
         if (v && (!Number.isInteger(n) || n < from || n > to)) bad("range", `the scale goes from ${from} to ${to}.`);
+        break;
+      }
+      case "matrix": {
+        const rows = b.rows ?? [];
+        const columns = b.options ?? [];
+        const cells = (a.values ?? []).map((x) => cellOf(x, rows, columns));
+        if (cells.some((c) => !c)) {
+          bad("option", "that is not one of the rows and columns.");
+          break;
+        }
+        const perRow = new Map<string, number>();
+        for (const c of cells) perRow.set(c!.row, (perRow.get(c!.row) ?? 0) + 1);
+        if (!b.matrixMulti && [...perRow.values()].some((n) => n > 1)) bad("option", "pick one answer in each row.");
+        if (!opts.partial && b.required && cells.length && perRow.size < rows.length) bad("rows", "answer every row.");
+        break;
+      }
+      case "ranking": {
+        const values = a.values ?? [];
+        if (values.length && !isRanking(values, b.options ?? [])) bad("option", "put every option in order, once each.");
         break;
       }
       case "file": {

@@ -187,12 +187,14 @@ export const summary = query({
   handler: async (ctx, { formId }) => {
     const form = await formFor(ctx, formId, "read");
     if (!form.quiz?.enabled) return null;
+    // The latest 3,000 marked attempts.
     const rows = (
       await ctx.db
         .query("responses")
-        .withIndex("by_form", (q) => q.eq("formId", formId))
-        .collect()
-    ).filter((r) => r.quiz && !r.partial && !r.preview);
+        .withIndex("by_form_preview_submitted", (q) => q.eq("formId", formId).eq("preview", undefined))
+        .order("desc")
+        .take(3000)
+    ).filter((r) => r.quiz && !r.partial);
     const blocks = (
       await ctx.db
         .query("blocks")
@@ -316,8 +318,9 @@ export const waiting = internalQuery({
     (
       await ctx.db
         .query("responses")
-        .withIndex("by_form", (q) => q.eq("formId", formId))
-        .collect()
+        .withIndex("by_form_preview_submitted", (q) => q.eq("formId", formId).eq("preview", undefined))
+        .order("desc")
+        .take(2000)
     )
       .filter((r) => r.quiz && !r.quiz.emailedAt && !r.quiz.pending && r.respondentEmail && !r.partial && !r.preview)
       .map((r) => r._id as Id<"responses">),

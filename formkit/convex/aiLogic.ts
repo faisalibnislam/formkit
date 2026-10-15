@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { action, internalMutation, internalQuery } from "./_generated/server";
+import { action, internalMutation, internalQuery, type ActionCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { aiAllowed, requireUser } from "./model/identity";
@@ -306,7 +306,7 @@ export const countDescribe = internalMutation({
   },
 });
 
-type DescribeContext = {
+export type DescribeContext = {
   userId: Id<"users">;
   allowed: boolean;
   usedToday: number;
@@ -370,11 +370,28 @@ export const describe = action({
     if (words.length < 6) throw new Error("Say a little more about what should happen.");
     if (c.questions.length < 1) throw new Error("Add some questions first.");
 
-    const ref = (i: number) => `q${i + 1}`;
-    const byRef = new Map(c.questions.map((q, i) => [ref(i), q]));
-    const actions = ["show", "hide", "require", "jump", ...(c.advanced ? ["hide-options"] : []), ...(c.advanced && c.endings.length ? ["ending"] : [])];
+    const out = await writeRules(ctx, c, words);
+    await ctx.runMutation(internal.aiLogic.countDescribe, { userId: c.userId });
+    return out;
+  },
+});
 
-    const system = `You turn a form owner's plain description into logic rules for their form.
+/**
+ * Plain words to rules for this form: every operator, condition groups,
+ * jumps, hidden options, endings and calculated results, each checked
+ * against the form before it is offered. "Describe a rule" and Ask Formkit
+ * both write logic this way.
+ */
+export async function writeRules(
+  ctx: Pick<ActionCtx, "runMutation">,
+  c: DescribeContext,
+  words: string,
+): Promise<{ rules: Proposal[]; note?: string }> {
+  const ref = (i: number) => `q${i + 1}`;
+  const byRef = new Map(c.questions.map((q, i) => [ref(i), q]));
+  const actions = ["show", "hide", "require", "jump", ...(c.advanced ? ["hide-options"] : []), ...(c.advanced && c.endings.length ? ["ending"] : [])];
+
+  const system = `You turn a form owner's plain description into logic rules for their form.
 
 A rule is: when some conditions hold, do one thing. Conditions come in groups; each group joins its conditions with "and" or "or", and the rule joins its groups with "and" or "or". Use one group unless the description really needs "(this and that) or something else".
 
@@ -390,101 +407,99 @@ A condition must read a question that comes before the one it affects.
 
 Write at most 4 rules. Give each a short name (under 40 characters) and a one-sentence plain explanation. Never use em dashes. If the description can't be done with these, return no rules and say why in "note", briefly and kindly.`;
 
-    const form = {
-      questions: c.questions.map((q, i) => ({
-        id: ref(i),
-        title: q.title,
-        type: q.type,
-        ...(q.options?.length ? { options: q.options } : {}),
-        ...(q.type === "rating" || q.type === "scale" ? { from: q.scaleMin ?? 1, to: q.scaleMax ?? 5 } : {}),
-      })),
-      ...(c.results.length ? { results: c.results } : {}),
-      ...(c.endings.length && c.advanced ? { endings: c.endings } : {}),
-    };
+  const form = {
+    questions: c.questions.map((q, i) => ({
+      id: ref(i),
+      title: q.title,
+      type: q.type,
+      ...(q.options?.length ? { options: q.options } : {}),
+      ...(q.type === "rating" || q.type === "scale" ? { from: q.scaleMin ?? 1, to: q.scaleMax ?? 5 } : {}),
+    })),
+    ...(c.results.length ? { results: c.results } : {}),
+    ...(c.endings.length && c.advanced ? { endings: c.endings } : {}),
+  };
 
-    let raw: { rules?: RawRule[]; note?: string } | null = null;
-    try {
-      const { text: reply } = await generate({
-        meter: { ctx, userId: c.userId, feature: "logic.write" },
-        system,
-        turns: [{ role: "user", parts: [{ text: `The form:\n${JSON.stringify(form)}\n\nWhat should happen:\n${words}` }] }],
-        schema: {
-          type: "OBJECT",
-          properties: {
-            rules: {
-              type: "ARRAY",
-              items: {
-                type: "OBJECT",
-                properties: {
-                  name: { type: "STRING" },
-                  explain: { type: "STRING" },
-                  join: { type: "STRING", enum: ["and", "or"] },
-                  groups: {
-                    type: "ARRAY",
-                    items: {
-                      type: "OBJECT",
-                      properties: {
-                        join: { type: "STRING", enum: ["and", "or"] },
-                        conditions: {
-                          type: "ARRAY",
-                          items: {
-                            type: "OBJECT",
-                            properties: {
-                              question: { type: "STRING" },
-                              result: { type: "STRING" },
-                              ai: { type: "STRING" },
-                              operator: { type: "STRING" },
-                              value: { type: "STRING" },
-                              value2: { type: "STRING" },
-                            },
-                            required: ["operator"],
+  let raw: { rules?: RawRule[]; note?: string } | null = null;
+  try {
+    const { text: reply } = await generate({
+      meter: { ctx, userId: c.userId, feature: "logic.write" },
+      system,
+      turns: [{ role: "user", parts: [{ text: `The form:\n${JSON.stringify(form)}\n\nWhat should happen:\n${words}` }] }],
+      schema: {
+        type: "OBJECT",
+        properties: {
+          rules: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                name: { type: "STRING" },
+                explain: { type: "STRING" },
+                join: { type: "STRING", enum: ["and", "or"] },
+                groups: {
+                  type: "ARRAY",
+                  items: {
+                    type: "OBJECT",
+                    properties: {
+                      join: { type: "STRING", enum: ["and", "or"] },
+                      conditions: {
+                        type: "ARRAY",
+                        items: {
+                          type: "OBJECT",
+                          properties: {
+                            question: { type: "STRING" },
+                            result: { type: "STRING" },
+                            ai: { type: "STRING" },
+                            operator: { type: "STRING" },
+                            value: { type: "STRING" },
+                            value2: { type: "STRING" },
                           },
+                          required: ["operator"],
                         },
                       },
-                      required: ["join", "conditions"],
                     },
+                    required: ["join", "conditions"],
                   },
-                  action: { type: "STRING", enum: actions },
-                  target: { type: "STRING" },
-                  options: { type: "ARRAY", items: { type: "STRING" } },
-                  ending: { type: "STRING" },
                 },
-                required: ["name", "explain", "join", "groups", "action"],
+                action: { type: "STRING", enum: actions },
+                target: { type: "STRING" },
+                options: { type: "ARRAY", items: { type: "STRING" } },
+                ending: { type: "STRING" },
               },
+              required: ["name", "explain", "join", "groups", "action"],
             },
-            note: { type: "STRING" },
           },
-          required: ["rules"],
+          note: { type: "STRING" },
         },
-        maxTokens: 2000,
-        temperature: 0.2,
-        timeoutMs: 30_000,
-      });
-      raw = parseJson(reply);
-    } catch (e) {
-      if (e instanceof ModelError) throw new Error(e.message);
-      throw e;
-    }
-    await ctx.runMutation(internal.aiLogic.countDescribe, { userId: c.userId });
+        required: ["rules"],
+      },
+      maxTokens: 2000,
+      temperature: 0.2,
+      timeoutMs: 30_000,
+    });
+    raw = parseJson(reply);
+  } catch (e) {
+    if (e instanceof ModelError) throw new Error(e.message);
+    throw e;
+  }
 
-    const order = new Map(c.questions.map((q, i) => [q.id, i]));
-    const rules = [];
-    let dropped = 0;
-    for (const r of (raw?.rules ?? []).slice(0, 4)) {
-      const checked = checkProposal(r, { byRef, order, results: c.results, endings: c.endings, advanced: c.advanced, ai: c.ai });
-      if (checked) rules.push(checked);
-      else dropped++;
-    }
-    const note =
-      raw?.note?.trim().slice(0, 300) ||
-      (dropped && rules.length
-        ? `${dropped} more ${dropped === 1 ? "rule" : "rules"} didn’t fit this form’s questions, so ${dropped === 1 ? "it was" : "they were"} left out.`
-        : !rules.length
-          ? "That couldn’t be turned into a rule for these questions. Try naming the questions and answers involved."
-          : undefined);
-    return { rules, ...(note ? { note } : {}) };
-  },
-});
+  const order = new Map(c.questions.map((q, i) => [q.id, i]));
+  const rules = [];
+  let dropped = 0;
+  for (const r of (raw?.rules ?? []).slice(0, 4)) {
+    const checked = checkProposal(r, { byRef, order, results: c.results, endings: c.endings, advanced: c.advanced, ai: c.ai });
+    if (checked) rules.push(checked);
+    else dropped++;
+  }
+  const note =
+    raw?.note?.trim().slice(0, 300) ||
+    (dropped && rules.length
+      ? `${dropped} more ${dropped === 1 ? "rule" : "rules"} didn’t fit this form’s questions, so ${dropped === 1 ? "it was" : "they were"} left out.`
+      : !rules.length
+        ? "That couldn’t be turned into a rule for these questions. Try naming the questions and answers involved."
+        : undefined);
+  return { rules, ...(note ? { note } : {}) };
+}
 
 type Q = { id: string; title: string; type: string; options: string[] | null; scaleMin: number | null; scaleMax: number | null };
 

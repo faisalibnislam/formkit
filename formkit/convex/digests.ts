@@ -16,6 +16,8 @@ import { renderDigest } from "./emails/response";
  */
 
 const SITE = process.env.SITE_URL ?? "https://formkit.app";
+/** Responses (and starts) read per form for one email; a busier form is described from these. */
+const DIGEST_CAP = 4000;
 const DAY = 24 * 60 * 60 * 1000;
 const HOUR_TO_SEND = 8;
 
@@ -121,7 +123,7 @@ export const content = internalQuery({
         .withIndex("by_form_preview_submitted", (q) =>
           q.eq("formId", f._id).eq("preview", undefined).gte("submittedAt", from).lt("submittedAt", now),
         )
-        .collect();
+        .take(DIGEST_CAP);
       if (!responses.length) continue;
       total += responses.length;
       const completed = responses.filter((r) => !r.partial).length;
@@ -132,7 +134,7 @@ export const content = internalQuery({
           await ctx.db
             .query("formEvents")
             .withIndex("by_form_at", (q) => q.eq("formId", f._id).gte("at", from).lt("at", now))
-            .collect()
+            .take(DIGEST_CAP)
         ).filter((e) => e.kind === "start").length;
         const base = starts || responses.length;
         line += ` · ${Math.round((completed / base) * 100)}% completion`;

@@ -12,7 +12,8 @@ import { useToast } from "@/components/ui/Toast";
 import { fullTime } from "../bits";
 import { CloseFormDialog } from "../dialogs/CloseFormDialog";
 import { localZone, zoneOptions } from "../time";
-import { ClosingRules, closeWhenLabel } from "./ClosingRules";
+import { ClosingRules, OpeningRule, closeWhenLabel } from "./ClosingRules";
+import { LanguagesSection } from "./LanguagesSection";
 import { ConnectionsSection, PaymentsSection } from "./ConnectionsSection";
 import { AiReplySection } from "./AiReplySection";
 import { QuizSection } from "./QuizSection";
@@ -103,6 +104,8 @@ export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
   const form = useSeededQuery(api.forms.get, { formId });
   const redirectGate = useGate("forms.redirect", form?.ownerPlan?.features);
   const pipeGate = useGate("logic.piping", form?.ownerPlan?.features);
+  const remindGate = useGate("forms.reminders", form?.ownerPlan?.features);
+  const setReminder = useMutation(api.forms.setReminder);
   const viewer = useViewer();
   const log = useQuery(api.notifications.log, { formId });
   const update = useMutation(api.forms.update);
@@ -221,9 +224,6 @@ export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
                 onCommit={(description) => tracked(update({ formId, patch: { description } }))}
               />
             </Field>
-            <Row label="Language" hint="English (US) for now">
-              <span className="fk-static-pill">English (US)</span>
-            </Row>
             <Row label="Time zone" hint="Used for closing dates and timestamps">
               <div style={{ width: 250 }}>
                 <Select
@@ -241,6 +241,8 @@ export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
         </Card>
       )}
 
+      {section === "general" && <LanguagesSection formId={formId} features={form.ownerPlan?.features} />}
+
       {section === "responses" && (
         <>
           <Card title="Responses">
@@ -257,6 +259,24 @@ export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
                 label="Allow editing after submit"
                 onChange={(editAfter) => patchSecurity({ editAfter })}
               />
+            </Row>
+            <Row
+              label="Remind people who stop partway"
+              hint="One email with their link back, to anyone who gave an address and did not finish. Say on the form that you may."
+            >
+              <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                {remindGate.locked && <ProChip plan="pro" onClick={() => openUpgrade({ feature: "forms.reminders" })} />}
+                <Select
+                  size="sm"
+                  ariaLabel="Remind people who stop partway"
+                  value={String(form.remindHours ?? "")}
+                  options={[
+                    { value: "", label: "Never" },
+                    ...[3, 6, 12, 24, 48, 72].map((h) => ({ value: String(h), label: h < 24 ? `After ${h} hours` : `After ${h / 24} ${h === 24 ? "day" : "days"}` })),
+                  ]}
+                  onChange={remindGate.guard((v: string) => tracked(setReminder({ formId, hours: v ? Number(v) : null })))}
+                />
+              </span>
             </Row>
           </Card>
 
@@ -317,6 +337,7 @@ export function FormSettingsTab({ formId }: { formId: Id<"forms"> }) {
               )}
             </div>
 
+            {(form.status === "draft" || form.status === "closed") && <OpeningRule formId={formId} opensAt={form.opensAt} zone={zone} />}
             <ClosingRules formId={formId} closing={form.closing} responses={form.completed} zone={zone} />
 
             <div style={{ paddingTop: 6 }}>

@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { SignaturePad } from "./SignaturePad";
+import { MatrixControl, RankingControl } from "./GridControls";
+import { LANG_NAMES, LangContext, RTL, isLang, localize, pickLang, tr, useT, type Lang, type Translation } from "./i18n";
 import { VoiceRecorder } from "./VoiceRecorder";
 import { voiceLength } from "../../../convex/model/voice";
 import { ArrowLeft, Check, Clock3, CornerDownLeft, CreditCard, Lock, Paperclip, Sparkles } from "lucide-react";
@@ -47,6 +50,13 @@ export type Block = {
   placeholder: string | null;
   required: boolean;
   options: string[] | null;
+  /** A matrix's rows; its options are the columns. */
+  rows?: string[] | null;
+  /** In another language: what to show for each option and row (answers keep the form's own). */
+  optionLabels?: string[] | null;
+  rowLabels?: string[] | null;
+  /** A matrix where a row can take several columns. */
+  matrixMulti?: boolean | null;
   accept: string[] | null;
   scaleMin: number | null;
   scaleMax: number | null;
@@ -123,6 +133,9 @@ export type QuizSettings = {
 };
 
 export type OpenForm = {
+  /** The form's language, and (Pro) its translations into others. */
+  language?: string;
+  translations?: Translation[];
   quiz?: QuizSettings | null;
   aiReply?: { delivery: "form" | "email" | "both" } | null;
   formId: Id<"forms">;
@@ -187,7 +200,52 @@ const since = (from: number) => (from ? now() - from : undefined);
 
 const filled = (a?: Answer) => !!(a?.value?.trim() || a?.values?.length || a?.fileId);
 
-export function FormRunner({
+type RunnerProps = Parameters<typeof FormRunnerInner>[0];
+
+/**
+ * The live form in the right language: the link's ?lang=, the visitor's
+ * browser, or the form's own, among those it is offered in. Its words and
+ * (Pro) its questions follow; a switcher shows when there is a choice.
+ */
+export function FormRunner(props: RunnerProps) {
+  const base: Lang = isLang(props.data.language) ? props.data.language : "en";
+  const offered = useMemo(
+    () => [base, ...(props.data.translations ?? []).map((t) => t.lang).filter((l): l is Lang => isLang(l) && l !== base)],
+    [base, props.data.translations],
+  );
+  const [chosen, setChosen] = useState<Lang | null>(null);
+  const lang: Lang =
+    chosen && offered.includes(chosen)
+      ? chosen
+      : typeof window === "undefined"
+        ? base
+        : pickLang(offered, base, new URLSearchParams(window.location.search).get("lang"), navigator.languages ?? [navigator.language]);
+  const data = useMemo(
+    () => (lang === base ? props.data : localize(props.data, props.data.translations?.find((t) => t.lang === lang))),
+    [lang, base, props.data],
+  );
+  return (
+    <LangContext.Provider value={lang}>
+      <div dir={RTL.has(lang) ? "rtl" : undefined} lang={lang}>
+        {offered.length > 1 && (
+          <label className="fk-live-lang">
+            <span className="sr-only">{tr(lang, "language")}</span>
+            <select value={lang} onChange={(e) => setChosen(e.target.value as Lang)}>
+              {offered.map((l) => (
+                <option key={l} value={l}>
+                  {LANG_NAMES[l]}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        <FormRunnerInner {...props} data={data} />
+      </div>
+    </LangContext.Provider>
+  );
+}
+
+function FormRunnerInner({
   data,
   mode,
   closed = false,
@@ -228,6 +286,7 @@ export function FormRunner({
   /** What scrolls - the window, or the preview's own frame. */
   scrollRoot?: RefObject<HTMLElement | null>;
 }) {
+  const tx = useT();
   const theme = themeOf(data.theme);
   const scale = SIZE_SCALE[theme.size];
   const ink = buttonInk(theme.primary);
@@ -385,7 +444,12 @@ export function FormRunner({
   function stopsOnRule(list: Block[]) {
     for (const b of list) {
       if (hidden.has(b._id) || b.kind === "content") continue;
-      const message = ruleProblem(b as never, kept[b._id]);
+      // A required matrix wants every row, as the server does.
+      const rowsLeft =
+        b.type === "matrix" && isRequired(b) && kept[b._id]?.values?.length
+          ? (b.rows ?? []).filter((r) => !kept[b._id]!.values!.some((v) => v.startsWith(`${r}: `))).length
+          : 0;
+      const message = rowsLeft ? tx("everyRow", { n: rowsLeft }) : ruleProblem(b as never, kept[b._id]);
       if (message) {
         setRuleErrors({ [b._id]: message });
         focusQuestion(b._id);
@@ -466,7 +530,7 @@ export function FormRunner({
       } else if (data && typeof data === "object" && (data as { code?: string }).code === "invalid") {
         // The server found an answer the form does not allow: point at it.
         const bad = data as { message?: string; blockId?: string | null };
-        setFailed(bad.message || "One of the answers needs another look.");
+        setFailed(bad.message || tx("checkAgain"));
         if (bad.blockId) {
           setProblem(bad.blockId);
           focusQuestion(bad.blockId);
@@ -474,7 +538,7 @@ export function FormRunner({
         }
       } else {
         const msg = typeof data === "string" ? data : e instanceof Error ? e.message : "";
-        setFailed(msg || "That did not send. Try again in a moment.");
+        setFailed(msg || tx("notSent"));
       }
     } finally {
       setBusy(false);
@@ -642,7 +706,7 @@ export function FormRunner({
 
   async function attach(block: Block, file: File) {
     if (file.size > data.uploadCapMb * 1024 * 1024) {
-      setFileProblem((p) => ({ ...p, [block._id]: `That file is over ${data.uploadCapMb} MB. Try a smaller one.` }));
+      setFileProblem((p) => ({ ...p, [block._id]: tx("fileOver", { mb: data.uploadCapMb }) }));
       return;
     }
     const allowed = block.accept ?? [];
@@ -650,7 +714,7 @@ export function FormRunner({
     if (allowed.length && !allowed.includes(ext)) {
       setFileProblem((p) => ({
         ...p,
-        [block._id]: `This question takes ${allowed.join(" ")} files. Try one of those.`,
+        [block._id]: tx("fileTypes", { types: allowed.join(" ") }),
       }));
       return;
     }
@@ -661,9 +725,13 @@ export function FormRunner({
     });
     try {
       const fileId = await upload(file);
-      setAnswers((a) => ({ ...a, [block._id]: { fileId, fileName: file.name } }));
+      // A signature keeps the name typed beside it.
+      setAnswers((a) => ({
+        ...a,
+        [block._id]: { ...(block.type === "signature" ? { value: a[block._id]?.value } : {}), fileId, fileName: file.name },
+      }));
     } catch {
-      setFileProblem((p) => ({ ...p, [block._id]: "That upload did not finish. Try again." }));
+      setFileProblem((p) => ({ ...p, [block._id]: tx("uploadFailed") }));
     }
   }
 
@@ -699,7 +767,7 @@ export function FormRunner({
           <span className="fk-live-lock">
             <Lock size={30} strokeWidth={1.8} aria-hidden />
           </span>
-          <h1 style={{ marginTop: 22 }}>This form is closed</h1>
+          <h1 style={{ marginTop: 22 }}>{tx("closed")}</h1>
           <p className="fk-live-lede">{data.closedMessage}</p>
         </div>
       </Shell>
@@ -714,14 +782,14 @@ export function FormRunner({
           <span className="fk-live-lock" style={{ background: theme.primary, color: ink }}>
             <CreditCard size={30} strokeWidth={1.8} aria-hidden />
           </span>
-          <h1 style={{ marginTop: 22 }}>{payProblem ? "One more step" : "Taking you to payment…"}</h1>
+          <h1 style={{ marginTop: 22 }}>{payProblem ? tx("oneMoreStep") : tx("toPayment")}</h1>
           <p className="fk-live-lede">
-            {payProblem ?? "Your answers are saved. Payment is handled securely by Stripe."}
+            {payProblem ?? tx("paymentNote")}
           </p>
           {payProblem && (
             <div className="fk-live-foot" style={{ justifyContent: split ? "flex-start" : "center" }}>
               <button type="button" style={button(true)} onClick={() => void goPay(done.responseId!, done.token)}>
-                Try again
+                {tx("tryAgain")}
               </button>
             </div>
           )}
@@ -751,7 +819,7 @@ export function FormRunner({
           <span className="fk-live-lock" style={{ background: theme.primary, color: ink }}>
             <Check size={30} strokeWidth={2} aria-hidden />
           </span>
-          <h1 style={{ marginTop: 22 }}>{say(t?.title) || "Thank you"}</h1>
+          <h1 style={{ marginTop: 22 }}>{say(t?.title) || tx("thankYou")}</h1>
           <p className="fk-live-lede">{say(t?.message) || "Your answers are in."}</p>
           {quiz && mode === "live" && <QuizResult token={done.token} />}
           {quiz && mode === "preview" && (
@@ -830,7 +898,7 @@ export function FormRunner({
               toTop();
             }}
           >
-            {data.welcome?.button || "Start"}
+            {data.welcome?.button || tx("start")}
           </button>
           <span style={{ fontSize: 13.5, opacity: 0.75 }}>
             {questions.length} {questions.length === 1 ? "question" : "questions"}
@@ -858,10 +926,10 @@ export function FormRunner({
     <div className="fk-live-prove">
       <label style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
         <input type="checkbox" checked={human} onChange={(e) => setHuman(e.target.checked)} />
-        <span>I am a person, not a script</span>
+        <span>{tx("person")}</span>
       </label>
       <button type="button" style={button(true)} disabled={!human || busy} onClick={() => send(true)}>
-        {busy ? "Sending…" : "Send"}
+        {busy ? tx("sending") : tx("send")}
       </button>
     </div>
   );
@@ -883,7 +951,7 @@ export function FormRunner({
       setLater((l) => ({ ...l, state: "sent" }));
     } catch (e) {
       const d = (e as { data?: unknown }).data;
-      setLater((l) => ({ ...l, state: "idle", error: typeof d === "string" ? d : "That did not send. Try again in a moment." }));
+      setLater((l) => ({ ...l, state: "idle", error: typeof d === "string" ? d : tx("notSent") }));
     }
   }
   const emailAnswer = fields.find((b) => b.type === "email" && kept[b._id]?.value)?._id;
@@ -891,14 +959,14 @@ export function FormRunner({
     onSaveForLater && mode === "live" && !resume?.editing && answeredCount > 0 && !quiz ? (
       <div className="fk-live-later">
         {later.state === "sent" ? (
-          <p role="status">We have emailed you a link. Your answers are saved; carry on whenever you like.</p>
+          <p role="status">{tx("emailed")}</p>
         ) : !later.open ? (
           <button
             type="button"
             className="fk-live-later-open"
             onClick={() => setLater((l) => ({ ...l, open: true, email: l.email || (emailAnswer ? (kept[emailAnswer]?.value ?? "") : "") }))}
           >
-            Save and finish later
+            {tx("saveLater")}
           </button>
         ) : (
           <form
@@ -907,7 +975,7 @@ export function FormRunner({
               void saveForLater();
             }}
           >
-            <label htmlFor="fk-later-email">We will email you a link back to your answers.</label>
+            <label htmlFor="fk-later-email">{tx("saveLaterHow")}</label>
             <div className="fk-live-later-row">
               <input
                 id="fk-later-email"
@@ -919,7 +987,7 @@ export function FormRunner({
                 onChange={(e) => setLater((l) => ({ ...l, email: e.target.value }))}
               />
               <button type="submit" style={button(false)} disabled={later.state === "sending"}>
-                {later.state === "sending" ? "Sending…" : "Email me the link"}
+                {later.state === "sending" ? tx("sending") : tx("emailMe")}
               </button>
             </div>
             {later.error && <p role="alert" className="fk-live-err">{later.error}</p>}
@@ -933,7 +1001,7 @@ export function FormRunner({
   const question = (b: Block, big = false) => {
     if (b.kind === "content") return <ContentBlock key={b._id} block={b} say={say} big={big} />;
     const err =
-      fileProblem[b._id] ?? (problem === b._id ? "This one is needed before you can go on." : (ruleErrors[b._id] ?? null));
+      fileProblem[b._id] ?? (problem === b._id ? tx("needed") : (ruleErrors[b._id] ?? null));
     const a11y: A11y = {
       id: `q-${b._id}-input`,
       labelledBy: `q-${b._id}-title`,
@@ -992,7 +1060,7 @@ export function FormRunner({
           <textarea
             id={`q-${b._id}-followup`}
             rows={2}
-            placeholder="Optional"
+            placeholder={tx("optional")}
             value={kept[b._id]!.followUp!.answer}
             maxLength={2000}
             onChange={(e) =>
@@ -1012,7 +1080,7 @@ export function FormRunner({
     <div
       className="fk-live-progress"
       role="progressbar"
-      aria-label="Progress through the form"
+      aria-label={tx("progress")}
       aria-valuemin={0}
       aria-valuemax={of}
       aria-valuenow={n}
@@ -1036,7 +1104,7 @@ export function FormRunner({
       return (
         <Shell theme={theme} brand={data.brand} logos={data.logos} custom={data.custom}>
           {intro}
-          <p className="fk-live-note">There are no questions on this form yet.</p>
+          <p className="fk-live-note">{tx("noQuestions")}</p>
         </Shell>
       );
     }
@@ -1076,11 +1144,11 @@ export function FormRunner({
                   setStep((s) => Math.max(0, s - 1));
                 }}
               >
-                <ArrowLeft size={17} strokeWidth={1.9} aria-hidden /> Back
+                <ArrowLeft size={17} strokeWidth={1.9} aria-hidden /> {tx("back")}
               </button>
             )}
             <button type="submit" style={button(true)} disabled={busy || thinking}>
-              {thinking ? "One moment…" : busy ? "Sending…" : lastStep ? "Submit" : "OK"}
+              {thinking ? tx("oneMoment") : busy ? tx("sending") : lastStep ? tx("submit") : tx("ok")}
             </button>
             {!lastStep && (
               <span className="fk-live-hint">
@@ -1119,7 +1187,7 @@ export function FormRunner({
       >
         {trapField}
         <div style={{ marginTop: 10 }}>{(current?.fields ?? []).map((b) => question(b))}</div>
-        {!fields.length && <p className="fk-live-note">There are no questions on this form yet.</p>}
+        {!fields.length && <p className="fk-live-note">{tx("noQuestions")}</p>}
         {failure}
         {proveBox}
         <div className="fk-live-foot">
@@ -1132,11 +1200,11 @@ export function FormRunner({
                 toTop();
               }}
             >
-              Back
+              {tx("back")}
             </button>
           )}
           <button type="submit" style={button(true)} disabled={busy || thinking || !fields.length}>
-            {thinking ? "One moment…" : busy ? "Sending…" : lastPage ? (resume?.editing ? "Save changes" : "Submit") : "Next"}
+            {thinking ? tx("oneMoment") : busy ? tx("sending") : lastPage ? (resume?.editing ? tx("saveChanges") : tx("submit")) : tx("next")}
           </button>
           <span style={{ fontSize: 13.5, opacity: 0.75 }}>
             {answeredCount} of {questions.length} answered
@@ -1240,6 +1308,7 @@ function Control({
   /** Quiz: a seed that puts the options in this person's own order. */
   shuffle?: number;
 }) {
+  const tx = useT();
   const radius = Math.min(theme.radius, 24);
   // "Other" was picked but nothing typed yet (an empty answer is no answer).
   const [otherOpen, setOtherOpen] = useState(false);
@@ -1273,6 +1342,9 @@ function Control({
     .map((o, i) => ({ o, left: block.left?.[i] ?? null }))
     .filter((x) => !hiddenOptions?.has(x.o));
   const offered = shuffle === undefined ? listed : shuffled(listed, shuffle + block._id.length, (x) => `${block._id}${x.o}`);
+  // In another language an option shows its translation; the answer keeps the form's own option.
+  const optionLabel = (o: string) =>
+    block.type === "yes-no" ? (o === "Yes" ? tx("yes") : o === "No" ? tx("no") : o) : (block.optionLabels?.[(block.options ?? []).indexOf(o)] ?? o);
   const placeNote = (left: number | null) =>
     left === null ? null : left <= 0 ? "Full" : left === 1 ? "1 place left" : `${left} places left`;
   const box: React.CSSProperties = {
@@ -1348,7 +1420,7 @@ function Control({
                 onChange({ value: o });
               }}
             >
-              {o}
+              {optionLabel(o)}
               {placeNote(left) && <span className="fk-live-places">{placeNote(left)}</span>}
             </button>
           ))}
@@ -1366,7 +1438,7 @@ function Control({
                 onChange({ value: typed ?? "" });
               }}
             >
-              Other
+              {tx("other")}
             </button>
           )}
         </div>
@@ -1374,8 +1446,8 @@ function Control({
           <input
             style={{ ...box, marginTop: 10 }}
             autoFocus
-            aria-label="Other, please say"
-            placeholder="Please say"
+            aria-label={`${tx("other")}: ${tx("pleaseSay")}`}
+            placeholder={tx("pleaseSay")}
             value={typed ?? ""}
             maxLength={200}
             onChange={(e) => onChange({ value: e.target.value })}
@@ -1412,7 +1484,7 @@ function Control({
                 })
               }
             >
-              {o}
+              {optionLabel(o)}
               {placeNote(left) && <span className="fk-live-places">{placeNote(left)}</span>}
             </button>
           ))}
@@ -1431,7 +1503,7 @@ function Control({
                 } else setOtherOpen(true);
               }}
             >
-              Other
+              {tx("other")}
             </button>
           )}
         </div>
@@ -1439,8 +1511,8 @@ function Control({
           <input
             style={{ ...box, marginTop: 10 }}
             autoFocus
-            aria-label="Other, please say"
-            placeholder="Please say"
+            aria-label={`${tx("other")}: ${tx("pleaseSay")}`}
+            placeholder={tx("pleaseSay")}
             value={typed}
             maxLength={200}
             onChange={(e) => onChange({ values: e.target.value ? [...picked, e.target.value] : picked })}
@@ -1450,6 +1522,35 @@ function Control({
       );
     }
 
+    case "matrix":
+      return (
+        <MatrixControl
+          rows={block.rows ?? []}
+          columns={block.options ?? []}
+          rowLabels={block.rowLabels ?? undefined}
+          columnLabels={block.optionLabels ?? undefined}
+          multi={!!block.matrixMulti}
+          values={value?.values ?? []}
+          radius={radius}
+          label={block.title ?? "This question"}
+          group={group}
+          onChange={(values) => onChange(values.length ? { values } : {})}
+        />
+      );
+
+    case "ranking":
+      return (
+        <RankingControl
+          options={block.options ?? []}
+          labels={block.optionLabels ?? undefined}
+          values={value?.values ?? []}
+          radius={radius}
+          label={block.title ?? "This question"}
+          group={group}
+          onChange={(values) => onChange({ values })}
+        />
+      );
+
     case "dropdown":
       return (
         <select
@@ -1458,10 +1559,10 @@ function Control({
           {...native}
           onChange={(e) => onChange({ value: e.target.value })}
         >
-          <option value="">Choose one</option>
+          <option value="">{tx("chooseOne")}</option>
           {offered.map(({ o, left }) => (
             <option key={o} value={o} disabled={left !== null && left <= 0}>
-              {placeNote(left) ? `${o} (${placeNote(left)})` : o}
+              {placeNote(left) ? `${optionLabel(o)} (${placeNote(left)})` : optionLabel(o)}
             </option>
           ))}
         </select>
@@ -1546,8 +1647,8 @@ function Control({
           <span style={{ flex: 1, minWidth: 0 }}>
             {value?.fileName ??
               (block.accept?.length
-                ? `Choose a ${block.accept.join(" ")} file, up to ${capMb} MB`
-                : `Choose a file, up to ${capMb} MB`)}
+                ? tx("chooseTypedFile", { types: block.accept.join(" "), mb: capMb })
+                : tx("chooseFile", { mb: capMb }))}
           </span>
           <input
             type="file"
@@ -1578,12 +1679,17 @@ function Control({
 
     case "signature":
       return (
-        <input
-          style={{ ...box, fontSize: "1.3em" }}
-          placeholder="Type your full name"
-          value={value?.value ?? ""}
-          {...native}
-          onChange={(e) => onChange({ value: e.target.value })}
+        <SignaturePad
+          name={value?.value ?? ""}
+          drawn={!!value?.fileId}
+          failed={fileFailed}
+          accent={theme.primary}
+          radius={radius}
+          label={block.title ?? "this question"}
+          inputProps={{ ...native, style: { ...box, marginTop: 10 } }}
+          onName={(name) => onChange({ ...value, value: name })}
+          onDrawing={onFile}
+          onClear={() => onChange({ value: value?.value })}
         />
       );
 
@@ -1733,7 +1839,7 @@ function prefilled(blocks: Block[], allowed: boolean): Record<string, Answer> {
     } else if (["single-choice", "dropdown", "yes-no"].includes(b.type ?? "")) {
       const v = match(raw);
       if (v) out[b._id] = { value: v };
-    } else if (b.type !== "file" && b.type !== "signature" && b.type !== "voice") {
+    } else if (!["file", "signature", "voice", "matrix", "ranking"].includes(b.type ?? "")) {
       out[b._id] = { value: raw.slice(0, 2000) };
     }
   }

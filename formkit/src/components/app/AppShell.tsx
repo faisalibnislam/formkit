@@ -398,7 +398,7 @@ function AppFrame({ children }: { children: ReactNode }) {
         meta: "All submissions",
         icon: <Inbox size={15} strokeWidth={1.8} aria-hidden />,
         label: "New:",
-        value: known(newResponses !== undefined, String(newResponses ?? 0)),
+        value: known(newResponses !== undefined, (newResponses ?? 0) > 999 ? "999+" : String(newResponses ?? 0)),
       },
       {
         key: "analytics" as NavKey,

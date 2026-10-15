@@ -18,6 +18,7 @@ import { THEME_PRESETS } from "./model/themePresets";
 import { draftChanges, publishNow, setOpen } from "./forms";
 import { summarize } from "./model/summary";
 import { searchTextOf } from "./model/responseSearch";
+import { EVENTS, publicHttps } from "./connections";
 
 /**
  * The API, version 2: what scripts, Zapier and AI assistants (through the
@@ -35,6 +36,9 @@ import { searchTextOf } from "./model/responseSearch";
  *   GET   /api/v2/forms/{id}/insights         insights:read   reports already written
  *   GET   /api/v2/responses/{id}              responses:read
  *   PATCH /api/v2/responses/{id}              responses:write status and tags
+ *   GET   /api/v2/me                          any             who the key belongs to
+ *   POST  /api/v2/hooks                       responses:read  subscribe a URL to new responses (Pro)
+ *   DELETE /api/v2/hooks/{id}                 responses:read  unsubscribe it
  *
  * Authorization: Bearer fk_live_… (a key from Settings → Developers) or an
  * access token a connected app was given. One account's own forms only, and
@@ -218,7 +222,7 @@ async function responseRow(ctx: QueryCtx, r: Doc<"responses">, keys: Map<string,
     insight: r.insight ?? null,
     source: r.source ?? null,
     utm: r.utm ?? null,
-    viewUrl: `${SITE}/app/responses?r=${r._id}`,
+    viewUrl: `${SITE}/app/responses?open=${r._id}`,
   };
 }
 
@@ -266,6 +270,11 @@ export const read = internalQuery({
       const r = responseId ? await ctx.db.get(responseId) : null;
       if (!r || r.ownerId !== ownerId || r.preview) return NOT_FOUND;
       return ok(await responseRow(ctx, r, await keysOf(ctx, r.formId)));
+    }
+
+    if (route === "me") {
+      const me = await ctx.db.get(ownerId);
+      return ok({ id: ownerId, name: me?.name ?? null, email: me?.email ?? null, plan: await planOfId(ctx, ownerId) });
     }
 
     const form = await ownForm(ctx, ownerId, id ?? "");
@@ -388,6 +397,42 @@ export const write = internalMutation({
       });
       const form = (await ctx.db.get(formId))!;
       return ok(await fullForm(ctx, form), 201);
+    }
+
+    if (route === "hook-remove") {
+      const hookId = ctx.db.normalizeId("connections", id ?? "");
+      const hook = hookId ? await ctx.db.get(hookId) : null;
+      if (!hook || hook.ownerId !== ownerId || !hook.viaApi) return NOT_FOUND;
+      await ctx.db.delete(hook._id);
+      return ok({ id: hook._id, removed: true });
+    }
+
+    if (route === "hook-add") {
+      const form = await ownForm(ctx, ownerId, String(body.formId ?? ""));
+      if (!form) return err(404, "No form with that `formId` on this account.");
+      if (!(await hasFeature(ctx, form, "connect.webhooks"))) return err(403, "Sending responses to Zapier, Make or a webhook is part of Pro.");
+      const url = publicHttps(String(body.url ?? ""));
+      if (!url) return err(422, "`url` must be a public https address.");
+      const event = String(body.event ?? "response.created");
+      if (!(EVENTS as readonly string[]).includes(event)) return err(422, `\`event\` is one of ${EVENTS.join(", ")}.`);
+      const existing = await ctx.db
+        .query("connections")
+        .withIndex("by_form", (q) => q.eq("formId", form._id))
+        .collect();
+      if (existing.length >= 10) return err(409, "Ten connections is the most one form can have.");
+      const hookId = await ctx.db.insert("connections", {
+        formId: form._id,
+        ownerId,
+        kind: "webhook",
+        label: str(body.label, 60) || "Zapier",
+        url,
+        secret: `fks_${crypto.randomUUID().replace(/-/g, "")}`,
+        events: [event],
+        viaApi: true,
+        enabled: true,
+        createdAt: Date.now(),
+      });
+      return ok({ id: hookId, formId: form._id, url, event }, 201);
     }
 
     if (route === "response") {
@@ -585,6 +630,9 @@ const NEEDS: Record<string, Scope> = {
   search: "responses:read",
   response: "responses:read",
   "response-write": "responses:write",
+  me: "forms:read",
+  "hook-add": "responses:read",
+  "hook-remove": "responses:read",
   summary: "insights:read",
   insights: "insights:read",
 };
@@ -604,6 +652,9 @@ export function routeOf(method: string, path: string): { route: string; id?: str
     if (method === "GET") return { route: "response", id: p[1], write: false };
     if (method === "PATCH") return { route: "response", id: p[1], write: true };
   }
+  if (p[0] === "me" && p.length === 1 && method === "GET") return { route: "me", write: false };
+  if (p[0] === "hooks" && p.length === 1 && method === "POST") return { route: "hook-add", write: true };
+  if (p[0] === "hooks" && p.length === 2 && method === "DELETE") return { route: "hook-remove", id: p[1], write: true };
   return null;
 }
 
@@ -615,7 +666,7 @@ export const handle = httpAction(async (ctx, req) => {
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Headers": "Authorization, Content-Type",
-        "Access-Control-Allow-Methods": "GET, POST, PATCH",
+        "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE",
       },
     });
   }

@@ -61,7 +61,7 @@ export const PRIVACY: LegalSection[] = [
     title: "Who else touches it",
     paras: [
       "A small number of companies handle data for us because they run the machines: Convex and Vercel host Formkit, Resend delivers its email, Polar handles billing for paid plans, Google's Gemini models power the AI features, and Sentry receives reports of errors in the app (what went wrong, without answers or account details). They are bound to use it only to provide that service. If you allow it on our public pages, Google Analytics also receives visit data from those pages (see Cookies).",
-      "AI features send Google only what they need. Ask Formkit sends your prompt and the form you are working on, and, when you ask it to read responses, counts and written answers without names, email addresses or phone numbers. If you turn on AI replies, AI logic or AI insights for a form, each response to it is sent as it arrives, so the reply, decision or summary can be written. If you ask for a voice question's recordings to be written out, each recording is sent once, to be transcribed. Google may not use any of it to train its models.",
+      "AI features send Google only what they need. Ask Formkit sends your prompt and the form you are working on, and, when you ask it to read responses, counts and written answers without names, email addresses or phone numbers. If you turn on AI replies, AI logic or AI insights for a form, each response to it is sent as it arrives, so the reply, decision or summary can be written. If you ask for a voice question's recordings to be written out, each recording is sent once, to be transcribed. If you turn on search by meaning for a form, each response's answers, without names, email addresses or phone numbers, are sent once to be indexed. Google may not use any of it to train its models.",
       "Apps you connect, such as an AI assistant you allow to use your Formkit, can read and change what you let them on the consent screen, and nothing else. What they do with it is between you and them. You can disconnect any of them in Settings → Developers.",
       "Formkit staff can reach your account for support: to answer a ticket, look into a report, or investigate abuse. When they do, it is logged, and a support view is read-only: staff can see what you see and change nothing.",
     ],
@@ -282,7 +282,7 @@ export const DPA: LegalSection[] = [
       "Cloudflare (Turnstile): the spam check on forms with spam protection on. It sees the respondent's browser and connection, never their answers.",
       "Sentry: reports of errors in the app, with links stripped of tokens and without answers or account details.",
       "Polar: billing for Formkit plans (your account details only, never your responses).",
-      "Google (Gemini): the AI features. It receives your prompts and the form when you use Ask Formkit; responses without names, emails or phone numbers when you ask it to read them; each response to a form with AI replies, AI logic or AI insights turned on; and voice recordings on questions set to be written out. It may not use the data to train its models.",
+      "Google (Gemini): the AI features. It receives your prompts and the form when you use Ask Formkit; responses without names, emails or phone numbers when you ask it to read them; each response to a form with AI replies, AI logic or AI insights turned on; voice recordings on questions set to be written out; and, for forms with search by meaning on, each response's answers without contact details. It may not use the data to train its models.",
     ],
   },
   {
@@ -296,7 +296,7 @@ export const DPA: LegalSection[] = [
     id: "your-own-services",
     title: "Services you connect yourself",
     paras: [
-      "Webhooks, Slack, Google Sheets and Stripe payments send data where you tell them to. Those services are yours to choose, and your agreement with them, not this one, covers what they do with it.",
+      "Webhooks, Slack, Discord, Microsoft Teams, Google Sheets, Notion, Airtable, HubSpot and Stripe payments send data where you tell them to. Those services are yours to choose, and your agreement with them, not this one, covers what they do with it.",
     ],
   },
   {

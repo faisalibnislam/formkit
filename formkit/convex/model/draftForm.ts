@@ -79,7 +79,7 @@ export async function insertDraftForm(
       name: r.name,
       enabled: true,
       join: "and",
-      conditions: [{ blockId: whenId, operator: r.operator, value: r.value }],
+      conditions: [{ blockId: whenId, operator: r.operator, value: r.value, ...(r.value2 !== undefined ? { value2: r.value2 } : {}) }],
       action: r.action,
       targetId,
       order,

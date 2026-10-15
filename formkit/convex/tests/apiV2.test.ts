@@ -115,8 +115,8 @@ test("a key does only what it was given, on its own account's forms", async () =
   const nobody = await t.fetch("/api/v2/forms", { headers: { Authorization: "Bearer fk_live_" + "0".repeat(48) } });
   expect(nobody.status).toBe(401);
   // There is no way to delete anything.
-  const del = await t.fetch(`/api/v2/forms/${made.body.id}`, { method: "DELETE", headers: { Authorization: "Bearer x" } });
-  expect(del.status).toBe(404);
+  expect((await writer("DELETE", `forms/${made.body.id}`)).status).toBe(404);
+  expect((await writer("DELETE", `responses/${made.body.id}`)).status).toBe(404);
 });
 
 test("a Pro key reads a form's summary", async () => {

@@ -28,4 +28,25 @@ export const QUESTION_TYPES = [
 export type QuestionType = (typeof QUESTION_TYPES)[number];
 
 /** What a rule's condition can test, by the kind of question it reads. */
-export const RULE_OPERATORS = ["is", "is-not", "contains", "is-empty", "is-not-empty", "at-least", "at-most", "greater", "less"] as const;
+export const RULE_OPERATORS = [
+  "is",
+  "is-not",
+  "any-of",
+  "none-of",
+  "contains",
+  "not-contains",
+  "starts-with",
+  "ends-with",
+  "email-domain",
+  "matches",
+  "at-least",
+  "at-most",
+  "greater",
+  "less",
+  "between",
+  "before",
+  "after",
+  "on",
+  "is-empty",
+  "is-not-empty",
+] as const;

@@ -99,6 +99,13 @@ export const API_DOCS: LegalSection[] = [
     ],
   },
   {
+    id: "hooks",
+    title: "Subscribe to new responses (Pro)",
+    paras: [
+      "POST /api/v2/hooks with formId, url (a public https address) and optionally event (response.created, response.updated, response.paid or response.deleted) sends that form's responses to the address as they happen, in the webhook format below. It answers with the subscription's id; DELETE /api/v2/hooks/{id} ends it. Tools like Zapier and Make subscribe this way. GET /api/v2/me says which account a key belongs to.",
+    ],
+  },
+  {
     id: "mcp",
     title: "AI assistants (MCP)",
     paras: [
@@ -125,7 +132,7 @@ export const API_DOCS: LegalSection[] = [
     id: "webhooks",
     title: "Webhook signatures",
     paras: [
-      "Webhooks (Pro and Business, in a form's Settings → Connections) POST each new response as JSON. The Formkit-Event header says what happened (response.created, response.updated when someone changes a response they sent, response.paid or response.test) and Formkit-Signature proves it came from Formkit:",
+      "Webhooks (Pro and Business, in a form's Settings → Connections) POST each new response as JSON. The Formkit-Event header says what happened (response.created, response.updated when someone changes a response they sent, response.paid, response.deleted with only the response id, or response.test; each webhook picks which it is sent) and Formkit-Signature proves it came from Formkit:",
       "Formkit-Signature: t=<unix seconds>,v1=<hex HMAC-SHA256 of \"<t>.<raw body>\" keyed with the webhook's secret>. Check it, and refuse anything older than five minutes. In Node:",
     ],
     code: [
