@@ -7,6 +7,7 @@ import { formFor } from "./model/forms";
 import { requireFeature } from "./model/plans";
 import { LANG_ENGLISH_NAMES, isLang, type Lang } from "./model/langs";
 import { generate, ModelError, parseJson } from "./model/gemini";
+import { flagOn } from "./model/flags";
 
 /**
  * Forms in more than one language.
@@ -108,6 +109,7 @@ export const translateContext = internalQuery({
     const form = await formFor(ctx, formId);
     await requireFeature(ctx, form, "forms.languages");
     if (!isLang(lang)) throw new ConvexError("Formkit does not offer forms in that language yet.");
+    if (!(await flagOn(ctx, "ai.translate", form.ownerId))) throw new ConvexError("AI translation is paused for now. You can still write the translation yourself.");
     return { title: form.title, from: (isLang(form.language) ? form.language : "en") as Lang, source: await sourceOf(ctx, form) };
   },
 });

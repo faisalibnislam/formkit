@@ -6,6 +6,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { sha256Hex } from "./model/apiKeys";
 import { API_RATE, KEY_PATTERN, TOKEN_PATTERN, scopesOf, type Scope } from "./model/apiAuth";
 import { allow } from "./model/rateLimit";
+import { flagOn } from "./model/flags";
 import { hasFeature, planOfId } from "./model/plans";
 import { formUrl } from "./model/handles";
 import { recount } from "./model/forms";
@@ -100,6 +101,9 @@ export const authorize = internalMutation({
       }
       ownerId = token.userId;
       scopes = scopesOf(token.scopes);
+      if (!(await flagOn(ctx, "api.connectedApps", ownerId))) {
+        return { ok: false, status: 503, message: "Connected apps are paused for a moment. Try again later." };
+      }
       if (Date.now() - (token.lastUsedAt ?? 0) > 60_000) await ctx.db.patch(token._id, { lastUsedAt: Date.now() });
     }
     const owner = await ctx.db.get(ownerId);

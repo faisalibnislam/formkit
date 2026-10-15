@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { flagOn } from "./model/flags";
 import { action, internalMutation, internalQuery, type ActionCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
@@ -613,6 +614,7 @@ export const followUpContext = internalQuery({
     const form = await ctx.db.get(formId);
     if (!form || form.status !== "published" || form.deletedAt) return null;
     if (!(await hasFeature(ctx, form, "logic.ai")) || !(await aiAllowed(ctx, form.ownerId))) return null;
+    if (!(await flagOn(ctx, "ai.followUp", form.ownerId))) return null;
     const block = (await servedForm(ctx, form)).blocks.find((b) => b._id === blockId);
     if (!block?.followUp?.on) return null;
     const since = Date.now() - 3_600_000;

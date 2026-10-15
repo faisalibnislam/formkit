@@ -93,8 +93,9 @@ describe("submit", () => {
     return { t, owner, formId, blockId };
   }
 
-  test("log-only: a bad submission is stored and recorded for review", async () => {
+  test("with forms.strictAnswers turned off, a bad submission is stored and recorded for review", async () => {
     const { t, formId, blockId } = await setup();
+    await t.run((ctx) => ctx.db.insert("featureFlags", { key: "forms.strictAnswers", label: "x", description: "x", enabled: false, rollout: 100 }));
     await t.mutation(api.publicForm.submit, { formId, partial: false, answers: [{ blockId, value: "nope" }] });
     const log = await t.run((ctx) => ctx.db.query("validationLog").collect());
     expect(log).toHaveLength(1);
@@ -102,9 +103,8 @@ describe("submit", () => {
     expect(await t.run((ctx) => ctx.db.query("responses").collect())).toHaveLength(1);
   });
 
-  test("with forms.strictAnswers on, it is refused", async () => {
+  test("by default (forms.strictAnswers on), it is refused", async () => {
     const { t, formId, blockId } = await setup();
-    await t.run((ctx) => ctx.db.insert("featureFlags", { key: "forms.strictAnswers", label: "x", description: "x", enabled: true, rollout: 100 }));
     await expect(
       t.mutation(api.publicForm.submit, { formId, partial: false, answers: [{ blockId, value: "nope" }] }),
     ).rejects.toThrow();

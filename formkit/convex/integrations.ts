@@ -7,6 +7,7 @@ import { requireUser } from "./model/identity";
 import { formFor } from "./model/forms";
 import { hasFeature, requireFeature } from "./model/plans";
 import { seal, unseal } from "./model/sealed";
+import { flagOn } from "./model/flags";
 import { PROVIDERS, PROVIDER_IDS, credentials, type ProviderId } from "./model/providers";
 
 /**
@@ -211,7 +212,10 @@ export const disconnect = mutation({
 
 export const account = internalQuery({
   args: { accountId: v.id("integrationAccounts") },
-  handler: async (ctx, { accountId }) => ctx.db.get(accountId),
+  handler: async (ctx, { accountId }) => {
+    const a = await ctx.db.get(accountId);
+    return a ? { ...a, paused: !(await flagOn(ctx, "connect.apps", a.ownerId)) } : null;
+  },
 });
 
 export const ownAccount = internalQuery({
@@ -468,6 +472,7 @@ export async function pushToApp(ctx: ActionCtx, c: Doc<"connections">, p: Payloa
   if (!c.accountId || !c.target) return { ok: false, status: 0, detail: "Not set up" };
   const a = await ctx.runQuery(internal.integrations.account, { accountId: c.accountId });
   if (!a) return { ok: false, status: 0, detail: "The account was disconnected. Connect it again." };
+  if (a.paused) return { ok: false, status: 0, detail: "Paused by Formkit for a moment" };
   try {
     const token = await tokenFor(ctx, a);
     const t = c.target;
