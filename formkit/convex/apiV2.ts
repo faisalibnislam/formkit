@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { keysOf, responseRow } from "./model/responseJson";
 import { remember } from "./model/history";
 import { httpAction, internalMutation, internalQuery } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
@@ -197,45 +198,6 @@ async function fullForm(ctx: QueryCtx, form: Doc<"forms">) {
         targetId: r.targetId ?? null,
       })),
   };
-}
-
-async function responseRow(ctx: QueryCtx, r: Doc<"responses">, keys: Map<string, string | undefined>) {
-  const answers = [];
-  for (const a of r.answers) {
-    answers.push({
-      questionId: a.blockId,
-      key: keys.get(a.blockId) ?? null,
-      question: a.question,
-      value: a.values?.length ? a.values : (a.fileName ?? a.value ?? null),
-      ...(a.fileId ? { fileUrl: await ctx.storage.getUrl(a.fileId) } : {}),
-      ...(a.transcript ? { transcript: a.transcript } : {}),
-      ...(a.followUp?.answer.trim() ? { followUp: a.followUp } : {}),
-    });
-  }
-  return {
-    id: r._id,
-    formId: r.formId,
-    submittedAt: new Date(r.submittedAt).toISOString(),
-    complete: !r.partial,
-    status: r.status,
-    tags: r.tags ?? [],
-    respondent: {
-      name: r.respondentName ?? null,
-      email: r.respondentEmail ?? null,
-      phone: r.respondentPhone ?? null,
-      company: r.respondentCompany ?? null,
-    },
-    answers,
-    calculations: r.calc ?? {},
-    insight: r.insight ?? null,
-    source: r.source ?? null,
-    utm: r.utm ?? null,
-    viewUrl: `${SITE}/app/responses?open=${r._id}`,
-  };
-}
-
-async function keysOf(ctx: QueryCtx, formId: Id<"forms">) {
-  return new Map((await blocksOf(ctx, formId)).map((b) => [b._id as string, b.key]));
 }
 
 const iso = (s: unknown) => {

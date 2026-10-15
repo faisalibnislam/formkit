@@ -15,6 +15,7 @@ import { tellDeleted } from "./connections";
 import { countChange } from "./model/responseCounts";
 import { contactKeyOf, contactOf, notePerson, type Contact } from "./model/contacts";
 import type { ExportContact, ExportPage, ExportRecord } from "./model/exportSheet";
+import { keysOf, responseRow, type ResponseJson } from "./model/responseJson";
 
 /**
  * The response inbox.
@@ -778,6 +779,71 @@ const FORM_CONTACTS_PAGE = 200;
  * model/exportSheet.ts turns the pages into the sheet, so no single read
  * holds every response.
  */
+type ExportArgs = {
+  formId?: Id<"forms">;
+  ids?: Id<"responses">[];
+  from?: number;
+  to?: number;
+  includePartial?: boolean;
+  cursor: string | null;
+};
+
+/** The responses one page of an export takes: a form's, the company's, or the ticked ones. */
+async function exportRows(ctx: QueryCtx, { formId, ids, from, to, includePartial = true, cursor }: ExportArgs) {
+  let forms: Doc<"forms">[];
+  let ownerId: Id<"users">;
+  if (formId) {
+    const form = await formFor(ctx, formId, "read");
+    forms = [form];
+    ownerId = form.ownerId;
+  } else {
+    const user = await requireUser(ctx);
+    const space = await currentSpace(ctx, user);
+    forms = (await spaceForms(ctx, space)).filter((f) => !f.deletedAt);
+    ownerId = space.ownerId;
+  }
+  const titles = new Map(forms.map((f) => [f._id as string, f.title]));
+  const inRange = (r: Doc<"responses">) =>
+    (from === undefined || r.submittedAt >= from) && (to === undefined || r.submittedAt < to);
+
+  let picked: Doc<"responses">[];
+  let next: string;
+  let done: boolean;
+  if (ids) {
+    // The ticked rows, previews too: someone ticked them.
+    const at = cursor ? Number(cursor) : 0;
+    const slice = ids.slice(at, at + EXPORT_PAGE);
+    picked = (await Promise.all(slice.map((id) => ctx.db.get(id)))).filter(
+      (r): r is Doc<"responses"> =>
+        !!r && r.ownerId === ownerId && titles.has(r.formId) && (includePartial || !r.partial) && inRange(r),
+    );
+    next = String(at + slice.length);
+    done = at + slice.length >= ids.length;
+  } else {
+    const source = formId
+      ? ctx.db.query("responses").withIndex("by_form_preview_submitted", (q) => {
+          const real = q.eq("formId", formId).eq("preview", undefined);
+          if (from !== undefined && to !== undefined) return real.gte("submittedAt", from).lt("submittedAt", to);
+          if (from !== undefined) return real.gte("submittedAt", from);
+          if (to !== undefined) return real.lt("submittedAt", to);
+          return real;
+        })
+      : ctx.db.query("responses").withIndex("by_owner_preview_submitted", (q) => {
+          const real = q.eq("ownerId", ownerId).eq("preview", undefined);
+          if (from !== undefined && to !== undefined) return real.gte("submittedAt", from).lt("submittedAt", to);
+          if (from !== undefined) return real.gte("submittedAt", from);
+          if (to !== undefined) return real.lt("submittedAt", to);
+          return real;
+        });
+    const page = await source.order("asc").paginate({ numItems: EXPORT_PAGE, cursor });
+    picked = page.page.filter((r) => titles.has(r.formId) && (includePartial || !r.partial));
+    next = page.continueCursor;
+    done = page.isDone;
+  }
+
+  return { forms, titles, picked, next, done };
+}
+
 export const exportPage = query({
   args: {
     formId: v.optional(v.id("forms")),
@@ -788,57 +854,7 @@ export const exportPage = query({
     cursor: v.union(v.string(), v.null()),
   },
   handler: async (ctx, { formId, ids, from, to, includePartial = true, cursor }): Promise<ExportPage> => {
-    let forms: Doc<"forms">[];
-    let ownerId: Id<"users">;
-    if (formId) {
-      const form = await formFor(ctx, formId, "read");
-      forms = [form];
-      ownerId = form.ownerId;
-    } else {
-      const user = await requireUser(ctx);
-      const space = await currentSpace(ctx, user);
-      forms = (await spaceForms(ctx, space)).filter((f) => !f.deletedAt);
-      ownerId = space.ownerId;
-    }
-    const titles = new Map(forms.map((f) => [f._id as string, f.title]));
-    const inRange = (r: Doc<"responses">) =>
-      (from === undefined || r.submittedAt >= from) && (to === undefined || r.submittedAt < to);
-
-    let picked: Doc<"responses">[];
-    let next: string;
-    let done: boolean;
-    if (ids) {
-      // The ticked rows, previews too: someone ticked them.
-      const at = cursor ? Number(cursor) : 0;
-      const slice = ids.slice(at, at + EXPORT_PAGE);
-      picked = (await Promise.all(slice.map((id) => ctx.db.get(id)))).filter(
-        (r): r is Doc<"responses"> =>
-          !!r && r.ownerId === ownerId && titles.has(r.formId) && (includePartial || !r.partial) && inRange(r),
-      );
-      next = String(at + slice.length);
-      done = at + slice.length >= ids.length;
-    } else {
-      const source = formId
-        ? ctx.db.query("responses").withIndex("by_form_preview_submitted", (q) => {
-            const real = q.eq("formId", formId).eq("preview", undefined);
-            if (from !== undefined && to !== undefined) return real.gte("submittedAt", from).lt("submittedAt", to);
-            if (from !== undefined) return real.gte("submittedAt", from);
-            if (to !== undefined) return real.lt("submittedAt", to);
-            return real;
-          })
-        : ctx.db.query("responses").withIndex("by_owner_preview_submitted", (q) => {
-            const real = q.eq("ownerId", ownerId).eq("preview", undefined);
-            if (from !== undefined && to !== undefined) return real.gte("submittedAt", from).lt("submittedAt", to);
-            if (from !== undefined) return real.gte("submittedAt", from);
-            if (to !== undefined) return real.lt("submittedAt", to);
-            return real;
-          });
-      const page = await source.order("asc").paginate({ numItems: EXPORT_PAGE, cursor });
-      picked = page.page.filter((r) => titles.has(r.formId) && (includePartial || !r.partial));
-      next = page.continueCursor;
-      done = page.isDone;
-    }
-
+    const { forms, titles, picked, next, done } = await exportRows(ctx, { formId, ids, from, to, includePartial, cursor });
     // Each form's questions in form order, for the forms on this page.
     const questions: Record<string, string[]> = {};
     const formIds = new Set(picked.map((r) => r.formId as string));
@@ -928,6 +944,34 @@ export const exportPage = query({
       formId: formId ?? null,
       records,
       questions,
+      cursor: next,
+      done,
+    };
+  },
+});
+
+/** One page of the JSON export: each response as API v2 returns it (model/responseJson.ts). */
+export const jsonPage = query({
+  args: {
+    formId: v.optional(v.id("forms")),
+    ids: v.optional(v.array(v.id("responses"))),
+    from: v.optional(v.number()),
+    to: v.optional(v.number()),
+    includePartial: v.optional(v.boolean()),
+    cursor: v.union(v.string(), v.null()),
+  },
+  handler: async (ctx, args) => {
+    const { forms, titles, picked, next, done } = await exportRows(ctx, args);
+    const keys = new Map<string, Map<string, string | undefined>>();
+    const rows: ResponseJson[] = [];
+    for (const r of picked) {
+      if (!keys.has(r.formId)) keys.set(r.formId, await keysOf(ctx, r.formId));
+      rows.push({ ...(await responseRow(ctx, r, keys.get(r.formId)!)), ...(args.formId ? {} : { formTitle: titles.get(r.formId) ?? "" }) });
+    }
+    return {
+      filename: `${args.formId ? (forms[0]?.slug ?? "form") : "all-forms"}-responses`,
+      title: args.formId ? (forms[0]?.title ?? "Responses") : "All forms",
+      rows,
       cursor: next,
       done,
     };

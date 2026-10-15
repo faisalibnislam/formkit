@@ -70,7 +70,7 @@ export default function ComparePage() {
                 <b>{RIVALS.length}</b> form builders
               </li>
               <li>
-                <FileCheck size={15} strokeWidth={2} aria-hidden /> Sourced from each pricing page
+                <FileCheck size={15} strokeWidth={2} aria-hidden /> Sourced from each product&rsquo;s own pages
               </li>
               <li>
                 <CalendarCheck size={15} strokeWidth={2} aria-hidden /> Checked {COMPARE_ASOF}

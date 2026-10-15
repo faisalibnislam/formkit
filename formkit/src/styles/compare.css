@@ -993,3 +993,49 @@
 .fk-drop-head b {
   color: var(--neutral-900);
 }
+
+/* "Switch in 60 seconds": a form's link, brought over after sign-up. */
+.fk-switch {
+  margin-top: 18px;
+  padding: clamp(18px, 3vw, 26px);
+  border-radius: var(--radius-panel, 24px);
+  background: var(--neutral-0, #fff);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgb(0 0 0 / 0.06));
+  border: 1px solid var(--color-border-default, #e3e6e9);
+}
+.fk-switch-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+.fk-switch-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.fk-switch-input {
+  flex: 1 1 260px;
+  min-width: 0;
+  height: 48px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border-default, #d4d9de);
+  background: var(--neutral-0, #fff);
+  color: inherit;
+  font: inherit;
+  font-size: 15px;
+}
+.fk-switch-input:focus {
+  outline: 2px solid var(--blue-500, #2f5bd3);
+  outline-offset: 1px;
+}
+.fk-switch-help,
+.fk-switch-problem {
+  margin: 10px 0 0;
+  font-size: 13.5px;
+  color: var(--neutral-600, #545b61);
+}
+.fk-switch-problem {
+  color: var(--red-600, #c0362c);
+}

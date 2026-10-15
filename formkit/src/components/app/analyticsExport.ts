@@ -2,7 +2,7 @@
 
 import type { FunctionReturnType } from "convex/server";
 import type { api } from "../../../convex/_generated/api";
-import { downloadSheets, type Format } from "./exporting";
+import { downloadSheets, type SheetFormat } from "./exporting";
 
 /**
  * The analytics export, shared by the Analytics screen and Settings → Exports
@@ -29,7 +29,7 @@ export function duration(seconds: number | null) {
   return m ? `${m}m ${String(s).padStart(2, "0")}s` : `${s}s`;
 }
 
-export async function downloadAnalytics(data: AnalyticsData, title: string, format: Format) {
+export async function downloadAnalytics(data: AnalyticsData, title: string, format: SheetFormat) {
   const overTime = {
     name: "Over time",
     columns: ["Date", "Views", "Started", "Responses", "Completed"],

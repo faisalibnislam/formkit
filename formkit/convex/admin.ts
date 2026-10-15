@@ -1,4 +1,5 @@
 import { eraseUser } from "./model/erase";
+import { ensureToken } from "./support";
 import { subscriptionsPaidBy } from "./billing";
 import { v } from "convex/values";
 import { PLANS, compOf, planOf } from "./model/plans";
@@ -802,6 +803,9 @@ export const replyToTicket = mutation({
         icon: "life-buoy",
       });
     }
+    // The whole answer by email too, with the private link back to the conversation.
+    await ensureToken(ctx, ticketId);
+    await ctx.scheduler.runAfter(0, internal.support.emailAnswer, { ticketId });
     await writeAudit(ctx, staff, close ? "Answered and closed a ticket" : "Answered a ticket", ticket.subject);
     return null;
   },

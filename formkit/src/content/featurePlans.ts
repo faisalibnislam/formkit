@@ -47,21 +47,26 @@ const LADDERS: Record<string, { free: string[]; pro: (FeatureKey | string)[]; bu
   },
   payments: {
     free: [],
-    pro: ["payments", "logic.calc", "forms.redirect"],
+    pro: ["payments", "Pay what you want, quantities, promotion codes and Stripe Tax", "logic.calc", "forms.redirect"],
     business: [],
   },
   integrations: {
-    free: ["CSV export", "The API", "AI assistants: Claude, ChatGPT and Cursor"],
-    pro: ["connect.webhooks", "connect.slack", "connect.sheets", "exports.xlsx", "exports.copy", "Summaries and AI insights through the API"],
+    free: ["CSV, JSON and PDF export", "The API", "AI assistants: Claude, ChatGPT and Cursor"],
+    pro: ["connect.webhooks", "connect.slack", "connect.sheets", "Notion, Airtable and HubSpot (coming soon)", "exports.xlsx", "exports.copy", "Summaries and AI insights through the API"],
+    business: [],
+  },
+  "ai-assistants": {
+    free: ["Claude, ChatGPT and Cursor, through the API", "Forms and responses shown in the chat", "Forms AI agents can fill in"],
+    pro: ["Summaries and AI insights through the API"],
     business: [],
   },
   builder: {
-    free: ["Every question type, voice recording included", "Pages and page breaks", "Drag, duplicate and undo", `${free.uploadMb} MB uploads`, `${free.collaborators} guests on each form`],
+    free: ["Every question type, voice recording included", "Pages and page breaks", "Drag, duplicate, undo and redo", `${free.uploadMb} MB uploads`, `${free.collaborators} guests on each form`],
     pro: [`${pro.uploadMb} MB uploads`, "collaborators"],
     business: [`${business.uploadMb} MB uploads`, "templates.shared", "approvals"],
   },
   versions: {
-    free: [`${free.historyDays} days of version history`, "Restore any version", "CSV export"],
+    free: [`${free.historyDays} days of version history`, "Restore any version", "CSV, JSON and PDF export"],
     pro: ["A year of version history", "exports.xlsx", "exports.copy"],
     business: ["All of your version history"],
   },

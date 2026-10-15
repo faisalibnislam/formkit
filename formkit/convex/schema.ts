@@ -847,7 +847,7 @@ export default defineSchema({
     userId: v.id("users"),
     formId: v.optional(v.id("forms")),
     what: v.union(v.literal("responses"), v.literal("contacts"), v.literal("analytics")),
-    format: v.union(v.literal("csv"), v.literal("xlsx")),
+    format: v.union(v.literal("csv"), v.literal("xlsx"), v.literal("json"), v.literal("pdf-zip"), v.literal("pdf-one")),
     filename: v.string(),
     rows: v.number(),
     from: v.optional(v.number()),
@@ -1164,9 +1164,12 @@ export default defineSchema({
     openedAt: v.number(),
     /** Business customers are answered first. */
     priority: v.optional(v.boolean()),
+    /** The private link to the conversation (/support/{token}), sent with every answer. */
+    token: v.optional(v.string()),
   })
     .index("by_state", ["state"])
-    .index("by_user_opened", ["userId", "openedAt"]),
+    .index("by_user_opened", ["userId", "openedAt"])
+    .index("by_token", ["token"]),
 
   /**
    * What the help centre hears: searches that found nothing, and answers to

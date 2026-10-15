@@ -22,6 +22,7 @@ const SCENES: Record<string, ComponentType<SceneProps>> = {
   integrations: dynamic(() => import("./ConnectScene").then((m) => m.ConnectScene), { ssr: false }),
   branding: dynamic(() => import("./BrandScene").then((m) => m.BrandScene), { ssr: false }),
   "custom-domains": dynamic(() => import("@/components/landing/DomainScene").then((m) => m.DomainScene), { ssr: false }),
+  "ai-assistants": dynamic(() => import("./AssistantScene").then((m) => m.AssistantScene), { ssr: false }),
   versions: dynamic(() => import("@/components/landing/VersionsScene").then((m) => m.VersionsScene), { ssr: false }),
 };
 

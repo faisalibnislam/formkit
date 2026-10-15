@@ -57,7 +57,7 @@ import {
 import { useToast } from "@/components/ui/Toast";
 import { initials, StatCard } from "./ds";
 import { fullTime, relativeTime } from "./bits";
-import { useExporter } from "./exporting";
+import { PDF_CAP, useExporter, type Format } from "./exporting";
 import { useFlag } from "./useFlags";
 import { downloadResponsePdf, printResponse, type ResponseDoc } from "./responseDoc";
 import { useNarrow } from "./useNarrow";
@@ -354,7 +354,7 @@ function Responses({
   // or one owner's forms exports the rows shown.
   const exportForm = formId ?? (pickedForm !== "all" ? (pickedForm as Id<"forms">) : undefined);
   const byRows = !!search || kind !== "all" || (narrowed && pickedForm === "all");
-  function exportHere(format: "csv" | "xlsx") {
+  function exportHere(format: Format) {
     if (rows.length === 0) {
       toast("Nothing to export", { detail: "No responses match what is shown." });
       return;
@@ -575,6 +575,19 @@ function Responses({
         >
           Export CSV
         </Button>
+        <div style={{ minWidth: 150 }}>
+          <Select
+            ariaLabel="More downloads"
+            placeholder="More downloads"
+            value={null}
+            onChange={(v) => exportHere(v as Format)}
+            options={[
+              { value: "json", label: "JSON", note: "as the API returns it" },
+              { value: "pdf-zip", label: "PDFs in a zip", note: `one each, up to ${PDF_CAP}` },
+              { value: "pdf-one", label: "One PDF", note: `up to ${PDF_CAP}` },
+            ]}
+          />
+        </div>
       </div>
 
       {total === 0 && kind !== "preview" ? (

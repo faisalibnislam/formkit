@@ -5,8 +5,8 @@ import { Check, CreditCard, Lock, Minus, Plus, RotateCcw } from "lucide-react";
 import { SceneFrame, useInView, useReducedMotion, useStep, type SceneProps } from "./shared";
 
 /**
- * A booking form works out the total, checkout takes the card, and the
- * response in the inbox turns from Awaiting payment to Paid.
+ * A booking form works out the total, checkout takes the card, and only then
+ * does the response arrive in the inbox, paid for.
  */
 
 const PRICE = 120;
@@ -35,14 +35,14 @@ export function PaymentScene({ compact }: SceneProps) {
   }, [stage]);
 
   const shown: Stage = still ? "paid" : stage;
-  const status = shown === "paid" ? "Paid" : "Awaiting payment";
+  const status = "Paid";
 
   return (
     <SceneFrame
       innerRef={ref}
       compact={compact}
       title="Workshop booking"
-      label={`A booking form totals ${places} places at $${PRICE}, takes payment by card, and marks the response as paid.`}
+      label={`A booking form totals ${places} places at $${PRICE}, takes payment by card, and the response arrives once it is paid.`}
       right={
         !compact &&
         shown === "paid" && (
@@ -102,7 +102,7 @@ export function PaymentScene({ compact }: SceneProps) {
             disabled={shown !== "form" || compact}
             onClick={() => setStage("checkout")}
           >
-            Book and pay ${total}
+            Pay and send · ${total}
           </button>
         </div>
 
@@ -144,8 +144,10 @@ export function PaymentScene({ compact }: SceneProps) {
 
           <div className="fk-py-inbox">
             <span className="fk-py-h">Responses</span>
-            {shown === "form" ? (
-              <div className="fk-py-empty">Their answers land here, saved before checkout.</div>
+            {shown !== "paid" ? (
+              <div className="fk-py-empty">
+                {shown === "form" ? "Answers arrive here once they are paid for." : "Waiting for the payment to go through…"}
+              </div>
             ) : (
             <div className="fk-py-resp">
               <span className="fk-rp-av" aria-hidden>

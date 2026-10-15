@@ -38,6 +38,7 @@ import { AskProvider } from "./ai/AskProvider";
 import { AskDock } from "./ai/AskDock";
 import { AppScrollbar } from "./AppScrollbar";
 import { UpgradeSheet } from "@/components/plan/UpgradeSheet";
+import { PendingImport } from "./PendingImport";
 import { SupportBanner, SupportView } from "./SupportView";
 import { useToast } from "@/components/ui/Toast";
 import { useEscape, useTipEscape } from "@/components/ui/useEscape";
@@ -814,6 +815,7 @@ function AppFrame({ children }: { children: ReactNode }) {
       )}
       {viewer?.ai.allowed && <AskDock />}
       <UpgradeSheet />
+      <PendingImport />
       <AppScrollbar />
     </div>
   );

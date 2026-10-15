@@ -49,11 +49,15 @@ export const LANDING_FAQS = [
   },
   {
     q: "Does it do conditional logic?",
-    a: "Rules read like sentences: when someone answers this way, skip ahead, or show or hide a question. Pro adds calculations, several endings and AI logic that reads what people wrote.",
+    a: "Rules read like sentences: when someone answers this way, jump ahead or back, finish the form, or show or hide a question. Pro adds calculations, several endings and AI logic that reads what people wrote.",
   },
   {
     q: "Can I take payments?",
-    a: "On Pro, through your own Stripe account: a fixed amount or the total your form works out. The money goes straight to you and Formkit takes no cut.",
+    a: "On Pro, through your own Stripe account: a fixed amount, the total your form works out, or what people choose to pay, with quantities, promotion codes and Stripe Tax. Answers arrive once they are paid for, the money goes straight to you, and Formkit takes no cut.",
+  },
+  {
+    q: "Does it work with Claude or ChatGPT?",
+    a: "Yes, on every plan. Connect Formkit and your assistant can build forms, publish them when you say, and show you your forms and responses right in the chat. You can also let people's AI agents fill in the forms you choose.",
   },
   {
     q: "Can my team work on forms together?",
