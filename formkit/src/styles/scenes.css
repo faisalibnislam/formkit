@@ -1788,3 +1788,138 @@
     transition: none !important;
   }
 }
+
+/* AI assistants and agents: a chat with Formkit's table in it, and an agent's answers arriving. */
+.fk-as {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-height: 230px;
+}
+.fk-sc[data-compact] .fk-as {
+  min-height: 184px;
+  gap: 7px;
+}
+.fk-as-me {
+  align-self: flex-end;
+  max-width: 85%;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 14px 14px 4px 14px;
+  background: var(--neutral-900);
+  color: #ffffff;
+  font-size: 13px;
+  animation: fk-sc-rise 0.35s ease both;
+}
+.fk-as-ai {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--neutral-600);
+  font-size: 13px;
+  animation: fk-sc-rise 0.35s ease both;
+}
+.fk-as-tool {
+  align-self: flex-start;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--blue-50, #eef3ff);
+  color: var(--blue-700, #2348a8);
+  font-size: 11.5px;
+  font-weight: 500;
+  animation: fk-sc-rise 0.35s ease both;
+}
+.fk-as-app {
+  border-radius: 14px;
+  background: var(--neutral-50);
+  box-shadow: inset 0 0 0 1px var(--neutral-150);
+  overflow: hidden;
+  animation: fk-sc-rise 0.4s ease both;
+}
+.fk-as-apphead {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  border-bottom: 1px solid var(--neutral-150);
+}
+.fk-as-apphead span {
+  color: var(--neutral-600);
+}
+.fk-as-app table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.fk-as-app td {
+  padding: 6px 12px;
+  border-top: 1px solid var(--neutral-150);
+}
+.fk-as-app tr:first-child td {
+  border-top: 0;
+}
+.fk-as-app td span {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--neutral-150);
+  font-size: 11px;
+}
+.fk-as-app td span[data-new] {
+  background: var(--blue-100, #dbe6ff);
+  color: var(--blue-700, #2348a8);
+}
+.fk-as-req {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--neutral-900);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 12px;
+  animation: fk-sc-rise 0.35s ease both;
+}
+.fk-as-req code {
+  color: #ffffff;
+  font-size: 11.5px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.fk-as-verb {
+  font-weight: 600;
+  color: #9cc0ff;
+}
+.fk-as-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: var(--neutral-50);
+  box-shadow: inset 0 0 0 1px var(--neutral-150);
+  font-size: 13px;
+  animation: fk-sc-rise 0.4s ease both;
+}
+.fk-as-row > span:last-child {
+  color: var(--neutral-600);
+  font-size: 12px;
+}
+.fk-as-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--blue-600);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+}
+.fk-as-note {
+  margin: 0;
+  color: var(--neutral-600);
+  font-size: 12.5px;
+  animation: fk-sc-rise 0.35s ease both;
+}

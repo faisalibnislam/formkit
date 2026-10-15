@@ -5,6 +5,7 @@ import {
   BadgeCheck,
   BarChart3,
   Bell,
+  Bot,
   Check,
   CreditCard,
   FileDown,
@@ -16,8 +17,10 @@ import {
   Link2,
   Minus,
   Palette,
+  Undo2,
   ScrollText,
   ShieldCheck,
+  Smartphone,
   Sparkles,
   Users,
   Webhook,
@@ -59,15 +62,26 @@ export const metadata: Metadata = {
 };
 
 /** What every plan has, Free included. */
-const EVERYONE: { icon: typeof Check; title: string; line: string }[] = [
+const EVERYONE: { icon: typeof Check; title: string; line: string; soon?: boolean }[] = [
   { icon: Inbox, title: "Unlimited forms and responses", line: "No caps, no counting, no surprise upgrade." },
-  { icon: GitBranch, title: "Pages and conditional logic", line: "Twenty question types, voice included, plus skips, shows and hides." },
+  { icon: GitBranch, title: "Pages and conditional logic", line: "Every question type, voice included; skip, show, hide and jump back." },
+  { icon: Undo2, title: "Undo and redo", line: "The last 40 changes to questions, pages and logic." },
   { icon: Palette, title: "Themes and your logo", line: "Colours, type and layout that look like you." },
   { icon: Link2, title: "Your own link", line: "formkit.app/you, embeds and QR codes." },
+  { icon: Bot, title: "AI assistants and agents", line: "Formkit in Claude and ChatGPT; forms agents can fill in." },
   { icon: Bell, title: "Notifications and routing", line: "The right answers to the right inbox." },
   { icon: BarChart3, title: "Analytics and drop-off", line: "Views, completions and where people stop." },
-  { icon: FileDown, title: "Partial responses and CSV", line: "Half-finished answers kept, exports any time." },
+  { icon: FileDown, title: "Partial responses and exports", line: "Half-finished answers kept; CSV, JSON and PDFs any time." },
+  { icon: KeyRound, title: "Passkeys and two-factor", line: "Sign in with Face ID or a fingerprint." },
   { icon: ShieldCheck, title: "Spam protection", line: "A quiet check, plus limits on floods." },
+  { icon: Smartphone, title: "Push notifications", line: "New responses and mentions on your phone.", soon: true },
+];
+
+/** Built and switching on soon: shown, and labelled so. */
+const SOON = new Set<string>(["connect.apps"]);
+/** Rows that are not plan features yet, under the group they will join. */
+const SOON_ROWS: { group: string; label: string; pro: boolean }[] = [
+  { group: "Control", label: "SAML single sign-on and SCIM provisioning", pro: false },
 ];
 
 const ALLOWANCES: { label: string; note?: string; value: (p: PlanId) => number | null; show: (p: PlanId) => string }[] = [
@@ -270,7 +284,10 @@ export default function PricingPage() {
                     <span className="fk-price-tile-icon">
                       <t.icon size={18} strokeWidth={1.8} aria-hidden />
                     </span>
-                    <strong>{t.title}</strong>
+                    <strong>
+                      {t.title}
+                      {t.soon && <span className="fk-soon">Coming soon</span>}
+                    </strong>
                     <span>{t.line}</span>
                   </div>
                 ))}
@@ -562,11 +579,29 @@ function GroupRows({ group }: { group: string }) {
       </tr>
       {rows.map((f) => (
         <tr key={f}>
-          <th scope="row">{FEATURES[f].label}</th>
+          <th scope="row">
+            {FEATURES[f].label}
+            {SOON.has(f) && <span className="fk-soon">Coming soon</span>}
+          </th>
           <td>
             <No />
           </td>
           <td>{FEATURES[f].plan === "pro" ? <Yes /> : <No />}</td>
+          <td>
+            <Yes />
+          </td>
+        </tr>
+      ))}
+      {SOON_ROWS.filter((r) => r.group === group).map((r) => (
+        <tr key={r.label}>
+          <th scope="row">
+            {r.label}
+            <span className="fk-soon">Coming soon</span>
+          </th>
+          <td>
+            <No />
+          </td>
+          <td>{r.pro ? <Yes /> : <No />}</td>
           <td>
             <Yes />
           </td>

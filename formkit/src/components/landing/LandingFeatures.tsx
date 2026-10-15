@@ -21,10 +21,12 @@ const ORDER = [
   pick("payments"),
   pick("integrations"),
   pick("custom-domains"),
+  pick("ai-assistants"),
 ].filter((f) => f !== undefined);
 
-/** Which cards span two columns: two wide, two narrow, in a zigzag. */
+/** Which cards span two columns: two wide, two narrow, in a zigzag. The ninth has the last row to itself. */
 const WIDE = new Set([0, 3, 4, 7]);
+const FULL = 8;
 
 export function LandingFeatures() {
   return (
@@ -44,7 +46,7 @@ export function LandingFeatures() {
         <div data-rise>
           <div className="fk-bento">
             {ORDER.map((s, i) => (
-              <SceneCard key={s.slug} story={s} base="features" wide={WIDE.has(i)} />
+              <SceneCard key={s.slug} story={s} base="features" wide={WIDE.has(i)} full={i === FULL} />
             ))}
           </div>
         </div>

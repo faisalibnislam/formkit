@@ -1430,3 +1430,17 @@ a.fk-price-spot:hover {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* A feature that is built and switching on soon. */
+.fk-soon {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--neutral-100, #eef0f2);
+  color: var(--neutral-700, #3f474e);
+  font-size: 11.5px;
+  font-weight: 500;
+  vertical-align: 2px;
+  white-space: nowrap;
+}

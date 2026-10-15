@@ -10,6 +10,7 @@ import { InsightsScene } from "./InsightsScene";
 import { PaymentScene } from "./PaymentScene";
 import { ConnectScene } from "./ConnectScene";
 import { BrandScene } from "./BrandScene";
+import { AssistantScene } from "./AssistantScene";
 import { DragScene } from "@/components/landing/DragScene";
 import { VersionsScene } from "@/components/landing/VersionsScene";
 import { DomainScene } from "@/components/landing/DomainScene";
@@ -24,6 +25,7 @@ export const SCENES: Record<string, { Scene: ComponentType<SceneProps>; hint: st
   insights: { Scene: InsightsScene, hint: "Switch the period, or ask for a report" },
   payments: { Scene: PaymentScene, hint: "Change the booking, then pay" },
   integrations: { Scene: ConnectScene, hint: "Switch tools on and off, then send a test" },
+  "ai-assistants": { Scene: AssistantScene, hint: "Switch between your assistant and someone's agent" },
   branding: { Scene: BrandScene, hint: "Try a theme, a font and your own domain" },
   "custom-domains": { Scene: DomainScene, hint: "Watch a domain go from typed in to live" },
   versions: { Scene: VersionsScene, hint: "Watch a version restored and the answers exported" },

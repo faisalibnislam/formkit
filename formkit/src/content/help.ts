@@ -89,6 +89,13 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "updated": "2026-09-28"
       },
       {
+        "id": "undo-redo",
+        "title": "Undo and redo",
+        "summary": "Take back a change to the questions, options, pages or logic.",
+        "body": "Undo and Redo sit beside Saved in the form's header, on the Build and Logic tabs. Press ⌘Z to undo and ⇧⌘Z to redo (Ctrl+Z and Ctrl+Shift+Z on Windows), whenever you are not typing in a field.\n## What it covers\nQuestions and their options, pages, and logic rules: adding, changing, moving, duplicating and deleting them. A run of typing in one field is one step. The theme, settings and publishing are not part of it.\n## How far back\nThe last 40 steps on each form. A new change after an undo clears what could be redone.\n## Working together\nUndo takes back your own latest change. If someone else has changed the form since, Undo says so rather than throw their edit away.\n> A deleted question comes back with its logic rules, and answers it already had stay attached.",
+        "updated": "2026-10-15"
+      },
+      {
         "id": "field-types",
         "title": "Field types",
         "summary": "What each field collects and when to reach for it.",
@@ -164,8 +171,15 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "id": "logic-map",
         "title": "The logic map and tester",
         "summary": "See every rule at once, catch mistakes, and try your answers.",
-        "body": "At the top of the Logic tab, How it flows shows your pages in order, what each rule does to which question, where people can skip to and where they can end.\n## Checks\nUnderneath, Formkit lists anything that looks wrong: a rule reading a deleted question, a condition with no value, a jump that goes backwards, a rule that reads an answer given after the question it affects, options all hidden, or an ending no rule leads to.\n## Try it\nSwitch to Try it and pick answers. It runs the same rules the live form runs and shows the pages people see, the ones they skip, what is hidden or required, and which ending they reach.",
-        "updated": "2026-09-28"
+        "body": "At the top of the Logic tab, How it flows shows your pages in order, what each rule does to which question, where people can skip to, go back to, and where they can end.\n## Checks\nUnderneath, Formkit lists anything that looks wrong: a rule reading a deleted question, a condition with no value, a jump onto the same page, a jump back that nobody could get out of, a rule that reads an answer given after the question it affects, options all hidden, or an ending no rule leads to.\n## Try it\nSwitch to Try it and pick answers. It runs the same rules the live form runs and shows the pages people see, the ones they skip or see more than once, what is hidden or required, and which ending they reach.",
+        "updated": "2026-10-15"
+      },
+      {
+        "id": "logic-jumps",
+        "title": "Jump ahead, back, or to the end",
+        "summary": "Send people to any page or question, back to an earlier one, or straight to an ending.",
+        "body": "A Jump to rule moves people when its conditions match. Pick its target in the rule: a question, the start of a page, or, under Finish now, the thank-you screen or one of your endings.\n## Ahead\nA jump ahead skips everything between. Questions it skips are never required.\n## Back\nA jump back sends people round again from the page holding the rule's last question, so they can change that answer: “Not sure? Go back to the brief.” If the answer stays the same, they go round at most five times, and then the form moves on. The logic map warns about a jump back nobody could get out of.\n## Finish now\nA jump to an ending sends the form there and then, once the page with the rule's question is done. Finishing on the usual thank-you screen is on every plan; on one of several endings, on Pro.\n## Back button\nBack retraces the pages people actually saw, jumps included.",
+        "updated": "2026-10-15"
       },
       {
         "id": "logic-ai",
@@ -294,10 +308,10 @@ export const HELP_CATEGORIES: HelpCategory[] = [
       },
       {
         "id": "export-responses",
-        "title": "Export to CSV or Excel",
-        "summary": "Getting the data out for a spreadsheet or another tool.",
-        "body": "Select Export above the responses table and choose CSV or Excel. The file downloads immediately.\n## What is in it\nOne row per response, one column per question, in canvas order, plus the submitted time and the completion status. Uploaded files appear as links.\n## Filters carry over\nThe export respects whatever filter is applied. Filter to complete responses from this month and that is exactly what you get.\n## Selected rows only\nIf you have selected rows with the checkboxes, the export offers those rows on their own.\n## CSV and Excel\nCSV is on every plan. Excel, and having a copy of every response emailed to you, are on Pro and Business.\n## Extra columns\nForms with calculations get a column for each result, and forms that take payment get a Payment column with the amount and whether it was paid.",
-        "updated": "2026-09-28"
+        "title": "Export to CSV, Excel, JSON or PDF",
+        "summary": "Getting the data out for a spreadsheet, a script or a printer.",
+        "body": "Choose Export CSV or Export Excel above the responses table, or open More downloads for JSON or PDFs. The file downloads straight away.\n## What is in it\nOne row per response, one column per question, in canvas order, plus the submitted time and the completion status. Uploaded files appear as links.\n## Filters carry over\nThe export respects whatever filter is applied. Filter to complete responses from this month and that is exactly what you get.\n## Selected rows only\nIf you have selected rows with the checkboxes, the export offers those rows on their own.\n## JSON\nEach response as the API returns it: every answer with its question's id and key, the respondent, calculations and payment. Scripts written for the API read the file too.\n## PDFs\nPDFs in a zip gives one file per response; One PDF puts them all in one document, each from a new page. Up to 500 responses at a time. Answers in any language come out right, Arabic, Hindi and Japanese included. One response is also a PDF from its own page.\n## Which plan\nCSV, JSON and PDFs are on every plan. Excel, and having a copy of every response emailed to you, are on Pro and Business.\n## Extra columns\nForms with calculations get a column for each result, and forms that take payment get a Payment column with the amount and whether it was paid.",
+        "updated": "2026-10-15"
       },
       {
         "id": "bulk-actions",
@@ -458,8 +472,8 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "id": "sso",
         "title": "Single sign-on for your domain",
         "summary": "Everyone at your company signs in with Google or Microsoft.",
-        "body": "Settings → Controls → Single sign-on. Enter your company's email domain and add the TXT record shown where its DNS is managed, then check.\nOnce the domain is verified, turn on Require. Anyone with an address at that domain then signs in with Google or Microsoft; the password form turns them away. Someone removed from your company's directory can no longer get in.\n> Sign in once with Google or Microsoft yourself before requiring it, so you are not locked out.",
-        "updated": "2026-09-28"
+        "body": "Settings → Controls → Single sign-on. Enter your company's email domain and add the TXT record shown where its DNS is managed, then check.\nOnce the domain is verified, turn on Require. Anyone with an address at that domain then signs in with Google or Microsoft; the password form turns them away. Someone removed from your company's directory can no longer get in.\n> Sign in once with Google or Microsoft yourself before requiring it, so you are not locked out.\n## Coming soon\nSAML single sign-on through your own identity provider (Okta, Entra ID and others), and SCIM, so people join and leave Formkit as they join and leave your directory.",
+        "updated": "2026-10-15"
       },
       {
         "id": "dpa-support",
@@ -650,8 +664,15 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "id": "api",
         "title": "The API and AI assistants",
         "summary": "Build, publish and read forms from your own code, or from Claude, ChatGPT or Cursor.",
-        "body": "Every plan has the API. Make a key in Settings → Developers, tick only what it may do, and copy it: it is shown once. Send it as Authorization: Bearer fk_live_… to https://formkit.app/api/v2.\n## What it does\nList and read forms, make new ones from a spec, change drafts, publish, close and reopen them, and read, search, mark and tag responses. On Pro, per-question summaries and AI insight reports too. Nothing can be deleted through it, and edits stay in the draft until it is published.\n## AI assistants\nIn Claude or ChatGPT, add a custom connector with the address https://formkit.app/api/mcp. You sign in to Formkit and choose what it may do. Claude Code and Cursor can use a key instead; Settings → Developers has the lines to copy. Disconnect an app there at any time.\n## Limits\n60 requests a minute on Free, 600 on Pro and Business. The full reference, with examples, is at formkit.app/api-docs.",
-        "updated": "2026-10-14"
+        "body": "Every plan has the API. Make a key in Settings → Developers, tick only what it may do, and copy it: it is shown once. Send it as Authorization: Bearer fk_live_… to https://formkit.app/api/v2.\n## What it does\nList and read forms, make new ones from a spec, change drafts, publish, close and reopen them, and read, search, mark and tag responses. On Pro, per-question summaries and AI insight reports too. Nothing can be deleted through it, and edits stay in the draft until it is published.\n## AI assistants\nIn Claude or ChatGPT, add a custom connector with the address https://formkit.app/api/mcp. You sign in to Formkit and choose what it may do. Claude Code and Cursor can use a key instead; Settings → Developers has the lines to copy. Disconnect an app there at any time.\n## In the chat\nIn assistants that show apps, reading a form shows a preview of its questions, and listing responses shows a table you can search, filter and sort, with links back into Formkit.\n## Limits\n60 requests a minute on Free, 600 on Pro and Business. The full reference, with examples, is at formkit.app/api-docs.",
+        "updated": "2026-10-15"
+      },
+      {
+        "id": "agent-forms",
+        "title": "Let AI agents fill in a form",
+        "summary": "Someone's AI assistant answers your form for them, without a browser.",
+        "body": "Some people ask an AI assistant to book, enquire or apply for them. Switch on Settings → Security → Let AI agents fill it in, and their assistant can read your form's questions and send the answers. It's off until you switch it on, form by form, on every plan.\n## What agents see\nThe address shown under the switch, formkit.app/api/agent/forms/your-form, lists the questions, their options and which are required. The form's own page points agents to it.\n## The same checks\nAnswers go through everything a browser's do: your rules, required questions, places left and one answer per person. A spam check runs too, and each form takes at most 60 agent responses an hour, 10 from any one caller.\n## Labelled\nThe response arrives marked Sent by an AI agent, with the name the agent gave and who it was acting for.\n## Forms agents can't fill in\nOne with a password, a payment, a quiz, or a required upload, signature or recording. The address says so, so the agent hands the person the link instead.",
+        "updated": "2026-10-15"
       },
       {
         "id": "slack",
@@ -672,7 +693,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "title": "Take a payment with a form",
         "summary": "People pay through your own Stripe account as they send the form, and the answers arrive once they have.",
         "body": "Formkit never holds the money: payments go straight to your Stripe account, and Formkit takes no cut.\n## Connect Stripe\nIn Stripe, open Developers → API keys → Create restricted key. Give it Write access to Checkout Sessions, and to Webhook Endpoints so payments are confirmed the moment they go through. Paste it in a form's Settings → Payments. A test key (rk_test_…) lets you try it without real money. If you'd rather not allow webhooks, add one by hand in Stripe and paste its signing secret; without one, payments are confirmed as people come back and checked every 20 minutes.\n## Set the amount\nCharge a fixed amount, the result of one of the form's calculations (such as a quote that adds up the options someone picked), or let people pay what they want above a minimum you set.\n## How many\nOne, the answer to a number question (seats, tickets), or picked on Stripe's page up to a limit.\n## Discounts and tax\nTurn on promotion codes to let people enter one you made in Stripe. Stripe Tax can add tax from the person's address, on top of the price or already in it; set it up in Stripe first.\n## What people see\nThe last button says Pay and send. Stripe's checkout opens, and the answers are sent once the payment has gone through. If they leave without paying, nothing is sent, and the answers are forgotten after two days.\n## In your responses\nEach response shows what was paid, with how many, any discount and any tax, and exports gain a Payment column. Refunds are made in Stripe.\n> Payments are part of Pro.",
-        "updated": "2026-09-28"
+        "updated": "2026-10-15"
       }
     ],
     "group": "Plans and paid features"
@@ -687,8 +708,15 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "id": "account-basics",
         "title": "Your account",
         "summary": "Name, email, sign-in and what you see across the app.",
-        "body": "Settings → Account holds your name, your email address and your password. The name is what collaborators see on invitations and comments.\n## Your account and your companies\nYour account is you. Your forms live in companies: everyone has a personal company, and can make more from the company menu beside the logo. Plans belong to companies, not to your account, so one account can be on Free in one company and on Business in another.\n## Language\nFormkit forms are English (US) only for now.\n## Signing out\nSign out from the account menu in the top right.",
-        "updated": "2026-09-29"
+        "body": "Settings → Account holds your name, your email address, your password and your passkeys. The name is what collaborators see on invitations and comments.\n## Your account and your companies\nYour account is you. Your forms live in companies: everyone has a personal company, and can make more from the company menu beside the logo. Plans belong to companies, not to your account, so one account can be on Free in one company and on Business in another.\n## Language\nThe app is in English (US). The forms you publish can be offered in twelve languages: see Forms in several languages.\n## Signing out\nSign out from the account menu in the top right.",
+        "updated": "2026-10-15"
+      },
+      {
+        "id": "passkeys",
+        "title": "Sign in with a passkey",
+        "summary": "Face ID, a fingerprint or your device's PIN instead of the password.",
+        "body": "A passkey lets you sign in with whatever unlocks your phone or computer. Your password still works; a passkey is another way in.\n## Add one\nOpen Settings → Account → Passkeys and choose Add a passkey. Your device asks you to confirm it's you, and that's it. Add one on each device you use, up to ten.\n## Sign in with it\nOn the sign-in page, choose Sign in with a passkey. No email needed: your device offers the passkeys it holds for Formkit.\n## Two-factor\nA passkey checks you as well as the device, so a passkey sign-in counts as two-factor too.\n## Lost a device?\nRemove its passkey in Settings → Account. You get an email whenever a passkey is added or removed.\n> If your company requires single sign-on, sign in that way instead.",
+        "updated": "2026-10-15"
       },
       {
         "id": "data",

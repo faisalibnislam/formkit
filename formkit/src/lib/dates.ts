@@ -5,15 +5,15 @@
  * never to "now".
  */
 export const SITE_DATES = {
-  home: "2026-10-01",
-  pricing: "2026-10-01",
+  home: "2026-10-15",
+  pricing: "2026-10-15",
   templates: "2026-09-30",
   compare: "2026-09-30",
   help: "2026-10-15",
-  features: "2026-10-01",
+  features: "2026-10-15",
   useCases: "2026-09-30",
-  changelog: "2026-10-14",
-  contact: "2026-09-29",
+  changelog: "2026-10-15",
+  contact: "2026-10-15",
   apiDocs: "2026-10-15",
   legal: "2026-09-21",
   privacy: "2026-10-14",

@@ -15,6 +15,28 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: "2026-10-15",
+    title: "Payments that arrive paid, Formkit in the chat, and forms AI agents can fill in",
+    tag: "New",
+    body: "Forms that take payment now keep the answers once they are paid for. Your AI assistant can show your forms and responses right in the chat, and people's own AI agents can answer the forms you open to them.",
+    points: [
+      "Pro: people pay as they send the form. Pay what you want above a minimum, quantities, promotion codes and Stripe Tax.",
+      "Ask Claude or ChatGPT for your responses and see them as a table in the chat; a form shows as a preview.",
+      "Let AI agents fill in a form, form by form: checked like anyone's answers, limited, and labelled.",
+      "Logic can jump back to an earlier page, to any page break, or straight to an ending.",
+      "Undo and redo the last 40 changes to questions, options, pages and logic.",
+      "Sign in with a passkey: Face ID, a fingerprint or your device's PIN.",
+      "Export responses as JSON, or as PDFs, in a zip or as one document, in any language.",
+      "Bring your Google Forms, Typeform, Tally or Jotform form over from its compare page.",
+      "Answers from Formkit support now come by email, with a link to reply.",
+      "Coming soon: push notifications on your phone, and SAML single sign-on with SCIM for Business.",
+    ],
+    links: [
+      { label: "AI assistants and agents", href: "/features/ai-assistants" },
+      { label: "Payments", href: "/features/payments" },
+    ],
+  },
+  {
     date: "2026-10-14",
     title: "Forms in twelve languages, a form check, and your team in the inbox",
     tag: "New",
