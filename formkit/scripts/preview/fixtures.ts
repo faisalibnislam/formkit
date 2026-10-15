@@ -1067,6 +1067,7 @@ export const QUERIES: Record<string, unknown> = {
       order: 4,
     },
   ],
+  "action:importForm:fromLink": { formId: "f1", from: "Typeform", questions: 6, skipped: ["A payment block"], usedAi: false },
   "responses:jsonPage": {
     filename: "client-onboarding-responses",
     title: "Client Onboarding",

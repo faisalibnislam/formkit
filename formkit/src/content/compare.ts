@@ -76,6 +76,8 @@ export type Rival = {
    * page, set against Formkit's free plan unless the label says otherwise.
    */
   rows?: { label: string; them: Cell; us: Cell }[];
+  /** Formkit imports this product's forms from a link: what such a link looks like. */
+  importExample?: string;
   line: string;
   meta: string;
   /** "Pick <them> when …" */
@@ -88,6 +90,7 @@ export type Rival = {
 export const RIVALS: Rival[] = [
   {
     slug: "google-forms",
+    importExample: "https://docs.google.com/forms/d/e/…/viewform",
     name: "Google Forms",
     column: 0,
     line: "Fast, familiar and practical. If you have a Google account you already have it, and for straightforward internal collection that is often the whole argument.",
@@ -116,6 +119,7 @@ export const RIVALS: Rival[] = [
   },
   {
     slug: "typeform",
+    importExample: "https://yourname.typeform.com/to/…",
     name: "Typeform",
     column: 1,
     line: "Conversation-led forms with a polished respondent experience. It made one-question-at-a-time the default expectation for a considered form.",
@@ -144,6 +148,7 @@ export const RIVALS: Rival[] = [
   },
   {
     slug: "jotform",
+    importExample: "https://form.jotform.com/…",
     updated: "2026-09-30",
     name: "Jotform",
     line: "A huge form builder with thousands of templates, widgets and integrations. It has been around for years and covers almost every kind of form.",
@@ -180,6 +185,7 @@ export const RIVALS: Rival[] = [
   },
   {
     slug: "tally",
+    importExample: "https://tally.so/r/…",
     updated: "2026-09-30",
     name: "Tally",
     line: "A generous free form builder that feels like writing a document. Type your questions and it becomes a form.",

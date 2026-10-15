@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAction } from "convex/react";
@@ -17,12 +17,23 @@ import { errorText } from "./settings/bits";
 
 type Done = { formId: string; from: string; questions: number; skipped: string[]; usedAi: boolean };
 
-export function ImportFormDialog({ onClose, onBack }: { onClose: () => void; onBack?: () => void }) {
+export function ImportFormDialog({
+  onClose,
+  onBack,
+  initialUrl,
+  autoStart,
+}: {
+  onClose: () => void;
+  onBack?: () => void;
+  /** A link brought from a compare page (PendingImport), imported straight away when `autoStart`. */
+  initialUrl?: string;
+  autoStart?: boolean;
+}) {
   const router = useRouter();
   const fromLink = useAction(api.importForm.fromLink);
   const fromFile = useAction(api.importForm.fromFile);
   const file = useRef<HTMLInputElement>(null);
-  const [url, setUrl] = useState("");
+  const [url, setUrl] = useState(initialUrl ?? "");
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [done, setDone] = useState<Done | null>(null);
@@ -38,6 +49,15 @@ export function ImportFormDialog({ onClose, onBack }: { onClose: () => void; onB
       setBusy(false);
     }
   }
+
+  const started = useRef(false);
+  useEffect(() => {
+    if (!autoStart || !initialUrl || started.current) return;
+    started.current = true;
+    void run(() => fromLink({ url: initialUrl }) as Promise<Done>);
+    // Once, on opening.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (done) {
     return (

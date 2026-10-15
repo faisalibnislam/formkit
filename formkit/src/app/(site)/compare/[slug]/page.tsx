@@ -10,6 +10,7 @@ import { COMPARE_ASOF, COMPARE_ROWS, RIVALS, rivalBySlug } from "@/content/compa
 import { Reveal } from "@/components/site/Reveal";
 import { Beyond } from "@/components/compare/Beyond";
 import { RivalCard } from "@/components/compare/RivalCard";
+import { SwitchBox } from "@/components/compare/SwitchBox";
 import { Logo } from "@/components/brand/Logo";
 import { SITE_URL } from "@/lib/site";
 
@@ -133,6 +134,20 @@ export default async function CompareDetailPage(props: PageProps<"/compare/[slug
                 </p>
               </div>
             </div>
+
+            {r.importExample && (
+              <section className="fk-cmp-sec" data-rise aria-labelledby="cmp-switch">
+                <span className="fk-more-kicker">Switch in 60 seconds</span>
+                <h2 id="cmp-switch" className="fk-cmp-h2">
+                  Bring your {r.name} form with you
+                </h2>
+                <p className="fk-cmp-lede">
+                  Paste its link. The questions, options, pages and required answers come over, and anything that
+                  can&rsquo;t is listed for you to add.
+                </p>
+                <SwitchBox rival={r.name} example={r.importExample} />
+              </section>
+            )}
 
             <section className="fk-cmp-sec" data-rise aria-labelledby="cmp-rows">
               <h2 id="cmp-rows" className="fk-cmp-h2">
