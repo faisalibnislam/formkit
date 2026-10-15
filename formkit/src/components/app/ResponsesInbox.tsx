@@ -8,6 +8,7 @@ import { useFirstLoad, useLastDefined } from "./useFirstLoad";
 import { INBOX_PAGE } from "@/lib/inbox";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ResponseComments } from "./ResponseComments";
+import { StatusManager } from "./StatusManager";
 import { errorText } from "./settings/bits";
 import { useAction, useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
@@ -15,7 +16,6 @@ import {
   ArrowDown,
   ArrowUp,
   CalendarDays,
-  Check,
   Clock,
   Building2,
   FileDown,
@@ -140,12 +140,11 @@ export function ResponsesInbox({ formId, openId }: { formId?: Id<"forms">; openI
   );
 }
 
-function statusBadge(r: Pick<Row, "partial" | "preview" | "status">) {
+function statusBadge(r: Pick<Row, "partial" | "preview" | "status" | "statusInfo">) {
   if (r.preview) return <Badge tone="draft">Preview</Badge>;
   if (r.partial) return <Badge tone="warning">Partial</Badge>;
-  if (r.status === "new") return <Badge tone="info">New</Badge>;
-  if (r.status === "reviewed") return <Badge tone="success">Reviewed</Badge>;
-  return <Badge tone="neutral">Read</Badge>;
+  const info = r.statusInfo ?? { label: r.status === "new" ? "New" : r.status === "read" ? "Read" : r.status, tone: r.status === "new" ? "info" : "neutral" };
+  return <Badge tone={info.tone as "neutral"}>{info.label}</Badge>;
 }
 
 /** 2500, "usd" → "$25.00". Stripe counts most currencies in cents. */
@@ -160,7 +159,7 @@ function payText(p: { amount: number; currency: string }) {
 
 const PAY_LABEL = { paid: "Paid", pending: "Awaiting payment", failed: "Not paid", none: "" } as const;
 
-function badgeFor(r: Pick<Row, "partial" | "preview" | "status" | "payment">) {
+function badgeFor(r: Pick<Row, "partial" | "preview" | "status" | "statusInfo" | "payment">) {
   const main = statusBadge(r);
   if (!r.payment || r.payment.status === "none") return main;
   return (
@@ -200,7 +199,9 @@ function Responses({
   const [open, setOpen] = useState<string | null>(openId);
   const [asc, setAsc] = useState(false);
   // Narrowing beyond complete/partial: a status, a tag, a window of time.
-  const [status, setStatusFilter] = useState<"any" | "new" | "read" | "reviewed" | "held">("any");
+  const [status, setStatusFilter] = useState<string>("any");
+  const statusList = useQuery(api.statuses.list, formId ? { formId } : {});
+  const [managing, setManaging] = useState(false);
   const [tag, setTag] = useState("any");
   const [when, setWhen] = useState<"any" | "today" | "7" | "30" | "90">("any");
   const [assigned, setAssigned] = useState<"any" | "me" | "nobody">("any");
@@ -477,16 +478,19 @@ function Responses({
           size="sm"
           value={status}
           onChange={(next) => {
-            setStatusFilter(next as typeof status);
+            if (next === "__manage") {
+              setManaging(true);
+              return;
+            }
+            setStatusFilter(next);
             refilter();
           }}
           ariaLabel="Status"
           options={[
             { value: "any", label: "Any status" },
-            { value: "new", label: "Unread" },
-            { value: "read", label: "Read" },
-            { value: "reviewed", label: "Reviewed" },
+            ...(statusList?.statuses ?? []).map((s) => ({ value: s.key, label: s.key === "new" ? `${s.label} (unread)` : s.label })),
             { value: "held", label: "AI reply waiting for you" },
+            ...(statusList?.canEdit ? [{ value: "__manage", label: "Change statuses…" }] : []),
           ]}
         />
         {(tagsInUse?.length ?? 0) > 0 && (
@@ -592,19 +596,31 @@ function Responses({
               </span>
               <span className="fk-section-spacer" />
               {manage && (
-              <button
-                type="button"
-                className="fk-bulk-btn"
-                onClick={async () => {
-                  await setStatus({ ids: selected, status: "read" });
-                  toast("Marked as read", {
-                    detail: `${selected.length} ${selected.length === 1 ? "response" : "responses"}`,
-                  });
-                  setPicked(new Set());
-                }}
-              >
-                Mark as read
-              </button>
+                <select
+                  className="fk-bulk-btn"
+                  aria-label="Set the status of the selected responses"
+                  value=""
+                  onChange={async (e) => {
+                    const to = e.target.value;
+                    if (!to) return;
+                    try {
+                      await setStatus({ ids: selected, status: to });
+                      toast(`Marked ${statusList?.statuses.find((s) => s.key === to)?.label ?? to}`, {
+                        detail: `${selected.length} ${selected.length === 1 ? "response" : "responses"}`,
+                      });
+                      setPicked(new Set());
+                    } catch (err) {
+                      toast(errorText(err, "That did not change."));
+                    }
+                  }}
+                >
+                  <option value="">Set status…</option>
+                  {(statusList?.statuses ?? []).map((s) => (
+                    <option key={s.key} value={s.key}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
               )}
               <button
                 type="button"
@@ -818,6 +834,10 @@ function Responses({
         </Modal>
       )}
 
+      {managing && statusList && (
+        <StatusManager formId={formId} statuses={statusList.statuses} onClose={() => setManaging(false)} />
+      )}
+
       {confirm && (
         <Modal
           title={
@@ -887,6 +907,7 @@ function ResponseDrawer({
   const addNote = useMutation(api.responses.addNote);
   const [note, setNote] = useState(response.note ?? "");
   const assign = useMutation(api.responses.assign);
+  const statuses = useQuery(api.statuses.list, response.preview ? "skip" : { formId: response.formId });
   const people = useQuery(api.responses.assignees, response.preview ? "skip" : { formId: response.formId });
 
   // Answers grouped by the page they sit on, in the form's own order. A
@@ -1044,21 +1065,19 @@ function ResponseDrawer({
               Mark unread
             </Button>
           )}
-          {!manage ? null : response.status === "reviewed" ? (
-            <Button variant="secondary" onClick={() => setStatus({ ids: [response._id], status: "read" })}>
-              Undo reviewed
-            </Button>
-          ) : (
-            <Button
-              iconLeft={<Check size={16} strokeWidth={1.8} aria-hidden />}
-              onClick={async () => {
-                await setStatus({ ids: [response._id], status: "reviewed" });
-                toast("Marked as reviewed", { detail: name });
-                onClose();
-              }}
-            >
-              Mark as reviewed
-            </Button>
+          {manage && statuses && (
+            <div style={{ width: 170 }}>
+              <Select
+                size="sm"
+                ariaLabel="Status"
+                value={response.status}
+                options={statuses.statuses.map((s) => ({ value: s.key, label: s.label }))}
+                onChange={async (to) => {
+                  await setStatus({ ids: [response._id], status: to });
+                  toast(`Marked ${statuses.statuses.find((s) => s.key === to)?.label ?? to}`, { detail: name });
+                }}
+              />
+            </div>
           )}
         </>
       }

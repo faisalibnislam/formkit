@@ -93,6 +93,7 @@ import type * as model_served from "../model/served.js";
 import type * as model_sheet from "../model/sheet.js";
 import type * as model_spaces from "../model/spaces.js";
 import type * as model_standing from "../model/standing.js";
+import type * as model_statuses from "../model/statuses.js";
 import type * as model_summary from "../model/summary.js";
 import type * as model_team from "../model/team.js";
 import type * as model_themePresets from "../model/themePresets.js";
@@ -114,6 +115,7 @@ import type * as security from "../security.js";
 import type * as semantic from "../semantic.js";
 import type * as spaces from "../spaces.js";
 import type * as sso from "../sso.js";
+import type * as statuses from "../statuses.js";
 import type * as support from "../support.js";
 import type * as team from "../team.js";
 import type * as templates from "../templates.js";
@@ -215,6 +217,7 @@ declare const fullApi: ApiFromModules<{
   "model/sheet": typeof model_sheet,
   "model/spaces": typeof model_spaces,
   "model/standing": typeof model_standing,
+  "model/statuses": typeof model_statuses,
   "model/summary": typeof model_summary,
   "model/team": typeof model_team,
   "model/themePresets": typeof model_themePresets,
@@ -236,6 +239,7 @@ declare const fullApi: ApiFromModules<{
   "semantic": typeof semantic,
   "spaces": typeof spaces,
   "sso": typeof sso,
+  "statuses": typeof statuses,
   "support": typeof support,
   "team": typeof team,
   "templates": typeof templates,

@@ -70,6 +70,9 @@ export async function eraseUser(ctx: MutationCtx, user: Doc<"users">) {
   for (const row of await ctx.db.query("integrationAccounts").withIndex("by_owner", (q) => q.eq("ownerId", userId)).collect()) {
     await ctx.db.delete(row._id);
   }
+  for (const row of await ctx.db.query("responseStatuses").withIndex("by_space", (q) => q.eq("ownerId", userId)).collect()) {
+    await ctx.db.delete(row._id);
+  }
   for (const row of await ctx.db.query("savedViews").withIndex("by_user", (q) => q.eq("userId", userId)).collect()) {
     await ctx.db.delete(row._id);
   }

@@ -728,7 +728,8 @@ export default defineSchema({
         summary: v.optional(v.string()),
       }),
     ),
-    status: v.union(v.literal("new"), v.literal("read"), v.literal("reviewed")),
+    /** A status key from the company's list (model/statuses.ts): "new", "read", or its own. */
+    status: v.string(),
     note: v.optional(v.string()),
     resumeToken: v.optional(v.string()),
     versionNumber: v.optional(v.number()),
@@ -1330,6 +1331,15 @@ export default defineSchema({
     }),
     updatedAt: v.number(),
   }).index("by_form_lang", ["formId", "lang"]),
+
+  /** A company's own response statuses (model/statuses.ts); absent, it has the original three. */
+  responseStatuses: defineTable({
+    ownerId: v.id("users"),
+    /** "me" for the owner's own company, otherwise the company's id. */
+    brand: v.string(),
+    list: v.array(v.object({ key: v.string(), label: v.string(), tone: v.string() })),
+    updatedAt: v.number(),
+  }).index("by_space", ["ownerId", "brand"]),
 
   /** A person's own named filters for the responses inbox. */
   savedViews: defineTable({
