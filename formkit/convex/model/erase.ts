@@ -96,6 +96,7 @@ export async function eraseUser(ctx: MutationCtx, user: Doc<"users">) {
     ["aiAccess", "by_user"],
     ["billingEvents", "by_user"],
     ["teamMembers", "by_user"],
+    ["pushSubscriptions", "by_user"],
   ] as const;
   for (const [table, index] of byUser) {
     const rows = await ctx.db

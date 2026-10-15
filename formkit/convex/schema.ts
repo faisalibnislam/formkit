@@ -248,6 +248,14 @@ export default defineSchema({
         security: v.optional(v.boolean()),
       }),
     ),
+    // Settings → Notifications → On this device: which kinds are pushed. Absent means on.
+    pushPrefs: v.optional(
+      v.object({
+        responses: v.optional(v.boolean()),
+        mentions: v.optional(v.boolean()),
+        approvals: v.optional(v.boolean()),
+      }),
+    ),
     // Settings → Exports → Email a copy: every new response, in full.
     emailCopy: v.optional(v.object({ on: v.boolean(), to: v.string() })),
     lastDaily: v.optional(v.string()), // YYYY-MM-DD in the person's zone
@@ -927,6 +935,24 @@ export default defineSchema({
     .index("by_user_at", ["userId", "at"])
     .index("by_user_read", ["userId", "readAt"])
     .index("by_user_form_kind", ["userId", "formId", "kind"]),
+
+  /**
+   * A browser or phone that asked for push notifications (model/push.ts).
+   * The endpoint is the push service's address for it; the keys encrypt what
+   * is sent, so the push service cannot read it.
+   */
+  pushSubscriptions: defineTable({
+    userId: v.id("users"),
+    endpoint: v.string(),
+    p256dh: v.string(),
+    auth: v.string(),
+    /** "Chrome on macOS", for the list of devices. */
+    device: v.string(),
+    createdAt: v.number(),
+    lastSentAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_endpoint", ["endpoint"]),
 
   /** Which live announcements a person has already seen in the bell. */
   announcementReads: defineTable({

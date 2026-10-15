@@ -1067,6 +1067,11 @@ export const QUERIES: Record<string, unknown> = {
       order: 4,
     },
   ],
+  "push:config": {
+    publicKey: "BPreviewPreviewPreviewPreviewPreviewPreviewPreviewPreviewPreviewPreviewPreviewPreviewPrevie",
+    prefs: { responses: true, mentions: true, approvals: false },
+    devices: [{ endpoint: "https://push.example.com/phone", device: "Safari on iOS", createdAt: Date.UTC(2026, 8, 2), lastSentAt: Date.UTC(2026, 9, 14) }],
+  },
   "history:state": { undo: { label: "Edit “Budget range”", mine: true }, redo: null },
   "mutation:history:undo": "Edit “Budget range”",
   "mutation:history:redo": "Edit “Budget range”",

@@ -2,6 +2,8 @@
 
 import {
   Fragment,
+  cloneElement,
+  isValidElement,
   forwardRef,
   useEffect,
   useId,
@@ -100,19 +102,34 @@ export function Field({
   action?: ReactNode;
   children: ReactNode;
 }) {
+  // A text field straight inside is named by the label, for screen readers
+  // and for a click on the words.
+  const auto = useId();
+  const field =
+    isValidElement<{ id?: string; "aria-label"?: string }>(children) &&
+    (children.type === Input || children.type === Textarea || children.type === "input" || children.type === "textarea")
+      ? children
+      : null;
+  const id = field ? (field.props.id ?? auto) : undefined;
+  const named = label && field && !field.props["aria-label"];
   return (
     <div className="ui-field">
       {(label || action) && (
         <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-          {label && (
-            <span className="ui-label" style={{ flex: 1 }}>
-              {label}
-            </span>
-          )}
+          {label &&
+            (named ? (
+              <label className="ui-label" style={{ flex: 1 }} htmlFor={id}>
+                {label}
+              </label>
+            ) : (
+              <span className="ui-label" style={{ flex: 1 }}>
+                {label}
+              </span>
+            ))}
           {action}
         </div>
       )}
-      {children}
+      {named && field && !field.props.id ? cloneElement(field, { id }) : children}
       {help && !error && <span className="ui-help">{help}</span>}
       {error && <span className="ui-error">{error}</span>}
     </div>
@@ -203,10 +220,12 @@ export function Switch({
   checked,
   onChange,
   label,
+  disabled,
 }: {
   checked: boolean;
   onChange: (next: boolean) => void;
   label: string;
+  disabled?: boolean;
 }) {
   return (
     <button
@@ -216,6 +235,7 @@ export function Switch({
       aria-label={label}
       className="ui-switch"
       data-on={checked}
+      disabled={disabled}
       onClick={() => onChange(!checked)}
     >
       <span />

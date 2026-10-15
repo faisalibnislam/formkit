@@ -86,6 +86,12 @@ export const FLAGS = [
     defaultOn: true,
   },
   {
+    key: "notify.push",
+    label: "Push notifications",
+    description: "Notifications on people's phones and computers. Off, nothing is pushed; the bell and email carry on.",
+    defaultOn: true,
+  },
+  {
     key: "connect.apps",
     label: "Google Sheets, Notion, Airtable and HubSpot",
     description: "Responses sent into those apps. Off, deliveries to them pause and are logged as paused.",

@@ -7373,3 +7373,30 @@ html.fk-own-bar::-webkit-scrollbar {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
   color: #21282e;
 }
+
+/* Settings → Notifications → Push: the devices signed up. */
+.fk-push-devices {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.fk-push-devices li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--neutral-50, #f6f7f8);
+}
+.fk-push-devices strong {
+  font-weight: 500;
+}
+.fk-push-devices small {
+  display: block;
+  margin-top: 2px;
+  color: var(--neutral-600, #545b61);
+  font-size: 12.5px;
+}

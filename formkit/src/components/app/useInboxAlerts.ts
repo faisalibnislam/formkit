@@ -7,6 +7,7 @@ import type { FunctionReturnType } from "convex/server";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { useToast } from "@/components/ui/Toast";
+import { pushOnHere } from "@/lib/push";
 
 /**
  * What happens the moment something new reaches the bell while Formkit is
@@ -53,6 +54,8 @@ export async function setBrowserAlerts(on: boolean): Promise<"on" | "off" | "den
   }
 }
 
+const PUSHED = new Set(["response", "mention", "reply", "assigned", "approval", "approved", "declined"]);
+
 const TITLE_COUNT = /^\(\d+\+?\)\s/;
 
 export function useInboxAlerts(inbox: Inbox | undefined) {
@@ -93,8 +96,10 @@ export function useInboxAlerts(inbox: Inbox | undefined) {
           : undefined,
       });
     }
-    if (fresh.length && document.hidden && browserAlertsOn()) {
-      for (const n of fresh.slice(0, 3)) {
+    // With push on here, the service worker already shows these (convex/model/push.ts PUSH_GROUP).
+    const shown = pushOnHere() ? fresh.filter((n) => !PUSHED.has(n.kind)) : fresh;
+    if (shown.length && document.hidden && browserAlertsOn()) {
+      for (const n of shown.slice(0, 3)) {
         try {
           const alert = new Notification(n.title, { body: n.body ?? undefined, icon: "/icon.png", tag: n._id });
           alert.onclick = () => {

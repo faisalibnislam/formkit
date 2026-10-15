@@ -35,3 +35,11 @@ test("Settings → Developers shows the AI assistant address and connected apps"
   await expect(page.getByText("Claude", { exact: true })).toBeVisible();
   await expectAccessible(page, { include: "main" });
 });
+
+test("Settings → Notifications offers push for each device, and lists them", async ({ page }) => {
+  await page.goto("/app/settings?tab=notifications");
+  await expect(page.getByRole("heading", { name: "Push notifications" })).toBeVisible({ timeout: 45_000 });
+  await expect(page.getByRole("switch", { name: "Push notifications on this device" })).toBeVisible();
+  await expect(page.getByRole("list", { name: "Signed-up devices" }).getByText("Safari on iOS")).toBeVisible();
+  await expectAccessible(page, { include: "main" });
+});

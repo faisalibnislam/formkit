@@ -84,6 +84,7 @@ import type * as model_oauthProfile from "../model/oauthProfile.js";
 import type * as model_places from "../model/places.js";
 import type * as model_plans from "../model/plans.js";
 import type * as model_providers from "../model/providers.js";
+import type * as model_push from "../model/push.js";
 import type * as model_questionTypes from "../model/questionTypes.js";
 import type * as model_quiz from "../model/quiz.js";
 import type * as model_rateLimit from "../model/rateLimit.js";
@@ -104,11 +105,14 @@ import type * as model_totp from "../model/totp.js";
 import type * as model_validate from "../model/validate.js";
 import type * as model_video from "../model/video.js";
 import type * as model_voice from "../model/voice.js";
+import type * as model_webPush from "../model/webPush.js";
 import type * as notifications from "../notifications.js";
 import type * as oauth from "../oauth.js";
 import type * as payments from "../payments.js";
 import type * as presence from "../presence.js";
 import type * as publicForm from "../publicForm.js";
+import type * as push from "../push.js";
+import type * as pushSend from "../pushSend.js";
 import type * as quiz from "../quiz.js";
 import type * as rateLimits from "../rateLimits.js";
 import type * as responses from "../responses.js";
@@ -211,6 +215,7 @@ declare const fullApi: ApiFromModules<{
   "model/places": typeof model_places,
   "model/plans": typeof model_plans,
   "model/providers": typeof model_providers,
+  "model/push": typeof model_push,
   "model/questionTypes": typeof model_questionTypes,
   "model/quiz": typeof model_quiz,
   "model/rateLimit": typeof model_rateLimit,
@@ -231,11 +236,14 @@ declare const fullApi: ApiFromModules<{
   "model/validate": typeof model_validate,
   "model/video": typeof model_video,
   "model/voice": typeof model_voice,
+  "model/webPush": typeof model_webPush,
   "notifications": typeof notifications,
   "oauth": typeof oauth,
   "payments": typeof payments,
   "presence": typeof presence,
   "publicForm": typeof publicForm,
+  "push": typeof push,
+  "pushSend": typeof pushSend,
   "quiz": typeof quiz,
   "rateLimits": typeof rateLimits,
   "responses": typeof responses,
