@@ -8,6 +8,7 @@ import { requireUser } from "./model/identity";
 import { formFor, ownersOf } from "./model/forms";
 import { currentSpace, membersOf, roleIn, spaceForms, spaceOfForm } from "./model/spaces";
 import { nameOf, notify } from "./model/inbox";
+import { labelOf, statusesOfForm } from "./model/statuses";
 import { accessOf } from "./model/access";
 import { searchTextOf } from "./model/responseSearch";
 import { tellDeleted } from "./connections";
@@ -83,6 +84,13 @@ async function shape(ctx: QueryCtx, r: Doc<"responses">, formTitle: string) {
     source: r.source ?? null,
     durationMs: r.durationMs ?? null,
     status: r.status,
+    /** The status as the form's company names and colours it. */
+    statusInfo: await (async () => {
+      const f = await ctx.db.get(r.formId);
+      const list = f ? await statusesOfForm(ctx, f) : [];
+      const s = list.find((x) => x.key === r.status);
+      return { label: s?.label ?? labelOf(list, r.status), tone: s?.tone ?? "neutral" };
+    })(),
     note: r.note ?? null,
     assignee: r.assigneeId
       ? await (async () => {
@@ -208,7 +216,7 @@ export const rows = query({
     order: v.union(v.literal("desc"), v.literal("asc")),
     limit: v.number(),
     /** Narrowing: a status, a tag, and a window of time (submittedAt, ms). */
-    status: v.optional(v.union(v.literal("new"), v.literal("read"), v.literal("reviewed"))),
+    status: v.optional(v.string()),
     /** Only responses whose AI reply is waiting for the owner. */
     held: v.optional(v.boolean()),
     tag: v.optional(v.string()),
@@ -514,7 +522,8 @@ export const canManage = query({
 export const setStatus = mutation({
   args: {
     ids: v.array(v.id("responses")),
-    status: v.union(v.literal("new"), v.literal("read"), v.literal("reviewed")),
+    /** A key from the company's statuses (statuses.ts). */
+    status: v.string(),
   },
   returns: v.null(),
   handler: async (ctx, { ids, status }) => {
@@ -524,7 +533,8 @@ export const setStatus = mutation({
       // Anyone who can read a response may mark a new one as read (opening it
       // does); every other change of status is an edit.
       const seen = status === "read" && r.status === "new";
-      await formFor(ctx, r.formId, seen ? "read" : "write");
+      const form = await formFor(ctx, r.formId, seen ? "read" : "write");
+      if (!(await statusesOfForm(ctx, form)).some((s) => s.key === status)) throw new ConvexError("That status is not one of this company's.");
       await ctx.db.patch(id, { status });
     }
     return null;
@@ -832,6 +842,8 @@ export const exportPage = query({
         .map((b) => (b.title ?? "Question").trim());
     }
 
+    // Statuses by their names, as each form's company calls them.
+    const statusNames = new Map<string, Awaited<ReturnType<typeof statusesOfForm>>>();
     const records: ExportRecord[] = [];
     for (const r of picked) {
       const answers = [];
@@ -848,7 +860,18 @@ export const exportPage = query({
         formId: r.formId,
         form: titles.get(r.formId) ?? "",
         submittedAt: r.submittedAt,
-        status: r.preview ? "preview" : r.status,
+        status: r.preview
+          ? "preview"
+          : labelOf(
+              statusNames.get(r.formId) ??
+                (await (async () => {
+                  const f = await ctx.db.get(r.formId);
+                  const list = f ? await statusesOfForm(ctx, f) : [];
+                  statusNames.set(r.formId, list);
+                  return list;
+                })()),
+              r.status,
+            ),
         partial: r.partial,
         name: r.respondentName ?? "",
         email: r.respondentEmail ?? "",

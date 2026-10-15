@@ -207,7 +207,7 @@ export const TOOLS: Tool[] = [
         form_id: id("form"),
         limit: { type: "number", description: "1 to 100; 25 if left out." },
         cursor: { type: "string" },
-        status: { type: "string", enum: ["new", "read", "reviewed"] },
+        status: { type: "string", description: "A status key from get_form's statuses: new, read, or the company's own." },
         tag: { type: "string" },
         since: { type: "string", description: "An ISO date or time." },
         until: { type: "string", description: "An ISO date or time." },
@@ -249,10 +249,13 @@ export const TOOLS: Tool[] = [
   {
     name: "set_response_status",
     title: "Mark a response",
-    description: "Marks a response new, read or reviewed.",
+    description: "Sets a response's status: new (unread), read, or one of the company's own (get_form lists them).",
     inputSchema: {
       type: "object",
-      properties: { response_id: id("response"), status: { type: "string", enum: ["new", "read", "reviewed"] } },
+      properties: {
+        response_id: id("response"),
+        status: { type: "string", description: "A status key from get_form's statuses: new (unread), read, or the company's own." },
+      },
       required: ["response_id", "status"],
     },
     annotations: change(true),

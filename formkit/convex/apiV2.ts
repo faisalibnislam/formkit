@@ -18,6 +18,7 @@ import { THEME_PRESETS } from "./model/themePresets";
 import { draftChanges, publishNow, setOpen } from "./forms";
 import { summarize } from "./model/summary";
 import { searchTextOf } from "./model/responseSearch";
+import { statusesOfForm } from "./model/statuses";
 import { EVENTS, publicHttps } from "./connections";
 
 /**
@@ -175,6 +176,8 @@ async function fullForm(ctx: QueryCtx, form: Doc<"forms">) {
     thanks: form.thanks ?? null,
     theme: (form.theme as { preset?: string } | undefined)?.preset ?? null,
     liveVersion: form.liveVersion ?? null,
+    /** The statuses its responses can have: the company's own, with "new" and "read" built in. */
+    statuses: await statusesOfForm(ctx, form),
     /** Changes in the draft that are not live yet. Publish to put them live. */
     unpublishedChanges: await draftChanges(ctx, form),
     questions,
@@ -441,10 +444,10 @@ export const write = internalMutation({
       if (!r || r.ownerId !== ownerId || r.preview) return NOT_FOUND;
       const patch: Partial<Doc<"responses">> = {};
       if (body.status !== undefined) {
-        if (body.status !== "new" && body.status !== "read" && body.status !== "reviewed") {
-          return err(422, "`status` is one of new, read or reviewed.");
-        }
-        patch.status = body.status;
+        const form = await ctx.db.get(r.formId);
+        const list = form ? await statusesOfForm(ctx, form) : [];
+        if (!list.some((s) => s.key === body.status)) return err(422, `\`status\` is one of ${list.map((s) => s.key).join(", ")}.`);
+        patch.status = String(body.status);
       }
       if (body.tags !== undefined || body.addTags !== undefined || body.removeTags !== undefined) {
         const list = (v: unknown) => (Array.isArray(v) ? v.map((t) => str(t, 32)).filter((t): t is string => !!t) : []);
