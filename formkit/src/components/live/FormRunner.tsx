@@ -1172,7 +1172,7 @@ function FormRunnerInner({
         <div style={{ marginTop: page === 0 && !standalone ? 34 : 0 }}>
           <div className="fk-live-steplabel">
             <span>
-              Page {page + 1} of {live.length}
+              {tx("pageOf", { n: page + 1, total: live.length })}
             </span>
             {progress(page + 1, live.length)}
           </div>
@@ -1207,7 +1207,7 @@ function FormRunnerInner({
             {thinking ? tx("oneMoment") : busy ? tx("sending") : lastPage ? (resume?.editing ? tx("saveChanges") : tx("submit")) : tx("next")}
           </button>
           <span style={{ fontSize: 13.5, opacity: 0.75 }}>
-            {answeredCount} of {questions.length} answered
+            {tx("answeredOf", { n: answeredCount, total: questions.length })}
           </span>
         </div>
       </form>

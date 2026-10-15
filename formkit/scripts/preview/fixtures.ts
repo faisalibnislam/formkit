@@ -733,6 +733,36 @@ export const QUERIES: Record<string, unknown> = {
   "responses:contactsExportPage": { people: [], cursor: "", done: true },
   "responses:count": { n: 248, more: false },
   "responses:unreadCount": 3,
+  "statuses:list": {
+    statuses: [
+      { key: "new", label: "New", tone: "info" },
+      { key: "read", label: "Read", tone: "neutral" },
+      { key: "waiting", label: "Waiting on them", tone: "warning" },
+      { key: "reviewed", label: "Done", tone: "success" },
+    ],
+    canEdit: true,
+  },
+  "responses:views": [{ id: "v1", name: "Unread leads", filters: { status: "new", tag: "Hot lead" } }],
+  "responses:assignees": [
+    { id: "u1", name: "Me" },
+    { id: "u2", name: "Ravi Menon" },
+  ],
+  "comments:forResponse": {
+    canComment: true,
+    comments: [{ _id: "rc1", author: "Ravi Menon", color: "#4b9d6e", body: "Called them, sending the proposal Friday.", createdAt: now - 2 * 60 * 60 * 1000, mentions: [], canDelete: false }],
+  },
+  "translations:forForm": {
+    language: "en",
+    languages: ["es"],
+    source: {
+      blocks: [{ blockId: "b1", kind: "field", title: "What should we call you?" }],
+      screens: { welcomeTitle: "Let's start your project", welcomeButton: "Start" },
+    },
+    translations: [{ lang: "es", blocks: [{ blockId: "b1", title: "¿Cómo te llamamos?" }], screens: { welcomeTitle: "Empecemos tu proyecto" }, updatedAt: now - DAY }],
+  },
+  "semantic:setting": { on: false, available: true },
+  "integrations:available": { providers: [], accounts: [] },
+  "oauth:connectedApps": [{ clientId: "c1", name: "Claude", scopes: ["Read your forms", "Read responses"], since: now - 3 * DAY, lastUsedAt: now - 60 * 60 * 1000 }],
   "comments:mentionable": [
     { _id: "u2", name: "Ravi Menon", email: "ravi@studionine.co", color: "#4b9d6e" },
     { _id: "u4", name: "Ben Carter", email: "ben@northstar.co", color: "#c4614f" },
@@ -900,6 +930,20 @@ export const QUERIES: Record<string, unknown> = {
           { ...RUNNER.blocks[0]!, _id: "b1h", type: "hidden", title: "Where they came from", key: "utm_source", defaultValue: "direct", required: false },
           { ...RUNNER.blocks[1]!, _id: "b2p", title: "Thanks {{name}} - where should the proposal for you go?", key: null },
           ...RUNNER.blocks.slice(2),
+        ],
+      };
+    }
+    if (flag("fk_lang")) {
+      // Offered in Spanish as well: ?lang=es, or a Spanish browser, gets it.
+      return {
+        ...RUNNER,
+        language: "en",
+        translations: [
+          {
+            lang: "es",
+            blocks: [{ blockId: RUNNER.blocks[0]!._id, title: "¿Cómo te llamamos?" }],
+            screens: { welcomeTitle: "Empecemos tu proyecto", welcomeButton: "Empezar" },
+          },
         ],
       };
     }
@@ -1372,7 +1416,7 @@ export const QUERIES: Record<string, unknown> = {
   },
   "controls:retention": { days: 365, choices: [30, 90, 180, 365, 730] },
   "controls:apiKeys": [
-    { _id: "k1", name: "Warehouse sync", prefix: "fk_live_3f9a", createdAt: now - 26 * HOUR, lastUsedAt: now - HOUR },
+    { _id: "k1", name: "Warehouse sync", prefix: "fk_live_3f9a", scopes: ["forms:read", "responses:read"], createdAt: now - 26 * HOUR, lastUsedAt: now - HOUR },
   ],
   "sso:settings": {
     sso: {

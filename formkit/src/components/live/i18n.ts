@@ -81,6 +81,8 @@ const EN = {
   password: "Password",
   wrongPassword: "That is not the password. Check it with whoever sent you the link.",
   openForm: "Open the form",
+  pageOf: "Page {n} of {total}",
+  answeredOf: "{n} of {total} answered",
 } as const;
 
 export type Key = keyof typeof EN;
@@ -138,6 +140,8 @@ const DICTS: Record<Exclude<Lang, "en">, Dict> = {
     password: "Contraseña",
     wrongPassword: "Esa no es la contraseña. Compruébala con quien te envió el enlace.",
     openForm: "Abrir el formulario",
+    pageOf: "Página {n} de {total}",
+    answeredOf: "{n} de {total} respondidas",
   },
   fr: {
     start: "Commencer",
@@ -190,6 +194,8 @@ const DICTS: Record<Exclude<Lang, "en">, Dict> = {
     password: "Mot de passe",
     wrongPassword: "Ce n’est pas le bon mot de passe. Vérifiez auprès de la personne qui vous a envoyé le lien.",
     openForm: "Ouvrir le formulaire",
+    pageOf: "Page {n} sur {total}",
+    answeredOf: "{n} sur {total} répondues",
   },
   de: {
     start: "Los geht’s",
@@ -242,6 +248,8 @@ const DICTS: Record<Exclude<Lang, "en">, Dict> = {
     password: "Passwort",
     wrongPassword: "Das ist nicht das Passwort. Frag die Person, die dir den Link geschickt hat.",
     openForm: "Formular öffnen",
+    pageOf: "Seite {n} von {total}",
+    answeredOf: "{n} von {total} beantwortet",
   },
   pt: {
     start: "Começar",
@@ -294,6 +302,8 @@ const DICTS: Record<Exclude<Lang, "en">, Dict> = {
     password: "Palavra-passe",
     wrongPassword: "Essa não é a palavra-passe. Confirme com quem lhe enviou o link.",
     openForm: "Abrir o formulário",
+    pageOf: "Página {n} de {total}",
+    answeredOf: "{n} de {total} respondidas",
   },
   it: {
     start: "Inizia",
@@ -346,6 +356,8 @@ const DICTS: Record<Exclude<Lang, "en">, Dict> = {
     password: "Password",
     wrongPassword: "Non è la password giusta. Verificala con chi ti ha mandato il link.",
     openForm: "Apri il modulo",
+    pageOf: "Pagina {n} di {total}",
+    answeredOf: "{n} di {total} risposte",
   },
   nl: {
     start: "Beginnen",
@@ -398,6 +410,8 @@ const DICTS: Record<Exclude<Lang, "en">, Dict> = {
     password: "Wachtwoord",
     wrongPassword: "Dat is niet het wachtwoord. Vraag het na bij wie je de link stuurde.",
     openForm: "Formulier openen",
+    pageOf: "Pagina {n} van {total}",
+    answeredOf: "{n} van {total} beantwoord",
   },
   ar: {
     start: "ابدأ",
@@ -450,6 +464,8 @@ const DICTS: Record<Exclude<Lang, "en">, Dict> = {
     password: "كلمة المرور",
     wrongPassword: "هذه ليست كلمة المرور. تحقق منها مع من أرسل إليك الرابط.",
     openForm: "افتح النموذج",
+    pageOf: "الصفحة {n} من {total}",
+    answeredOf: "تمت الإجابة عن {n} من {total}",
   },
   hi: {
     start: "शुरू करें",
@@ -502,6 +518,8 @@ const DICTS: Record<Exclude<Lang, "en">, Dict> = {
     password: "पासवर्ड",
     wrongPassword: "यह पासवर्ड नहीं है। लिंक भेजने वाले से पुष्टि करें।",
     openForm: "फ़ॉर्म खोलें",
+    pageOf: "पृष्ठ {n} / {total}",
+    answeredOf: "{total} में से {n} के जवाब दिए गए",
   },
   bn: {
     start: "শুরু করুন",
@@ -554,6 +572,8 @@ const DICTS: Record<Exclude<Lang, "en">, Dict> = {
     password: "পাসওয়ার্ড",
     wrongPassword: "এটি সঠিক পাসওয়ার্ড নয়। যিনি লিঙ্ক পাঠিয়েছেন তাঁর কাছে যাচাই করুন।",
     openForm: "ফর্মটি খুলুন",
+    pageOf: "পৃষ্ঠা {n} / {total}",
+    answeredOf: "{total}টির মধ্যে {n}টির উত্তর দেওয়া হয়েছে",
   },
   ja: {
     start: "始める",
@@ -606,6 +626,8 @@ const DICTS: Record<Exclude<Lang, "en">, Dict> = {
     password: "パスワード",
     wrongPassword: "パスワードが違います。リンクを送ってくれた方にご確認ください。",
     openForm: "フォームを開く",
+    pageOf: "{total} ページ中 {n} ページ目",
+    answeredOf: "{total} 問中 {n} 問回答済み",
   },
   zh: {
     start: "开始",
@@ -658,6 +680,8 @@ const DICTS: Record<Exclude<Lang, "en">, Dict> = {
     password: "密码",
     wrongPassword: "密码不正确。请向发送链接的人确认。",
     openForm: "打开表单",
+    pageOf: "第 {n} 页，共 {total} 页",
+    answeredOf: "已回答 {n}/{total}",
   },
 };
 
