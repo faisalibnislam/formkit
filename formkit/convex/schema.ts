@@ -1164,9 +1164,12 @@ export default defineSchema({
     openedAt: v.number(),
     /** Business customers are answered first. */
     priority: v.optional(v.boolean()),
+    /** The private link to the conversation (/support/{token}), sent with every answer. */
+    token: v.optional(v.string()),
   })
     .index("by_state", ["state"])
-    .index("by_user_opened", ["userId", "openedAt"]),
+    .index("by_user_opened", ["userId", "openedAt"])
+    .index("by_token", ["token"]),
 
   /**
    * What the help centre hears: searches that found nothing, and answers to

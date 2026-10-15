@@ -37,6 +37,7 @@ import type * as emailDomains from "../emailDomains.js";
 import type * as emails_authCode from "../emails/authCode.js";
 import type * as emails_kit from "../emails/kit.js";
 import type * as emails_response from "../emails/response.js";
+import type * as emails_support from "../emails/support.js";
 import type * as exports from "../exports.js";
 import type * as flags from "../flags.js";
 import type * as formCheck from "../formCheck.js";
@@ -174,6 +175,7 @@ declare const fullApi: ApiFromModules<{
   "emails/authCode": typeof emails_authCode,
   "emails/kit": typeof emails_kit,
   "emails/response": typeof emails_response,
+  "emails/support": typeof emails_support,
   "exports": typeof exports,
   "flags": typeof flags,
   "formCheck": typeof formCheck,

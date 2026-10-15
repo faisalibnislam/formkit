@@ -158,6 +158,47 @@
   color: var(--color-text-tertiary);
 }
 
+/* A support conversation: on /contact and at its private link. */
+.fk-ticket {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 10px 0 4px;
+}
+.fk-ticket-messages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.fk-ticket-messages li {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--color-surface-subtle, var(--neutral-50, #f6f7f8));
+}
+.fk-ticket-who {
+  font-size: 12.5px;
+  color: var(--color-text-tertiary);
+}
+.fk-ticket-who strong {
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+.fk-ticket-messages p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.fk-ticket-reply {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 /* Plan cards: the pricing page, Settings → Plan and the upgrade sheet. */
 .fk-plans {
   display: grid;
