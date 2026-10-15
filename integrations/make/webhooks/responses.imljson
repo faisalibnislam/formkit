@@ -1,0 +1,28 @@
+{
+  "label": "New responses",
+  "connection": "apikey",
+  "parameters": [
+    {
+      "name": "formId",
+      "type": "select",
+      "label": "Form",
+      "required": true,
+      "options": "rpc://listForms"
+    }
+  ],
+  "attach": {
+    "url": "/hooks",
+    "method": "POST",
+    "body": {
+      "formId": "{{parameters.formId}}",
+      "url": "{{webhook.url}}",
+      "event": "response.created",
+      "label": "Make"
+    },
+    "response": { "data": { "externalHookId": "{{body.id}}" } }
+  },
+  "detach": {
+    "url": "/hooks/{{webhook.externalHookId}}",
+    "method": "DELETE"
+  }
+}

@@ -396,7 +396,8 @@
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0;
-  color: var(--neutral-500);
+  /* On the tinted header, neutral-500 falls just short of 4.5:1. */
+  color: var(--neutral-600, #545b61);
 }
 .fk-cmp-table {
   border-radius: 22px;

@@ -1,0 +1,47 @@
+{
+  "type": "search",
+  "label": "Search responses",
+  "description": "Finds a form's responses by an email address, a name or any word in the answers.",
+  "connection": "apikey",
+  "parameters": [
+    { "name": "formId", "type": "select", "label": "Form", "required": true, "options": "rpc://listForms" },
+    { "name": "query", "type": "text", "label": "Look for", "required": true },
+    { "name": "limit", "type": "uinteger", "label": "Most to return", "default": 10 }
+  ],
+  "communication": {
+    "url": "/forms/{{parameters.formId}}/search",
+    "method": "GET",
+    "qs": { "q": "{{parameters.query}}", "limit": "{{parameters.limit}}" },
+    "response": {
+      "iterate": "{{body.data}}",
+      "output": {
+        "id": "{{item.id}}",
+        "formId": "{{item.formId}}",
+        "submittedAt": "{{item.submittedAt}}",
+        "status": "{{item.status}}",
+        "name": "{{item.respondent.name}}",
+        "email": "{{item.respondent.email}}",
+        "answers": "{{item.answers}}"
+      }
+    }
+  },
+  "interface": [
+    { "name": "id", "type": "text", "label": "Response ID" },
+    { "name": "formId", "type": "text", "label": "Form ID" },
+    { "name": "submittedAt", "type": "date", "label": "Sent at" },
+    { "name": "status", "type": "text", "label": "Status" },
+    { "name": "name", "type": "text", "label": "Name" },
+    { "name": "email", "type": "email", "label": "Email" },
+    {
+      "name": "answers",
+      "type": "array",
+      "label": "Answers",
+      "spec": [
+        { "name": "key", "type": "text", "label": "Key" },
+        { "name": "question", "type": "text", "label": "Question" },
+        { "name": "value", "type": "any", "label": "Answer" },
+        { "name": "fileUrl", "type": "url", "label": "File" }
+      ]
+    }
+  ]
+}

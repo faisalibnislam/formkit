@@ -8,6 +8,7 @@ import { hasFeature, requireFeature } from "./model/plans";
 import { embed, ModelError } from "./model/gemini";
 import { rowsOf, withheldBlocks } from "./aiReply";
 import { currentSpace } from "./model/spaces";
+import { flagOn } from "./model/flags";
 
 /**
  * Search by meaning (Pro, per form). Each sent response's answers, without
@@ -30,7 +31,14 @@ function textOf(r: Pick<Doc<"responses">, "answers">, withheld: Set<string>) {
 }
 
 async function indexing(ctx: Parameters<typeof aiAllowed>[0], form: Doc<"forms"> | null) {
-  return !!form && !form.deletedAt && !!form.semantic && (await hasFeature(ctx, form, "ai.insights")) && (await aiAllowed(ctx, form.ownerId));
+  return (
+    !!form &&
+    !form.deletedAt &&
+    !!form.semantic &&
+    (await flagOn(ctx, "ai.search", form.ownerId)) &&
+    (await hasFeature(ctx, form, "ai.insights")) &&
+    (await aiAllowed(ctx, form.ownerId))
+  );
 }
 
 export const source = internalQuery({
@@ -155,10 +163,22 @@ export const scope = internalQuery({
     const user = await requireUser(ctx);
     if (formId) {
       const form = await formFor(ctx, formId, "read");
-      return { userId: user._id, ownerId: form.ownerId, formId, on: !!form.semantic, allowed: await aiAllowed(ctx, form.ownerId) };
+      return {
+        userId: user._id,
+        ownerId: form.ownerId,
+        formId,
+        on: !!form.semantic,
+        allowed: (await aiAllowed(ctx, form.ownerId)) && (await flagOn(ctx, "ai.search", form.ownerId)),
+      };
     }
     const space = await currentSpace(ctx, user);
-    return { userId: user._id, ownerId: space.ownerId, formId: undefined, on: true, allowed: await aiAllowed(ctx, space.ownerId) };
+    return {
+      userId: user._id,
+      ownerId: space.ownerId,
+      formId: undefined,
+      on: true,
+      allowed: (await aiAllowed(ctx, space.ownerId)) && (await flagOn(ctx, "ai.search", space.ownerId)),
+    };
   },
 });
 

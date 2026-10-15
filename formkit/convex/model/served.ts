@@ -21,15 +21,19 @@ import { recount, storedBlock } from "./forms";
  * `snapshotLiveForms` (a cron) freezes what it shows right now.
  */
 
-export const CONTENT = ["title", "welcome", "thanks", "endings", "quiz", "theme", "payment", "calc"] as const;
+export const CONTENT = ["title", "welcome", "thanks", "endings", "quiz", "theme", "payment", "calc", "language", "languages"] as const;
 export type ContentKey = (typeof CONTENT)[number];
 export type Content = Partial<Pick<Doc<"forms">, ContentKey>>;
+
+export type Translated = { lang: string; blocks: Doc<"formTranslations">["blocks"]; screens: Doc<"formTranslations">["screens"] };
 
 export type Served = {
   /** The form, with its content as published (everything else as it is now). */
   form: Doc<"forms">;
   blocks: Doc<"blocks">[];
   rules: Doc<"logicRules">[];
+  /** Its translations, as published. */
+  translations: Translated[];
   /** The version being served, or null for the draft. */
   version: number | null;
 };
@@ -56,10 +60,21 @@ async function draftOf(ctx: QueryCtx | MutationCtx, formId: Id<"forms">) {
   return { blocks, rules };
 }
 
+async function draftTranslations(ctx: QueryCtx | MutationCtx, formId: Id<"forms">): Promise<Translated[]> {
+  return (
+    await ctx.db
+      .query("formTranslations")
+      .withIndex("by_form_lang", (q) => q.eq("formId", formId))
+      .collect()
+  )
+    .sort((a, b) => a.lang.localeCompare(b.lang))
+    .map((t) => ({ lang: t.lang, blocks: t.blocks, screens: t.screens }));
+}
+
 /** The draft as it stands, ready to store as a version. */
 export async function snapshotOf(ctx: QueryCtx | MutationCtx, form: Doc<"forms">) {
   const { blocks, rules } = await draftOf(ctx, form._id);
-  return { blocks, rules, content: contentOf(form) };
+  return { blocks, rules, content: contentOf(form), translations: await draftTranslations(ctx, form._id) };
 }
 
 /** The live version's row, when it holds a full snapshot. */
@@ -84,14 +99,17 @@ export async function servedForm(
   const snap = opts.draft ? null : await liveSnapshot(ctx, form);
   if (snap) {
     return {
-      form: { ...form, ...((snap.content ?? {}) as Content) },
+      // Every content key comes from the version, even one it left unset.
+      form: snap.content ? { ...form, ...(Object.fromEntries(CONTENT.map((k) => [k, (snap.content as Content)[k]])) as Content) } : form,
       blocks: (snap.blocks as Doc<"blocks">[]).slice().sort((a, b) => a.order - b.order),
       rules: (snap.rules as Doc<"logicRules">[]).slice().sort((a, b) => a.order - b.order),
+      // A version from before translations were published with it shows the current ones.
+      translations: (snap.translations as Translated[] | undefined) ?? (await draftTranslations(ctx, form._id)),
       version: snap.number,
     };
   }
   const { blocks, rules } = await draftOf(ctx, form._id);
-  return { form, blocks, rules, version: null };
+  return { form, blocks, rules, translations: await draftTranslations(ctx, form._id), version: null };
 }
 
 /** Whether a form's live version is a full snapshot yet. */
@@ -108,7 +126,7 @@ export async function isSnapshotted(ctx: QueryCtx | MutationCtx, form: Doc<"form
 export async function applyToDraft(
   ctx: MutationCtx,
   form: Doc<"forms">,
-  snap: { blocks: unknown[]; rules?: unknown[] | null; content?: unknown },
+  snap: { blocks: unknown[]; rules?: unknown[] | null; content?: unknown; translations?: unknown[] | null },
 ) {
   const { blocks: current, rules: currentRules } = await draftOf(ctx, form._id);
   const existing = new Set(current.map((b) => b._id as string));
@@ -156,6 +174,24 @@ export async function applyToDraft(
     const patch: Record<string, unknown> = {};
     for (const k of CONTENT) patch[k] = content[k];
     await ctx.db.patch(form._id, patch as Partial<Doc<"forms">>);
+  }
+  if (snap.translations) {
+    // The version's translations replace the draft's, pointed at the questions as they now are.
+    for (const row of await ctx.db
+      .query("formTranslations")
+      .withIndex("by_form_lang", (q) => q.eq("formId", form._id))
+      .collect()) {
+      await ctx.db.delete(row._id);
+    }
+    for (const t of snap.translations as Translated[]) {
+      await ctx.db.insert("formTranslations", {
+        formId: form._id,
+        lang: t.lang,
+        blocks: t.blocks.map((b) => ({ ...b, blockId: (moved.get(b.blockId) ?? b.blockId) as Id<"blocks"> })),
+        screens: t.screens,
+        updatedAt: Date.now(),
+      });
+    }
   }
   await recount(ctx, form._id);
 }

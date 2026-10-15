@@ -46,7 +46,50 @@ export const FLAGS = [
     label: "Check answers on the server",
     description:
       "A submission whose answers the form would not allow (a required question left out, a choice that is not offered, a malformed email) is refused. Off, such submissions are stored and recorded for review (publicForm:validationReport).",
-    defaultOn: false,
+    defaultOn: true,
+  },
+  // Kill switches: each AI feature and outside connection, on unless turned off here.
+  {
+    key: "ai.followUp",
+    label: "AI follow-up questions",
+    description: "On written answers set to ask one. Off, forms carry on without asking.",
+    defaultOn: true,
+  },
+  {
+    key: "ai.classify",
+    label: "Read every response with AI",
+    description: "Sentiment, topics and urgency for forms with it on. Off, new responses are not read (and not charged).",
+    defaultOn: true,
+  },
+  {
+    key: "ai.transcribe",
+    label: "Write out voice answers",
+    description: "Voice recordings on questions set to be written out. Off, recordings are kept as they are.",
+    defaultOn: true,
+  },
+  {
+    key: "ai.search",
+    label: "Search by meaning",
+    description: "Indexing responses and searching them by meaning. Off, the inbox searches by words only.",
+    defaultOn: true,
+  },
+  {
+    key: "ai.translate",
+    label: "AI translation of forms",
+    description: "Drafting a form's translation with AI. Off, owners can still write translations themselves.",
+    defaultOn: true,
+  },
+  {
+    key: "api.connectedApps",
+    label: "Connected apps (MCP and OAuth)",
+    description: "Claude, ChatGPT and other apps people connected can use their Formkit. Off, those apps are refused; API keys still work.",
+    defaultOn: true,
+  },
+  {
+    key: "connect.apps",
+    label: "Google Sheets, Notion, Airtable and HubSpot",
+    description: "Responses sent into those apps. Off, deliveries to them pause and are logged as paused.",
+    defaultOn: true,
   },
   {
     key: "exports.xlsx",

@@ -1074,6 +1074,7 @@ export async function draftChanges(ctx: QueryCtx, form: Doc<"forms">) {
   if (!total && before.map((b) => b._id).join() !== after.map((b) => b._id).join()) total = 1;
   if (live.rules && JSON.stringify((live.rules as Doc<"logicRules">[]).map(strip)) !== JSON.stringify(draft.rules.map(strip))) total++;
   if (live.content && canonical(live.content) !== canonical(draft.content)) total++;
+  if (live.translations && canonical(live.translations) !== canonical(draft.translations)) total++;
   return total;
 }
 

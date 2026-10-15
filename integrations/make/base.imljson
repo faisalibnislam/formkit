@@ -1,0 +1,14 @@
+{
+  "baseUrl": "https://formkit.app/api/v2",
+  "headers": {
+    "Authorization": "Bearer {{connection.apiKey}}"
+  },
+  "response": {
+    "error": {
+      "message": "[{{statusCode}}] {{body.error.message}}"
+    }
+  },
+  "log": {
+    "sanitize": ["request.headers.authorization"]
+  }
+}

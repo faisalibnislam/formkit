@@ -213,7 +213,7 @@ async function payload(ctx: QueryCtx, live: Doc<"forms">, opts: { draft?: boolea
     uploadCapMb: PLANS[await planOfId(ctx, form)].uploadMb,
     custom: await customLook(ctx, form),
     /** The form's language, and (Pro) every other language it is offered in. */
-    ...(await liveLanguages(ctx, form, await hasFeature(ctx, form, "forms.languages"))),
+    ...liveLanguages(form, served.translations, await hasFeature(ctx, form, "forms.languages")),
     rules: {
       spam: s.spam,
       requireEmail: s.requireEmail,

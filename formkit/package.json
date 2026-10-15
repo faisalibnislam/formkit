@@ -14,7 +14,8 @@
     "shots": "node scripts/shots.mjs",
     "drag-check": "node scripts/drag-check.mjs",
     "menu-check": "node scripts/menu-check.mjs",
-    "hero-check": "node scripts/hero-check.mjs"
+    "hero-check": "node scripts/hero-check.mjs",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@auth/core": "^0.41.3",
@@ -31,7 +32,9 @@
     "resend": "^6.28.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
     "@edge-runtime/vm": "^5.0.0",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/qrcode": "^1.5.6",

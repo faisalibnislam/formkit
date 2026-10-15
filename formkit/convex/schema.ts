@@ -822,6 +822,8 @@ export default defineSchema({
     rules: v.optional(v.array(v.any())),
     /** The content around the questions, as published: model/served.ts CONTENT. */
     content: v.optional(v.any()),
+    /** The form's translations, as published (formTranslations rows, without their ids). */
+    translations: v.optional(v.array(v.any())),
     publishedAt: v.number(),
     publishedBy: v.optional(v.string()),
   }).index("by_form", ["formId", "number"]),

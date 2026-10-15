@@ -6,6 +6,7 @@ import { chargeResponse } from "./aiMeter";
 import { notify } from "./inbox";
 import { aiAllowed } from "./identity";
 import { servedForm } from "./served";
+import { flagOn } from "./flags";
 
 /**
  * AI replies. Each response a reply is written for counts once against the
@@ -76,6 +77,7 @@ export async function queueClassify(
   { hold = false }: { hold?: boolean } = {},
 ): Promise<boolean> {
   if (!form.aiClassify || form.aiReply?.enabled) return false;
+  if (!(await flagOn(ctx, "ai.classify", form.ownerId))) return false;
   if (!(await hasFeature(ctx, form, "ai.insights"))) return false;
   if (!(await aiAllowed(ctx, form.ownerId))) return false;
   if (!(await chargeResponse(ctx, form, responseId))) return false;
@@ -92,6 +94,7 @@ export async function voiceToWrite(ctx: MutationCtx, form: Doc<"forms">, respons
   const asked = new Set<string>(blocks.filter((b) => b.type === "voice" && b.transcribe).map((b) => b._id));
   const waiting = response.answers.filter((a) => a.fileId && asked.has(a.blockId) && !a.transcript);
   if (!waiting.length) return false;
+  if (!(await flagOn(ctx, "ai.transcribe", form.ownerId))) return false;
   if (!(await hasFeature(ctx, form, "ai.transcribe"))) return false;
   if (!(await aiAllowed(ctx, form.ownerId))) return false;
   return !!(await chargeResponse(ctx, form, response._id));

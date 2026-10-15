@@ -29,3 +29,32 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
+
+  # Browser tests: the real pages in Chromium, with accessibility checks,
+  # against the preview build (fixtures instead of a backend).
+  e2e:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: formkit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: formkit/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e
+        env:
+          CI: "true"
+          # The preview build answers from fixtures and never connects; the
+          # client only needs an address to be built with.
+          NEXT_PUBLIC_CONVEX_URL: http://127.0.0.1:3210
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: formkit/playwright-report
+          retention-days: 7
