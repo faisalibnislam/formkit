@@ -300,16 +300,13 @@ export const setText = mutation({
   },
 });
 
-/** What the live form needs: its language, and every translation it is offered in. */
-export async function liveLanguages(ctx: QueryCtx, form: Doc<"forms">, offerMore: boolean) {
+/** What the live form needs: its language, and every translation it is offered in, as published. */
+export function liveLanguages(
+  form: Doc<"forms">,
+  published: { lang: string; blocks: BlockText[]; screens: Screens }[],
+  offerMore: boolean,
+) {
   const language = (isLang(form.language) ? form.language : "en") as Lang;
-  if (!offerMore || !form.languages?.length) return { language, translations: [] as { lang: string; blocks: BlockText[]; screens: Screens }[] };
-  const rows = await ctx.db
-    .query("formTranslations")
-    .withIndex("by_form_lang", (q) => q.eq("formId", form._id))
-    .collect();
-  return {
-    language,
-    translations: rows.filter((r) => form.languages!.includes(r.lang)).map((r) => ({ lang: r.lang, blocks: r.blocks, screens: r.screens })),
-  };
+  if (!offerMore || !form.languages?.length) return { language, translations: [] as typeof published };
+  return { language, translations: published.filter((t) => form.languages!.includes(t.lang)) };
 }

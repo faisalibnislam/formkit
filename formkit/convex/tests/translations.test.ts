@@ -50,3 +50,28 @@ test("a form's language is free; more languages are Pro, translated by AI, and r
   expect(live.language).toBe("fr");
   expect(live.translations.map((x) => x.lang)).toEqual(["es"]);
 });
+
+test("translation changes wait for Publish, like every other edit", async () => {
+  const t = backend();
+  const owner = await person(t, "owner@example.com");
+  await t.run((ctx) => ctx.db.patch(owner.userId, { plan: "pro", planStatus: "active" } as never));
+  const formId = await form(t, owner.userId, { status: "draft" });
+  const q = await owner.as.mutation(api.blocks.add, { formId, kind: "field", type: "short-text", title: "Name" });
+  await owner.as.mutation(api.translations.setLanguages, { formId, languages: ["es"] });
+  await owner.as.mutation(api.translations.setText, { formId, lang: "es", blockId: q, field: "title", value: "Nombre" });
+  await owner.as.mutation(api.forms.publish, { formId });
+  const slug = (await t.run((ctx) => ctx.db.get(formId)))!.slug;
+  const live = async () => (await t.query(api.publicForm.bySlug, { slug })) as { translations: { blocks: { title?: string }[] }[]; language: string };
+  expect((await live()).translations[0]!.blocks[0]!.title).toBe("Nombre");
+
+  await owner.as.mutation(api.translations.setText, { formId, lang: "es", blockId: q, field: "title", value: "Tu nombre" });
+  await owner.as.mutation(api.translations.setLanguage, { formId, language: "de" });
+  expect((await live()).translations[0]!.blocks[0]!.title).toBe("Nombre");
+  expect((await live()).language).toBe("en");
+  expect(await owner.as.query(api.forms.unpublishedChanges, { formId })).toBeGreaterThan(0);
+
+  await owner.as.mutation(api.forms.publish, { formId });
+  expect((await live()).translations[0]!.blocks[0]!.title).toBe("Tu nombre");
+  expect((await live()).language).toBe("de");
+});
+
