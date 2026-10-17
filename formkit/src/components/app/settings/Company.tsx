@@ -62,7 +62,7 @@ export function CompanySection() {
 
           <Panel title="Your own company" lede="Your personal workspace: forms here go out under your own name.">
             <Row
-              label="Show “Made with Formkit”"
+              label="Show “Powered by Formkit”"
               hint={
                 <>
                   A small credit at the bottom of the form and its confirmation email.{" "}
@@ -72,7 +72,7 @@ export function CompanySection() {
             >
               <Switch
                 checked={!viewer.hideBadge || badgeGate.locked}
-                label="Show Made with Formkit on my own forms"
+                label="Show Powered by Formkit on my own forms"
                 onChange={badgeGate.guard(async (on: boolean) => {
                   try {
                     await setPrefs({ hideBadge: !on });
@@ -416,7 +416,7 @@ function CompanyEditor({ company }: { company: Company }) {
           />
         </Row>
         <Row
-          label="Show “Made with Formkit”"
+          label="Show “Powered by Formkit”"
           hint={
             <>
               A small credit at the bottom of this company&rsquo;s forms and confirmation emails.{" "}
@@ -426,7 +426,7 @@ function CompanyEditor({ company }: { company: Company }) {
         >
           <Switch
             checked={company.badge !== false || badgeGate.locked}
-            label="Show Made with Formkit"
+            label="Show Powered by Formkit"
             onChange={(on) =>
               !on && badgeGate.locked
                 ? openUpgrade({ feature: "brand.badge" })

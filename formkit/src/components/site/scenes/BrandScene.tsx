@@ -103,7 +103,7 @@ export function BrandScene({ compact }: SceneProps) {
             </span>
           </div>
           <span className="fk-br-badge" data-hide={domain || undefined} style={{ color: t.text }}>
-            Made with Formkit
+            Powered by Formkit
           </span>
         </div>
 

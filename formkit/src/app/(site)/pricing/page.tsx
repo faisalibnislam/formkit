@@ -145,7 +145,7 @@ const FAQS = [
   },
   {
     q: "What does Pro add?",
-    a: "Looking like your own brand (a custom domain, no “Made with Formkit”, emails from your domain, your fonts and CSS), webhooks, Slack, Google Sheets, payments, calculations and several endings, quizzes, unlimited guests on every form, and AI on your responses: replies written for each person, logic that reads answers, and insights reports.",
+    a: "Looking like your own brand (a custom domain, no “Powered by Formkit”, emails from your domain, your fonts and CSS), webhooks, Slack, Google Sheets, payments, calculations and several endings, quizzes, unlimited guests on every form, and AI on your responses: replies written for each person, logic that reads answers, and insights reports.",
   },
   {
     q: "Who is Business for?",

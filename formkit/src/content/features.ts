@@ -417,7 +417,7 @@ export const FEATURE_PAGES: Story[] = [
       },
       {
         title: "On Pro",
-        body: "forms.yourcompany.com with step-by-step DNS help for your provider, confirmation emails from your own domain, custom fonts and CSS, and no “Made with Formkit”.",
+        body: "forms.yourcompany.com with step-by-step DNS help for your provider, confirmation emails from your own domain, custom fonts and CSS, and no “Powered by Formkit”.",
         points: ["Custom domain", "Emails from your domain", "Custom fonts and CSS", "No Formkit badge"],
       },
       {

@@ -3267,7 +3267,8 @@ button.fk-chip {
   z-index: 50;
   display: inline-flex;
   align-items: center;
-  padding: 10px 16px;
+  gap: 6px;
+  padding: 8px 13px;
   border-radius: 999px;
   background: #fff;
   color: var(--neutral-900, #15191c);
@@ -3278,6 +3279,12 @@ button.fk-chip {
   transition:
     transform 0.15s ease,
     box-shadow 0.15s ease;
+}
+.fk-live-credit-by {
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 500;
+  color: var(--neutral-600, #5b6670);
 }
 .fk-live-credit:hover {
   transform: translateY(-1px);
