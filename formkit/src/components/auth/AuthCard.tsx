@@ -7,6 +7,7 @@ import { ArrowRight, KeyRound, Lock, Mail, RotateCcw, User } from "lucide-react"
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { GoogleG } from "@/components/brand/GoogleG";
 import { NightSky } from "@/components/brand/NightSky";
 import { SiteNav } from "@/components/site/SiteNav";
 import { Button, Checkbox, Field, Input, ProgressBar } from "@/components/ui";
@@ -308,6 +309,7 @@ export function AuthCard({ initialView }: { initialView: View }) {
                         fullWidth
                         disabled={busy}
                         onClick={() => void signIn(p, { redirectTo: landing() })}
+                        iconLeft={<GoogleG />}
                       >
                         Continue with Google
                       </Button>
