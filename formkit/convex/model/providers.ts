@@ -65,7 +65,7 @@ export const PROVIDERS: Record<ProviderId, Provider> = {
     kind: "hubspot",
     authUrl: "https://app.hubspot.com/oauth/authorize",
     tokenUrl: "https://api.hubapi.com/oauth/v1/token",
-    scopes: ["crm.objects.contacts.read", "crm.objects.contacts.write"],
+    scopes: ["oauth", "crm.objects.contacts.read", "crm.objects.contacts.write"],
     pkce: false,
     tokenAuth: "body",
     env: ["HUBSPOT_CLIENT_ID", "HUBSPOT_CLIENT_SECRET"],
