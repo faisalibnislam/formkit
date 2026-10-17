@@ -842,8 +842,9 @@ function FormRunnerInner({
 
   const credit =
     data.brand.badge === false ? null : (
-      <a className="fk-live-credit" href="https://formkit.app" target="_blank" rel="noopener" aria-label="Made with Formkit">
-        <Logo size={20} tone="current" />
+      <a className="fk-live-credit" href="https://formkit.app" target="_blank" rel="noopener" aria-label="Powered by Formkit (opens in a new tab)">
+        <span className="fk-live-credit-by">Powered by</span>
+        <Logo size={14} tone="current" />
       </a>
     );
   const split = theme.layout === "split";

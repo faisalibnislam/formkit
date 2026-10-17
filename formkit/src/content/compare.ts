@@ -371,7 +371,7 @@ export const RIVALS: Rival[] = [
       },
       {
         q: "Can I remove the badge?",
-        a: "Neither free plan removes it. On Formkit, Pro removes “Made with Formkit” from $6 a seat a month.",
+        a: "Neither free plan removes it. On Formkit, Pro removes “Powered by Formkit” from $6 a seat a month.",
       },
     ],
   },

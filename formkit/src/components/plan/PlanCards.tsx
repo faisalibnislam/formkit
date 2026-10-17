@@ -27,7 +27,7 @@ export const PLAN_POINTS: Record<PlanId, { lead?: string; points: string[] }> = 
     lead: "Everything in Free, and",
     points: [
       "Your own domain, like forms.acme.com",
-      "No “Made with Formkit”, emails from your domain",
+      "No “Powered by Formkit”, emails from your domain",
       "Custom fonts and CSS",
       "Calculations, hidden fields, answer piping, redirects",
       "Several endings, hidden options and limited places",
