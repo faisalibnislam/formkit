@@ -15,6 +15,21 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: "2026-10-17",
+    title: "Notion, Airtable and HubSpot, and push notifications",
+    tag: "New",
+    body: "Send each response straight into the tools you already use, and get new responses on your phone.",
+    points: [
+      "Pro: each response becomes a row in a Notion database or an Airtable table made for the form, or a HubSpot contact with a note of the answers.",
+      "Edited responses update what they made, instead of making another.",
+      "Push notifications for new responses, mentions and approvals, on every plan.",
+    ],
+    links: [
+      { label: "Notion, Airtable and HubSpot", href: "/help/notion-airtable-hubspot" },
+      { label: "Push notifications", href: "/help/push-notifications" },
+    ],
+  },
+  {
     date: "2026-10-15",
     title: "Payments that arrive paid, Formkit in the chat, and forms AI agents can fill in",
     tag: "New",

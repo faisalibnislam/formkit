@@ -696,6 +696,13 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "updated": "2026-10-01"
       },
       {
+        "id": "notion-airtable-hubspot",
+        "title": "Notion, Airtable and HubSpot",
+        "summary": "Each response becomes a page, a record or a contact, in the place you pick.",
+        "body": "Open a form's Settings → Connections and choose Notion, Airtable or HubSpot. Sign in to that app and allow Formkit; it only gets the access it asks for.\n## Where responses go\n- Notion: pick a page you shared with Formkit. Formkit makes a database in it, with a column for each question, and each response becomes a row.\n- Airtable: pick a base. Formkit makes a table in it, with a field for each question, and each response becomes a record.\n- HubSpot: each response with an email address creates that contact, or updates the one with the same email, and adds a note with every answer.\n## When a response changes\nIf someone edits a response they sent, the page, record or note it made is updated rather than duplicated.\n## Disconnecting\nRemove the connection from the form at any time. What was already sent stays in your app.\n## Limits\nAirtable's free plan allows 1,000 API calls a month per workspace, about one per response; past it, Airtable pauses deliveries until the month resets.\n> Notion, Airtable and HubSpot are part of Pro.",
+        "updated": "2026-10-17"
+      },
+      {
         "id": "payments",
         "title": "Take a payment with a form",
         "summary": "People pay through your own Stripe account as they send the form, and the answers arrive once they have.",

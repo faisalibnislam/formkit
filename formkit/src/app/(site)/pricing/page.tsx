@@ -78,7 +78,7 @@ const EVERYONE: { icon: typeof Check; title: string; line: string; soon?: boolea
 ];
 
 /** Built and switching on soon: shown, and labelled so. */
-const SOON = new Set<string>(["connect.apps"]);
+const SOON = new Set<string>([]);
 /** Rows that are not plan features yet, under the group they will join. */
 const SOON_ROWS: { group: string; label: string; pro: boolean }[] = [];
 
