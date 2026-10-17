@@ -8,7 +8,6 @@ import { registerClient, revoke, token } from "./oauth";
 import { callback as integrationCallback } from "./integrations";
 import { http as agentForms } from "./agents";
 import { webhook as stripeWebhook } from "./payments";
-import { webhook as workosWebhook } from "./workos";
 
 const http = httpRouter();
 
@@ -31,9 +30,6 @@ http.route({ path: "/integrations/callback", method: "GET", handler: integration
 
 // Stripe confirming a form's payment, one address per connected account (payments.ts).
 http.route({ pathPrefix: "/stripe/webhook/", method: "POST", handler: stripeWebhook });
-
-// WorkOS: SAML connections and directory (SCIM) changes (workos.ts).
-http.route({ path: "/workos/webhook", method: "POST", handler: workosWebhook });
 
 // Forms AI agents can fill in (agents.ts), behind formkit.app/api/agent/forms/.
 for (const method of ["GET", "POST", "OPTIONS"] as const) {

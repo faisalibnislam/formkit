@@ -337,6 +337,13 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "updated": "2026-09-28"
       },
       {
+        "id": "push-notifications",
+        "title": "Push notifications on your phone",
+        "summary": "New responses, mentions and approvals, even when Formkit isn't open.",
+        "body": "Open Settings → Notifications → Push notifications and switch on This device. Your browser asks whether Formkit may send notifications; say yes. Do it on each phone and computer you want them on.\n## What arrives\n- New responses, one notification per form until you look, however busy it gets\n- Someone @mentions you, replies to you, or gives you a response\n- A form waits for your approval, or yours was approved or sent back\n\nSwitch any of the three off underneath. The bell in Formkit still gets everything.\n## Your devices\nEvery device signed up is listed, with when it last got a notification. Remove one there, or send a test to all of them.\n## On iPhone and iPad\nAdd Formkit to your Home Screen first (Share → Add to Home Screen), open it from there, then switch push on.",
+        "updated": "2026-10-17"
+      },
+      {
         "id": "notify-routing",
         "title": "Route by answer",
         "summary": "Sending different responses to different people.",
@@ -472,7 +479,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "id": "sso",
         "title": "Single sign-on for your domain",
         "summary": "Everyone at your company signs in with Google or Microsoft.",
-        "body": "Settings → Controls → Single sign-on. Enter your company's email domain and add the TXT record shown where its DNS is managed, then check.\nOnce the domain is verified, turn on Require. Anyone with an address at that domain then signs in with Google or Microsoft; the password form turns them away. Someone removed from your company's directory can no longer get in.\n> Sign in once with Google or Microsoft yourself before requiring it, so you are not locked out.\n## Coming soon\nSAML single sign-on through your own identity provider (Okta, Entra ID and others), and SCIM, so people join and leave Formkit as they join and leave your directory.",
+        "body": "Settings → Controls → Single sign-on. Enter your company's email domain and add the TXT record shown where its DNS is managed, then check.\nOnce the domain is verified, turn on Require. Anyone with an address at that domain then signs in with Google or Microsoft; the password form turns them away. Someone removed from your company's directory can no longer get in.\n> Sign in once with Google or Microsoft yourself before requiring it, so you are not locked out.",
         "updated": "2026-10-15"
       },
       {

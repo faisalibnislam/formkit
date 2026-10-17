@@ -29,7 +29,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       "Export responses as JSON, or as PDFs, in a zip or as one document, in any language.",
       "Bring your Google Forms, Typeform, Tally or Jotform form over from its compare page.",
       "Answers from Formkit support now come by email, with a link to reply.",
-      "Coming soon: push notifications on your phone, and SAML single sign-on with SCIM for Business.",
+      "Push notifications on your phone or computer for new responses, mentions and approvals.",
     ],
     links: [
       { label: "AI assistants and agents", href: "/features/ai-assistants" },
