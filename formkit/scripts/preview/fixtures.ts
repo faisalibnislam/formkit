@@ -1479,7 +1479,7 @@ export const QUERIES: Record<string, unknown> = {
     },
     available: ["google"],
   },
-  "sso:providers": [],
+  "sso:providers": ["google"],
   "support:mine": { priority: true, tickets: [] },
   "revenue:overview": (() => {
     const months = Array.from({ length: 12 }, (_, i) => {
