@@ -174,8 +174,8 @@
   font-size: clamp(14px, 1.45vw, 19px);
   line-height: 1.55;
   letter-spacing: 0.01em;
-  color: #ecf3f9;
-  opacity: 0.88;
+  /* Full white: anything softer drops under 4.5:1 on the mid-blue sky. */
+  color: #ffffff;
   white-space: nowrap;
 }
 @media (max-width: 860px) {
@@ -203,7 +203,8 @@
   align-items: center;
   gap: 2px;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.72);
+  /* The sky is palest here, so the hint is dark ink, not white. */
+  color: #0e2a47;
   pointer-events: none;
 }
 .fk-hero-cue > span:last-child {

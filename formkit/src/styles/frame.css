@@ -141,13 +141,16 @@
   height: 50px;
   padding: 0 22px;
   border-radius: var(--radius-pill);
+  /* A deep wash behind the white label keeps it above 4.5:1 where the sky
+     turns pale. */
+  background: rgba(8, 30, 58, 0.34);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
   color: #ffffff;
   font-size: 15.5px;
   transition: var(--transition-control);
 }
 .fk-ghost-pill:hover {
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(8, 30, 58, 0.5);
   color: #ffffff;
 }
 
