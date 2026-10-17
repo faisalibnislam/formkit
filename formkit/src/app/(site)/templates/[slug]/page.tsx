@@ -6,7 +6,7 @@ import { NightSky } from "@/components/brand/NightSky";
 import { Glyph } from "@/components/brand/Glyph";
 import { PublicPage } from "@/components/site/PublicPage";
 import { JsonLd, breadcrumb, faqPage } from "@/components/site/JsonLd";
-import { TEMPLATES, templateBySlug, templateTitle } from "@/content/templates";
+import { TEMPLATES, templateBySlug, templateSeoTitle, templateTitle } from "@/content/templates";
 import { featureBySlug } from "@/content/features";
 import { templatePreview } from "@/content/templatePreview";
 import { TemplatePreviewProvider, TemplatePreviewer } from "@/components/templates/TemplatePreviewer";
@@ -27,7 +27,7 @@ export async function generateMetadata(
   const { slug } = await props.params;
   const t = templateBySlug(slug);
   if (!t) return {};
-  const title = templateTitle(t);
+  const title = templateSeoTitle(t);
   return {
     title,
     description: t.meta,
@@ -249,10 +249,10 @@ export default async function TemplateDetailPage(props: PageProps<"/templates/[s
                       <Check size={15} strokeWidth={2.4} aria-hidden /> Partial answers and drop-off by question, on every plan
                     </li>
                     <li>
-                      <Check size={15} strokeWidth={2.4} aria-hidden /> Export to CSV on every plan, Excel on Pro
+                      <Check size={15} strokeWidth={2.4} aria-hidden /> CSV, JSON and PDF on every plan, Excel on Pro
                     </li>
                     <li>
-                      <Check size={15} strokeWidth={2.4} aria-hidden /> Sheets, Slack, Zapier, Make and webhooks on Pro
+                      <Check size={15} strokeWidth={2.4} aria-hidden /> Sheets, Slack, Notion, Airtable, HubSpot and webhooks on Pro
                     </li>
                   </ul>
                 </div>

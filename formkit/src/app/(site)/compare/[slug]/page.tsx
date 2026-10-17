@@ -24,7 +24,8 @@ export async function generateMetadata(
   const { slug } = await props.params;
   const r = rivalBySlug(slug);
   if (!r) return {};
-  const title = `Formkit vs ${r.name}: an honest comparison`;
+  // People search "typeform alternative"; " | Formkit" is added after it.
+  const title = `${r.name} alternative: Formkit vs ${r.name}`.length <= 50 ? `${r.name} alternative: Formkit vs ${r.name}` : `${r.name} alternative: Formkit compared`;
   return {
     title,
     description: r.meta,
@@ -82,7 +83,10 @@ export default async function CompareDetailPage(props: PageProps<"/compare/[slug
               <span>/</span>
               <span style={{ color: "#ffffff" }}>Formkit vs {r.name}</span>
             </nav>
-            <h1 className="fk-cmp-h1">Formkit vs {r.name}</h1>
+            <h1 className="fk-cmp-h1">
+              Formkit vs {r.name}
+              <span className="fk-cmp-h1-sub">The free {r.name} alternative</span>
+            </h1>
             <p className="fk-cmp-hero-p">{r.meta}</p>
             <ul className="fk-cmp-facts">
               <li>

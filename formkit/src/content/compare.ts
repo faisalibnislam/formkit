@@ -57,7 +57,7 @@ export const COMPARE_ROWS: CompareRow[] = [
   },
   {
     label: "CSV and spreadsheet export",
-    cells: [y("Sheets and CSV"), y("CSV and XLSX"), y("CSV; Excel on Pro")],
+    cells: [y("Sheets and CSV"), y("CSV and XLSX"), y("CSV, JSON and PDF; Excel on Pro")],
   },
   {
     label: "Collaborators on the free tier",
@@ -110,7 +110,7 @@ export const RIVALS: Rival[] = [
       },
       {
         q: "Can I move my existing forms across?",
-        a: "There is no importer. Formkit templates cover the common cases, and rebuilding a short form takes a few minutes.",
+        a: "Yes. Paste the form’s link on this page and Formkit imports it as a draft you can edit.",
       },
       {
         q: "Does Formkit export to Sheets?",
@@ -188,7 +188,7 @@ export const RIVALS: Rival[] = [
       },
       {
         q: "Can I move my Jotform forms across?",
-        a: "There is no importer. Describe the form to Formkit's AI builder or start from a template, and a short form takes a few minutes.",
+        a: "Yes. Paste the form’s link on this page and Formkit imports it as a draft you can edit.",
       },
     ],
   },
@@ -208,7 +208,7 @@ export const RIVALS: Rival[] = [
       { label: "Drop-off by question", them: n("Pro"), us: y("On every plan") },
       { label: "Version history with restore", them: n("Pro"), us: y("30 days on Free") },
       { label: "People working on a form", them: n("Pro"), us: y("Unlimited members, 3 guests per form") },
-      { label: "Sheets, Zapier and webhooks", them: y("On the free plan"), us: p("Pro") },
+      { label: "Sheets, Notion, Airtable and webhooks", them: y("On the free plan"), us: p("Pro") },
       { label: "Publish under your own link", them: n("Custom domain on Pro"), us: y("formkit.app/your-name") },
       { label: "Works in Claude and ChatGPT (MCP)", them: y("Free on all plans, in beta"), us: y("Every plan, with in-chat views") },
       { label: "Responses as JSON", them: p("Through the API"), us: y("A download, or the API") },
@@ -220,7 +220,7 @@ export const RIVALS: Rival[] = [
       },
       {
         q: "Which one has more integrations for free?",
-        a: "Tally. It connects to Google Sheets, Notion, Airtable, Zapier, Make and webhooks on its free plan. On Formkit, Sheets, Slack, Zapier, Make and webhooks are on Pro.",
+        a: "Tally. It connects to Google Sheets, Notion, Airtable, Zapier, Make and webhooks on its free plan. On Formkit, Sheets, Slack, Notion, Airtable, HubSpot and webhooks (which Zapier or Make can catch) are on Pro.",
       },
       {
         q: "How do the paid plans compare?",
@@ -254,7 +254,7 @@ export const RIVALS: Rival[] = [
     faqs: [
       {
         q: "Which is better with Airtable or Notion?",
-        a: "Fillout. It is built around those tools. Formkit connects to Google Sheets, Slack, Zapier, Make and webhooks on Pro.",
+        a: "Fillout. It is built around those tools. Formkit connects to Notion, Airtable, HubSpot, Google Sheets and Slack on Pro, and to anything else through signed webhooks.",
       },
       {
         q: "What happens after 1,000 responses?",
@@ -283,7 +283,7 @@ export const RIVALS: Rival[] = [
       { label: "Conditional logic", them: y("Branching"), us: y("Skip, show, hide") },
       { label: "Your own colours, type and logo", them: p("Built-in themes"), us: y("Full theme editor") },
       { label: "Publish under your own link", them: n("Shared domain"), us: y("formkit.app/your-name") },
-      { label: "Export", them: y("Excel"), us: y("CSV; Excel on Pro") },
+      { label: "Export", them: y("Excel"), us: y("CSV, JSON and PDF; Excel on Pro") },
       { label: "Logic that jumps back", them: n("Branching goes forward only"), us: y("With loop protection") },
     ],
     faqs: [
@@ -301,7 +301,7 @@ export const RIVALS: Rival[] = [
       },
       {
         q: "Can I get the answers into Excel?",
-        a: "Yes. Every plan exports CSV, which Excel opens. Pro adds a native Excel export.",
+        a: "Yes. Every plan exports CSV, which Excel opens, as well as JSON and PDF. Pro adds a native Excel export.",
       },
     ],
   },
@@ -317,7 +317,7 @@ export const RIVALS: Rival[] = [
       { label: "Questions per form", them: p("10 per survey on Basic"), us: y("No limit") },
       { label: "Responses you can see", them: p("A limited number per survey"), us: y("All of them") },
       { label: "Conditional logic", them: n("Paid plans"), us: y("Skip, show, hide") },
-      { label: "Export", them: n("Paid plans"), us: y("CSV on every plan") },
+      { label: "Export", them: n("Paid plans"), us: y("CSV, JSON and PDF on every plan") },
       { label: "Publish under your own link", them: n("Shared domain"), us: y("formkit.app/your-name") },
       { label: "Logic that jumps back", them: n("Skip logic goes forward only"), us: y("With loop protection") },
       { label: "Many responses as PDFs", them: p("Paid plans"), us: y("Every plan") },

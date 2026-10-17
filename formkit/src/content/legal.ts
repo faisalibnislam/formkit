@@ -15,11 +15,11 @@ export type LegalSection = {
   code?: string[];
 };
 
-export const LEGAL_UPDATED = "21 September 2026";
+export const LEGAL_UPDATED = "28 September 2026";
 /** The privacy policy alone moved on with push, connected services and passkeys. */
 export const PRIVACY_UPDATED = "17 October 2026";
 /** The data processing agreement moved on with the AI subprocessor wording. */
-export const DPA_UPDATED = "14 October 2026";
+export const DPA_UPDATED = "17 October 2026";
 
 export const PRIVACY: LegalSection[] = [
   {
@@ -33,11 +33,12 @@ export const PRIVACY: LegalSection[] = [
   {
     id: "what-we-collect",
     title: "What we collect",
-    paras: ["Three things, and nothing else:"],
+    paras: ["Four things, and nothing else:"],
     bullets: [
-      "Your account. A name, an email address, how you sign in (a hashed password, a passkey's public key, or your Google account if your company uses it), and a company name if you choose to add one. A company is optional and most people never add one.",
+      "Your account. A name, an email address, how you sign in (a hashed password, a passkey's public key, or your Google account if you sign in with Google), and a company name if you choose to add one. A company is optional and most people never add one.",
       "Your forms and their answers. Questions, themes, settings, every response, and any file somebody uploads (up to 20 MB per file on Free, more on paid plans).",
       "Technical records. Sign-in times, the pages you opened in the app, the browser and rough location (city level) a request came from, and errors. We keep these to work out what broke and to spot someone attacking the service.",
+      "What you set up and send us. If you turn on push notifications, the address your browser gives us to reach that device. If you connect a service such as Google Sheets or Notion, the token it issues, stored encrypted. If you write to support, even without an account, your name, email address and message.",
     ],
   },
   {
@@ -60,7 +61,7 @@ export const PRIVACY: LegalSection[] = [
     id: "who-else-sees-it",
     title: "Who else touches it",
     paras: [
-      "A small number of companies handle data for us because they run the machines: Convex and Vercel host Formkit, Resend delivers its email, Polar handles billing for paid plans, Google's Gemini models power the AI features, Cloudflare runs the spam check on forms that have it on (see Cookies), and Sentry receives reports of errors in the app (what went wrong, without answers or account details). They are bound to use it only to provide that service. If you allow it on our public pages, Google Analytics also receives visit data from those pages (see Cookies).",
+      "A small number of companies handle data for us because they run the machines: Convex and Vercel host Formkit, Resend delivers its email, Polar handles billing for paid plans, Google's Gemini models power the AI features, Cloudflare runs the spam check on forms that have it on (see Cookies), and Sentry receives reports of errors anywhere on Formkit, published forms included (what went wrong, without answers or account details). They are bound to use it only to provide that service. If you allow it on our public pages, Google Analytics also receives visit data from those pages (see Cookies).",
       "AI features send Google only what they need. Ask Formkit sends your prompt and the form you are working on, and, when you ask it to read responses, counts and written answers without names, email addresses or phone numbers. If you turn on AI replies, AI logic or AI insights for a form, each response to it is sent as it arrives, so the reply, decision or summary can be written. If you ask for a voice question's recordings to be written out, each recording is sent once, to be transcribed. If you turn on search by meaning for a form, each response's answers, without names, email addresses or phone numbers, are sent once to be indexed. Google may not use any of it to train its models.",
       "Apps you connect, such as an AI assistant you allow to use your Formkit, can read and change what you let them on the consent screen, and nothing else. What they do with it is between you and them. You can disconnect any of them in Settings → Developers.",
       "Services you connect to a form, such as Slack, Google Sheets, Notion, Airtable, HubSpot or your own Stripe account, receive the responses you send them, and what they do with them is between you and them. The keys and sign-in tokens Formkit keeps for them are stored encrypted.",
@@ -92,7 +93,7 @@ export const PRIVACY: LegalSection[] = [
     id: "cookies",
     title: "Cookies",
     paras: [
-      "Inside the app, Formkit sets two cookies: one keeps you signed in, the other remembers your time zone so dates show in your local time.",
+      "Inside the app, Formkit sets a few cookies of its own: two keep you signed in, one remembers your time zone so dates show in your local time, and signing in with Google sets a short-lived one for that step.",
       "Your published forms set no cookies. To stop duplicate and automated submissions, a form keeps a random device code in the respondent's browser storage. It identifies a browser, not a person, and it is never shared or used for advertising. On Pro, a form also records where each response came from (the link, a QR code or the referring site) and what kind of device sent it, for the form's own analytics.",
       "When a form's spam protection is on, Cloudflare Turnstile checks that a person, not a script, is sending it. Cloudflare sees the respondent's browser and connection for that check only, and does not use it for advertising.",
       "On our public pages (the homepage, templates, help and the rest of formkit.app outside the app), we use Google Analytics to count visits and see which pages people find useful, but only if you say yes. Until you do, it is not loaded at all: no script, no cookie, nothing sent to Google. If you accept, it sets a few cookies whose names begin with _ga, which last up to two years. Google's advertising features are switched off.",
@@ -236,7 +237,7 @@ export const DPA: LegalSection[] = [
     title: "Who this is between",
     paras: [
       "This agreement is between you, the Formkit customer who builds forms and collects responses (the controller), and Formkit (the processor). It forms part of the terms of service and applies whenever Formkit processes personal data in the responses your forms collect.",
-      "It is included with the Business plan. Customers on any plan may rely on it; if your organisation needs a countersigned copy, ask from Settings → Plan → Contact support.",
+      "It is included with the Business plan. Customers on any plan may rely on it; if your organisation needs a countersigned copy, ask from Settings → Controls or at formkit.app/contact.",
     ],
   },
   {
@@ -270,7 +271,7 @@ export const DPA: LegalSection[] = [
       "Data is encrypted in transit (TLS) and at rest by our hosting providers.",
       "Passwords are never stored in readable form; API keys are kept only as hashes.",
       "Access to production systems is limited to the people who run Formkit.",
-      "Business accounts get an audit log of who did what, automatic deletion after a period you choose, and single sign-on for your domain.",
+      "Business accounts get an audit log of who did what, automatic deletion after a period you choose, and sign-in with your company’s Google Workspace.",
     ],
   },
   {
@@ -282,7 +283,7 @@ export const DPA: LegalSection[] = [
       "Vercel: hosting for the website and the forms.",
       "Resend: delivery of the emails Formkit sends.",
       "Cloudflare (Turnstile): the spam check on forms with spam protection on. It sees the respondent's browser and connection, never their answers.",
-      "Sentry: reports of errors in the app, with links stripped of tokens and without answers or account details.",
+      "Sentry: reports of errors anywhere on Formkit, published forms included, with links stripped of tokens and without answers or account details.",
       "Polar: billing for Formkit plans (your account details only, never your responses).",
       "Google (Gemini): the AI features. It receives your prompts and the form when you use Ask Formkit; responses without names, emails or phone numbers when you ask it to read them; each response to a form with AI replies, AI logic or AI insights turned on; voice recordings on questions set to be written out; and, for forms with search by meaning on, each response's answers without contact details. It may not use the data to train its models.",
     ],
@@ -298,7 +299,8 @@ export const DPA: LegalSection[] = [
     id: "your-own-services",
     title: "Services you connect yourself",
     paras: [
-      "Webhooks, Slack, Discord, Microsoft Teams, Google Sheets, Notion, Airtable, HubSpot and Stripe payments send data where you tell them to. Those services are yours to choose, and your agreement with them, not this one, covers what they do with it.",
+      "Webhooks, Slack, Discord, Microsoft Teams, Google Sheets, Notion, Airtable, HubSpot, Stripe payments, the API and the AI assistants you connect send data where you tell them to. Those services are yours to choose, and your agreement with them, not this one, covers what they do with it.",
+      "Push notifications reach a device through its browser’s push service (run by Apple, Google, Microsoft or Mozilla), encrypted on the way so that service cannot read them.",
     ],
   },
   {

@@ -261,7 +261,7 @@ export const TEMPLATES: FormTemplate[] = [
       },
       {
         q: "Can I export the attendee list?",
-        a: "Yes, to CSV or Excel, matching whatever filter you have applied.",
+        a: "Yes, to CSV, JSON or PDF on every plan and Excel on Pro, matching whatever filter you have applied.",
       },
     ],
   },
@@ -318,7 +318,13 @@ export const TEMPLATE_CATEGORIES = ["Business", "Agency", "Sales", "Marketing", 
 
 /** "Contact form template", not "Contact form form template". */
 export function templateTitle(t: { name: string }) {
-  return /\bform$/i.test(t.name) ? `${t.name} template` : `${t.name} form template`;
+  // "Customer satisfaction survey template", not "...survey form template".
+  return /\b(form|survey|quiz|questionnaire)$/i.test(t.name) ? `${t.name} template` : `${t.name} form template`;
+}
+
+/** The search title: people look for "free … template". */
+export function templateSeoTitle(t: { name: string }) {
+  return `Free ${templateTitle(t).replace(/^[A-Z](?=[a-z])/, (c) => c.toLowerCase())}`;
 }
 
 export function templateBySlug(slug: string) {

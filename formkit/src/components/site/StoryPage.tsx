@@ -16,24 +16,45 @@ import { planLadder } from "@/content/featurePlans";
 import { readingMinutes } from "@/components/site/HelpArticleBody";
 import { JsonLd, article, breadcrumb, faqPage } from "@/components/site/JsonLd";
 import { FEATURE_PAGES, USE_CASES, type Story } from "@/content/features";
+import { INTEGRATION_PAGES } from "@/content/integrations";
+import { GUIDE_PAGES } from "@/content/guides";
 import { templateBySlug } from "@/content/templates";
 import { helpArticle } from "@/content/help";
 import { SITE_URL } from "@/lib/site";
 
+/** The sections that share this page: each is a list of Story pages. */
+export type StoryBase = "features" | "use-cases" | "integrations" | "guides";
+
+const POOLS: [StoryBase, Story[]][] = [
+  ["features", FEATURE_PAGES],
+  ["integrations", INTEGRATION_PAGES],
+  ["guides", GUIDE_PAGES],
+  ["use-cases", USE_CASES],
+];
+
+/** A related slug, looked up in this page's own section first. */
+function findStory(slug: string, prefer: StoryBase): { story: Story; base: StoryBase } | null {
+  for (const [base, pool] of [...POOLS.filter(([b]) => b === prefer), ...POOLS.filter(([b]) => b !== prefer)]) {
+    const story = pool.find((p) => p.slug === slug);
+    if (story) return { story, base };
+  }
+  return null;
+}
+
 /**
- * One feature or use-case page: a hero with the feature playing beside it,
+ * One feature, use-case, integration or guide page: a hero with the feature playing beside it,
  * what it does, how to start, the templates and help that go with it,
  * related features (playing too), and the questions people ask. The links
  * between them are most of the point: they are how visitors, and search
  * engines, move from a feature to a template to the help that explains it.
  */
-export function StoryPage({ story, base, crumb }: { story: Story; base: "features" | "use-cases"; crumb: string }) {
+export function StoryPage({ story, base, crumb }: { story: Story; base: StoryBase; crumb: string }) {
   const url = `${SITE_URL}/${base}/${story.slug}`;
   const templates = story.templates.map(templateBySlug).filter((t) => t !== null);
   const help = story.help.map(helpArticle).filter((a) => a !== null);
   const bench = base === "use-cases" ? templates.map(benchTemplate).filter((b) => b !== null) : [];
   const ladder = base === "features" ? planLadder(story.slug) : null;
-  const related = story.related.map((s) => FEATURE_PAGES.find((f) => f.slug === s)).filter((f) => f !== undefined);
+  const related = story.related.map((s) => findStory(s, base)).filter((r) => r !== null);
 
   return (
     <>
@@ -47,6 +68,16 @@ export function StoryPage({ story, base, crumb }: { story: Story; base: "feature
               { name: story.name, url },
             ]),
             article({ headline: story.title, description: story.meta, url, updated: story.updated }),
+            ...(base === "guides" && story.steps
+              ? [
+                  {
+                    "@type": "HowTo",
+                    name: story.title,
+                    description: story.meta,
+                    step: story.steps.map((text, i) => ({ "@type": "HowToStep", position: i + 1, name: text, text })),
+                  },
+                ]
+              : []),
             faqPage(story.faqs),
           ],
         }}
@@ -128,7 +159,7 @@ export function StoryPage({ story, base, crumb }: { story: Story; base: "feature
               </section>
             )}
 
-            {base === "features" && templates.length > 0 && (
+            {base !== "use-cases" && templates.length > 0 && (
               <section className="fk-story-block" data-rise>
                 <div className="fk-story-blockhead">
                   <h2 className="fk-story-h2">Templates to start from</h2>
@@ -148,8 +179,8 @@ export function StoryPage({ story, base, crumb }: { story: Story; base: "feature
               <section className="fk-story-block" data-rise>
                 <h2 className="fk-story-h2">Goes well with</h2>
                 <div className="fk-story-related">
-                  {related.map((f) => (
-                    <SceneCard key={f.slug} story={f} base="features" />
+                  {related.map((r) => (
+                    <SceneCard key={`${r.base}/${r.story.slug}`} story={r.story} base={r.base} />
                   ))}
                 </div>
               </section>
@@ -249,7 +280,7 @@ export function StoryIndex({
   children,
 }: {
   stories: Story[];
-  base: "features" | "use-cases";
+  base: StoryBase;
   title: string;
   lead: string;
   crumb: string;

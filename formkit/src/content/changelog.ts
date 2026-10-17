@@ -16,6 +16,24 @@ export type ChangelogEntry = {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: "2026-10-17",
+    title: "Sign in with Google, and a Google Sheet that keeps itself up to date",
+    tag: "New",
+    body: "Anyone can now sign in with their Google account, and Google Sheets can take each response as it arrives.",
+    points: [
+      "Continue with Google on the sign-in page, for every plan.",
+      "Pro: connect Google and Formkit makes a spreadsheet in your Drive with a row for each response. It can only open the files it makes.",
+      "Spam checks by Cloudflare Turnstile, usually unseen, with a tick box when it can’t run.",
+      "The badge on free forms now reads “Powered by Formkit”.",
+      "Business: require Google Workspace sign-in for everyone at your domain.",
+      "The privacy policy and data processing agreement now cover push notifications, connected services and passkeys.",
+    ],
+    links: [
+      { label: "Google Sheets", href: "/help/google-sheets" },
+      { label: "Privacy policy", href: "/privacy" },
+    ],
+  },
+  {
+    date: "2026-10-17",
     title: "Notion, Airtable and HubSpot, and push notifications",
     tag: "New",
     body: "Send each response straight into the tools you already use, and get new responses on your phone.",
@@ -44,7 +62,6 @@ export const CHANGELOG: ChangelogEntry[] = [
       "Export responses as JSON, or as PDFs, in a zip or as one document, in any language.",
       "Bring your Google Forms, Typeform, Tally or Jotform form over from its compare page.",
       "Answers from Formkit support now come by email, with a link to reply.",
-      "Push notifications on your phone or computer for new responses, mentions and approvals.",
     ],
     links: [
       { label: "AI assistants and agents", href: "/features/ai-assistants" },
@@ -199,8 +216,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     points: [
       "Pro: custom domains, sending from your own domain, fonts and CSS.",
       "Pro: hidden fields, earlier answers in later questions, calculations and redirects.",
-      "Pro: webhooks, Slack, Google Sheets, Zapier, Make and payments with your own Stripe.",
-      "Business: shared templates, approvals, an audit log, retention rules, the API and single sign-on.",
+      "Pro: webhooks, Slack, Google Sheets and payments with your own Stripe.",
+      "Business: shared templates, approvals, an audit log, retention rules and sign-in with your company’s Google Workspace.",
     ],
     links: [{ label: "Pricing", href: "/pricing" }],
   },

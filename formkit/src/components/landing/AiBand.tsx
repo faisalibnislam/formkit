@@ -58,7 +58,7 @@ const ROWS = [
     points: [
       "A personal reply to every response, on Pro",
       "Sentiment, intent, topics and a lead score on each one",
-      "Then on to Slack, Sheets, Zapier, Make or your webhook",
+      "Then on to Slack, Sheets, HubSpot, Notion or your webhook",
     ],
     href: "/features/ai-replies",
     link: "How AI replies work",

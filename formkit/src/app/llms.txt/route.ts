@@ -1,4 +1,6 @@
 import { FEATURE_PAGES, USE_CASES } from "@/content/features";
+import { INTEGRATION_PAGES } from "@/content/integrations";
+import { GUIDE_PAGES } from "@/content/guides";
 import { HELP_CATEGORIES } from "@/content/help";
 import { RIVALS } from "@/content/compare";
 import { TEMPLATES } from "@/content/templates";
@@ -21,12 +23,20 @@ export function GET() {
     "",
     `> Formkit is an online form builder. Build a form by describing it to the AI or with a drag-and-drop builder, add conditional and AI logic, take payments, and have AI write a personal reply to every response. Free for unlimited forms, responses and members; Pro is $${pro.price.month} a seat a month and Business $${business.price.month}.`,
     "",
-    `The free plan includes every question type (voice recording included), logic, themes, a formkit.app link, embeds, partial responses, undo and redo, CSV, JSON and PDF export, passkeys, the API and AI assistants (an MCP server at formkit.app/api/mcp, with form and response views in the chat), forms AI agents can fill in when the owner allows it (formkit.app/api/agent/forms/{slug}), and AI for ${free.ai.builds} new forms and ${free.ai.edits} edits a month. Pro adds a custom domain, connections (webhooks, Zapier, Make, Slack, Google Sheets), payments with your own Stripe (paid before the answers are sent: fixed, calculated or pay what you want, quantities, promotion codes, Stripe Tax), quizzes, calculations, AI replies, AI logic and AI insights. Business adds shared templates, approvals, an audit log, data retention and SSO.`,
+    `The free plan includes every question type (voice recording included), logic, themes, a formkit.app link, embeds, partial responses, undo and redo, CSV, JSON and PDF export, passkeys and Google sign-in, push notifications, Cloudflare Turnstile spam checks, the API and AI assistants (an MCP server at formkit.app/api/mcp, with form and response views in the chat), forms AI agents can fill in when the owner allows it (formkit.app/api/agent/forms/{slug}), and AI for ${free.ai.builds} new forms and ${free.ai.edits} edits a month. Pro adds a custom domain, connections (signed webhooks, Slack, Discord, Microsoft Teams, Google Sheets, Notion, Airtable, HubSpot), payments with your own Stripe (paid before the answers are sent: fixed, calculated or pay what you want, quantities, promotion codes, Stripe Tax), quizzes, calculations, AI replies, AI logic and AI insights. Business adds shared templates, approvals, an audit log, data retention and sign-in with your company's Google Workspace.`,
     "",
     "## Product",
     link("Pricing", "/pricing", "plans, seats, AI allowances and credits"),
     link("Features", "/features", "every feature, each with a live demo"),
     ...FEATURE_PAGES.map((f) => link(f.name, `/features/${f.slug}`, `${f.meta} (${f.plan})`)),
+    "",
+    "## Integrations",
+    link("Integrations", "/integrations"),
+    ...INTEGRATION_PAGES.map((p) => link(p.name, `/integrations/${p.slug}`, `${p.meta} (${p.plan})`)),
+    "",
+    "## Guides",
+    link("Guides", "/guides"),
+    ...GUIDE_PAGES.map((g) => link(g.name, `/guides/${g.slug}`, g.meta)),
     "",
     "## Use cases",
     ...USE_CASES.map((u) => link(u.name, `/use-cases/${u.slug}`, u.meta)),
@@ -37,14 +47,14 @@ export function GET() {
     "",
     "## Comparisons",
     link("Compare form builders", "/compare"),
-    ...RIVALS.map((r) => link(`Formkit vs ${r.name}`, `/compare/${r.slug}`)),
+    ...RIVALS.map((r) => link(`${r.name} alternative: Formkit vs ${r.name}`, `/compare/${r.slug}`)),
     "",
     "## Help",
     link("Help center", "/help"),
     ...HELP_CATEGORIES.flatMap((c) => c.articles.map((a) => link(a.title, `/help/${a.id}`, a.summary))),
     "",
     "## Optional",
-    link("API docs", "/api-docs", "the Business REST API and webhook signatures"),
+    link("API docs", "/api-docs", "the REST API (every plan), MCP and webhook signatures"),
     link("Changelog", "/changelog"),
     link("Privacy", "/privacy"),
     link("Terms", "/terms"),

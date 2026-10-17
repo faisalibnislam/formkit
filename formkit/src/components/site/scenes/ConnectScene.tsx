@@ -1,16 +1,16 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Check, Hash, Send, Sheet, Webhook, Zap } from "lucide-react";
+import { Check, Hash, Send, Sheet, UserPlus, Webhook } from "lucide-react";
 import { SceneFrame, useInView, useReducedMotion, useStep, type SceneProps } from "./shared";
 
 /** Each new response travels down the wires to the tools that are switched on. */
 
 const DESTS = [
   { key: "slack", name: "Slack", where: "#new-leads", done: "Posted to the channel", Icon: Hash },
-  { key: "sheets", name: "Google Sheets", where: "Enquiries sheet", done: "A new row on its next refresh", Icon: Sheet },
+  { key: "sheets", name: "Google Sheets", where: "Enquiries sheet", done: "A new row added", Icon: Sheet },
   { key: "hook", name: "Webhook", where: "api.northstar.studio", done: "200 OK · signed", Icon: Webhook },
-  { key: "zap", name: "Zapier and Make", where: "Add to CRM", done: "Delivered", Icon: Zap },
+  { key: "zap", name: "HubSpot", where: "Add to CRM", done: "Contact added", Icon: UserPlus },
 ] as const;
 type Key = (typeof DESTS)[number]["key"];
 
@@ -49,7 +49,7 @@ export function ConnectScene({ compact }: SceneProps) {
       innerRef={ref}
       compact={compact}
       title="Connections"
-      label="A new response is sent to Slack, Google Sheets, a webhook and Zapier as soon as it arrives."
+      label="A new response is sent to Slack, Google Sheets, a webhook and HubSpot as soon as it arrives."
       right={
         !compact && (
           <button type="button" className="fk-sc-btn" onClick={fire} disabled={fired > 0 && !landed}>
