@@ -170,8 +170,8 @@ export default defineSchema({
     /** Business: responses older than this many days are erased. */
     retentionDays: v.optional(v.number()),
     /**
-     * Business: people with an address at this domain sign in with Google or
-     * Microsoft. Proven with a DNS TXT record before it is enforced.
+     * Business: people with an address at this domain sign in with Google.
+     * Proven with a DNS TXT record before it is enforced.
      */
     sso: v.optional(
       v.object({
@@ -179,7 +179,7 @@ export default defineSchema({
         token: v.string(),
         verified: v.boolean(),
         enforce: v.boolean(),
-        providers: v.array(v.union(v.literal("google"), v.literal("microsoft-entra-id"))),
+        providers: v.array(v.literal("google")),
       }),
     ),
     polarCustomerId: v.optional(v.string()),

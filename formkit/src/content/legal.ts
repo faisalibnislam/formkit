@@ -16,8 +16,8 @@ export type LegalSection = {
 };
 
 export const LEGAL_UPDATED = "21 September 2026";
-/** The privacy policy alone moved on when Google Analytics was added. */
-export const PRIVACY_UPDATED = "14 October 2026";
+/** The privacy policy alone moved on with push, connected services and passkeys. */
+export const PRIVACY_UPDATED = "17 October 2026";
 /** The data processing agreement moved on with the AI subprocessor wording. */
 export const DPA_UPDATED = "14 October 2026";
 
@@ -35,7 +35,7 @@ export const PRIVACY: LegalSection[] = [
     title: "What we collect",
     paras: ["Three things, and nothing else:"],
     bullets: [
-      "Your account. A name, an email address, a hashed password, and a company name if you choose to add one. A company is optional and most people never add one.",
+      "Your account. A name, an email address, how you sign in (a hashed password, a passkey's public key, or your Google account if your company uses it), and a company name if you choose to add one. A company is optional and most people never add one.",
       "Your forms and their answers. Questions, themes, settings, every response, and any file somebody uploads (up to 20 MB per file on Free, more on paid plans).",
       "Technical records. Sign-in times, the pages you opened in the app, the browser and rough location (city level) a request came from, and errors. We keep these to work out what broke and to spot someone attacking the service.",
     ],
@@ -60,9 +60,11 @@ export const PRIVACY: LegalSection[] = [
     id: "who-else-sees-it",
     title: "Who else touches it",
     paras: [
-      "A small number of companies handle data for us because they run the machines: Convex and Vercel host Formkit, Resend delivers its email, Polar handles billing for paid plans, Google's Gemini models power the AI features, and Sentry receives reports of errors in the app (what went wrong, without answers or account details). They are bound to use it only to provide that service. If you allow it on our public pages, Google Analytics also receives visit data from those pages (see Cookies).",
+      "A small number of companies handle data for us because they run the machines: Convex and Vercel host Formkit, Resend delivers its email, Polar handles billing for paid plans, Google's Gemini models power the AI features, Cloudflare runs the spam check on forms that have it on (see Cookies), and Sentry receives reports of errors in the app (what went wrong, without answers or account details). They are bound to use it only to provide that service. If you allow it on our public pages, Google Analytics also receives visit data from those pages (see Cookies).",
       "AI features send Google only what they need. Ask Formkit sends your prompt and the form you are working on, and, when you ask it to read responses, counts and written answers without names, email addresses or phone numbers. If you turn on AI replies, AI logic or AI insights for a form, each response to it is sent as it arrives, so the reply, decision or summary can be written. If you ask for a voice question's recordings to be written out, each recording is sent once, to be transcribed. If you turn on search by meaning for a form, each response's answers, without names, email addresses or phone numbers, are sent once to be indexed. Google may not use any of it to train its models.",
       "Apps you connect, such as an AI assistant you allow to use your Formkit, can read and change what you let them on the consent screen, and nothing else. What they do with it is between you and them. You can disconnect any of them in Settings → Developers.",
+      "Services you connect to a form, such as Slack, Google Sheets, Notion, Airtable, HubSpot or your own Stripe account, receive the responses you send them, and what they do with them is between you and them. The keys and sign-in tokens Formkit keeps for them are stored encrypted.",
+      "If you turn on push notifications, each one reaches your device through your browser's push service (run by Apple, Google, Microsoft or Mozilla). It is encrypted on the way, so that service cannot read it.",
       "Formkit staff can reach your account for support: to answer a ticket, look into a report, or investigate abuse. When they do, it is logged, and a support view is read-only: staff can see what you see and change nothing.",
     ],
   },
@@ -80,7 +82,7 @@ export const PRIVACY: LegalSection[] = [
     title: "What you can do about it",
     paras: ["At any time, without asking us:"],
     bullets: [
-      "Export every response as CSV or Excel.",
+      "Export every response as CSV, Excel, JSON or PDF.",
       "Delete a response, a form, or your whole account, from Settings.",
       "Turn off any email we send you, including the weekly report.",
       "Correct anything about you that is wrong, in Settings → Account.",

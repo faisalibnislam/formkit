@@ -645,7 +645,7 @@ export const purgeDeactivated = internalMutation({
 });
 
 /**
- * Accounts where a Google or Microsoft sign-in was linked onto an account
+ * Accounts where a Google sign-in was linked onto an account
  * that already existed with a password: the pattern an address-spoofing
  * sign-in would leave. For staff to review once, after the nOAuth fix:
  * `npx convex run security:oauthLinkAudit` (add --prod for production).
@@ -656,7 +656,7 @@ export const oauthLinkAudit = internalQuery({
   handler: async (ctx) => {
     const found: { userId: Id<"users">; email: string | null; provider: string; linkedAt: number; passwordSince: number }[] =
       [];
-    for (const provider of ["microsoft-entra-id", "google"]) {
+    for (const provider of ["google"]) {
       const linked = await ctx.db
         .query("authAccounts")
         .withIndex("providerAndAccountId", (q) => q.eq("provider", provider))

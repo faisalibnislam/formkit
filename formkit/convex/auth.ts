@@ -2,17 +2,16 @@ import { convexAuth } from "@convex-dev/auth/server";
 import { Password } from "@convex-dev/auth/providers/Password";
 import { ConvexCredentials } from "@convex-dev/auth/providers/ConvexCredentials";
 import Google from "@auth/core/providers/google";
-import MicrosoftEntraID from "@auth/core/providers/microsoft-entra-id";
 import { ConvexError } from "convex/values";
 import { DataModel } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { ResendResetOTP, ResendVerifyOTP, normaliseEmail } from "./email";
-import { bootstrapStaffRole, googleProfile, microsoftProfile } from "./model/oauthProfile";
+import { bootstrapStaffRole, googleProfile } from "./model/oauthProfile";
 import { checkAssertion, readClientData, relyingParty, type Assertion } from "./model/webauthn";
 
 /**
- * Email and password, run by Convex. Google and Microsoft sign-in exist only
- * for Business single sign-on, and only when their OAuth apps are set on the
+ * Email and password, run by Convex. Google sign-in exists only for
+ * Business single sign-on, and only when its OAuth app is set on the
  * deployment (see convex/sso.ts).
  */
 const BasePassword = Password<DataModel>({
@@ -47,7 +46,7 @@ passwordOptions.authorize = async (params, ctx) => {
       email: normaliseEmail(params.email),
     })) as { domain: string; providers: string[] } | null;
     if (rule) {
-      const names = rule.providers.map((p) => (p === "google" ? "Google" : "Microsoft")).join(" or ");
+      const names = rule.providers.map(() => "Google").join(" or ");
       throw new ConvexError({
         code: "sso",
         providers: rule.providers,
@@ -59,20 +58,12 @@ passwordOptions.authorize = async (params, ctx) => {
 };
 const FormkitPassword = BasePassword;
 
-// Both only ever vouch for an address the provider has verified (see
-// model/oauthProfile.ts): otherwise a Microsoft tenant could claim anyone's
-// email and be signed into their account.
+// Google only ever vouches for an address it has verified (see
+// model/oauthProfile.ts): otherwise it could sign someone into another
+// person's account.
 const oauth = [
   ...(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET
     ? [Google({ profile: (p) => googleProfile(p as unknown as Record<string, unknown>) })]
-    : []),
-  ...(process.env.AUTH_MICROSOFT_ENTRA_ID_ID && process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET
-    ? [
-        MicrosoftEntraID({
-          issuer: process.env.AUTH_MICROSOFT_ENTRA_ID_ISSUER ?? "https://login.microsoftonline.com/common/v2.0",
-          profile: (p) => microsoftProfile(p as unknown as Record<string, unknown>),
-        }),
-      ]
     : []),
 ];
 
@@ -100,7 +91,7 @@ const Passkey = ConvexCredentials<DataModel>({
     if (key.email) {
       const rule = await ctx.runQuery(internal.sso.ruleFor, { email: key.email });
       if (rule) {
-        const names = rule.providers.map((p) => (p === "google" ? "Google" : "Microsoft")).join(" or ");
+        const names = rule.providers.map(() => "Google").join(" or ");
         throw new ConvexError({ code: "sso", providers: rule.providers, message: `${rule.domain} signs in with ${names || "single sign-on"}. Use the button below.` });
       }
     }

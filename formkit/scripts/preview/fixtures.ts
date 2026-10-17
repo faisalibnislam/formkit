@@ -1477,7 +1477,7 @@ export const QUERIES: Record<string, unknown> = {
       providers: ["google"],
       record: { type: "TXT", name: "_formkit.studionine.co", value: "formkit-verify=8c1f0a3b9d2e4f5a6b7c8d9e" },
     },
-    available: ["google", "microsoft-entra-id"],
+    available: ["google"],
   },
   "sso:providers": [],
   "support:mine": { priority: true, tickets: [] },
