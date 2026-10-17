@@ -1,0 +1,27 @@
+{
+  "uid": "formkit_app",
+  "type": "app",
+  "config": {
+    "name": "Formkit",
+    "description": "Send Formkit form responses to HubSpot: each response creates or updates a contact and adds a note with the answers.",
+    "distribution": "marketplace",
+    "isUserLevel": false,
+    "auth": {
+      "type": "oauth",
+      "redirectUrls": ["https://formkit.app/integrations/callback/hubspot"],
+      "requiredScopes": ["oauth", "crm.objects.contacts.read", "crm.objects.contacts.write"],
+      "optionalScopes": [],
+      "conditionallyRequiredScopes": []
+    },
+    "permittedUrls": {
+      "fetch": [],
+      "iframe": [],
+      "img": []
+    },
+    "support": {
+      "supportEmail": "support@formkit.app",
+      "documentationUrl": "https://formkit.app/help",
+      "supportUrl": "https://formkit.app/contact"
+    }
+  }
+}

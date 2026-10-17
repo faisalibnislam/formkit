@@ -74,15 +74,13 @@ const EVERYONE: { icon: typeof Check; title: string; line: string; soon?: boolea
   { icon: FileDown, title: "Partial responses and exports", line: "Half-finished answers kept; CSV, JSON and PDFs any time." },
   { icon: KeyRound, title: "Passkeys and two-factor", line: "Sign in with Face ID or a fingerprint." },
   { icon: ShieldCheck, title: "Spam protection", line: "A quiet check, plus limits on floods." },
-  { icon: Smartphone, title: "Push notifications", line: "New responses and mentions on your phone.", soon: true },
+  { icon: Smartphone, title: "Push notifications", line: "New responses, mentions and approvals on your phone." },
 ];
 
 /** Built and switching on soon: shown, and labelled so. */
-const SOON = new Set<string>(["connect.apps"]);
+const SOON = new Set<string>([]);
 /** Rows that are not plan features yet, under the group they will join. */
-const SOON_ROWS: { group: string; label: string; pro: boolean }[] = [
-  { group: "Control", label: "SAML single sign-on and SCIM provisioning", pro: false },
-];
+const SOON_ROWS: { group: string; label: string; pro: boolean }[] = [];
 
 const ALLOWANCES: { label: string; note?: string; value: (p: PlanId) => number | null; show: (p: PlanId) => string }[] = [
   {

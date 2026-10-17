@@ -337,6 +337,13 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "updated": "2026-09-28"
       },
       {
+        "id": "push-notifications",
+        "title": "Push notifications on your phone",
+        "summary": "New responses, mentions and approvals, even when Formkit isn't open.",
+        "body": "Open Settings → Notifications → Push notifications and switch on This device. Your browser asks whether Formkit may send notifications; say yes. Do it on each phone and computer you want them on.\n## What arrives\n- New responses, one notification per form until you look, however busy it gets\n- Someone @mentions you, replies to you, or gives you a response\n- A form waits for your approval, or yours was approved or sent back\n\nSwitch any of the three off underneath. The bell in Formkit still gets everything.\n## Your devices\nEvery device signed up is listed, with when it last got a notification. Remove one there, or send a test to all of them.\n## On iPhone and iPad\nAdd Formkit to your Home Screen first (Share → Add to Home Screen), open it from there, then switch push on.",
+        "updated": "2026-10-17"
+      },
+      {
         "id": "notify-routing",
         "title": "Route by answer",
         "summary": "Sending different responses to different people.",
@@ -472,7 +479,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "id": "sso",
         "title": "Single sign-on for your domain",
         "summary": "Everyone at your company signs in with Google or Microsoft.",
-        "body": "Settings → Controls → Single sign-on. Enter your company's email domain and add the TXT record shown where its DNS is managed, then check.\nOnce the domain is verified, turn on Require. Anyone with an address at that domain then signs in with Google or Microsoft; the password form turns them away. Someone removed from your company's directory can no longer get in.\n> Sign in once with Google or Microsoft yourself before requiring it, so you are not locked out.\n## Coming soon\nSAML single sign-on through your own identity provider (Okta, Entra ID and others), and SCIM, so people join and leave Formkit as they join and leave your directory.",
+        "body": "Settings → Controls → Single sign-on. Enter your company's email domain and add the TXT record shown where its DNS is managed, then check.\nOnce the domain is verified, turn on Require. Anyone with an address at that domain then signs in with Google or Microsoft; the password form turns them away. Someone removed from your company's directory can no longer get in.\n> Sign in once with Google or Microsoft yourself before requiring it, so you are not locked out.",
         "updated": "2026-10-15"
       },
       {
@@ -687,6 +694,13 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         "summary": "A private link your sheet pulls from. Nothing to authorise.",
         "body": "In a form's Settings → Connections, choose Google Sheets. Formkit makes a private link to the form's responses.\n## The quick way\nIn any cell of a sheet, type the =IMPORTDATA(\"…\") formula shown. Google refreshes it about once an hour. Uploaded files and voice recordings arrive as links.\n## Every few minutes\nUse the Apps Script instead: Extensions → Apps Script, paste the script Formkit gives you, then add a time-driven trigger.\n## Keep it private\nAnyone with the link can read the responses. If it gets out, make a new link and the old one stops working at once.\n> Google Sheets is part of Pro.",
         "updated": "2026-10-01"
+      },
+      {
+        "id": "notion-airtable-hubspot",
+        "title": "Notion, Airtable and HubSpot",
+        "summary": "Each response becomes a page, a record or a contact, in the place you pick.",
+        "body": "Open a form's Settings → Connections and choose Notion, Airtable or HubSpot. Sign in to that app and allow Formkit; it only gets the access it asks for.\n## Where responses go\n- Notion: pick a page you shared with Formkit. Formkit makes a database in it, with a column for each question, and each response becomes a row.\n- Airtable: pick a base. Formkit makes a table in it, with a field for each question, and each response becomes a record.\n- HubSpot: each response with an email address creates that contact, or updates the one with the same email, and adds a note with every answer.\n## When a response changes\nIf someone edits a response they sent, the page, record or note it made is updated rather than duplicated.\n## Disconnecting\nRemove the connection from the form at any time. What was already sent stays in your app.\n## Limits\nAirtable's free plan allows 1,000 API calls a month per workspace, about one per response; past it, Airtable pauses deliveries until the month resets.\n> Notion, Airtable and HubSpot are part of Pro.",
+        "updated": "2026-10-17"
       },
       {
         "id": "payments",

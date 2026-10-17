@@ -315,8 +315,8 @@ export const FEATURE_PAGES: Story[] = [
         body: "On every plan: build, publish and read forms from your own code, or ask Claude, ChatGPT or Cursor to do it for you. Nothing can be deleted that way, and drafts stay drafts until you say.",
       },
       {
-        title: "Notion, Airtable and HubSpot: coming soon",
-        body: "Each response will become a page, a record, or a contact with a note, in the place you pick, and changed responses will update what they made.",
+        title: "Notion, Airtable and HubSpot",
+        body: "Sign in once and pick where responses go: each becomes a row in a Notion database or an Airtable table that Formkit makes for the form, or a HubSpot contact with a note of the answers. Changed responses update what they made.",
       },
     ],
     templates: ["bug-report", "webinar-registration", "lead-qualification"],

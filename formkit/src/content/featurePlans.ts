@@ -52,7 +52,7 @@ const LADDERS: Record<string, { free: string[]; pro: (FeatureKey | string)[]; bu
   },
   integrations: {
     free: ["CSV, JSON and PDF export", "The API", "AI assistants: Claude, ChatGPT and Cursor"],
-    pro: ["connect.webhooks", "connect.slack", "connect.sheets", "Notion, Airtable and HubSpot (coming soon)", "exports.xlsx", "exports.copy", "Summaries and AI insights through the API"],
+    pro: ["connect.webhooks", "connect.slack", "connect.sheets", "connect.apps", "exports.xlsx", "exports.copy", "Summaries and AI insights through the API"],
     business: [],
   },
   "ai-assistants": {

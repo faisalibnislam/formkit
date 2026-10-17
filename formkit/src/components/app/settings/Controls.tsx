@@ -112,7 +112,7 @@ function RetentionPanel() {
   );
 }
 
-const PROVIDER_NAME = { google: "Google", "microsoft-entra-id": "Microsoft", saml: "your SAML single sign-on" } as const;
+const PROVIDER_NAME = { google: "Google", "microsoft-entra-id": "Microsoft" } as const;
 
 function SsoPanel() {
   const toast = useToast();
@@ -130,7 +130,7 @@ function SsoPanel() {
   return (
     <Panel
       title="Single sign-on"
-      lede="People with an address at your company's domain sign in with Google, Microsoft or your own identity provider, and the password form turns them away. Whoever leaves your directory loses access here too."
+      lede="People with an address at your company's domain sign in with Google or Microsoft, and the password form turns them away. Whoever leaves your directory loses access here too."
       aside={gate.locked ? chip("sso") : null}
     >
       {data && available.length === 0 && (
@@ -208,9 +208,8 @@ function SsoPanel() {
             </>
           ) : (
             <div style={{ marginTop: 12 }}>
-              {data?.saml && <SamlSetup saml={data.saml} />}
               <Row
-                label={`Require single sign-on for @${sso.domain}`}
+                label={`Require Google or Microsoft for @${sso.domain}`}
                 hint={
                   sso.enforce
                     ? `Everyone at @${sso.domain} signs in with ${sso.providers.map((p) => PROVIDER_NAME[p]).join(" or ")}.`
@@ -235,90 +234,6 @@ function SsoPanel() {
         </div>
       )}
     </Panel>
-  );
-}
-
-/**
- * SAML and SCIM through WorkOS: links for the company's IT admin to connect
- * its identity provider and directory, and what is live.
- */
-function SamlSetup({ saml }: { saml: { connected: boolean; directory: boolean; role: "editor" | "viewer" } }) {
-  const toast = useToast();
-  const portal = useAction(api.workos.portalLink);
-  const refresh = useAction(api.workos.refresh);
-  const setRole = useMutation(api.workos.setRole);
-  const [busy, setBusy] = useState<string | null>(null);
-
-  async function open(intent: "sso" | "dsync") {
-    setBusy(intent);
-    // Opened at once and pointed at the link when it arrives, so the browser doesn't block it.
-    const tab = window.open("about:blank", "_blank");
-    try {
-      const link = await portal({ intent });
-      if (tab) tab.location.href = link;
-      else window.location.assign(link);
-    } catch (e) {
-      tab?.close();
-      toast(errorText(e, "The setup page did not open."));
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  return (
-    <div style={{ marginBottom: 12 }}>
-      <Row
-        label="SAML (Okta, Entra ID, Google Workspace, any identity provider)"
-        hint={saml.connected ? "Connected. People sign in with “Sign in with single sign-on”." : "Your IT admin connects it on WorkOS's setup page."}
-      >
-        {saml.connected ? <Badge tone="success">Connected</Badge> : null}
-        <Button variant="secondary" size="sm" disabled={busy === "sso"} onClick={() => void open("sso")}>
-          {saml.connected ? "Manage" : "Set up SAML"}
-        </Button>
-      </Row>
-      <Row
-        label="Directory (SCIM)"
-        hint={saml.directory ? "Linked. People added to it join here; removing them ends their access." : "Adds and removes members as your directory changes."}
-      >
-        {saml.directory ? <Badge tone="success">Linked</Badge> : null}
-        <Button variant="secondary" size="sm" disabled={busy === "dsync"} onClick={() => void open("dsync")}>
-          {saml.directory ? "Manage" : "Link a directory"}
-        </Button>
-      </Row>
-      <Row label="New people join as" hint="When they first sign in, or the directory adds them. Change anyone's role under Members.">
-        <div style={{ minWidth: 140 }}>
-          <Select
-            size="sm"
-            ariaLabel="New people join as"
-            value={saml.role}
-            onChange={async (role) => {
-              await setRole({ role: role as "editor" | "viewer" });
-              toast("Saved");
-            }}
-            options={[
-              { value: "viewer", label: "Viewer" },
-              { value: "editor", label: "Editor" },
-            ]}
-          />
-        </div>
-      </Row>
-      <Button
-        variant="ghost"
-        size="sm"
-        iconLeft={<RefreshCw size={15} strokeWidth={1.8} aria-hidden />}
-        disabled={busy === "refresh"}
-        onClick={async () => {
-          setBusy("refresh");
-          try {
-            await refresh({});
-          } finally {
-            setBusy(null);
-          }
-        }}
-      >
-        Check what&rsquo;s live
-      </Button>
-    </div>
   );
 }
 

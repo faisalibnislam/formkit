@@ -6,13 +6,13 @@
  */
 export const SITE_DATES = {
   home: "2026-10-15",
-  pricing: "2026-10-15",
+  pricing: "2026-10-17",
   templates: "2026-09-30",
   compare: "2026-10-15",
-  help: "2026-10-15",
-  features: "2026-10-15",
+  help: "2026-10-17",
+  features: "2026-10-17",
   useCases: "2026-09-30",
-  changelog: "2026-10-15",
+  changelog: "2026-10-17",
   contact: "2026-10-15",
   apiDocs: "2026-10-15",
   legal: "2026-09-21",

@@ -9,7 +9,6 @@ import { internal } from "./_generated/api";
 import { ResendResetOTP, ResendVerifyOTP, normaliseEmail } from "./email";
 import { bootstrapStaffRole, googleProfile, microsoftProfile } from "./model/oauthProfile";
 import { checkAssertion, readClientData, relyingParty, type Assertion } from "./model/webauthn";
-import { profileFor } from "./workos";
 
 /**
  * Email and password, run by Convex. Google and Microsoft sign-in exist only
@@ -48,7 +47,7 @@ passwordOptions.authorize = async (params, ctx) => {
       email: normaliseEmail(params.email),
     })) as { domain: string; providers: string[] } | null;
     if (rule) {
-      const names = rule.providers.map((p) => (p === "google" ? "Google" : p === "saml" ? "your company's single sign-on" : "Microsoft")).join(" or ");
+      const names = rule.providers.map((p) => (p === "google" ? "Google" : "Microsoft")).join(" or ");
       throw new ConvexError({
         code: "sso",
         providers: rule.providers,
@@ -101,7 +100,7 @@ const Passkey = ConvexCredentials<DataModel>({
     if (key.email) {
       const rule = await ctx.runQuery(internal.sso.ruleFor, { email: key.email });
       if (rule) {
-        const names = rule.providers.map((p) => (p === "google" ? "Google" : p === "saml" ? "your company's single sign-on" : "Microsoft")).join(" or ");
+        const names = rule.providers.map((p) => (p === "google" ? "Google" : "Microsoft")).join(" or ");
         throw new ConvexError({ code: "sso", providers: rule.providers, message: `${rule.domain} signs in with ${names || "single sign-on"}. Use the button below.` });
       }
     }
@@ -117,26 +116,6 @@ const Passkey = ConvexCredentials<DataModel>({
 });
 
 /**
- * Business: SAML single sign-on through WorkOS (workos.ts). The code WorkOS
- * sends back is traded for the person's profile, which must belong to the
- * organization and domain the sign-in started for.
- */
-const Saml = ConvexCredentials<DataModel>({
-  id: "saml",
-  authorize: async (params, ctx) => {
-    const fail = (message: string) => new ConvexError({ code: "saml", message });
-    const started = await ctx.runMutation(internal.workos.takeState, { state: String(params.state ?? "") });
-    if (!started) throw fail("That sign-in took too long. Start again.");
-    const profile = await profileFor(String(params.code ?? ""));
-    if (!profile) throw fail("Your company's sign-in didn't say who you are. Try again.");
-    if (profile.organizationId !== started.organizationId || !profile.email.endsWith(`@${started.domain}`)) {
-      throw fail(`Single sign-on here is for addresses at ${started.domain}.`);
-    }
-    return await ctx.runMutation(internal.workos.signInUser, { ownerId: started.ownerId, email: profile.email, name: profile.name });
-  },
-});
-
-/**
  * How the first staff account comes to exist.
  *
  * The admin console is gated on `staffRole`, and nothing in the product can
@@ -147,7 +126,7 @@ const Saml = ConvexCredentials<DataModel>({
  * else's role is only ever changed from inside the console.
  */
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
-  providers: [FormkitPassword, Passkey, Saml, ...oauth],
+  providers: [FormkitPassword, Passkey, ...oauth],
   callbacks: {
     async afterUserCreatedOrUpdated(ctx, { userId }) {
       // Runs on sign-up and again when the emailed code is entered, which is
