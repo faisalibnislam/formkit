@@ -128,7 +128,7 @@ export const FEATURES = {
   approvals: { plan: "business", label: "Approval before publishing", group: "Teams" },
   audit: { plan: "business", label: "Audit log", group: "Control" },
   retention: { plan: "business", label: "Data retention rules", group: "Control" },
-  sso: { plan: "business", label: "Sign-in with your company’s Google or Microsoft", group: "Control" },
+  sso: { plan: "business", label: "Sign-in with your company’s Google Workspace", group: "Control" },
   "support.priority": { plan: "business", label: "Priority support", group: "Control" },
 } as const satisfies Record<string, { plan: Exclude<PlanId, "free">; label: string; group: string }>;
 

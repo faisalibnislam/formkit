@@ -9,21 +9,19 @@ import { audit } from "./model/team";
 /**
  * Business: single sign-on, the practical way. A company proves it owns its
  * email domain with a DNS TXT record; after that, anyone with an address at
- * that domain signs in with Google or Microsoft - the password form refuses
- * them - so leaving the company's directory means losing access here too.
+ * that domain signs in with Google - the password form refuses them - so
+ * leaving the company's Google Workspace means losing access here too.
  *
- * Google and Microsoft sign-in need their OAuth apps set on the deployment
- * (AUTH_GOOGLE_ID / AUTH_GOOGLE_SECRET, AUTH_MICROSOFT_ENTRA_ID_ID /
- * AUTH_MICROSOFT_ENTRA_ID_SECRET). Without them the buttons do not show and
- * enforcement cannot be turned on.
+ * Google sign-in needs its OAuth app set on the deployment (AUTH_GOOGLE_ID /
+ * AUTH_GOOGLE_SECRET). Without it the button does not show and enforcement
+ * cannot be turned on.
  */
 
-type Provider = "google" | "microsoft-entra-id";
+type Provider = "google";
 
 export function configuredProviders(): Provider[] {
   const out: Provider[] = [];
   if (process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET) out.push("google");
-  if (process.env.AUTH_MICROSOFT_ENTRA_ID_ID && process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET) out.push("microsoft-entra-id");
   return out;
 }
 
@@ -121,7 +119,7 @@ export const remove = mutation({
 export const setEnforced = mutation({
   args: {
     enforce: v.boolean(),
-    providers: v.optional(v.array(v.union(v.literal("google"), v.literal("microsoft-entra-id")))),
+    providers: v.optional(v.array(v.literal("google"))),
   },
   returns: v.null(),
   handler: async (ctx, { enforce, providers }) => {
@@ -130,10 +128,10 @@ export const setEnforced = mutation({
     if (enforce) {
       await requireFeature(ctx, me._id, "sso");
       if (!me.sso.verified) throw new ConvexError("Verify the domain first.");
-      if (!configuredProviders().length) throw new ConvexError("Google and Microsoft sign-in are not switched on for Formkit yet.");
+      if (!configuredProviders().length) throw new ConvexError("Google sign-in is not switched on for Formkit yet.");
       // The owner must not lock themselves out: their own address needs a way in.
       if (me.email?.endsWith(`@${me.sso.domain}`) && !(await hasOAuth(ctx, me))) {
-        throw new ConvexError("Sign in once with Google or Microsoft yourself before requiring it for everyone.");
+        throw new ConvexError("Sign in once with Google yourself before requiring it for everyone.");
       }
     }
     const allowed = (providers ?? me.sso.providers).filter((p) => configuredProviders().includes(p));
@@ -148,7 +146,7 @@ async function hasOAuth(ctx: Parameters<typeof requireUser>[0], user: Doc<"users
     .query("authAccounts")
     .withIndex("userIdAndProvider", (q) => q.eq("userId", user._id))
     .collect();
-  return accounts.some((a) => a.provider === "google" || a.provider === "microsoft-entra-id");
+  return accounts.some((a) => a.provider === "google");
 }
 
 /** Checks the TXT record over DNS-over-HTTPS. */

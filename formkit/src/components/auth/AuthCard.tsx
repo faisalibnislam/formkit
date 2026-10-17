@@ -309,7 +309,7 @@ export function AuthCard({ initialView }: { initialView: View }) {
                         disabled={busy}
                         onClick={() => void signIn(p, { redirectTo: landing() })}
                       >
-                        {p === "google" ? "Continue with Google" : "Continue with Microsoft"}
+                        Continue with Google
                       </Button>
                     ))}
                   </>

@@ -87,15 +87,9 @@ integration), `AIRTABLE_CLIENT_ID` / `AIRTABLE_CLIENT_SECRET` (scopes
 `crm.objects.contacts.read crm.objects.contacts.write`). Their tokens are
 sealed with `SECRETS_KEY`, so set that first.
 
-**Google and Microsoft sign-in** (Business single sign-on) are switched on by
-setting their OAuth apps on the Convex deployment: `AUTH_GOOGLE_ID` /
-`AUTH_GOOGLE_SECRET`, and `AUTH_MICROSOFT_ENTRA_ID_ID` /
-`AUTH_MICROSOFT_ENTRA_ID_SECRET` (optionally `AUTH_MICROSOFT_ENTRA_ID_ISSUER`).
-Formkit only accepts an address the provider has verified, so the Microsoft
-app registration must include the **`xms_edov`** optional claim on the ID token
-(Entra admin centre → App registrations → Token configuration → Add optional
-claim → ID → `xms_edov`). Without it, Microsoft sign-in is refused rather than
-trusting an email any tenant could claim. After enabling either provider on a
+**Google sign-in** (Business single sign-on) is switched on by setting its
+OAuth app on the Convex deployment: `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET`.
+Formkit only accepts an address Google has verified. After enabling it on a
 deployment that already has users, run `npx convex run security:oauthLinkAudit`
 once and check that the list is empty.
 

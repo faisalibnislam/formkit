@@ -48,7 +48,7 @@ export const PLAN_POINTS: Record<PlanId, { lead?: string; points: string[] }> = 
       "Templates shared with the company",
       "Approval before a form goes live",
       "Audit log and data retention rules",
-      "Sign-in with your company’s Google or Microsoft",
+      "Sign-in with your company’s Google Workspace",
       "Priority support and a DPA",
       `All version history, ${PLANS.business.uploadMb} MB uploads`,
     ],

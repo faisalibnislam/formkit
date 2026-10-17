@@ -1,36 +1,17 @@
 import { normaliseEmail } from "../email";
 
 /**
- * What Google and Microsoft sign-in may claim about an email address.
+ * What Google sign-in may claim about an email address.
  *
  * Convex Auth links an OAuth sign-in to an existing account with the same
  * email, and treats the email as verified unless told otherwise. That is only
- * safe when the provider itself vouches for the address. Microsoft's
- * multi-tenant (`common`) endpoint lets any tenant put any address in the
- * `email` claim, so an attacker's tenant could sign in as someone else's
- * account ("nOAuth"). Microsoft vouches for the domain with the optional
- * `xms_edov` claim; Google with `email_verified`. Without that, sign-in is
- * refused rather than creating a second account with the same address.
+ * safe when the provider itself vouches for the address, which Google does
+ * with `email_verified`. Without it, sign-in is refused rather than creating
+ * a second account with the same address.
  */
 export class UnverifiedEmailError extends Error {}
 
 const truthy = (v: unknown) => v === true || v === 1 || v === "1" || v === "true";
-
-export function microsoftProfile(p: Record<string, unknown>) {
-  const raw = typeof p.email === "string" ? p.email : undefined;
-  if (!raw || !truthy(p.xms_edov)) {
-    throw new UnverifiedEmailError(
-      "Microsoft did not confirm that this address belongs to your organisation. Sign in with your password, or ask your IT admin to turn on verified email for Formkit.",
-    );
-  }
-  return {
-    id: String(p.sub),
-    name: typeof p.name === "string" ? p.name : undefined,
-    email: normaliseEmail(raw),
-    emailVerified: true,
-    image: null,
-  };
-}
 
 export function googleProfile(p: Record<string, unknown>) {
   const raw = typeof p.email === "string" ? p.email : undefined;

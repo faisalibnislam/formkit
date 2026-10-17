@@ -112,7 +112,7 @@ function RetentionPanel() {
   );
 }
 
-const PROVIDER_NAME = { google: "Google", "microsoft-entra-id": "Microsoft" } as const;
+const PROVIDER_NAME = { google: "Google" } as const;
 
 function SsoPanel() {
   const toast = useToast();
@@ -130,13 +130,13 @@ function SsoPanel() {
   return (
     <Panel
       title="Single sign-on"
-      lede="People with an address at your company's domain sign in with Google or Microsoft, and the password form turns them away. Whoever leaves your directory loses access here too."
+      lede="People with an address at your company's domain sign in with Google, and the password form turns them away. Whoever leaves your Google Workspace loses access here too."
       aside={gate.locked ? chip("sso") : null}
     >
       {data && available.length === 0 && (
         <p className="fk-proprow-hint" style={{ margin: "0 0 12px" }}>
-          Google and Microsoft sign-in are being switched on for Formkit. You can prove your domain now; requiring it
-          becomes possible as soon as they are.
+          Google sign-in is being switched on for Formkit. You can prove your domain now; requiring it becomes
+          possible as soon as it is.
         </p>
       )}
       {!sso ? (
@@ -209,7 +209,7 @@ function SsoPanel() {
           ) : (
             <div style={{ marginTop: 12 }}>
               <Row
-                label={`Require Google or Microsoft for @${sso.domain}`}
+                label={`Require Google for @${sso.domain}`}
                 hint={
                   sso.enforce
                     ? `Everyone at @${sso.domain} signs in with ${sso.providers.map((p) => PROVIDER_NAME[p]).join(" or ")}.`
