@@ -145,11 +145,11 @@ const FAQS = [
   },
   {
     q: "What does Pro add?",
-    a: "Looking like your own brand (a custom domain, no “Powered by Formkit”, emails from your domain, your fonts and CSS), webhooks, Slack, Google Sheets, payments, calculations and several endings, quizzes, unlimited guests on every form, and AI on your responses: replies written for each person, logic that reads answers, and insights reports.",
+    a: "Looking like your own brand (a custom domain, no “Powered by Formkit”, emails from your domain, your fonts and CSS), webhooks, Slack, Google Sheets, Notion, Airtable, HubSpot, payments, calculations and several endings, quizzes, unlimited guests on every form, and AI on your responses: replies written for each person, logic that reads answers, and insights reports.",
   },
   {
     q: "Who is Business for?",
-    a: "Teams and agencies. It has everything in Pro with bigger AI allowances, plus approval before publishing, templates shared across the company, an audit log, retention rules and company sign-in.",
+    a: "Teams and agencies. It has everything in Pro with bigger AI allowances, plus approval before publishing, templates shared across the company, an audit log, retention rules and sign-in with your company’s Google Workspace.",
   },
   {
     q: "How do the AI allowances work?",
@@ -388,7 +388,7 @@ export default function PricingPage() {
                   <h3>
                     <Webhook size={16} strokeWidth={1.8} aria-hidden /> Send answers anywhere
                   </h3>
-                  <p>Slack, Google Sheets, Zapier, Make or your own webhook, the moment a response lands.</p>
+                  <p>Slack, Google Sheets, Notion, Airtable, HubSpot or your own webhook, the moment a response lands.</p>
                 </Link>
               </div>
             </section>

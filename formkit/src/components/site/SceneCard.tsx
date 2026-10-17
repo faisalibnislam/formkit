@@ -1,3 +1,4 @@
+import type { StoryBase } from "@/components/site/StoryPage";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Glyph } from "@/components/brand/Glyph";
@@ -13,7 +14,7 @@ export function SceneCard({
   full,
 }: {
   story: Story;
-  base: "features" | "use-cases";
+  base: StoryBase;
   wide?: boolean;
   /** Spans the whole row, for a card that would otherwise sit alone at the end. */
   full?: boolean;

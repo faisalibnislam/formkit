@@ -1,4 +1,10 @@
 import {
+  Database,
+  Table,
+  Sheet,
+  Hash,
+  Bot,
+  Languages,
   ArrowRight,
   Bookmark,
   Bug,
@@ -81,6 +87,12 @@ import {
  * design system, and icons sit in circles, never squares.
  */
 const GLYPHS: Record<string, LucideIcon> = {
+  database: Database,
+  table: Table,
+  sheet: Sheet,
+  hash: Hash,
+  bot: Bot,
+  languages: Languages,
   "arrow-right": ArrowRight,
   bookmark: Bookmark,
   bug: Bug,

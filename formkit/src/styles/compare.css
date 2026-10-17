@@ -121,6 +121,15 @@
   line-height: 1.02;
   color: #ffffff;
 }
+.fk-cmp-h1-sub {
+  display: block;
+  margin-top: 12px;
+  font-size: clamp(17px, 1.9vw, 22px);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  color: #ffffff;
+}
 .fk-cmp-hero-p {
   margin: 18px 0 0;
   max-width: 60ch;

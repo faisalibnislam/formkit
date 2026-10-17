@@ -5,6 +5,8 @@
  * and the pricing page; keep them in step.
  */
 
+import { MORE_FEATURE_PAGES } from "./featuresMore";
+
 export type Story = {
   slug: string;
   /** The short name, for cards, the footer and breadcrumbs. */
@@ -34,7 +36,7 @@ export type Story = {
   updated: string;
 };
 
-export const FEATURE_PAGES: Story[] = [
+const CORE_FEATURE_PAGES: Story[] = [
   {
     slug: "ai-form-builder",
     name: "AI form builder",
@@ -297,17 +299,18 @@ export const FEATURE_PAGES: Story[] = [
     slug: "integrations",
     name: "Connections",
     title: "Send every response where it needs to go.",
-    seo: "Form integrations: Slack, Sheets, Zapier, webhooks",
-    meta: "Connect Formkit to Slack, Google Sheets, Zapier, Make and signed webhooks, so every response lands in your tools the moment it arrives. On Pro.",
+    seo: "Connect forms to Sheets, Slack and your CRM",
+    meta: "Connect Formkit to Google Sheets, Notion, Airtable, HubSpot, Slack, Discord, Teams and signed webhooks, so every response lands in your tools as it arrives. On Pro.",
     kicker: "Connections",
-    lead: "Post new responses to Slack, keep a Google Sheet up to date, or send them anywhere through Zapier, Make or your own webhook, the moment they arrive.",
+    lead: "Post new responses to Slack, Discord or Teams, keep a Google Sheet, Notion database or Airtable table up to date, add contacts to HubSpot, or send them anywhere through a signed webhook (to Zapier, Make or your own code), the moment they arrive.",
     icon: "webhook",
     plan: "Pro",
     sections: [
       { title: "Slack", body: "A short message in the channel you choose for each response, and a line of its own for each payment." },
-      { title: "Google Sheets", body: "A private link your sheet reads from. Refreshes about hourly with a formula, or every few minutes with a small script. Nothing to authorise." },
+      { title: "Google Sheets", body: "Connect your Google account and Formkit makes a spreadsheet in your Drive with a row for each response, kept up to date. Or use a private link your sheet reads from, with nothing to authorise." },
+      { title: "Notion, Airtable and HubSpot", body: "Formkit makes a Notion database or an Airtable table with a column for each question and adds a row for each response. HubSpot gets each respondent as a contact." },
       {
-        title: "Webhooks, Zapier and Make",
+        title: "Webhooks, to Zapier, Make or your code",
         body: "Every response as JSON, signed so you know it came from Formkit, retried if your end is down, with recent deliveries listed so you can see what happened.",
       },
       {
@@ -320,13 +323,13 @@ export const FEATURE_PAGES: Story[] = [
       },
     ],
     templates: ["bug-report", "webinar-registration", "lead-qualification"],
-    help: ["webhooks", "slack", "google-sheets", "api"],
-    related: ["ai-assistants", "payments", "insights"],
+    help: ["webhooks", "slack", "google-sheets", "notion-airtable-hubspot", "api"],
+    related: ["google-sheets", "notion", "hubspot", "ai-assistants"],
     faqs: [
       { q: "Can I test a connection?", a: "Yes. Send a test delivery before real answers arrive." },
       { q: "What if my endpoint is down?", a: "Formkit tries again after a minute, then after ten, and shows what your end answered." },
     ],
-    updated: "2026-09-30",
+    updated: "2026-10-17",
   },
   {
     slug: "ai-assistants",
@@ -474,6 +477,9 @@ export const FEATURE_PAGES: Story[] = [
   },
 ];
 
+/** The core pages, then the smaller ones (featuresMore.ts). */
+export const FEATURE_PAGES: Story[] = [...CORE_FEATURE_PAGES, ...MORE_FEATURE_PAGES];
+
 export const USE_CASES: Story[] = [
   {
     slug: "agencies",
@@ -536,14 +542,14 @@ export const USE_CASES: Story[] = [
     sections: [
       { title: "Qualify as they answer", body: "Rules send small budgets one way and big ones another; on Pro, AI logic reads a written answer and decides whether someone is a fit." },
       { title: "Reply in seconds", body: "On Pro, every lead gets a personal reply from your instructions and your own facts, on the thank-you screen or by email." },
-      { title: "Score and route", body: "AI insights give each lead a score and urgency, and connections post hot leads to Slack or your CRM through Zapier, Make or a webhook." },
+      { title: "Score and route", body: "AI insights give each lead a score and urgency, and connections post hot leads to Slack, straight into HubSpot, or to any other CRM through a signed webhook." },
     ],
     templates: ["lead-qualification", "quote-request", "partnership-inquiry", "waitlist"],
     help: ["logic-ai", "ai-replies", "ai-insights", "webhooks"],
     related: ["logic", "ai-replies", "insights"],
     faqs: [
       { q: "Can it book a call?", a: "Send qualified leads to your booking page with a redirect, and quote their answers in the link." },
-      { q: "Does it work with my CRM?", a: "Through Zapier, Make or a signed webhook, on Pro." },
+      { q: "Does it work with my CRM?", a: "HubSpot connects directly on Pro. Any other CRM works through a signed webhook, which Zapier or Make can pick up." },
     ],
     updated: "2026-09-30",
   },

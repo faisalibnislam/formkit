@@ -10,9 +10,9 @@ import { bootstrapStaffRole, googleProfile } from "./model/oauthProfile";
 import { checkAssertion, readClientData, relyingParty, type Assertion } from "./model/webauthn";
 
 /**
- * Email and password, run by Convex. Google sign-in exists only for
- * Business single sign-on, and only when its OAuth app is set on the
- * deployment (see convex/sso.ts).
+ * Email and password, run by Convex, plus passkeys and Google sign-in for
+ * everyone when Google's OAuth app is set on the deployment. Business
+ * companies can require Google for their domain (see convex/sso.ts).
  */
 const BasePassword = Password<DataModel>({
   verify: ResendVerifyOTP,

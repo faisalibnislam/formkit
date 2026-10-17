@@ -78,5 +78,5 @@ export const TRUST_POINTS = [
   { icon: "receipt", title: "Billing by Polar", body: "Polar is the merchant of record: they take the card, add the tax and send the receipt." },
   { icon: "credit-card", title: "Your money, your Stripe", body: "Payments go straight to your own Stripe account. Formkit never holds them and takes no cut." },
   { icon: "check", title: "Cancel in one click", body: "Turn off auto-renew and the plan runs to the end of what you paid for. No survey, no call." },
-  { icon: "shield", title: "Spam kept out", body: "An invisible check and limits on floods, on every form, on every plan." },
+  { icon: "shield", title: "Spam kept out", body: "A Cloudflare Turnstile check, with a tick box when it can’t run, and limits on floods, on every form, on every plan." },
 ];

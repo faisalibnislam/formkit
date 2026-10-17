@@ -32,6 +32,7 @@ export const FOOTER_COLUMNS = [
     links: [
       { label: "Features", href: "/features" },
       { label: "Use cases", href: "/use-cases" },
+      { label: "Integrations", href: "/integrations" },
       { label: "Templates", href: "/templates" },
       { label: "Pricing", href: "/pricing" },
       { label: "Compare", href: "/compare" },
@@ -44,6 +45,7 @@ export const FOOTER_COLUMNS = [
       { label: "Help center", href: "/help" },
       { label: "Getting started", href: "/help/create-first-form" },
       { label: "Logic rules", href: "/help/logic-basics" },
+      { label: "Guides", href: "/guides" },
       { label: "Building with AI", href: "/help/ai-what" },
       { label: "API docs", href: "/api-docs" },
       { label: "Contact us", href: "/contact" },

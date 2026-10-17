@@ -12,12 +12,14 @@ export const SITE_DATES = {
   help: "2026-10-17",
   features: "2026-10-17",
   useCases: "2026-09-30",
+  integrations: "2026-10-17",
+  guides: "2026-10-17",
   changelog: "2026-10-17",
   contact: "2026-10-15",
   apiDocs: "2026-10-15",
-  legal: "2026-09-21",
-  privacy: "2026-10-14",
-  dpa: "2026-10-14",
+  legal: "2026-09-28",
+  privacy: "2026-10-17",
+  dpa: "2026-10-17",
 } as const;
 
 /** A content item's own date, or its collection's. */

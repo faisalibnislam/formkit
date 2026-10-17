@@ -66,7 +66,7 @@ export const MORE_TEMPLATES: FormTemplate[] = [
     who: ["Anyone with a website. Embed it on your contact page, or share the link from your email signature and social profiles."],
     faqs: [
       { q: "Can messages go to different people?", a: "Yes. Routing rules send each message to the right inbox by the topic someone picks." },
-      { q: "Will I get spam?", a: "Formkit adds an invisible check and limits on floods to every form, on every plan." },
+      { q: "Will I get spam?", a: "Formkit adds a Cloudflare Turnstile check, with a tick box when it can’t run, and limits on floods to every form, on every plan." },
     ],
     features: ["branding"],
   }),
@@ -115,7 +115,7 @@ export const MORE_TEMPLATES: FormTemplate[] = [
     who: ["Consultants, developers and agencies who write proposals and want the facts first."],
     faqs: [
       { q: "Can AI draft my reply?", a: "On Pro, AI replies can write each prospect a first response from your instructions and your own prices." },
-      { q: "Can I send the answers to my CRM?", a: "On Pro, through webhooks, Zapier or Make, the moment a response arrives." },
+      { q: "Can I send the answers to my CRM?", a: "On Pro, straight into HubSpot, or to any other CRM through a signed webhook, the moment a response arrives." },
     ],
     features: ["ai-replies", "integrations"],
   }),
@@ -258,7 +258,7 @@ export const MORE_TEMPLATES: FormTemplate[] = [
     lead: "Short enough to fill in on a phone, with one question that tells you what to cover.",
     who: ["Marketing teams running webinars, live demos and online events."],
     faqs: [
-      { q: "Can registrations go to my email tool?", a: "On Pro, through Zapier, Make or a webhook." },
+      { q: "Can registrations go to my email tool?", a: "On Pro, through a signed webhook, which Zapier or Make can pick up." },
       { q: "Can I send the joining link automatically?", a: "Yes. The confirmation email can include the link and any details." },
     ],
     features: ["integrations"],
@@ -271,7 +271,7 @@ export const MORE_TEMPLATES: FormTemplate[] = [
     who: ["Writers, shops and brands growing a mailing list."],
     faqs: [
       { q: "Can I embed it?", a: "Yes, on any plan, inline or as a popup, or share the link." },
-      { q: "Does it connect to my email tool?", a: "On Pro, through Zapier, Make or a webhook." },
+      { q: "Does it connect to my email tool?", a: "On Pro, through a signed webhook, which Zapier or Make can pick up." },
     ],
     features: ["integrations", "branding"],
   }),
@@ -330,7 +330,7 @@ export const MORE_TEMPLATES: FormTemplate[] = [
     lead: "The questions an engineer needs to fix a bug on the first try.",
     who: ["Software teams collecting bug reports from customers or testers."],
     faqs: [
-      { q: "Can reports go to our issue tracker?", a: "On Pro, send each report through a webhook, Zapier or Make." },
+      { q: "Can reports go to our issue tracker?", a: "On Pro, send each report through a signed webhook, which Zapier or Make can pick up." },
       { q: "Can urgent bugs alert us?", a: "Routing sends blockers to a person, and Slack on Pro posts each one to a channel." },
     ],
     features: ["integrations"],

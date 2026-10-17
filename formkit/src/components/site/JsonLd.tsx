@@ -84,7 +84,7 @@ export function softwareApp(siteUrl: string) {
       "AI replies to every response",
       "AI insights on responses",
       "Custom domains and branding",
-      "Slack, Google Sheets, Zapier, Make and webhooks",
+      "Slack, Discord, Microsoft Teams, Google Sheets, Notion, Airtable, HubSpot and webhooks",
       "Companies with members and roles",
       "Response inbox, analytics and exports",
       "Version history",

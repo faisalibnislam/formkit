@@ -3,6 +3,8 @@ import { HELP_ARTICLES } from "@/content/help";
 import { TEMPLATES } from "@/content/templates";
 import { RIVALS } from "@/content/compare";
 import { FEATURE_PAGES, USE_CASES } from "@/content/features";
+import { INTEGRATION_PAGES } from "@/content/integrations";
+import { GUIDE_PAGES } from "@/content/guides";
 import { SITE_URL } from "@/lib/site";
 import { SITE_DATES, lastMod } from "@/lib/dates";
 
@@ -19,6 +21,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE_URL}/templates`, lastModified: at(SITE_DATES.templates), priority: 0.9, changeFrequency: "weekly" },
     { url: `${SITE_URL}/features`, lastModified: at(SITE_DATES.features), priority: 0.9, changeFrequency: "monthly" },
     { url: `${SITE_URL}/use-cases`, lastModified: at(SITE_DATES.useCases), priority: 0.7, changeFrequency: "monthly" },
+    { url: `${SITE_URL}/integrations`, lastModified: at(SITE_DATES.integrations), priority: 0.8, changeFrequency: "monthly" },
+    { url: `${SITE_URL}/guides`, lastModified: at(SITE_DATES.guides), priority: 0.7, changeFrequency: "monthly" },
     { url: `${SITE_URL}/changelog`, lastModified: at(SITE_DATES.changelog), priority: 0.6, changeFrequency: "weekly" },
     { url: `${SITE_URL}/compare`, lastModified: at(SITE_DATES.compare), priority: 0.8, changeFrequency: "monthly" },
     { url: `${SITE_URL}/help`, lastModified: at(SITE_DATES.help), priority: 0.8, changeFrequency: "weekly" },
@@ -46,6 +50,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...USE_CASES.map((u) => ({
       url: `${SITE_URL}/use-cases/${u.slug}`,
       lastModified: lastMod(u.updated, SITE_DATES.useCases),
+      priority: 0.7,
+      changeFrequency: "monthly" as const,
+    })),
+    ...INTEGRATION_PAGES.map((p) => ({
+      url: `${SITE_URL}/integrations/${p.slug}`,
+      lastModified: lastMod(p.updated, SITE_DATES.integrations),
+      priority: 0.8,
+      changeFrequency: "monthly" as const,
+    })),
+    ...GUIDE_PAGES.map((g) => ({
+      url: `${SITE_URL}/guides/${g.slug}`,
+      lastModified: lastMod(g.updated, SITE_DATES.guides),
       priority: 0.7,
       changeFrequency: "monthly" as const,
     })),

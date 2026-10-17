@@ -90,7 +90,7 @@ export const CREDIT_LIFE_MS = 365 * 24 * 60 * 60 * 1000;
 /** Every paid feature, the plan that first includes it, and how it is described. */
 export const FEATURES = {
   // Pro - presentation
-  "brand.badge": { plan: "pro", label: "Remove “Made with Formkit”", group: "Your brand" },
+  "brand.badge": { plan: "pro", label: "Remove “Powered by Formkit”", group: "Your brand" },
   domains: { plan: "pro", label: "Custom domain", group: "Your brand" },
   "email.domain": { plan: "pro", label: "Send emails from your own domain", group: "Your brand" },
   "design.fonts": { plan: "pro", label: "Custom fonts", group: "Your brand" },
